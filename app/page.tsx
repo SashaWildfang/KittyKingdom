@@ -55,6 +55,11 @@ const features = [
 
 const leaves = Array.from({ length: 18 }, (_, index) => index + 1);
 
+const reasonIcons = ["🛠️", "❤️", "👂", "🤝", "🔐", "🛡️", "🤖", "🏘️"];
+const featureIcons = ["🔞", "🎚️", "💎", "🎨", "💞", "💸", "🍂"];
+
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   const disboard = await getDisboardSummary();
 
@@ -123,8 +128,11 @@ export default async function Home() {
           <h2>Why you should join Kitty Kingdom</h2>
         </div>
         <div className="reason-grid">
-          {reasons.map((reason) => (
-            <article className="reason-card" key={reason}>{reason}</article>
+          {reasons.map((reason, index) => (
+            <article className="reason-card" key={reason}>
+              <span className="reason-icon" aria-hidden="true">{reasonIcons[index]}</span>
+              <span>{reason}</span>
+            </article>
           ))}
         </div>
       </section>
@@ -135,8 +143,11 @@ export default async function Home() {
           <h2>More ways to make the kingdom yours</h2>
         </div>
         <div className="reason-grid feature-list-grid">
-          {features.map((feature) => (
-            <article className="reason-card" key={feature}>{feature}</article>
+          {features.map((feature, index) => (
+            <article className="reason-card" key={feature}>
+              <span className="reason-icon" aria-hidden="true">{featureIcons[index]}</span>
+              <span>{feature}</span>
+            </article>
           ))}
         </div>
       </section>
@@ -172,8 +183,8 @@ export default async function Home() {
       <section className="reviews-section" aria-label="Kitty Kingdom reviews">
         <div className="section-heading">
           <p className="eyebrow">Reviews</p>
-          <h2>What people are saying</h2>
-          <p>Community reviews and the star rating are loaded from DISBOARD when available.</p>
+          <h2>{disboard.rating ? `We have a ${disboard.rating}/5 star review` : "What people are saying"}</h2>
+          <p>Here’s what people are saying about Kitty Kingdom on DISBOARD.</p>
         </div>
         <ReviewCarousel rating={disboard.rating} reviews={disboard.reviews} />
         <div className="review-actions">

@@ -24,23 +24,19 @@ export function ReviewCarousel({ rating, reviews }: ReviewCarouselProps) {
 
   const review = reviews[index];
 
+  if (!review) {
+    return (
+      <article className="review-card review-card-empty">
+        <p>DISBOARD reviews could not be fetched automatically. Use “View all reviews” to open the live DISBOARD review page.</p>
+      </article>
+    );
+  }
+
   return (
     <article className="review-card">
-      <div className="rating-row">
-        <span className="review-stars" aria-label="Reviews">★★★★★</span>
-        <strong>{rating ? `${rating}/5` : "DISBOARD rating"}</strong>
-      </div>
-      {review ? (
-        <>
-          <p>“{review.text}”</p>
-          <span className="review-source">{review.author}{review.rating ? ` • ${review.rating}/5` : ""}</span>
-        </>
-      ) : (
-        <>
-          <p>Live DISBOARD reviews will appear here when they are available to fetch.</p>
-          <span className="review-source">Reviews are sourced from DISBOARD</span>
-        </>
-      )}
+      <span className="review-stars" aria-label="Review stars">★★★★★</span>
+      <p>“{review.text}”</p>
+      <span className="review-source">{review.author}{review.rating ? ` • ${review.rating}/5` : rating ? ` • ${rating}/5` : ""}</span>
     </article>
   );
 }
