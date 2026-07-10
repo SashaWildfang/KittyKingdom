@@ -8,7 +8,7 @@ export default function AccountPage({ searchParams }: { searchParams: { account?
       <div className="auth-backdrop" />
       <section className="auth-card account-card" aria-label="Account settings">
         <Link className="auth-logo" href="/" aria-label="Kitty Kingdom home">
-          <span className="brand-crest">KK</span>
+          <img className="auth-logo-img" src="/logo.png" alt="Kitty Kingdom logo" />
         </Link>
         <h1>Account Settings</h1>
         <p className="auth-intro">Finish your member profile, create a username, and link Discord.</p>

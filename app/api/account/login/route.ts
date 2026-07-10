@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { setSession, verifyPassword } from "../../../../lib/auth";
+import { isDatabaseConnectionError } from "../../../../lib/db-errors";
 import { getUsersCollection } from "../../../../lib/mongodb";
 
 export const maxDuration = 10;
@@ -25,6 +26,7 @@ export async function POST(request: Request) {
     return NextResponse.redirect(`${origin}/account?login=success`, 303);
   } catch (error) {
     console.error("Login failed", error);
-    return NextResponse.redirect(`${origin}/login?login=service-unavailable`, 303);
+    const status = isDatabaseConnectionError(error) ? "database-unreachable" : "service-unavailable";
+    return NextResponse.redirect(`${origin}/login?login=${status}`, 303);
   }
 }

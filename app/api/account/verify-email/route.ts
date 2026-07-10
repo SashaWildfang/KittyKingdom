@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { hashToken, setSession } from "../../../../lib/auth";
+import { isDatabaseConnectionError } from "../../../../lib/db-errors";
 import { getUsersCollection } from "../../../../lib/mongodb";
 
 export const maxDuration = 10;
@@ -36,6 +37,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/account?verify=success`, 303);
   } catch (error) {
     console.error("Email verification failed", error);
-    return NextResponse.redirect(`${origin}/login?verify=service-unavailable`, 303);
+    const status = isDatabaseConnectionError(error) ? "database-unreachable" : "service-unavailable";
+    return NextResponse.redirect(`${origin}/login?verify=${status}`, 303);
   }
 }
