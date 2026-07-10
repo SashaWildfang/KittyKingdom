@@ -1,4 +1,5 @@
 import { getDisboardSummary } from "../lib/disboard";
+import { manualReviews } from "../lib/manual-reviews";
 import { getDiscordInviteSummary } from "../lib/discord";
 import { CommunityCarousel } from "./community-carousel";
 import { OnlineStatus } from "./online-status";
@@ -306,7 +307,12 @@ export default async function Home() {
           </h2>
           <p>Here’s what people are saying about Kitty Kingdom on DISBOARD.</p>
         </div>
-        <ReviewCarousel rating={disboard.rating} reviews={disboard.reviews} />
+        <ReviewCarousel
+          rating={disboard.rating}
+          reviews={
+            disboard.reviews.length > 0 ? disboard.reviews : manualReviews
+          }
+        />
         <div className="review-actions">
           <a className="cta" href="/reviews">
             View all reviews
