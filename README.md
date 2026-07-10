@@ -2,14 +2,32 @@
 
 Fall-themed Next.js landing page for the Kitty Kingdom furry Minecraft community.
 
-## Planned backend hooks
+## Account flow
 
-The registration flow is scaffolded to require Discord before creating a user profile. Add these environment variables when wiring the backend:
+- Register with email, confirm email, and password.
+- Users receive an email confirmation link before they can log in.
+- Login accepts email + password or username + password after a username is created.
+- Signed-in users can create a username in account settings.
+- Signed-in users can link Discord in account settings.
+
+## Environment variables
+
+Required for account storage and sessions:
 
 - `DATABASE_URL`
+- `AUTH_SECRET`
+- `MONGODB_DB` optional; defaults to `kittykingdom`
+
+Required for email confirmation through Resend:
+
+- `RESEND_API_KEY`
+- `EMAIL_FROM`
+
+Required for Discord linking:
+
 - `DISCORD_CLIENT_ID`
 - `DISCORD_CLIENT_SECRET`
 - `DISCORD_REDIRECT_URI`
-- `DISCORD_GUILD_ID`
+- `DISCORD_GUILD_ID` optional, but set it to require membership in the Kitty Kingdom Discord server
 
-The current `/api/auth/discord` route redirects to Discord OAuth when the Discord client settings are present. The callback, database insert, and Discord.py bot handoff still need the exact bot/guild requirements.
+The current account implementation writes users to the `users` collection in MongoDB. Discord bot-specific behavior can be added after the bot/guild requirements are finalized.
