@@ -834,3 +834,76 @@ h2 { font-size: clamp(2rem, 4vw, 4rem); line-height: 0.98; letter-spacing: -0.05
     grid-column: auto;
   }
 }
+
+.why-join-section,
+.features-section {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 0.75fr) minmax(18rem, 1.25fr);
+  gap: 1rem;
+  align-items: start;
+  padding: 0 clamp(1rem, 6vw, 6rem) clamp(3rem, 7vw, 6rem);
+}
+
+.reason-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.reason-card {
+  border: 1px solid var(--line);
+  border-radius: 1.2rem;
+  background: var(--panel);
+  box-shadow: 0 16px 48px var(--shadow);
+  color: var(--text);
+  font-weight: 850;
+  line-height: 1.45;
+  padding: 1rem;
+}
+
+.feature-list-grid .reason-card {
+  background: color-mix(in srgb, var(--panel) 82%, var(--maple));
+}
+
+.rating-row {
+  align-items: center;
+  display: flex;
+  gap: 0.85rem;
+  justify-content: space-between;
+}
+
+.review-list {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.social-links a {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+  line-height: 0;
+  padding: 0;
+}
+
+.social-links a svg {
+  display: block;
+  flex: 0 0 auto;
+}
+
+.discord-panel .cta {
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .why-join-section,
+  .features-section {
+    grid-template-columns: 1fr;
+  }
+
+  .reason-grid {
+    grid-template-columns: 1fr;
+  }
+}
