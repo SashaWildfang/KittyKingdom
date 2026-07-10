@@ -86,12 +86,5 @@ export async function getCurrentUser() {
   if (!userId) return null;
 
   const users = await getUsersCollection();
-  const user = await users.findOne({ _id: userId });
-  if (!user) {
-    await clearSession();
-    return null;
-  }
-
-  await setSession(userId);
-  return user;
+  return users.findOne({ _id: userId });
 }
