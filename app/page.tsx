@@ -22,15 +22,23 @@ const news = [
 const memberSections = [
   {
     title: "Leaderboards",
-    text: "Show top community members, event winners, activity, and seasonal challenge scores after sign-in.",
+    text: "Track top members, activity, events, and seasonal achievements.",
   },
   {
     title: "Dating Profiles",
-    text: "A member-only profile area for introductions, preferences, and safe community matching.",
+    text: "Create introductions and match with other verified community members.",
   },
   {
-    title: "Store",
-    text: "A future shop home for roles, boosters, supporter perks, and Kitty Kingdom extras.",
+    title: "Server Store",
+    text: "Purchase roles, boosters, and supporter perks from the website.",
+  },
+  {
+    title: "Role Customization",
+    text: "Manage role selection, profile identity, and community personalization.",
+  },
+  {
+    title: "Much More",
+    text: "More member tools will be added as the website grows with the Discord server.",
   },
 ];
 
@@ -173,7 +181,7 @@ export default async function Home() {
       </div>
 
       <nav className="topbar" aria-label="Main navigation">
-        <a className="brand" href="#home" aria-label="Kitty Kingdom home">
+        <a className="brand" href="/home" aria-label="Kitty Kingdom home">
           <img
             className="brand-logo-img"
             src="/logo.png"
@@ -188,9 +196,10 @@ export default async function Home() {
           </span>
         </a>
         <div className="tabs">
-          <a href="#home">Home</a>
-          <a href="#news">News</a>
-          <a href="#discord">Discord</a>
+          <a href="/home">Home</a>
+          <a href="/news">News</a>
+          <a href="/discord">Discord</a>
+          <a href="/staff">Staff</a>
         </div>
         <div className="nav-actions">
           <ThemeToggle />
@@ -266,23 +275,22 @@ export default async function Home() {
 
       <section className="discord-panel" id="discord">
         <div>
-          <p className="eyebrow">Discord after account creation</p>
-          <h2>Link Discord from account settings.</h2>
+          <p className="eyebrow">Discord community</p>
+          <h2>Join the Kitty Kingdom Discord.</h2>
           <p>
-            Registration starts on its own page with email confirmation. After
-            sign-in, members can create a username and use the Discord link
-            button in account settings to connect their server identity.
+            Meet the community, verify your account, join events, browse
+            channels, and start building your place in the kingdom.
           </p>
         </div>
-        <a className="cta" href="/account">
-          Open account settings
+        <a className="cta" href="https://discord.com/invite/M9XKHFdYQV">
+          Join the Discord
         </a>
       </section>
 
       <section className="member-preview" aria-label="Signed-in member areas">
         <div className="section-heading">
-          <p className="eyebrow">After sign-in</p>
-          <h2>Member areas are staged for the next backend pass</h2>
+          <p className="eyebrow">Member features</p>
+          <h2>Everything your account will unlock</h2>
         </div>
         <div className="member-grid">
           {memberSections.map((section) => (
@@ -321,7 +329,7 @@ export default async function Home() {
 
       <footer className="site-footer" aria-label="Footer navigation">
         <div className="footer-brand">
-          <a className="brand" href="#home" aria-label="Kitty Kingdom home">
+          <a className="brand" href="/home" aria-label="Kitty Kingdom home">
             <img
               className="brand-logo-img"
               src="/logo.png"
@@ -358,12 +366,12 @@ export default async function Home() {
           <div>
             <h3>Play</h3>
             <a href="/login">My Account</a>
-            <a href="#news">News</a>
-            <a href="#discord">Learn how to join</a>
+            <a href="/news">News</a>
+            <a href="/discord">Learn how to join</a>
           </div>
           <div>
             <h3>Community</h3>
-            <a href="https://discord.com/invite/M9XKHFdYQV">Discord</a>
+            <a href="/discord">Discord</a>
             <a href="/reviews">Reviews</a>
             <a href="/account">Account Settings</a>
           </div>
