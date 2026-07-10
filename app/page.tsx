@@ -1,6 +1,7 @@
 import { getDisboardSummary } from "../lib/disboard";
 import { manualReviews } from "../lib/manual-reviews";
 import { getDiscordInviteSummary } from "../lib/discord";
+import { getSessionUserId } from "../lib/auth";
 import { CommunityCarousel } from "./community-carousel";
 import { OnlineStatus } from "./online-status";
 import { ReviewCarousel } from "./review-carousel";
@@ -164,10 +165,15 @@ const featureCarouselItems = features.map((item) => ({
 
 export const dynamic = "force-dynamic";
 
-export default async function Home() {
-  const [disboard, discord] = await Promise.all([
+export default async function Home({
+  searchParams,
+}: {
+  searchParams?: { register?: string };
+}) {
+  const [disboard, discord, userId] = await Promise.all([
     getDisboardSummary(),
     getDiscordInviteSummary(),
+    getSessionUserId(),
   ]);
   return (
     <main>
@@ -197,14 +203,27 @@ export default async function Home() {
         </div>
         <div className="nav-actions">
           <ThemeToggle />
-          <a className="login-link" href="/login">
-            Login
-          </a>
-          <a className="primary-pill" href="/register">
-            Register
+          {userId ? (
+            <a className="login-link logged-in-link" href="/account">
+              Account
+            </a>
+          ) : (
+            <a className="login-link" href="/login">
+              Login
+            </a>
+          )}
+          <a className="primary-pill" href={userId ? "/account" : "/register"}>
+            {userId ? "Logged in" : "Register"}
           </a>
         </div>
       </nav>
+
+      {searchParams?.register === "check-email" ? (
+        <div className="home-status-banner">
+          Account created. Check your email to verify your account, then log in
+          when you are ready.
+        </div>
+      ) : null}
 
       <section className="hero" id="home">
         <div className="hero-copy">
