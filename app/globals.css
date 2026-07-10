@@ -326,3 +326,186 @@ h2 { font-size: clamp(2rem, 4vw, 4rem); line-height: 0.98; letter-spacing: -0.05
   h1 { font-size: clamp(3rem, 18vw, 5rem); }
   .discord-panel { align-items: flex-start; flex-direction: column; }
 }
+
+.auth-screen {
+  position: relative;
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 2rem;
+}
+
+.auth-backdrop {
+  position: fixed;
+  inset: 0;
+  background:
+    linear-gradient(rgba(8, 10, 14, 0.78), rgba(8, 10, 14, 0.82)),
+    radial-gradient(circle at 50% 35%, rgba(80, 150, 255, 0.18), transparent 18rem),
+    linear-gradient(135deg, #0c1119 0%, #2c170f 55%, #0b0d12 100%);
+}
+
+.auth-backdrop::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(30deg, transparent 0 46%, rgba(255,255,255,0.04) 47% 49%, transparent 50%),
+    radial-gradient(circle at 22% 70%, rgba(245, 155, 42, 0.16), transparent 18rem),
+    radial-gradient(circle at 78% 24%, rgba(74, 153, 255, 0.16), transparent 18rem);
+  filter: blur(1px);
+}
+
+.auth-card {
+  position: relative;
+  z-index: 2;
+  width: min(100%, 28rem);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 1.35rem;
+  background: rgba(14, 15, 16, 0.9);
+  box-shadow: 0 28px 110px rgba(0, 0, 0, 0.55);
+  color: #f6f7fb;
+  padding: 2rem;
+  text-align: center;
+}
+
+.account-card { width: min(100%, 58rem); }
+.auth-card h1 {
+  max-width: none;
+  margin: 0 0 1.3rem;
+  color: #f6f7fb;
+  font-size: 1.7rem;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+}
+
+.auth-logo {
+  display: inline-grid;
+  margin-top: -3.4rem;
+  margin-bottom: 1rem;
+  place-items: center;
+}
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-bottom: 1.35rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.auth-tabs a,
+.auth-tabs span {
+  color: rgba(246, 247, 251, 0.5);
+  font-weight: 900;
+  padding: 0.9rem 0.5rem;
+}
+
+.auth-tabs .active-tab {
+  border-bottom: 0.2rem solid #4ea1ff;
+  color: #fff;
+}
+
+.auth-intro,
+.auth-switch,
+.auth-help,
+.auth-status,
+.discord-settings-card p {
+  color: rgba(246, 247, 251, 0.68);
+  font-size: 0.92rem;
+  line-height: 1.65;
+}
+
+.auth-status {
+  border: 1px solid rgba(78, 161, 255, 0.28);
+  border-radius: 0.8rem;
+  background: rgba(78, 161, 255, 0.08);
+  padding: 0.7rem 0.85rem;
+}
+
+.auth-form {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.2rem;
+  text-align: left;
+}
+
+.auth-form h2 {
+  color: #f6f7fb;
+  font-size: 1.15rem;
+  letter-spacing: -0.03em;
+}
+
+.auth-form label {
+  display: grid;
+  gap: 0.45rem;
+  color: rgba(246, 247, 251, 0.82);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.auth-form label span,
+.form-helper-row a,
+.auth-switch a,
+.auth-help {
+  color: #4ea1ff;
+}
+
+.auth-form input {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.45rem;
+  background: rgba(0, 0, 0, 0.36);
+  color: #fff;
+  padding: 0.95rem 1rem;
+}
+
+.auth-form input:focus {
+  border-color: #4ea1ff;
+  outline: none;
+  box-shadow: 0 0 0 0.2rem rgba(78, 161, 255, 0.16);
+}
+
+.label-row,
+.form-helper-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.password-eye {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.45rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(246, 247, 251, 0.82);
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 900;
+  padding: 0.35rem 0.55rem;
+}
+
+.auth-form > button,
+.auth-card .form-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  width: 100%;
+  border: 0;
+  border-radius: 0.65rem;
+  background: #4ea1ff;
+  color: #07111f;
+  cursor: pointer;
+  font-weight: 1000;
+  padding: 1rem;
+  text-align: center;
+}
+
+.auth-switch { margin: 1rem 0 0.45rem; }
+.auth-help { display: inline-flex; font-weight: 900; }
+.account-settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+@media (max-width: 760px) {
+  .auth-screen { padding: 1rem; }
+  .auth-card { padding: 1.5rem; }
+  .account-settings-grid { grid-template-columns: 1fr; }
+}

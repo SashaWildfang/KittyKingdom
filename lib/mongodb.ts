@@ -12,7 +12,11 @@ function getDatabaseUrl() {
 
 async function getMongoClient() {
   if (!clientPromise) {
-    const client = new MongoClient(getDatabaseUrl());
+    const client = new MongoClient(getDatabaseUrl(), {
+      connectTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 10000,
+    });
     clientPromise = client.connect();
   }
 
