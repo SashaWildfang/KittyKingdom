@@ -29,10 +29,15 @@ export default function LoginPage({ searchParams }: { searchParams: { login?: st
         {status && statusMessages[status] ? <p className="auth-status">{statusMessages[status]}</p> : null}
         <form className="auth-form" action="/api/account/login" method="post">
           <label>
-            Email or username <span>*</span>
-            <input autoComplete="username" name="identifier" placeholder="you@example.com or YourMCName" required type="text" />
+            <span className="input-label">Email or username <span className="required-mark">*</span></span>
+            <span className="input-shell">
+              <span className="field-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" role="img"><path d="M4.75 5h14.5C20.22 5 21 5.78 21 6.75v10.5c0 .97-.78 1.75-1.75 1.75H4.75C3.78 19 3 18.22 3 17.25V6.75C3 5.78 3.78 5 4.75 5Zm.62 2 6.63 5.05L18.63 7H5.37Zm13.63 1.63-6.4 4.88a1 1 0 0 1-1.2 0L5 8.63V17h14V8.63Z" /></svg>
+              </span>
+              <input autoComplete="username" name="identifier" placeholder="you@example.com or YourMCName" required type="text" />
+            </span>
           </label>
-          <PasswordField autoComplete="current-password" label="Password *" name="password" placeholder="Enter your password" />
+          <PasswordField autoComplete="current-password" label="Password" name="password" placeholder="Enter your password" />
           <div className="form-helper-row">
             <span />
             <Link href="/forgot-password">Forgot password?</Link>

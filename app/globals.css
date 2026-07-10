@@ -400,7 +400,7 @@ h2 { font-size: clamp(2rem, 4vw, 4rem); line-height: 0.98; letter-spacing: -0.05
 }
 
 .auth-tabs .active-tab {
-  border-bottom: 0.2rem solid #4ea1ff;
+  border-bottom: 0.2rem solid #f59b2a;
   color: #fff;
 }
 
@@ -415,9 +415,9 @@ h2 { font-size: clamp(2rem, 4vw, 4rem); line-height: 0.98; letter-spacing: -0.05
 }
 
 .auth-status {
-  border: 1px solid rgba(78, 161, 255, 0.28);
+  border: 1px solid rgba(245, 155, 42, 0.32);
   border-radius: 0.8rem;
-  background: rgba(78, 161, 255, 0.08);
+  background: rgba(245, 155, 42, 0.10);
   padding: 0.7rem 0.85rem;
 }
 
@@ -442,11 +442,11 @@ h2 { font-size: clamp(2rem, 4vw, 4rem); line-height: 0.98; letter-spacing: -0.05
   font-weight: 800;
 }
 
-.auth-form label span,
+.auth-form label .required-mark,
 .form-helper-row a,
 .auth-switch a,
 .auth-help {
-  color: #4ea1ff;
+  color: #f59b2a;
 }
 
 .auth-form input {
@@ -459,9 +459,9 @@ h2 { font-size: clamp(2rem, 4vw, 4rem); line-height: 0.98; letter-spacing: -0.05
 }
 
 .auth-form input:focus {
-  border-color: #4ea1ff;
+  border-color: #f59b2a;
   outline: none;
-  box-shadow: 0 0 0 0.2rem rgba(78, 161, 255, 0.16);
+  box-shadow: 0 0 0 0.2rem rgba(245, 155, 42, 0.18);
 }
 
 .label-row,
@@ -492,7 +492,7 @@ h2 { font-size: clamp(2rem, 4vw, 4rem); line-height: 0.98; letter-spacing: -0.05
   width: 100%;
   border: 0;
   border-radius: 0.65rem;
-  background: #4ea1ff;
+  background: #f59b2a;
   color: #07111f;
   cursor: pointer;
   font-weight: 1000;
@@ -508,4 +508,75 @@ h2 { font-size: clamp(2rem, 4vw, 4rem); line-height: 0.98; letter-spacing: -0.05
   .auth-screen { padding: 1rem; }
   .auth-card { padding: 1.5rem; }
   .account-settings-grid { grid-template-columns: 1fr; }
+}
+
+.input-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.required-mark {
+  color: #f59b2a !important;
+}
+
+.input-shell {
+  position: relative;
+  display: block;
+}
+
+.input-shell input {
+  padding-left: 2.75rem;
+}
+
+.field-icon {
+  position: absolute;
+  left: 0.9rem;
+  top: 50%;
+  z-index: 1;
+  display: inline-grid;
+  width: 1.05rem;
+  height: 1.05rem;
+  place-items: center;
+  transform: translateY(-50%);
+  color: rgba(246, 247, 251, 0.45);
+  pointer-events: none;
+}
+
+.field-icon svg,
+.password-eye svg {
+  display: block;
+  width: 1.05rem;
+  height: 1.05rem;
+  fill: currentColor;
+}
+
+.password-eye {
+  position: absolute;
+  right: 0.45rem;
+  top: 50%;
+  z-index: 2;
+  display: inline-grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.45rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(246, 247, 251, 0.72);
+  cursor: pointer;
+  padding: 0;
+  transform: translateY(-50%);
+}
+
+.input-shell .password-eye + input,
+.input-shell input[type="password"],
+.input-shell input[type="text"][name="password"] {
+  padding-right: 3rem;
+}
+
+.field-help {
+  color: rgba(246, 247, 251, 0.58);
+  font-size: 0.78rem;
+  line-height: 1.45;
 }
