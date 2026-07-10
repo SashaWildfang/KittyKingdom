@@ -1,8 +1,10 @@
 import { ObjectId } from "mongodb";
 import { cookies } from "next/headers";
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "crypto";
+import { getUsersCollection } from "./mongodb";
 
 const sessionCookie = "kk_session";
+const sessionMaxAge = 60 * 60 * 8;
 
 function getSecret() {
   const secret = process.env.AUTH_SECRET;
@@ -54,7 +56,18 @@ export async function setSession(userId: ObjectId | string) {
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: 60 * 60 * 24 * 30,
+    maxAge: sessionMaxAge,
+  });
+}
+
+export async function clearSession() {
+  const cookieStore = await cookies();
+  cookieStore.set(sessionCookie, "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 0,
   });
 }
 
@@ -66,4 +79,19 @@ export async function getSessionUserId() {
   const [userId, signature] = session.split(".");
   if (!userId || !signature || sign(userId) !== signature) return null;
   return ObjectId.isValid(userId) ? new ObjectId(userId) : null;
+}
+
+export async function getCurrentUser() {
+  const userId = await getSessionUserId();
+  if (!userId) return null;
+
+  const users = await getUsersCollection();
+  const user = await users.findOne({ _id: userId });
+  if (!user) {
+    await clearSession();
+    return null;
+  }
+
+  await setSession(userId);
+  return user;
 }

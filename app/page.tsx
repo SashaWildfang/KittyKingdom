@@ -1,7 +1,7 @@
 import { getDisboardSummary } from "../lib/disboard";
 import { manualReviews } from "../lib/manual-reviews";
 import { getDiscordInviteSummary } from "../lib/discord";
-import { getSessionUserId } from "../lib/auth";
+import { getCurrentUser } from "../lib/auth";
 import { CommunityCarousel } from "./community-carousel";
 import { OnlineStatus } from "./online-status";
 import { ReviewCarousel } from "./review-carousel";
@@ -170,10 +170,10 @@ export default async function Home({
 }: {
   searchParams?: { register?: string };
 }) {
-  const [disboard, discord, userId] = await Promise.all([
+  const [disboard, discord, user] = await Promise.all([
     getDisboardSummary(),
     getDiscordInviteSummary(),
-    getSessionUserId(),
+    getCurrentUser(),
   ]);
   return (
     <main>
@@ -203,7 +203,7 @@ export default async function Home({
         </div>
         <div className="nav-actions">
           <ThemeToggle />
-          {userId ? (
+          {user ? (
             <a className="login-link logged-in-link" href="/account">
               Account
             </a>
@@ -212,9 +212,17 @@ export default async function Home({
               Login
             </a>
           )}
-          <a className="primary-pill" href={userId ? "/account" : "/register"}>
-            {userId ? "Logged in" : "Register"}
-          </a>
+          {user ? (
+            <form action="/api/account/logout" method="post">
+              <button className="primary-pill" type="submit">
+                Logout
+              </button>
+            </form>
+          ) : (
+            <a className="primary-pill" href="/register">
+              Register
+            </a>
+          )}
         </div>
       </nav>
 
