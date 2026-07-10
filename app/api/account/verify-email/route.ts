@@ -22,14 +22,20 @@ export async function GET(request: Request) {
     });
 
     if (!user) {
-      return NextResponse.redirect(`${origin}/login?verify=invalid-or-expired`, 303);
+      return NextResponse.redirect(
+        `${origin}/login?verify=invalid-or-expired`,
+        303,
+      );
     }
 
     await users.updateOne(
       { _id: user._id },
       {
         $set: { emailVerified: true, updatedAt: new Date() },
-        $unset: { emailVerificationTokenHash: "", emailVerificationExpiresAt: "" },
+        $unset: {
+          emailVerificationTokenHash: "",
+          emailVerificationExpiresAt: "",
+        },
       },
     );
 
@@ -37,7 +43,9 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/account?verify=success`, 303);
   } catch (error) {
     console.error("Email verification failed", error);
-    const status = isDatabaseConnectionError(error) ? "database-unreachable" : "service-unavailable";
+    const status = isDatabaseConnectionError(error)
+      ? "database-unreachable"
+      : "service-unavailable";
     return NextResponse.redirect(`${origin}/login?verify=${status}`, 303);
   }
 }

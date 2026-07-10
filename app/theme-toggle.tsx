@@ -6,7 +6,8 @@ export function ThemeToggle() {
   const [theme, setTheme] = useState<"dark" | "light">("light");
 
   useEffect(() => {
-    const saved = window.localStorage.getItem("kitty-theme") as "dark" | "light" | null;
+    const saved = window.localStorage.getItem("kitty-theme") as
+      "dark" | "light" | null;
     const nextTheme = saved ?? "light";
     setTheme(nextTheme);
     document.documentElement.dataset.theme = nextTheme;

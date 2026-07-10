@@ -11,26 +11,40 @@ export async function POST(request: Request) {
 
   try {
     const form = await request.formData();
-    const email = String(form.get("email") ?? "").trim().toLowerCase();
+    const email = String(form.get("email") ?? "")
+      .trim()
+      .toLowerCase();
     const password = String(form.get("password") ?? "");
     const acceptedPolicies = form.get("acceptedPolicies") === "yes";
 
     if (!email) {
-      return NextResponse.redirect(`${origin}/register?register=email-required`, 303);
+      return NextResponse.redirect(
+        `${origin}/register?register=email-required`,
+        303,
+      );
     }
 
     if (!acceptedPolicies) {
-      return NextResponse.redirect(`${origin}/register?register=terms-required`, 303);
+      return NextResponse.redirect(
+        `${origin}/register?register=terms-required`,
+        303,
+      );
     }
 
     if (!/^(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(password)) {
-      return NextResponse.redirect(`${origin}/register?register=password-requirements`, 303);
+      return NextResponse.redirect(
+        `${origin}/register?register=password-requirements`,
+        303,
+      );
     }
 
     const users = await getUsersCollection();
     const existing = await users.findOne({ email });
     if (existing) {
-      return NextResponse.redirect(`${origin}/register?register=email-exists`, 303);
+      return NextResponse.redirect(
+        `${origin}/register?register=email-exists`,
+        303,
+      );
     }
 
     const { salt, hash } = hashPassword(password);
@@ -56,7 +70,9 @@ export async function POST(request: Request) {
     return NextResponse.redirect(`${origin}/register?register=${status}`, 303);
   } catch (error) {
     console.error("Registration failed", error);
-    const status = isDatabaseConnectionError(error) ? "database-unreachable" : "service-unavailable";
+    const status = isDatabaseConnectionError(error)
+      ? "database-unreachable"
+      : "service-unavailable";
     return NextResponse.redirect(`${origin}/register?register=${status}`, 303);
   }
 }

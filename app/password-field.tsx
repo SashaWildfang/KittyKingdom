@@ -12,7 +12,15 @@ type PasswordFieldProps = {
   pattern?: string;
 };
 
-export function PasswordField({ label, name, placeholder, autoComplete, helpText, minLength, pattern }: PasswordFieldProps) {
+export function PasswordField({
+  label,
+  name,
+  placeholder,
+  autoComplete,
+  helpText,
+  minLength,
+  pattern,
+}: PasswordFieldProps) {
   const [visible, setVisible] = useState(false);
 
   return (
