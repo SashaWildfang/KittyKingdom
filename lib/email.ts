@@ -3,7 +3,11 @@ export async function sendVerificationEmail(email: string, verifyUrl: string) {
   const from = process.env.EMAIL_FROM;
 
   if (!apiKey || !from) {
-    return { sent: false, reason: "Email provider is not configured. Set RESEND_API_KEY and EMAIL_FROM." };
+    return {
+      sent: false,
+      reason:
+        "Email provider is not configured. Set RESEND_API_KEY and EMAIL_FROM.",
+    };
   }
 
   const controller = new AbortController();
@@ -31,7 +35,10 @@ export async function sendVerificationEmail(email: string, verifyUrl: string) {
 
     return { sent: true };
   } catch (error) {
-    return { sent: false, reason: error instanceof Error ? error.message : "Email request failed." };
+    return {
+      sent: false,
+      reason: error instanceof Error ? error.message : "Email request failed.",
+    };
   } finally {
     clearTimeout(timeout);
   }

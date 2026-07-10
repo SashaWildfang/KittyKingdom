@@ -14,7 +14,13 @@ export async function GET(request: Request) {
   try {
     const sessionUserId = await getSessionUserId();
 
-    if (!code || !state || !sessionUserId || String(sessionUserId) !== state || !ObjectId.isValid(state)) {
+    if (
+      !code ||
+      !state ||
+      !sessionUserId ||
+      String(sessionUserId) !== state ||
+      !ObjectId.isValid(state)
+    ) {
       return NextResponse.redirect(`${origin}/account?discord=invalid`, 303);
     }
 
@@ -23,7 +29,10 @@ export async function GET(request: Request) {
     const redirectUri = process.env.DISCORD_REDIRECT_URI;
 
     if (!clientId || !clientSecret || !redirectUri) {
-      return NextResponse.redirect(`${origin}/account?discord=not-configured`, 303);
+      return NextResponse.redirect(
+        `${origin}/account?discord=not-configured`,
+        303,
+      );
     }
 
     const tokenResponse = await fetch("https://discord.com/api/oauth2/token", {
@@ -39,7 +48,10 @@ export async function GET(request: Request) {
     });
 
     if (!tokenResponse.ok) {
-      return NextResponse.redirect(`${origin}/account?discord=token-failed`, 303);
+      return NextResponse.redirect(
+        `${origin}/account?discord=token-failed`,
+        303,
+      );
     }
 
     const tokenData = (await tokenResponse.json()) as { access_token: string };
@@ -48,7 +60,10 @@ export async function GET(request: Request) {
     });
 
     if (!userResponse.ok) {
-      return NextResponse.redirect(`${origin}/account?discord=user-failed`, 303);
+      return NextResponse.redirect(
+        `${origin}/account?discord=user-failed`,
+        303,
+      );
     }
 
     const discordUser = (await userResponse.json()) as {
@@ -62,12 +77,18 @@ export async function GET(request: Request) {
     let guildMember = null;
 
     if (guildId) {
-      const memberResponse = await fetch(`https://discord.com/api/users/@me/guilds/${guildId}/member`, {
-        headers: { Authorization: `Bearer ${tokenData.access_token}` },
-      });
+      const memberResponse = await fetch(
+        `https://discord.com/api/users/@me/guilds/${guildId}/member`,
+        {
+          headers: { Authorization: `Bearer ${tokenData.access_token}` },
+        },
+      );
 
       if (!memberResponse.ok) {
-        return NextResponse.redirect(`${origin}/account?discord=guild-required`, 303);
+        return NextResponse.redirect(
+          `${origin}/account?discord=guild-required`,
+          303,
+        );
       }
 
       guildMember = await memberResponse.json();
@@ -94,6 +115,9 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/account?discord=linked`, 303);
   } catch (error) {
     console.error("Discord linking failed", error);
-    return NextResponse.redirect(`${origin}/account?discord=service-unavailable`, 303);
+    return NextResponse.redirect(
+      `${origin}/account?discord=service-unavailable`,
+      303,
+    );
   }
 }

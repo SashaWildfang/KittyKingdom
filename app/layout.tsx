@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { PawCursor } from "./paw-cursor";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -7,10 +8,15 @@ export const metadata: Metadata = {
   description: "A furry Discord community for 18+ members.",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+export default function RootLayout({
+  children,
+}: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en" data-theme="light">
-      <body>{children}</body>
+      <body>
+        <PawCursor />
+        {children}
+      </body>
     </html>
   );
 }
