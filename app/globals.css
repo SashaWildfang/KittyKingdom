@@ -983,3 +983,220 @@ h2 { font-size: clamp(2rem, 4vw, 4rem); line-height: 0.98; letter-spacing: -0.05
     grid-template-columns: 1fr;
   }
 }
+
+/* Final mobile and clean-card pass */
+.online-status {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.4rem;
+}
+
+.online-status span {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: #2ee66b;
+  box-shadow: 0 0 12px rgba(46, 230, 107, 0.8);
+}
+
+.clean-card-grid {
+  grid-template-columns: repeat(2, minmax(13rem, 1fr));
+}
+
+.clean-card {
+  position: relative;
+  min-height: 7.5rem;
+  overflow: hidden;
+  align-content: center;
+  background: rgba(28, 13, 8, 0.68);
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.clean-card strong {
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+}
+
+.clean-card p {
+  grid-column: 1 / -1;
+  max-height: 0;
+  margin: 0;
+  opacity: 0;
+  overflow: hidden;
+  transform: translateY(0.4rem);
+  transition: max-height 220ms ease, opacity 180ms ease, transform 180ms ease;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.clean-card:hover,
+.clean-card:focus-within {
+  transform: translateY(-0.2rem);
+  border-color: rgba(255, 210, 122, 0.42);
+  background: rgba(49, 21, 10, 0.82);
+}
+
+.clean-card:hover p,
+.clean-card:focus-within p {
+  max-height: 7rem;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reason-icon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: #fff;
+}
+
+.reason-icon {
+  color: #fff;
+}
+
+.footer-brand .brand-copy small {
+  color: rgba(246, 247, 251, 0.7);
+}
+
+.social-links a,
+.social-links a[aria-label="Discord"] {
+  width: 2.55rem;
+  height: 2.55rem;
+  min-width: 2.55rem;
+  min-height: 2.55rem;
+  display: inline-grid;
+  place-items: center;
+  overflow: visible;
+}
+
+.social-links a svg,
+.social-links a[aria-label="Discord"] svg {
+  width: 1.12rem;
+  height: 1.12rem;
+  display: block;
+  fill: currentColor;
+  overflow: visible;
+  transform: none;
+}
+
+.social-links a[aria-label="Discord"] svg {
+  width: 1.55rem;
+  height: 1.55rem;
+}
+
+@media (max-width: 760px) {
+  body {
+    background: linear-gradient(145deg, #160a06, #32150b 54%, #0d0604);
+  }
+
+  .topbar {
+    position: relative;
+    padding: 0.85rem 1rem;
+  }
+
+  .brand-logo-img {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .brand-copy strong {
+    font-size: 0.9rem;
+  }
+
+  .tabs,
+  .nav-actions {
+    width: 100%;
+    gap: 0.45rem;
+  }
+
+  .tabs a,
+  .login-link,
+  .theme-toggle,
+  .primary-pill {
+    padding: 0.58rem 0.7rem;
+    font-size: 0.82rem;
+  }
+
+  .hero {
+    min-height: auto;
+    gap: 1.5rem;
+    padding: 2rem 1rem 3rem;
+  }
+
+  h1 {
+    font-size: clamp(2.7rem, 16vw, 4rem);
+    letter-spacing: -0.07em;
+  }
+
+  h2 {
+    font-size: clamp(2rem, 11vw, 3rem);
+  }
+
+  .subtitle {
+    font-size: 1rem;
+  }
+
+  .showcase,
+  .artwork-showcase {
+    min-height: 21rem;
+  }
+
+  .banner-image {
+    inset: 0 0 5rem 0;
+    height: calc(100% - 5rem);
+  }
+
+  .logo-image-card {
+    width: min(12rem, 72vw);
+  }
+
+  .panel-grid,
+  .why-join-section,
+  .features-section,
+  .member-preview,
+  .reviews-section {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .panel-grid,
+  .member-grid,
+  .clean-card-grid,
+  .reason-grid,
+  .footer-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .clean-card {
+    min-height: auto;
+  }
+
+  .clean-card p {
+    max-height: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .discord-panel {
+    margin: 0 1rem 3rem;
+    padding: 1.5rem;
+  }
+
+  .discord-panel .cta,
+  .review-actions .cta,
+  .review-actions .ghost {
+    width: 100%;
+  }
+
+  .site-footer {
+    gap: 2rem;
+    padding: 2.5rem 1rem;
+  }
+
+  .footer-brand p {
+    margin-top: 1rem;
+  }
+
+  .review-card p {
+    font-size: 1.05rem;
+  }
+}
