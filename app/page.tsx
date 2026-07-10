@@ -34,7 +34,7 @@ export default function Home() {
 
       <nav className="topbar" aria-label="Main navigation">
         <a className="brand" href="#home" aria-label="Kitty Kingdom home">
-          <span className="brand-crest">KK</span>
+          <img className="brand-logo-img" src="/logo.png" alt="Kitty Kingdom logo" />
           <span className="brand-copy">
             <strong>Kitty Kingdom</strong>
             <small>Furry community</small>
@@ -65,18 +65,9 @@ export default function Home() {
             <a className="ghost" href="#discord">Discord linking details</a>
           </div>
         </div>
-        <div className="showcase" aria-label="Kitty Kingdom server artwork inspired card">
-          <div className="banner-art">
-            <span className="tree tree-left" />
-            <span className="tree tree-right" />
-            <span className="sun" />
-            <span className="dragon">✦</span>
-          </div>
-          <div className="logo-card">
-            <span className="logo-vines" />
-            <span className="logo-mark">KK</span>
-            <span className="paw-row">paw • paw</span>
-          </div>
+        <div className="showcase artwork-showcase" aria-label="Kitty Kingdom server artwork">
+          <img className="banner-image" src="/banner.jpg" alt="Kitty Kingdom fall banner" />
+          <img className="logo-image-card" src="/logo.png" alt="Kitty Kingdom logo" />
         </div>
       </section>
 

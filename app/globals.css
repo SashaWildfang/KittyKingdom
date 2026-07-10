@@ -400,7 +400,7 @@ h2 { font-size: clamp(2rem, 4vw, 4rem); line-height: 0.98; letter-spacing: -0.05
 }
 
 .auth-tabs .active-tab {
-  border-bottom: 0.2rem solid #4ea1ff;
+  border-bottom: 0.2rem solid #f59b2a;
   color: #fff;
 }
 
@@ -415,9 +415,9 @@ h2 { font-size: clamp(2rem, 4vw, 4rem); line-height: 0.98; letter-spacing: -0.05
 }
 
 .auth-status {
-  border: 1px solid rgba(78, 161, 255, 0.28);
+  border: 1px solid rgba(245, 155, 42, 0.32);
   border-radius: 0.8rem;
-  background: rgba(78, 161, 255, 0.08);
+  background: rgba(245, 155, 42, 0.10);
   padding: 0.7rem 0.85rem;
 }
 
@@ -442,11 +442,11 @@ h2 { font-size: clamp(2rem, 4vw, 4rem); line-height: 0.98; letter-spacing: -0.05
   font-weight: 800;
 }
 
-.auth-form label span,
+.auth-form label .required-mark,
 .form-helper-row a,
 .auth-switch a,
 .auth-help {
-  color: #4ea1ff;
+  color: #f59b2a;
 }
 
 .auth-form input {
@@ -459,9 +459,9 @@ h2 { font-size: clamp(2rem, 4vw, 4rem); line-height: 0.98; letter-spacing: -0.05
 }
 
 .auth-form input:focus {
-  border-color: #4ea1ff;
+  border-color: #f59b2a;
   outline: none;
-  box-shadow: 0 0 0 0.2rem rgba(78, 161, 255, 0.16);
+  box-shadow: 0 0 0 0.2rem rgba(245, 155, 42, 0.18);
 }
 
 .label-row,
@@ -492,7 +492,7 @@ h2 { font-size: clamp(2rem, 4vw, 4rem); line-height: 0.98; letter-spacing: -0.05
   width: 100%;
   border: 0;
   border-radius: 0.65rem;
-  background: #4ea1ff;
+  background: #f59b2a;
   color: #07111f;
   cursor: pointer;
   font-weight: 1000;
@@ -508,4 +508,128 @@ h2 { font-size: clamp(2rem, 4vw, 4rem); line-height: 0.98; letter-spacing: -0.05
   .auth-screen { padding: 1rem; }
   .auth-card { padding: 1.5rem; }
   .account-settings-grid { grid-template-columns: 1fr; }
+}
+
+.input-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.required-mark {
+  color: #f59b2a !important;
+}
+
+.input-shell {
+  position: relative;
+  display: block;
+}
+
+.input-shell input {
+  padding-left: 2.75rem;
+}
+
+.field-icon {
+  position: absolute;
+  left: 0.9rem;
+  top: 50%;
+  z-index: 1;
+  display: inline-grid;
+  width: 1.05rem;
+  height: 1.05rem;
+  place-items: center;
+  transform: translateY(-50%);
+  color: rgba(246, 247, 251, 0.45);
+  pointer-events: none;
+}
+
+.field-icon svg,
+.password-eye svg {
+  display: block;
+  width: 1.05rem;
+  height: 1.05rem;
+  fill: currentColor;
+}
+
+.password-eye {
+  position: absolute;
+  right: 0.45rem;
+  top: 50%;
+  z-index: 2;
+  display: inline-grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.45rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(246, 247, 251, 0.72);
+  cursor: pointer;
+  padding: 0;
+  transform: translateY(-50%);
+}
+
+.input-shell .password-eye + input,
+.input-shell input[type="password"],
+.input-shell input[type="text"][name="password"] {
+  padding-right: 3rem;
+}
+
+.field-help {
+  color: rgba(246, 247, 251, 0.58);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.brand-logo-img {
+  width: 3.3rem;
+  height: 3.3rem;
+  border-radius: 1rem;
+  object-fit: cover;
+  box-shadow: 0 16px 38px rgba(200, 95, 24, 0.34);
+}
+
+.artwork-showcase {
+  min-height: 31rem;
+}
+
+.banner-image {
+  position: absolute;
+  inset: 0 0 6rem 0;
+  width: 100%;
+  height: calc(100% - 6rem);
+  border: 0.45rem solid rgba(45, 13, 5, 0.78);
+  border-radius: 2rem;
+  object-fit: cover;
+  box-shadow: 0 30px 90px var(--shadow);
+}
+
+.logo-image-card {
+  position: absolute;
+  left: clamp(1rem, 6vw, 4rem);
+  bottom: 0;
+  width: min(18rem, 70vw);
+  aspect-ratio: 1;
+  border: 0.45rem solid rgba(255, 242, 215, 0.86);
+  border-radius: 1.5rem;
+  object-fit: cover;
+  box-shadow: 0 30px 80px var(--shadow);
+}
+
+.auth-logo-img {
+  display: block;
+  width: 5.2rem;
+  height: 5.2rem;
+  border: 0.24rem solid rgba(255, 242, 215, 0.86);
+  border-radius: 1.25rem;
+  object-fit: cover;
+  box-shadow: 0 18px 45px rgba(211, 107, 30, 0.34);
+}
+
+.auth-backdrop {
+  background:
+    linear-gradient(rgba(8, 10, 14, 0.78), rgba(8, 10, 14, 0.82)),
+    url('/banner.jpg') center / cover no-repeat,
+    radial-gradient(circle at 50% 35%, rgba(211, 107, 30, 0.18), transparent 18rem),
+    linear-gradient(135deg, #0c1119 0%, #2c170f 55%, #0b0d12 100%);
 }

@@ -6,7 +6,7 @@ export default function ForgotPasswordPage() {
       <div className="auth-backdrop" />
       <section className="auth-card minehut-card">
         <Link className="auth-logo" href="/" aria-label="Kitty Kingdom home">
-          <span className="brand-crest">KK</span>
+          <img className="auth-logo-img" src="/logo.png" alt="Kitty Kingdom logo" />
         </Link>
         <h1>Password Reset</h1>
         <p className="auth-intro">Password reset emails are the next account feature. For now, contact staff if you need help logging in.</p>
