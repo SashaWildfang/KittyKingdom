@@ -4,7 +4,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Kitty Kingdom | Furry Community",
-  description: "A fall-themed Minecraft furry community and Discord-linked member platform.",
+  description: "A furry Discord community for 18+ members.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
