@@ -2171,3 +2171,25 @@ label,
   background: #82aaff;
   box-shadow: 0 0 10px rgba(130, 170, 255, 0.7);
 }
+
+/* Paw cursor print-style refinement */
+.paw-cursor {
+  width: 42px;
+  height: 42px;
+  transform: translate(-18%, -18%) rotate(-8deg) scale(0.82);
+}
+
+.paw-cursor svg g {
+  fill: #fff;
+  stroke: #efb8b8;
+  stroke-width: 2.4;
+}
+
+.paw-cursor-active {
+  transform: translate(-14%, -14%) rotate(14deg) scale(0.96);
+}
+
+.paw-cursor-active svg g {
+  fill: #fff;
+  stroke: #f2a7ac;
+}
