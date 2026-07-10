@@ -1,5 +1,10 @@
 import { MongoClient } from "mongodb";
 
+type ServerStatsDocument = {
+  _id: string;
+  online_count?: number;
+};
+
 let clientPromise: Promise<MongoClient> | null = null;
 
 function getDatabaseUrl() {
@@ -27,7 +32,7 @@ async function getMongoClient() {
 
 export async function getUsersCollection() {
   const client = await getMongoClient();
-  const db = client.db(process.env.MONGODB_DB ?? "kittykingdom");
+  const db = client.db(process.env.MONGODB_DB ?? "website");
   const users = db.collection("users");
 
   await Promise.all([
@@ -37,4 +42,10 @@ export async function getUsersCollection() {
   ]);
 
   return users;
+}
+
+export async function getServerStatsCollection() {
+  const client = await getMongoClient();
+  const db = client.db(process.env.MONGODB_DB ?? "website");
+  return db.collection<ServerStatsDocument>("server_stats");
 }
