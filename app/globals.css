@@ -1571,3 +1571,82 @@ h2 { font-size: clamp(2rem, 4vw, 4rem); line-height: 0.98; letter-spacing: -0.05
     margin-top: 0;
   }
 }
+
+/* Paw cursor, staff grouping, and carousel arrows */
+body {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cg fill='white' stroke='%233a1d12' stroke-width='1.5'%3E%3Cellipse cx='10' cy='11' rx='3.2' ry='4.2'/%3E%3Cellipse cx='16' cy='8' rx='3.2' ry='4.2'/%3E%3Cellipse cx='22' cy='11' rx='3.2' ry='4.2'/%3E%3Cpath d='M8 23c0-5 4-8 8-8s8 3 8 8c0 3-2 5-5 4-1-.4-2-.8-3-.8s-2 .4-3 .8c-3 1-5-1-5-4Z'/%3E%3C/g%3E%3C/svg%3E") 8 8, auto;
+}
+
+a, button, input, .cta, .ghost, .form-button {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cg fill='%23f59b2a' stroke='white' stroke-width='1.5'%3E%3Cellipse cx='10' cy='11' rx='3.2' ry='4.2'/%3E%3Cellipse cx='16' cy='8' rx='3.2' ry='4.2'/%3E%3Cellipse cx='22' cy='11' rx='3.2' ry='4.2'/%3E%3Cpath d='M8 23c0-5 4-8 8-8s8 3 8 8c0 3-2 5-5 4-1-.4-2-.8-3-.8s-2 .4-3 .8c-3 1-5-1-5-4Z'/%3E%3C/g%3E%3C/svg%3E") 8 8, pointer;
+}
+
+.carousel-arrow {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  color: var(--text);
+  font-size: 1.8rem;
+  font-weight: 900;
+}
+
+.carousel-arrow-left {
+  margin-right: -0.4rem;
+}
+
+.carousel-arrow-right {
+  margin-left: -0.4rem;
+}
+
+.carousel-controls button {
+  border: 1px solid rgba(255,255,255,0.28);
+}
+
+:root[data-theme="light"] .carousel-controls button {
+  background: rgba(58,29,18,0.22);
+  border-color: rgba(58,29,18,0.18);
+}
+
+:root[data-theme="light"] .carousel-controls button.active {
+  background: var(--ember);
+}
+
+.staff-group {
+  margin-top: 2rem;
+}
+
+.staff-group > h2 {
+  margin-bottom: 1rem;
+  color: #fff;
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+}
+
+@keyframes pawPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+a:hover, button:hover {
+  animation: pawPulse 520ms ease;
+}
+
+@media (max-width: 760px) {
+  .community-carousel-card {
+    grid-template-columns: auto 1fr auto;
+    text-align: left;
+  }
+
+  .community-carousel-icon {
+    margin: 0;
+  }
+
+  .carousel-controls {
+    grid-column: 1 / -1;
+  }
+}
