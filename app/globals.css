@@ -1485,3 +1485,89 @@ h2 { font-size: clamp(2rem, 4vw, 4rem); line-height: 0.98; letter-spacing: -0.05
     margin: 0 auto;
   }
 }
+
+/* Final fixes for reviews, light theme, staff, and mobile */
+.review-card-embed iframe {
+  display: none;
+}
+
+.clean-review-empty {
+  background: rgba(28, 13, 8, 0.78);
+}
+
+.social-links a[aria-label="YouTube"] svg {
+  width: 1.55rem;
+  height: 1.55rem;
+}
+
+:root[data-theme="light"] .community-carousel-card,
+:root[data-theme="light"] .review-card,
+:root[data-theme="light"] .discord-panel,
+:root[data-theme="light"] .locked-card,
+:root[data-theme="light"] .feature-card {
+  background: rgba(255, 248, 232, 0.92);
+  color: #3a1d12;
+}
+
+:root[data-theme="light"] .community-carousel-card p,
+:root[data-theme="light"] .review-card p,
+:root[data-theme="light"] .discord-panel p,
+:root[data-theme="light"] .locked-card p,
+:root[data-theme="light"] .feature-card p {
+  color: rgba(58, 29, 18, 0.78);
+}
+
+:root[data-theme="light"] .community-carousel-icon {
+  background: rgba(58, 29, 18, 0.09);
+}
+
+:root[data-theme="light"] .community-carousel-icon svg,
+:root[data-theme="light"] .reason-icon svg {
+  fill: #3a1d12;
+}
+
+.staff-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.staff-card {
+  align-content: start;
+  grid-template-columns: 1fr;
+  text-align: center;
+}
+
+.staff-card img {
+  width: 5.5rem;
+  height: 5.5rem;
+  margin: 0 auto;
+  border: 2px solid rgba(245,155,42,0.45);
+}
+
+@media (max-width: 900px) {
+  .staff-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .staff-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .nav-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .theme-toggle {
+    grid-column: 1 / -1;
+    justify-content: center;
+  }
+
+  .community-carousel-section,
+  .panel-grid,
+  .discord-panel,
+  .member-preview,
+  .reviews-section {
+    margin-top: 0;
+  }
+}

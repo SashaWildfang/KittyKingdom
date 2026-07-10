@@ -1,6 +1,7 @@
 import { getDisboardSummary } from "../lib/disboard";
 import { getDiscordInviteSummary } from "../lib/discord";
 import { CommunityCarousel } from "./community-carousel";
+import { OnlineStatus } from "./online-status";
 import { ReviewCarousel } from "./review-carousel";
 import { ThemeToggle } from "./theme-toggle";
 
@@ -167,11 +168,6 @@ export default async function Home() {
     getDisboardSummary(),
     getDiscordInviteSummary(),
   ]);
-  const onlineLabel =
-    discord.online === null
-      ? "Live now"
-      : `${discord.online.toLocaleString()} online`;
-
   return (
     <main>
       <div className="leaf-field" aria-hidden="true">
@@ -189,10 +185,7 @@ export default async function Home() {
           />
           <span className="brand-copy">
             <strong>Kitty Kingdom</strong>
-            <small className="online-status">
-              <span aria-hidden="true" />
-              {onlineLabel}
-            </small>
+            <OnlineStatus initialOnline={discord.online} />
           </span>
         </a>
         <div className="tabs">
