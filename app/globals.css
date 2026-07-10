@@ -262,14 +262,14 @@ h2 { font-size: clamp(2rem, 4vw, 4rem); line-height: 0.98; letter-spacing: -0.05
 .logo-mark { font-size: clamp(4rem, 10vw, 7rem); font-weight: 1000; letter-spacing: -0.1em; color: #fff2d7; }
 .paw-row { color: #fff2d7; font-size: 0.82rem; font-weight: 900; letter-spacing: 0.25em; text-transform: uppercase; }
 
-.panel-grid, .member-preview, .auth-panel, .discord-panel {
+.panel-grid, .member-preview, .auth-panel, .discord-panel, .account-panel {
   position: relative;
   z-index: 2;
   padding: 0 clamp(1rem, 6vw, 6rem) clamp(3rem, 7vw, 6rem);
 }
 .panel-grid { display: grid; grid-template-columns: 1.1fr repeat(3, minmax(0, 1fr)); gap: 1rem; align-items: stretch; }
 .section-heading { align-self: center; }
-.feature-card, .locked-card, .auth-panel, .discord-panel, .mini-form {
+.feature-card, .locked-card, .auth-panel, .discord-panel, .account-panel, .mini-form {
   border: 1px solid var(--line);
   border-radius: 2rem;
   background: var(--panel);
@@ -288,7 +288,7 @@ h2 { font-size: clamp(2rem, 4vw, 4rem); line-height: 0.98; letter-spacing: -0.05
   background: linear-gradient(135deg, var(--panel-strong), color-mix(in srgb, var(--maple) 28%, transparent));
 }
 .member-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
-.auth-panel {
+.auth-panel, .account-panel {
   display: grid;
   grid-template-columns: 0.8fr 1.2fr;
   gap: 2rem;
@@ -315,8 +315,8 @@ h2 { font-size: clamp(2rem, 4vw, 4rem); line-height: 0.98; letter-spacing: -0.05
 }
 
 @media (max-width: 1080px) {
-  .hero, .panel-grid, .auth-panel { grid-template-columns: 1fr; }
-  .panel-grid, .member-grid, .forms-shell { grid-template-columns: 1fr; }
+  .hero, .panel-grid, .auth-panel, .account-panel { grid-template-columns: 1fr; }
+  .panel-grid, .member-grid, .forms-shell, .account-forms { grid-template-columns: 1fr; }
   .showcase { min-height: 28rem; }
 }
 
