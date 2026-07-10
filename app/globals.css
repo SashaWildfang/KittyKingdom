@@ -1200,3 +1200,169 @@ h2 { font-size: clamp(2rem, 4vw, 4rem); line-height: 0.98; letter-spacing: -0.05
     font-size: 1.05rem;
   }
 }
+
+/* Carousel replacement and final mobile readability */
+.community-carousel-section {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(16rem, 0.75fr) minmax(20rem, 1.25fr);
+  gap: 1.5rem;
+  align-items: center;
+  padding: 0 clamp(1rem, 6vw, 6rem) clamp(3rem, 7vw, 6rem);
+}
+
+.community-carousel-card {
+  position: relative;
+  min-height: 16rem;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: 2rem;
+  background: rgba(28, 13, 8, 0.74);
+  box-shadow: 0 26px 80px var(--shadow);
+  padding: clamp(1.4rem, 4vw, 2.2rem);
+  overflow: hidden;
+}
+
+.community-carousel-card::before {
+  content: "";
+  position: absolute;
+  inset: auto -10% -35% 25%;
+  height: 70%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(245,155,42,0.22), transparent 65%);
+}
+
+.community-carousel-icon {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 4.2rem;
+  height: 4.2rem;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 1.25rem;
+  background: rgba(255,255,255,0.08);
+}
+
+.community-carousel-icon svg {
+  width: 2rem;
+  height: 2rem;
+  fill: #fff;
+}
+
+.community-carousel-card h3,
+.community-carousel-card p,
+.carousel-controls {
+  position: relative;
+  z-index: 1;
+}
+
+.community-carousel-card h3 {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.7rem, 5vw, 3rem);
+  letter-spacing: -0.05em;
+}
+
+.community-carousel-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  line-height: 1.65;
+}
+
+.carousel-controls {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.carousel-controls button {
+  width: 0.48rem;
+  height: 0.48rem;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.28);
+  cursor: pointer;
+  padding: 0;
+}
+
+.carousel-controls button.active {
+  width: 1.55rem;
+  background: var(--ember);
+}
+
+.review-card-embed iframe {
+  width: 100%;
+  min-height: 18rem;
+  border: 0;
+  border-radius: 1.25rem;
+  background: #111;
+}
+
+.review-embed-fallback {
+  margin-top: 0.85rem !important;
+  font-size: 0.95rem !important;
+  color: var(--muted) !important;
+}
+
+@media (max-width: 760px) {
+  .topbar {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.8rem;
+    background: rgba(18, 7, 4, 0.94);
+  }
+
+  .topbar .brand {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .tabs a {
+    text-align: center;
+  }
+
+  .nav-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .community-carousel-section {
+    grid-template-columns: 1fr;
+    padding: 0 1rem 3rem;
+  }
+
+  .community-carousel-card {
+    grid-template-columns: 1fr;
+    min-height: auto;
+    text-align: center;
+  }
+
+  .community-carousel-icon {
+    margin: 0 auto;
+  }
+
+  .reviews-section {
+    padding: 0 1rem 3rem;
+  }
+
+  .reviews-section .section-heading h2 {
+    max-width: 100%;
+  }
+
+  .review-card-embed iframe {
+    min-height: 22rem;
+  }
+}
