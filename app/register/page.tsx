@@ -5,7 +5,7 @@ const passwordPattern = "(?=.*\\d)(?=.*[^A-Za-z0-9]).{8,}";
 
 const statusMessages: Record<string, string> = {
   "check-email": "Check your inbox for the confirmation link before logging in.",
-  "email-mismatch": "The email fields do not match.",
+  "terms-required": "You must accept the Terms of Service and Privacy Policy before signing up.",
   "password-requirements": "Password must be 8+ characters and include at least one number and one symbol.",
   "email-exists": "An account already exists for that email.",
   "email-provider-needed": "The account was created, but the confirmation email could not be sent. Check the email provider settings.",
@@ -40,15 +40,6 @@ export default function RegisterPage({ searchParams }: { searchParams: { registe
               <input autoComplete="email" name="email" placeholder="you@example.com" required type="email" />
             </span>
           </label>
-          <label>
-            <span className="input-label">Confirm email <span className="required-mark">*</span></span>
-            <span className="input-shell">
-              <span className="field-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" role="img"><path d="M4.75 5h14.5C20.22 5 21 5.78 21 6.75v10.5c0 .97-.78 1.75-1.75 1.75H4.75C3.78 19 3 18.22 3 17.25V6.75C3 5.78 3.78 5 4.75 5Zm.62 2 6.63 5.05L18.63 7H5.37Zm13.63 1.63-6.4 4.88a1 1 0 0 1-1.2 0L5 8.63V17h14V8.63Z" /></svg>
-              </span>
-              <input autoComplete="email" name="confirmEmail" placeholder="you@example.com" required type="email" />
-            </span>
-          </label>
           <PasswordField
             autoComplete="new-password"
             helpText="8+ characters with at least one number and one symbol."
@@ -58,7 +49,14 @@ export default function RegisterPage({ searchParams }: { searchParams: { registe
             pattern={passwordPattern}
             placeholder="Create a password"
           />
-          <button type="submit">Send confirmation email <span aria-hidden="true">→</span></button>
+          <label className="policy-check">
+            <input name="acceptedPolicies" required type="checkbox" value="yes" />
+            <span>
+              I have read, understand, and accept the <Link href="/terms">Terms of Service</Link> and{" "}
+              <Link href="/privacy">Privacy Policy</Link>.
+            </span>
+          </label>
+          <button type="submit">Sign Up <span aria-hidden="true">→</span></button>
         </form>
         <p className="auth-switch">Already have an account? <Link href="/login">Login</Link></p>
         <Link className="auth-help" href="/support">Need help signing up?</Link>

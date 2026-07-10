@@ -12,11 +12,15 @@ export async function POST(request: Request) {
   try {
     const form = await request.formData();
     const email = String(form.get("email") ?? "").trim().toLowerCase();
-    const confirmEmail = String(form.get("confirmEmail") ?? "").trim().toLowerCase();
     const password = String(form.get("password") ?? "");
+    const acceptedPolicies = form.get("acceptedPolicies") === "yes";
 
-    if (!email || !confirmEmail || email !== confirmEmail) {
-      return NextResponse.redirect(`${origin}/register?register=email-mismatch`, 303);
+    if (!email) {
+      return NextResponse.redirect(`${origin}/register?register=email-required`, 303);
+    }
+
+    if (!acceptedPolicies) {
+      return NextResponse.redirect(`${origin}/register?register=terms-required`, 303);
     }
 
     if (!/^(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(password)) {
@@ -41,6 +45,7 @@ export async function POST(request: Request) {
       emailVerified: false,
       emailVerificationTokenHash: tokenHash,
       emailVerificationExpiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
+      acceptedPoliciesAt: new Date(),
       discord: null,
       createdAt: new Date(),
       updatedAt: new Date(),
