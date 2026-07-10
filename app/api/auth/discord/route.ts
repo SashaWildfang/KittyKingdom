@@ -18,7 +18,12 @@ export async function GET(request: Request) {
     return NextResponse.json(
       {
         error: "Discord OAuth is not configured yet.",
-        requiredEnv: ["DISCORD_CLIENT_ID", "DISCORD_REDIRECT_URI", "DISCORD_CLIENT_SECRET", "DISCORD_GUILD_ID"],
+        requiredEnv: [
+          "DISCORD_CLIENT_ID",
+          "DISCORD_REDIRECT_URI",
+          "DISCORD_CLIENT_SECRET",
+          "DISCORD_GUILD_ID",
+        ],
       },
       { status: 501 },
     );
@@ -33,5 +38,7 @@ export async function GET(request: Request) {
     state: String(userId),
   });
 
-  return NextResponse.redirect(`https://discord.com/api/oauth2/authorize?${params.toString()}`);
+  return NextResponse.redirect(
+    `https://discord.com/api/oauth2/authorize?${params.toString()}`,
+  );
 }
