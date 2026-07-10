@@ -2193,3 +2193,47 @@ label,
   fill: #fff;
   stroke: #f2a7ac;
 }
+
+/* Auth/ribbon/review final polish */
+.logged-in-link::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: #2ee66b;
+  box-shadow: 0 0 10px rgba(46, 230, 107, 0.7);
+}
+
+.logged-in-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.staff-online-status {
+  font-size: 0.82rem !important;
+  font-weight: 900 !important;
+}
+
+.review-card-long p,
+.review-card p {
+  font-size: clamp(1rem, 2vw, 1.45rem);
+}
+
+@media (max-width: 760px) {
+  .staff-online-status {
+    font-size: 0.76rem !important;
+  }
+}
+
+.home-status-banner {
+  position: relative;
+  z-index: 2;
+  margin: 1rem clamp(1rem, 6vw, 6rem) 0;
+  border: 1px solid rgba(245,155,42,0.32);
+  border-radius: 1rem;
+  background: rgba(245,155,42,0.12);
+  color: var(--text);
+  font-weight: 800;
+  padding: 1rem;
+}
