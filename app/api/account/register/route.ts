@@ -18,8 +18,8 @@ export async function POST(request: Request) {
       return NextResponse.redirect(`${origin}/register?register=email-mismatch`, 303);
     }
 
-    if (password.length < 8) {
-      return NextResponse.redirect(`${origin}/register?register=password-too-short`, 303);
+    if (!/^(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(password)) {
+      return NextResponse.redirect(`${origin}/register?register=password-requirements`, 303);
     }
 
     const users = await getUsersCollection();
