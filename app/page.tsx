@@ -111,6 +111,44 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      <footer className="site-footer" aria-label="Footer navigation">
+        <div className="footer-brand">
+          <a className="brand" href="#home" aria-label="Kitty Kingdom home">
+            <img className="brand-logo-img" src="/logo.png" alt="Kitty Kingdom logo" />
+            <span className="brand-copy">
+              <strong>Kitty Kingdom</strong>
+              <small>Community portal</small>
+            </span>
+          </a>
+          <div className="social-links" aria-label="Social links">
+            <a href="#discord" aria-label="Discord">Discord</a>
+            <a href="https://youtube.com" aria-label="YouTube">YouTube</a>
+            <a href="https://x.com" aria-label="X">X</a>
+          </div>
+          <p>© 2026 Kitty Kingdom. All rights reserved.</p>
+        </div>
+        <div className="footer-columns">
+          <div>
+            <h3>Play</h3>
+            <a href="/login">My Account</a>
+            <a href="#news">News</a>
+            <a href="#discord">Learn how to join</a>
+          </div>
+          <div>
+            <h3>Community</h3>
+            <a href="#discord">Discord</a>
+            <a href="/account">Account Settings</a>
+            <a href="/register">Dating Profiles</a>
+          </div>
+          <div>
+            <h3>Corporate</h3>
+            <a href="/support">Support</a>
+            <a href="/privacy">Privacy Policy</a>
+            <a href="/terms">Terms of Service</a>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }
