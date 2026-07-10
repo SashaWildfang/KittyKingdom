@@ -42,7 +42,9 @@ export function ReviewCarousel({ rating, reviews }: ReviewCarouselProps) {
   }
 
   return (
-    <article className="review-card">
+    <article
+      className={`review-card${review.text.length > 180 ? " review-card-long" : ""}`}
+    >
       <span className="review-stars" aria-label="Review stars">
         ★★★★★
       </span>
