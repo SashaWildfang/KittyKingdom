@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { getSessionUserId } from "../../../../lib/auth";
 
+export const maxDuration = 10;
+
 export async function GET(request: Request) {
   const userId = await getSessionUserId();
   const origin = new URL(request.url).origin;
 
   if (!userId) {
-    return NextResponse.redirect(`${origin}/?discord=login-required#login`, 303);
+    return NextResponse.redirect(`${origin}/login?discord=login-required`, 303);
   }
 
   const clientId = process.env.DISCORD_CLIENT_ID;
