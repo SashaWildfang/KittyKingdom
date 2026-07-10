@@ -26,17 +26,33 @@ export function ReviewCarousel({ rating, reviews }: ReviewCarouselProps) {
 
   if (!review) {
     return (
-      <article className="review-card review-card-empty">
-        <p>DISBOARD reviews could not be fetched automatically. Use “View all reviews” to open the live DISBOARD review page.</p>
+      <article className="review-card review-card-embed">
+        <iframe
+          src="https://disboard.org/server/reviews/1358452494128250940"
+          title="Kitty Kingdom DISBOARD reviews"
+        />
+        <p className="review-embed-fallback">
+          If the review embed is blocked, use “View all reviews” to open the
+          live DISBOARD page.
+        </p>
       </article>
     );
   }
 
   return (
     <article className="review-card">
-      <span className="review-stars" aria-label="Review stars">★★★★★</span>
+      <span className="review-stars" aria-label="Review stars">
+        ★★★★★
+      </span>
       <p>“{review.text}”</p>
-      <span className="review-source">{review.author}{review.rating ? ` • ${review.rating}/5` : rating ? ` • ${rating}/5` : ""}</span>
+      <span className="review-source">
+        {review.author}
+        {review.rating
+          ? ` • ${review.rating}/5`
+          : rating
+            ? ` • ${rating}/5`
+            : ""}
+      </span>
     </article>
   );
 }
