@@ -30,6 +30,14 @@ export function CommunityCarousel({
     return () => window.clearInterval(interval);
   }, [items.length]);
 
+  function previous() {
+    setIndex((current) => (current - 1 + items.length) % items.length);
+  }
+
+  function next() {
+    setIndex((current) => (current + 1) % items.length);
+  }
+
   return (
     <section className="community-carousel-section" aria-label={title}>
       <div className="section-heading">
@@ -37,6 +45,14 @@ export function CommunityCarousel({
         <h2>{title}</h2>
       </div>
       <article className="community-carousel-card">
+        <button
+          className="carousel-arrow carousel-arrow-left"
+          type="button"
+          onClick={previous}
+          aria-label={`Previous ${title} item`}
+        >
+          ‹
+        </button>
         <span className="community-carousel-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24">
             <path d={item.iconPath} />
@@ -46,6 +62,14 @@ export function CommunityCarousel({
           <h3>{item.label}</h3>
           <p>{item.detail}</p>
         </div>
+        <button
+          className="carousel-arrow carousel-arrow-right"
+          type="button"
+          onClick={next}
+          aria-label={`Next ${title} item`}
+        >
+          ›
+        </button>
         <div
           className="carousel-controls"
           aria-label={`${title} carousel controls`}
