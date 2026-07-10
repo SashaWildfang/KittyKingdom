@@ -1,104 +1,141 @@
-const tabs = ["Home", "News", "Ranks", "Rules", "Community"];
+import { ThemeToggle } from "./theme-toggle";
 
-const features = [
+const news = [
+  "Fall season hub is opening with cozy builds, community events, and staff updates.",
+  "Discord-linked registration is planned so every account can be tied to a verified server member.",
+  "Leaderboards, dating profiles, and store pages are staged for signed-in members.",
+];
+
+const memberSections = [
   {
-    title: "Cozy Kingdom Spawn",
-    text: "Step into a warm autumn hub with tavern lights, leaf trails, and friendly faces waiting at the gate.",
+    title: "Leaderboards",
+    text: "Show top community members, event winners, playtime, and seasonal challenge scores after sign-in.",
   },
   {
-    title: "Player Profiles",
-    text: "Register your account, personalize your kingdom identity, and keep your adventure connected.",
+    title: "Dating Profiles",
+    text: "A member-only profile area for introductions, preferences, and safe community matching.",
   },
   {
-    title: "Events & Quests",
-    text: "Seasonal challenges, harvest hunts, and community events built around the Kitty Kingdom vibe.",
+    title: "Store",
+    text: "A future shop home for ranks, cosmetics, supporter perks, and Kitty Kingdom extras.",
   },
 ];
+
+const leaves = Array.from({ length: 18 }, (_, index) => index + 1);
 
 export default function Home() {
   return (
     <main>
+      <div className="leaf-field" aria-hidden="true">
+        {leaves.map((leaf) => (
+          <span className="falling-leaf" key={leaf} />
+        ))}
+      </div>
+
       <nav className="topbar" aria-label="Main navigation">
         <a className="brand" href="#home" aria-label="Kitty Kingdom home">
-          <span className="brand-mark">KK</span>
-          <span>Kitty Kingdom</span>
+          <span className="brand-crest">KK</span>
+          <span className="brand-copy">
+            <strong>Kitty Kingdom</strong>
+            <small>Furry community</small>
+          </span>
         </a>
         <div className="tabs">
-          {tabs.map((tab) => (
-            <a href={`#${tab.toLowerCase()}`} key={tab}>
-              {tab}
-            </a>
-          ))}
+          <a href="#home">Home</a>
+          <a href="#news">News</a>
+          <a href="#discord">Discord</a>
         </div>
-        <div className="auth-links">
-          <a href="#login">Login</a>
+        <div className="nav-actions">
+          <ThemeToggle />
+          <a className="login-link" href="#login">Login</a>
           <a className="primary-pill" href="#register">Register</a>
         </div>
       </nav>
 
       <section className="hero" id="home">
-        <div className="leaf leaf-one" />
-        <div className="leaf leaf-two" />
         <div className="hero-copy">
-          <p className="eyebrow">Fall season now forming</p>
-          <h1>Build your legend in Kitty Kingdom.</h1>
+          <p className="eyebrow">Minecraft server • furry community • dating platform</p>
+          <h1>Find your place in Kitty Kingdom.</h1>
           <p className="subtitle">
-            A polished Minecraft community home inspired by warm maple forests, cozy castle halls, and your Kitty Kingdom art.
+            A warm fall-themed community home for players, friends, and verified members. Join the Discord, link your account,
+            and unlock member areas for leaderboards, dating profiles, and the store.
           </p>
           <div className="hero-actions">
-            <a className="cta" href="#register">Join the Kingdom</a>
-            <a className="ghost" href="#rules">View Server Rules</a>
+            <a className="cta" href="#register">Create a Discord-linked account</a>
+            <a className="ghost" href="#discord">Join the Discord</a>
           </div>
         </div>
-        <div className="crest-card" aria-label="Kitty Kingdom crest placeholder">
-          <div className="crest-glow" />
-          <div className="crest">
-            <span className="crest-letters">KK</span>
-            <span className="paw-row">paw paw paw</span>
-            <span className="tail" />
+        <div className="showcase" aria-label="Kitty Kingdom server artwork inspired card">
+          <div className="banner-art">
+            <span className="tree tree-left" />
+            <span className="tree tree-right" />
+            <span className="sun" />
+            <span className="dragon">✦</span>
+          </div>
+          <div className="logo-card">
+            <span className="logo-vines" />
+            <span className="logo-mark">KK</span>
+            <span className="paw-row">paw • paw</span>
           </div>
         </div>
       </section>
 
-      <section className="feature-grid" id="news" aria-label="Website highlights">
-        {features.map((feature) => (
-          <article className="feature-card" key={feature.title}>
-            <span className="card-icon">✦</span>
-            <h2>{feature.title}</h2>
-            <p>{feature.text}</p>
+      <section className="panel-grid" id="news" aria-label="Latest Kitty Kingdom news">
+        <div className="section-heading">
+          <p className="eyebrow">News</p>
+          <h2>What is happening in the kingdom</h2>
+        </div>
+        {news.map((item, index) => (
+          <article className="feature-card" key={item}>
+            <span className="card-kicker">Update {index + 1}</span>
+            <p>{item}</p>
           </article>
         ))}
       </section>
 
-      <section className="kingdom-strip" aria-label="Kingdom quick links">
-        <article id="ranks">
-          <span>Ranks</span>
-          <strong>Founder, Noble, Knight, and Kitten tiers ready for future perks.</strong>
-        </article>
-        <article id="rules">
-          <span>Rules</span>
-          <strong>Friendly play, no griefing, no cheating, and respect the kingdom.</strong>
-        </article>
-        <article id="community">
-          <span>Community</span>
-          <strong>Discord, events, staff updates, and seasonal announcements can live here.</strong>
-        </article>
+      <section className="discord-panel" id="discord">
+        <div>
+          <p className="eyebrow">Discord required</p>
+          <h2>Registration starts by linking Discord.</h2>
+          <p>
+            The UI is ready for a Discord OAuth flow. Once you provide the bot/client details, registration can require Discord
+            membership before a user profile is created in the database.
+          </p>
+        </div>
+        <a className="cta" href="#register">Start registration</a>
+      </section>
+
+      <section className="member-preview" aria-label="Signed-in member areas">
+        <div className="section-heading">
+          <p className="eyebrow">After sign-in</p>
+          <h2>Member areas are staged for the next backend pass</h2>
+        </div>
+        <div className="member-grid">
+          {memberSections.map((section) => (
+            <article className="locked-card" key={section.title}>
+              <span className="lock-badge">Members</span>
+              <h3>{section.title}</h3>
+              <p>{section.text}</p>
+            </article>
+          ))}
+        </div>
       </section>
 
       <section className="auth-panel" aria-label="Login and registration preview">
         <div className="auth-copy">
-          <p className="eyebrow">Account system ready for MongoDB wiring</p>
-          <h2>Login and registration get a premium home.</h2>
+          <p className="eyebrow">Account portal</p>
+          <h2>Login now, Discord-linked registration next.</h2>
           <p>
-            The layout reserves polished auth entry points now, so your existing MongoDB connection can be wired into real user flows next.
+            The database can stay behind environment variables. The registration flow is designed to call Discord first, then
+            create a blank user profile record after verification succeeds.
           </p>
         </div>
         <div className="forms-shell">
           <form className="mini-form" id="login">
             <h3>Login</h3>
             <label>
-              Username
-              <input placeholder="SashaWildfang" type="text" />
+              Username or email
+              <input placeholder="you@kittykingdom.net" type="text" />
             </label>
             <label>
               Password
@@ -108,15 +145,12 @@ export default function Home() {
           </form>
           <form className="mini-form register" id="register">
             <h3>Register</h3>
+            <p className="form-note">Discord must be linked before profile creation.</p>
+            <a className="form-button" href="/api/auth/discord">Link Discord to register</a>
             <label>
-              Email
-              <input placeholder="you@kittykingdom.net" type="email" />
-            </label>
-            <label>
-              Username
+              Preferred username
               <input placeholder="YourMCName" type="text" />
             </label>
-            <button type="button">Create Account</button>
           </form>
         </div>
       </section>
