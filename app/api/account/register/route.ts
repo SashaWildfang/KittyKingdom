@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createVerificationToken, hashPassword } from "../../../../lib/auth";
+import { isDatabaseConnectionError } from "../../../../lib/db-errors";
 import { sendVerificationEmail } from "../../../../lib/email";
 import { getUsersCollection } from "../../../../lib/mongodb";
 
@@ -18,8 +19,8 @@ export async function POST(request: Request) {
       return NextResponse.redirect(`${origin}/register?register=email-mismatch`, 303);
     }
 
-    if (password.length < 8) {
-      return NextResponse.redirect(`${origin}/register?register=password-too-short`, 303);
+    if (!/^(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(password)) {
+      return NextResponse.redirect(`${origin}/register?register=password-requirements`, 303);
     }
 
     const users = await getUsersCollection();
@@ -50,6 +51,7 @@ export async function POST(request: Request) {
     return NextResponse.redirect(`${origin}/register?register=${status}`, 303);
   } catch (error) {
     console.error("Registration failed", error);
-    return NextResponse.redirect(`${origin}/register?register=service-unavailable`, 303);
+    const status = isDatabaseConnectionError(error) ? "database-unreachable" : "service-unavailable";
+    return NextResponse.redirect(`${origin}/register?register=${status}`, 303);
   }
 }
