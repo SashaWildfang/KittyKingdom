@@ -1366,3 +1366,122 @@ h2 { font-size: clamp(2rem, 4vw, 4rem); line-height: 0.98; letter-spacing: -0.05
     min-height: 22rem;
   }
 }
+
+/* Route pages, staff, and final readability pass */
+.wide-card {
+  width: min(100%, 64rem);
+}
+
+.staff-grid {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.staff-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1rem;
+  align-items: center;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 1.25rem;
+  background: rgba(255,255,255,0.06);
+  padding: 1rem;
+}
+
+.staff-card img {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 1rem;
+  object-fit: cover;
+}
+
+.staff-card span {
+  color: var(--ember);
+  font-size: 0.75rem;
+  font-weight: 1000;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.staff-card h2 {
+  margin: 0.2rem 0 0.35rem;
+  font-size: 1.5rem;
+}
+
+.staff-card p {
+  margin: 0;
+}
+
+@media (max-width: 760px) {
+  :root[data-theme="light"] {
+    --text: #fff2d7;
+    --muted: rgba(255, 242, 215, 0.78);
+    --panel: rgba(24, 10, 6, 0.82);
+    --panel-strong: rgba(34, 14, 7, 0.92);
+  }
+
+  .topbar {
+    border-bottom-color: rgba(255,255,255,0.12);
+  }
+
+  .topbar .brand {
+    background: rgba(255,255,255,0.045);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 1rem;
+    padding: 0.55rem;
+  }
+
+  .tabs,
+  .nav-actions {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 1rem;
+    padding: 0.35rem;
+  }
+
+  .tabs {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .tabs a,
+  .login-link,
+  .theme-toggle,
+  .primary-pill {
+    color: rgba(255,242,215,0.9);
+    background: rgba(255,255,255,0.04);
+    border-radius: 0.8rem;
+  }
+
+  .nav-actions {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .community-carousel-card,
+  .feature-card,
+  .locked-card,
+  .review-card {
+    background: rgba(24, 10, 6, 0.86);
+  }
+
+  .section-heading h2 {
+    color: #fff2d7;
+    text-shadow: 0 2px 20px rgba(0,0,0,0.45);
+  }
+
+  .section-heading p,
+  .community-carousel-card p,
+  .feature-card p,
+  .locked-card p {
+    color: rgba(255,242,215,0.82);
+  }
+
+  .staff-card {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .staff-card img {
+    margin: 0 auto;
+  }
+}
