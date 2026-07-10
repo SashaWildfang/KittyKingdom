@@ -907,3 +907,79 @@ h2 { font-size: clamp(2rem, 4vw, 4rem); line-height: 0.98; letter-spacing: -0.05
     grid-template-columns: 1fr;
   }
 }
+
+/* Community homepage refinements */
+.why-join-section,
+.features-section {
+  align-items: stretch;
+  grid-template-columns: minmax(18rem, 0.7fr) minmax(0, 1.3fr);
+}
+
+.reason-grid {
+  grid-template-columns: repeat(2, minmax(13rem, 1fr));
+}
+
+.reason-card {
+  align-items: center;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.8rem;
+  min-height: 5rem;
+}
+
+.reason-icon {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 1.2rem;
+}
+
+.reviews-section .section-heading h2 {
+  max-width: 11ch;
+}
+
+.review-card .rating-row {
+  display: none;
+}
+
+.review-card-empty p {
+  font-size: 1.05rem;
+  color: var(--muted);
+}
+
+.social-links a {
+  width: 2.4rem;
+  height: 2.4rem;
+  min-width: 2.4rem;
+  min-height: 2.4rem;
+  overflow: visible;
+}
+
+.social-links a svg {
+  display: block;
+  width: 1.05rem;
+  height: 1.05rem;
+  overflow: visible;
+  transform: translateZ(0);
+}
+
+.social-links a[aria-label="Discord"] svg {
+  width: 1.32rem;
+  height: 1.32rem;
+  transform: translateY(0.02rem);
+}
+
+@media (max-width: 900px) {
+  .why-join-section,
+  .features-section {
+    grid-template-columns: 1fr;
+  }
+
+  .reason-grid {
+    grid-template-columns: 1fr;
+  }
+}
