@@ -1,23 +1,26 @@
 import { MongoClient } from "mongodb";
 
-const uri = process.env.DATABASE_URL;
+let clientPromise: Promise<MongoClient> | null = null;
 
-if (!uri) {
-  throw new Error("DATABASE_URL is not configured");
+function getDatabaseUrl() {
+  const uri = process.env.DATABASE_URL;
+  if (!uri) {
+    throw new Error("DATABASE_URL is not configured. Add it in Vercel Project Settings > Environment Variables.");
+  }
+  return uri;
 }
 
-let clientPromise: Promise<MongoClient>;
-const globalForMongo = globalThis as typeof globalThis & { _kittyMongoClientPromise?: Promise<MongoClient> };
+async function getMongoClient() {
+  if (!clientPromise) {
+    const client = new MongoClient(getDatabaseUrl());
+    clientPromise = client.connect();
+  }
 
-if (!globalForMongo._kittyMongoClientPromise) {
-  const client = new MongoClient(uri);
-  globalForMongo._kittyMongoClientPromise = client.connect();
+  return clientPromise;
 }
-
-clientPromise = globalForMongo._kittyMongoClientPromise;
 
 export async function getUsersCollection() {
-  const client = await clientPromise;
+  const client = await getMongoClient();
   const db = client.db(process.env.MONGODB_DB ?? "kittykingdom");
   const users = db.collection("users");
 

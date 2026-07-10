@@ -6,7 +6,9 @@ const sessionCookie = "kk_session";
 
 function getSecret() {
   const secret = process.env.AUTH_SECRET;
-  if (!secret) throw new Error("AUTH_SECRET is not configured");
+  if (!secret) {
+    throw new Error("AUTH_SECRET is not configured. Add a long random value in Vercel Project Settings > Environment Variables.");
+  }
   return secret;
 }
 
