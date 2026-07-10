@@ -67,12 +67,12 @@ export async function POST(request: Request) {
 
     const emailResult = await sendVerificationEmail(email, verifyUrl);
     const status = emailResult.sent ? "check-email" : "email-provider-needed";
-    return NextResponse.redirect(`${origin}/register?register=${status}`, 303);
+    return NextResponse.redirect(`${origin}/home?register=${status}`, 303);
   } catch (error) {
     console.error("Registration failed", error);
     const status = isDatabaseConnectionError(error)
       ? "database-unreachable"
       : "service-unavailable";
-    return NextResponse.redirect(`${origin}/register?register=${status}`, 303);
+    return NextResponse.redirect(`${origin}/home?register=${status}`, 303);
   }
 }

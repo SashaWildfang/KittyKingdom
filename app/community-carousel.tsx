@@ -21,6 +21,7 @@ export function CommunityCarousel({
 }: CommunityCarouselProps) {
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState<"next" | "prev">("next");
+  const [resetKey, setResetKey] = useState(0);
   const item = items[index];
 
   useEffect(() => {
@@ -30,16 +31,20 @@ export function CommunityCarousel({
     }, 5200);
 
     return () => window.clearInterval(interval);
-  }, [items.length]);
+  }, [items.length, resetKey]);
+
+  function goTo(nextIndex: number, nextDirection: "next" | "prev") {
+    setDirection(nextDirection);
+    setIndex(nextIndex);
+    setResetKey((current) => current + 1);
+  }
 
   function previous() {
-    setDirection("prev");
-    setIndex((current) => (current - 1 + items.length) % items.length);
+    goTo((index - 1 + items.length) % items.length, "prev");
   }
 
   function next() {
-    setDirection("next");
-    setIndex((current) => (current + 1) % items.length);
+    goTo((index + 1) % items.length, "next");
   }
 
   return (
@@ -80,10 +85,9 @@ export function CommunityCarousel({
               aria-label={`Show ${entry.label}`}
               className={itemIndex === index ? "active" : ""}
               key={entry.label}
-              onClick={() => {
-                setDirection(itemIndex > index ? "next" : "prev");
-                setIndex(itemIndex);
-              }}
+              onClick={() =>
+                goTo(itemIndex, itemIndex > index ? "next" : "prev")
+              }
               type="button"
             />
           ))}
