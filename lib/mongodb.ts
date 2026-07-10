@@ -5,7 +5,9 @@ let clientPromise: Promise<MongoClient> | null = null;
 function getDatabaseUrl() {
   const uri = process.env.DATABASE_URL;
   if (!uri) {
-    throw new Error("DATABASE_URL is not configured. Add it in Vercel Project Settings > Environment Variables.");
+    throw new Error(
+      "DATABASE_URL is not configured. Add it in Vercel Project Settings > Environment Variables.",
+    );
   }
   return uri;
 }

@@ -10,7 +10,9 @@ export async function POST(request: Request) {
 
   try {
     const form = await request.formData();
-    const identifier = String(form.get("identifier") ?? "").trim().toLowerCase();
+    const identifier = String(form.get("identifier") ?? "")
+      .trim()
+      .toLowerCase();
     const password = String(form.get("password") ?? "");
 
     const users = await getUsersCollection();
@@ -18,7 +20,11 @@ export async function POST(request: Request) {
       $or: [{ email: identifier }, { username: identifier }],
     });
 
-    if (!user || !user.emailVerified || !verifyPassword(password, user.passwordSalt, user.passwordHash)) {
+    if (
+      !user ||
+      !user.emailVerified ||
+      !verifyPassword(password, user.passwordSalt, user.passwordHash)
+    ) {
       return NextResponse.redirect(`${origin}/login?login=invalid`, 303);
     }
 
@@ -26,7 +32,9 @@ export async function POST(request: Request) {
     return NextResponse.redirect(`${origin}/account?login=success`, 303);
   } catch (error) {
     console.error("Login failed", error);
-    const status = isDatabaseConnectionError(error) ? "database-unreachable" : "service-unavailable";
+    const status = isDatabaseConnectionError(error)
+      ? "database-unreachable"
+      : "service-unavailable";
     return NextResponse.redirect(`${origin}/login?login=${status}`, 303);
   }
 }

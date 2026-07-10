@@ -31,7 +31,9 @@ function decodeHtml(value: string) {
 }
 
 function stripScripts(html: string) {
-  return html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ");
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ");
 }
 
 function addReview(reviews: DisboardReview[], review: DisboardReview) {
@@ -39,7 +41,11 @@ function addReview(reviews: DisboardReview[], review: DisboardReview) {
   if (text.length < 12) return;
   if (/cookie|privacy|terms|javascript|cloudflare/i.test(text)) return;
   if (reviews.some((existing) => existing.text === text)) return;
-  reviews.push({ author: decodeHtml(review.author || "DISBOARD member"), rating: review.rating, text });
+  reviews.push({
+    author: decodeHtml(review.author || "DISBOARD member"),
+    rating: review.rating,
+    text,
+  });
 }
 
 function extractRating(html: string) {
@@ -59,7 +65,11 @@ function extractRating(html: string) {
 }
 
 function extractJsonLdReviews(html: string, reviews: DisboardReview[]) {
-  const scripts = Array.from(html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi));
+  const scripts = Array.from(
+    html.matchAll(
+      /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi,
+    ),
+  );
 
   for (const script of scripts) {
     try {
@@ -67,11 +77,17 @@ function extractJsonLdReviews(html: string, reviews: DisboardReview[]) {
       const blocks = Array.isArray(parsed) ? parsed : [parsed];
 
       for (const block of blocks) {
-        const reviewList = Array.isArray(block.review) ? block.review : block.review ? [block.review] : [];
+        const reviewList = Array.isArray(block.review)
+          ? block.review
+          : block.review
+            ? [block.review]
+            : [];
         for (const review of reviewList) {
           addReview(reviews, {
             author: review.author?.name ?? "DISBOARD member",
-            rating: review.reviewRating?.ratingValue ? String(review.reviewRating.ratingValue) : undefined,
+            rating: review.reviewRating?.ratingValue
+              ? String(review.reviewRating.ratingValue)
+              : undefined,
             text: review.reviewBody ?? review.description ?? "",
           });
         }
@@ -83,9 +99,17 @@ function extractJsonLdReviews(html: string, reviews: DisboardReview[]) {
 }
 
 function extractRegexReviews(html: string, reviews: DisboardReview[]) {
-  const reviewBodyMatches = Array.from(html.matchAll(/"reviewBody"\s*:\s*"([\s\S]*?)"/gi));
-  const authorMatches = Array.from(html.matchAll(/"author"\s*:\s*\{[\s\S]*?"name"\s*:\s*"([\s\S]*?)"/gi));
-  const ratingMatches = Array.from(html.matchAll(/"reviewRating"\s*:\s*\{[\s\S]*?"ratingValue"\s*:\s*"?([0-5](?:\.\d+)?)"?/gi));
+  const reviewBodyMatches = Array.from(
+    html.matchAll(/"reviewBody"\s*:\s*"([\s\S]*?)"/gi),
+  );
+  const authorMatches = Array.from(
+    html.matchAll(/"author"\s*:\s*\{[\s\S]*?"name"\s*:\s*"([\s\S]*?)"/gi),
+  );
+  const ratingMatches = Array.from(
+    html.matchAll(
+      /"reviewRating"\s*:\s*\{[\s\S]*?"ratingValue"\s*:\s*"?([0-5](?:\.\d+)?)"?/gi,
+    ),
+  );
 
   for (let index = 0; index < reviewBodyMatches.length; index += 1) {
     addReview(reviews, {
@@ -98,12 +122,19 @@ function extractRegexReviews(html: string, reviews: DisboardReview[]) {
 
 function extractVisibleReviews(html: string, reviews: DisboardReview[]) {
   const visible = stripScripts(html);
-  const reviewBlocks = Array.from(visible.matchAll(/<article[\s\S]*?<\/article>|<div[^>]+class=["'][^"']*(?:review|comment)[^"']*["'][^>]*>[\s\S]*?<\/div>/gi));
+  const reviewBlocks = Array.from(
+    visible.matchAll(
+      /<article[\s\S]*?<\/article>|<div[^>]+class=["'][^"']*(?:review|comment)[^"']*["'][^>]*>[\s\S]*?<\/div>/gi,
+    ),
+  );
 
   for (const block of reviewBlocks) {
     const raw = block[0];
     const rating = raw.match(/([0-5](?:\.\d+)?)\s*(?:\/\s*5|stars?)/i)?.[1];
-    const author = raw.match(/(?:class=["'][^"']*(?:user|author|name)[^"']*["'][^>]*>)([\s\S]*?)<\//i)?.[1] ?? "DISBOARD member";
+    const author =
+      raw.match(
+        /(?:class=["'][^"']*(?:user|author|name)[^"']*["'][^>]*>)([\s\S]*?)<\//i,
+      )?.[1] ?? "DISBOARD member";
     const text = decodeHtml(raw);
     addReview(reviews, { author, rating, text });
   }
@@ -120,8 +151,9 @@ function extractReviews(html: string): DisboardReview[] {
 async function fetchHtml(url: string) {
   const response = await fetch(url, {
     headers: {
-      "Accept": "text/html,application/xhtml+xml",
-      "User-Agent": "Mozilla/5.0 (compatible; KittyKingdomBot/1.0; +https://kittykingdom.net)",
+      Accept: "text/html,application/xhtml+xml",
+      "User-Agent":
+        "Mozilla/5.0 (compatible; KittyKingdomBot/1.0; +https://kittykingdom.net)",
     },
     cache: "no-store",
   });
@@ -132,7 +164,10 @@ async function fetchHtml(url: string) {
 
 export async function getDisboardSummary(): Promise<DisboardSummary> {
   try {
-    const [reviewsHtml, serverHtml] = await Promise.all([fetchHtml(reviewsUrl), fetchHtml(serverUrl)]);
+    const [reviewsHtml, serverHtml] = await Promise.all([
+      fetchHtml(reviewsUrl),
+      fetchHtml(serverUrl),
+    ]);
     return {
       rating: extractRating(serverHtml || reviewsHtml),
       reviews: extractReviews(reviewsHtml),
