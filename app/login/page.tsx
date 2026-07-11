@@ -82,7 +82,7 @@ export default function LoginPage({
               <input
                 autoComplete="username"
                 name="identifier"
-                placeholder="you@example.com or YourMCName"
+                placeholder="you@example.com or YourUsername"
                 required
                 type="text"
                 defaultValue={identifier}

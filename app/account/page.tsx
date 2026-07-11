@@ -203,6 +203,7 @@ export default async function AccountPage({
           <a href="/news">News</a>
           <a href="https://discord.com/invite/M9XKHFdYQV">Discord</a>
           <a href="/staff">Staff</a>
+          <a href="/leaderboards">Leaderboards</a>
         </div>
         <div className="nav-actions">
           <ThemeToggle />
@@ -238,8 +239,7 @@ export default async function AccountPage({
           <a href="#account-details">Account Details</a>
           <a href="#discord-account">Discord</a>
           <a href="#security">Security</a>
-          <a href="#preferences">Preferences</a>
-          <a href="#delete-account">Delete Account</a>
+          <a className="account-menu-danger" href="#delete-account">Delete Account</a>
         </nav>
 
         <div className="account-summary-panel">
