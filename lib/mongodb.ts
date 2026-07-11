@@ -55,3 +55,10 @@ export async function getJoinApplicationsCollection() {
   const db = client.db("zeo_bot");
   return db.collection("join_applications");
 }
+
+
+export async function getBotUsersCollection() {
+  const client = await getMongoClient();
+  const db = client.db(process.env.BOT_MONGODB_DB ?? "zeo_bot");
+  return db.collection("users");
+}
