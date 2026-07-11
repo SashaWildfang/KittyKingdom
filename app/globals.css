@@ -2961,3 +2961,317 @@ body.paw-cursor-enabled .theme-toggle {
 #delete-account {
   scroll-margin-top: 7rem;
 }
+
+/* Final cursor reset after removing the paw cursor feature */
+html,
+body {
+  cursor: auto !important;
+}
+
+a,
+button,
+.cta,
+.ghost,
+.form-button,
+.primary-pill,
+.login-link,
+.theme-toggle,
+.tabs a,
+.brand,
+.brand *,
+.auth-logo,
+.auth-logo *,
+.review-actions a,
+.discord-panel .cta,
+.hero-actions .cta {
+  cursor: pointer !important;
+}
+
+input,
+textarea {
+  cursor: text !important;
+}
+
+body.paw-cursor-enabled,
+body.paw-cursor-enabled a,
+body.paw-cursor-enabled button,
+body.paw-cursor-enabled input,
+body.paw-cursor-enabled label,
+body.paw-cursor-enabled .cta,
+body.paw-cursor-enabled .ghost,
+body.paw-cursor-enabled .form-button,
+body.paw-cursor-enabled .theme-toggle {
+  cursor: inherit !important;
+}
+
+.paw-cursor {
+  display: none !important;
+}
+
+/* Tighter account layout */
+.account-summary-panel div {
+  min-height: 3.75rem;
+  padding: 0.65rem 0.75rem;
+}
+
+.account-section-card,
+.account-danger-zone {
+  padding: 0.85rem;
+}
+
+.account-danger-zone button {
+  background: #d93434 !important;
+  color: #fff !important;
+}
+
+/* Register validation and resend status */
+.validation-shell input {
+  padding-right: 5.1rem !important;
+}
+
+.field-validity {
+  position: absolute;
+  right: 3.15rem;
+  top: 50%;
+  z-index: 3;
+  display: grid;
+  width: 1.3rem;
+  height: 1.3rem;
+  place-items: center;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 1000;
+  transform: translateY(-50%);
+}
+
+.field-validity.valid,
+.validation-rule.valid,
+.validation-help.valid {
+  color: #30d158;
+}
+
+.field-validity.invalid,
+.validation-rule.invalid,
+.validation-help.invalid {
+  color: #ff5b5b;
+}
+
+.validation-rules {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 0.35rem;
+}
+
+.validation-rule {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.validation-rule span {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.auth-form button:disabled {
+  cursor: not-allowed !important;
+  filter: grayscale(0.45);
+  opacity: 0.62;
+}
+
+.resend-link-button,
+.resend-link-button:hover,
+.resend-link-button:focus,
+.resend-link-button:active {
+  animation: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.inline-status-banner {
+  display: block;
+  margin-top: 0.75rem;
+  border: 1px solid rgba(245, 155, 42, 0.32);
+  border-radius: 0.8rem;
+  background: rgba(245, 155, 42, 0.12);
+  color: var(--text);
+  font-weight: 800;
+  padding: 0.75rem;
+}
+
+.summary-check {
+  display: inline-grid;
+  width: 1.05rem;
+  height: 1.05rem;
+  margin-left: 0.25rem;
+  place-items: center;
+  border-radius: 999px;
+  background: #30d158;
+  color: #06240f;
+  font-size: 0.72rem;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+/* Leaderboards */
+.leaderboard-shell {
+  min-height: 100vh;
+}
+
+.leaderboard-hero,
+.leaderboard-panel {
+  position: relative;
+  z-index: 2;
+  padding-inline: clamp(1rem, 6vw, 6rem);
+}
+
+.leaderboard-hero {
+  padding-top: clamp(2rem, 5vw, 4rem);
+  padding-bottom: 1.25rem;
+}
+
+.leaderboard-hero h1 {
+  margin: 0.2rem 0 0.65rem;
+  font-size: clamp(3rem, 9vw, 6.5rem);
+  letter-spacing: -0.08em;
+  line-height: 0.9;
+}
+
+.leaderboard-hero p:not(.eyebrow),
+.leaderboard-rank-card {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.leaderboard-rank-card {
+  display: inline-flex;
+  gap: 0.45rem;
+  border: 1px solid rgba(245, 155, 42, 0.32);
+  border-radius: 999px;
+  background: rgba(245, 155, 42, 0.12);
+  padding: 0.7rem 1rem;
+}
+
+.leaderboard-rank-card strong {
+  color: var(--text);
+}
+
+.leaderboard-panel {
+  display: grid;
+  gap: 1rem;
+  padding-bottom: clamp(3rem, 7vw, 6rem);
+}
+
+.leaderboard-controls {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) minmax(10rem, 16rem) auto;
+  gap: 0.85rem;
+  align-items: end;
+  border: 1px solid var(--line);
+  border-radius: 1.25rem;
+  background: color-mix(in srgb, var(--panel-strong) 88%, transparent);
+  padding: 1rem;
+}
+
+.leaderboard-controls label {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.leaderboard-controls input,
+.leaderboard-controls select {
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: rgba(0, 0, 0, 0.28);
+  color: var(--text);
+  padding: 0.8rem;
+}
+
+.leaderboard-controls button,
+.leaderboard-pagination a {
+  border: 0;
+  border-radius: 999px;
+  background: var(--ember);
+  color: #1d0b05;
+  cursor: pointer !important;
+  font-weight: 1000;
+  padding: 0.85rem 1rem;
+  text-align: center;
+}
+
+.leaderboard-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 1.25rem;
+  background: color-mix(in srgb, var(--panel-strong) 88%, transparent);
+}
+
+.leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 58rem;
+}
+
+.leaderboard-table th,
+.leaderboard-table td {
+  border-bottom: 1px solid var(--line);
+  padding: 0.85rem;
+  text-align: left;
+}
+
+.leaderboard-table th {
+  color: var(--ember);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.leaderboard-table td {
+  color: var(--text);
+}
+
+.leaderboard-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+@media (max-width: 760px) {
+  .leaderboard-controls {
+    grid-template-columns: 1fr;
+  }
+}
+
+input[type="checkbox"],
+select {
+  cursor: pointer !important;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input:not([type]),
+textarea {
+  cursor: text !important;
+}
+
+.account-dashboard {
+  width: 100%;
+  max-width: 72rem;
+  margin-inline: auto;
+}
+
+.account-main-grid {
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+}
+
+.account-summary-panel {
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+}

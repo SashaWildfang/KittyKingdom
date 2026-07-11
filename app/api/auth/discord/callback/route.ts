@@ -95,6 +95,10 @@ function toIsoDate(value: unknown) {
   return date ? date.toISOString().slice(0, 10) : null;
 }
 
+function getApplicationStatus(application: Record<string, unknown> | null) {
+  return String(application?.status ?? application?.Status ?? "").trim().toLowerCase();
+}
+
 function getAgeAndDob(application: Record<string, unknown> | null) {
   if (!application) return { age: null as number | null, dob: null as string | null };
 
@@ -147,7 +151,9 @@ export async function GET(request: Request) {
     const clientSecret = process.env.DISCORD_CLIENT_SECRET;
     const redirectUri = `${origin}/api/auth/callback/discord`;
 
-    if (!clientId || !clientSecret) {
+    const guildId = process.env.DISCORD_GUILD_ID;
+
+    if (!clientId || !clientSecret || !guildId) {
       return NextResponse.redirect(
         `${origin}/account?discord=not-configured`,
         303,
@@ -192,26 +198,21 @@ export async function GET(request: Request) {
       avatar?: string;
     };
 
-    const guildId = process.env.DISCORD_GUILD_ID;
-    let guildMember = null;
+    const memberResponse = await fetch(
+      `https://discord.com/api/users/@me/guilds/${guildId}/member`,
+      {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      },
+    );
 
-    if (guildId) {
-      const memberResponse = await fetch(
-        `https://discord.com/api/users/@me/guilds/${guildId}/member`,
-        {
-          headers: { Authorization: `Bearer ${tokenData.access_token}` },
-        },
+    if (!memberResponse.ok) {
+      return NextResponse.redirect(
+        `${origin}/account?discord=guild-required`,
+        303,
       );
-
-      if (!memberResponse.ok) {
-        return NextResponse.redirect(
-          `${origin}/account?discord=guild-required`,
-          303,
-        );
-      }
-
-      guildMember = await memberResponse.json();
     }
+
+    const guildMember = await memberResponse.json();
 
     const joinApplications = await getJoinApplicationsCollection();
     const application = (await joinApplications.findOne({
@@ -223,6 +224,20 @@ export async function GET(request: Request) {
         { id: discordUser.id },
       ],
     })) as Record<string, unknown> | null;
+
+    if (!application) {
+      return NextResponse.redirect(
+        `${origin}/account?discord=application-required`,
+        303,
+      );
+    }
+
+    if (getApplicationStatus(application) !== "approved") {
+      return NextResponse.redirect(
+        `${origin}/account?discord=application-pending`,
+        303,
+      );
+    }
 
     const { age, dob } = getAgeAndDob(application);
 
