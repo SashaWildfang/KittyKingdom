@@ -126,7 +126,7 @@ const features = [
 
 const leaves = Array.from({ length: 18 }, (_, index) => index + 1);
 
-const registerMessages: Record<string, string> = {
+const homeMessages: Record<string, string> = {
   "check-email":
     "Account created. Check your email to verify your account, then log in when you are ready.",
   "email-provider-needed":
@@ -135,6 +135,7 @@ const registerMessages: Record<string, string> = {
     "Registration could not reach the account database. Please try again shortly.",
   "service-unavailable":
     "Registration is temporarily unavailable. Please try again shortly.",
+  deleted: "Your website account has been deleted.",
 };
 
 const iconPaths: Record<string, string> = {
@@ -179,7 +180,7 @@ export const dynamic = "force-dynamic";
 export default async function Home({
   searchParams,
 }: {
-  searchParams?: { register?: string };
+  searchParams?: { register?: string; account?: string };
 }) {
   const [disboard, discord, user] = await Promise.all([
     getDisboardSummary(),
@@ -237,9 +238,13 @@ export default async function Home({
         </div>
       </nav>
 
-      {searchParams?.register && registerMessages[searchParams.register] ? (
+      {searchParams?.register && homeMessages[searchParams.register] ? (
         <div className="home-status-banner">
-          {registerMessages[searchParams.register]}
+          {homeMessages[searchParams.register]}
+        </div>
+      ) : searchParams?.account && homeMessages[searchParams.account] ? (
+        <div className="home-status-banner">
+          {homeMessages[searchParams.account]}
         </div>
       ) : null}
 
@@ -341,7 +346,7 @@ export default async function Home({
             <span>What people are saying</span>
             <span className="inline-rating" aria-label="5 out of 5 star rating">
               <span aria-hidden="true">★★★★★</span>
-              <strong>{disboard.rating ?? "5"}/5</strong>
+              <strong>{disboard.rating ?? "5"} / 5</strong>
             </span>
           </h2>
           <p>Here’s what people are saying about Kitty Kingdom on DISBOARD.</p>
