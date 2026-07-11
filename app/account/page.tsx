@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "../../lib/auth";
+import { DiscordUnlinkForm } from "../discord-unlink-form";
 import { getDiscordInviteSummary } from "../../lib/discord";
+import { getJoinApplicationsCollection } from "../../lib/mongodb";
 import { OnlineStatus } from "../online-status";
 import { PawSetting } from "../paw-setting";
 import { ThemeToggle } from "../theme-toggle";
@@ -32,21 +34,115 @@ const statusMessages: Record<string, string> = {
   "user-failed":
     "Discord connected, but your profile could not be loaded. Please try again.",
   "guild-required": "Join the Kitty Kingdom Discord before linking your account.",
+  unlinked: "Discord account unlinked. Discord-only features are disabled until you link again.",
 };
 
+const monthNames: Record<string, number> = {
+  jan: 0,
+  january: 0,
+  feb: 1,
+  february: 1,
+  mar: 2,
+  march: 2,
+  apr: 3,
+  april: 3,
+  may: 4,
+  jun: 5,
+  june: 5,
+  jul: 6,
+  july: 6,
+  aug: 7,
+  august: 7,
+  sep: 8,
+  sept: 8,
+  september: 8,
+  oct: 9,
+  october: 9,
+  nov: 10,
+  november: 10,
+  dec: 11,
+  december: 11,
+};
+
+function normalizeDate(value: unknown) {
+  if (!value) return null;
+  const text = String(value).trim();
+  const direct = new Date(text);
+  if (!Number.isNaN(direct.getTime())) return direct;
+
+  const match = text.match(
+    /\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?\s+(\d{1,2})(?:st|nd|rd|th)?[,]?\s+(\d{4})\b/i,
+  );
+  if (!match) return null;
+
+  const month = monthNames[match[1].toLowerCase().replace(/\.$/, "")];
+  const day = Number(match[2]);
+  const year = Number(match[3]);
+  if (month === undefined || !day || !year) return null;
+  const parsed = new Date(Date.UTC(year, month, day));
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 function getAge(dateOfBirth: unknown, storedAge: unknown) {
-  if (dateOfBirth) {
-    const date = new Date(String(dateOfBirth));
-    if (!Number.isNaN(date.getTime())) {
-      const now = new Date();
-      let age = now.getFullYear() - date.getFullYear();
-      const monthDiff = now.getMonth() - date.getMonth();
-      if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < date.getDate()))
-        age -= 1;
-      return age;
-    }
+  const date = normalizeDate(dateOfBirth);
+  if (date) {
+    const now = new Date();
+    let age = now.getFullYear() - date.getUTCFullYear();
+    const monthDiff = now.getMonth() - date.getUTCMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < date.getUTCDate()))
+      age -= 1;
+    return age;
   }
   return typeof storedAge === "number" ? storedAge : null;
+}
+
+function formatDob(dateOfBirth: unknown) {
+  const date = normalizeDate(dateOfBirth);
+  if (!date) return dateOfBirth ? String(dateOfBirth) : "Not available";
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+}
+
+async function getJoinApplicationProfile(discordId: unknown) {
+  if (!discordId) return null;
+  try {
+    const joinApplications = await getJoinApplicationsCollection();
+    return (await joinApplications.findOne({
+      $or: [
+        { discordId: String(discordId) },
+        { discord_id: String(discordId) },
+        { userId: String(discordId) },
+        { user_id: String(discordId) },
+        { id: String(discordId) },
+      ],
+    })) as Record<string, unknown> | null;
+  } catch {
+    return null;
+  }
+}
+
+function getApplicationAgeAndDob(application: Record<string, unknown> | null) {
+  if (!application) return { ageSource: null, dobSource: null };
+  const ageAndDob =
+    application.ageAndDob ??
+    application.age_and_dob ??
+    application.ageDOB ??
+    application.ageDob ??
+    null;
+  const dobSource =
+    application.dateOfBirth ??
+    application.date_of_birth ??
+    application.dob ??
+    application.DoB ??
+    application.DOB ??
+    application.birthdate ??
+    ageAndDob;
+  const ageSource = application.age ?? application.Age;
+  return { ageSource, dobSource };
 }
 
 function DiscordIcon() {
@@ -78,7 +174,10 @@ export default async function AccountPage({
     searchParams.discord ??
     searchParams.verify ??
     searchParams.login;
-  const age = getAge(user.dateOfBirth, user.age);
+  const application = await getJoinApplicationProfile(user.discordId);
+  const { ageSource, dobSource } = getApplicationAgeAndDob(application);
+  const age = getAge(dobSource ?? user.dateOfBirth, ageSource ?? user.age);
+  const dob = formatDob(dobSource ?? user.dateOfBirth);
 
   return (
     <main className="site-shell account-site-shell">
@@ -104,10 +203,10 @@ export default async function AccountPage({
         <div className="nav-actions">
           <ThemeToggle />
           <a className="login-link logged-in-link" href="/account">
-            Account
+            My Account
           </a>
           <form action="/api/account/logout" method="post">
-            <button className="primary-pill" type="submit">
+            <button className="primary-pill logout-pill" type="submit">
               Logout
             </button>
           </form>
@@ -145,6 +244,10 @@ export default async function AccountPage({
           <div>
             <span>Age</span>
             <strong>{age ?? "Not available"}</strong>
+          </div>
+          <div>
+            <span>Date of Birth</span>
+            <strong>{dob}</strong>
           </div>
         </div>
 
@@ -193,17 +296,23 @@ export default async function AccountPage({
               <DiscordIcon />
             </span>
             <div>
-              <h2>Discord Account</h2>
+              <div className="discord-title-row">
+                <h2>Discord Account</h2>
+                {user.discordId ? <span className="linked-badge">✓ Linked</span> : null}
+              </div>
               <p>
                 {user.discordId
                   ? "Your Discord account is linked. Relink if you need to refresh your Discord member details."
                   : "Link Discord so your website account can match your community member identity."}
               </p>
             </div>
-            <Link className="discord-link-button" href="/api/auth/discord">
-              <DiscordIcon />
-              {user.discordId ? "Relink Discord" : "Link Discord Account"}
-            </Link>
+            <div className="discord-actions-row">
+              <Link className="discord-link-button" href="/api/auth/discord">
+                <DiscordIcon />
+                {user.discordId ? "Relink Discord" : "Link Discord Account"}
+              </Link>
+              {user.discordId ? <DiscordUnlinkForm /> : null}
+            </div>
           </div>
 
           <form

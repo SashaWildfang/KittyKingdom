@@ -31,36 +31,97 @@ function getCanonicalOrigin(request: Request) {
   return url.origin.replace(/\/$/, "");
 }
 
-function calculateAge(value: unknown) {
+const monthNames: Record<string, number> = {
+  jan: 0,
+  january: 0,
+  feb: 1,
+  february: 1,
+  mar: 2,
+  march: 2,
+  apr: 3,
+  april: 3,
+  may: 4,
+  jun: 5,
+  june: 5,
+  jul: 6,
+  july: 6,
+  aug: 7,
+  august: 7,
+  sep: 8,
+  sept: 8,
+  september: 8,
+  oct: 9,
+  october: 9,
+  nov: 10,
+  november: 10,
+  dec: 11,
+  december: 11,
+};
+
+function normalizeDate(value: unknown) {
   if (!value) return null;
-  const date = new Date(String(value));
-  if (Number.isNaN(date.getTime())) return null;
+  const text = String(value).trim();
+  const direct = new Date(text);
+  if (!Number.isNaN(direct.getTime())) return direct;
+
+  const match = text.match(
+    /\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?\s+(\d{1,2})(?:st|nd|rd|th)?[,]?\s+(\d{4})\b/i,
+  );
+  if (!match) return null;
+
+  const month = monthNames[match[1].toLowerCase().replace(/\.$/, "")];
+  const day = Number(match[2]);
+  const year = Number(match[3]);
+  if (month === undefined || !day || !year) return null;
+
+  const parsed = new Date(Date.UTC(year, month, day));
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function calculateAge(value: unknown) {
+  const date = normalizeDate(value);
+  if (!date) return null;
 
   const now = new Date();
-  let age = now.getFullYear() - date.getFullYear();
-  const monthDiff = now.getMonth() - date.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < date.getDate()))
+  let age = now.getFullYear() - date.getUTCFullYear();
+  const monthDiff = now.getMonth() - date.getUTCMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < date.getUTCDate()))
     age -= 1;
   return age;
 }
 
-function getDob(application: Record<string, unknown> | null) {
-  if (!application) return null;
-  return (
+function toIsoDate(value: unknown) {
+  const date = normalizeDate(value);
+  return date ? date.toISOString().slice(0, 10) : null;
+}
+
+function getAgeAndDob(application: Record<string, unknown> | null) {
+  if (!application) return { age: null as number | null, dob: null as string | null };
+
+  const rawAgeAndDob =
+    application.ageAndDob ??
+    application.age_and_dob ??
+    application.ageDOB ??
+    application.ageDob ??
+    null;
+  const rawDob =
     application.dateOfBirth ??
     application.date_of_birth ??
     application.dob ??
     application.DoB ??
     application.DOB ??
     application.birthdate ??
-    null
-  );
-}
+    rawAgeAndDob;
+  const rawAge = application.age ?? application.Age;
 
-function getStoredAge(application: Record<string, unknown> | null) {
-  if (!application) return null;
-  const raw = application.age ?? application.Age;
-  return typeof raw === "number" ? raw : raw ? Number(raw) : null;
+  const dob = toIsoDate(rawDob);
+  const calculatedAge = calculateAge(dob ?? rawDob);
+  const storedAge = typeof rawAge === "number" ? rawAge : rawAge ? Number(rawAge) : null;
+
+  return {
+    age: calculatedAge ?? (Number.isFinite(storedAge) ? storedAge : null),
+    dob,
+  };
 }
 
 export async function GET(request: Request) {
@@ -163,8 +224,7 @@ export async function GET(request: Request) {
       ],
     })) as Record<string, unknown> | null;
 
-    const dob = getDob(application);
-    const age = calculateAge(dob) ?? getStoredAge(application);
+    const { age, dob } = getAgeAndDob(application);
 
     const users = await getUsersCollection();
     const existingUser = await users.findOne({ _id: new ObjectId(state) });
