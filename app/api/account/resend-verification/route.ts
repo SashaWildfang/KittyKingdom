@@ -12,10 +12,22 @@ export async function GET(request: Request) {
   const identifier = String(url.searchParams.get("identifier") ?? "")
     .trim()
     .toLowerCase();
+  const wantsJson = url.searchParams.get("ajax") === "1";
+
+  function done(status: string, message: string) {
+    if (wantsJson) return NextResponse.json({ status, message });
+    return NextResponse.redirect(
+      `${origin}/login?login=${status}&identifier=${encodeURIComponent(identifier)}`,
+      303,
+    );
+  }
 
   try {
     if (!identifier) {
-      return NextResponse.redirect(`${origin}/login?login=missing-identifier`, 303);
+      return done(
+        "missing-identifier",
+        "Enter your email or username before requesting a new verification email.",
+      );
     }
 
     const users = await getUsersCollection();
@@ -24,14 +36,11 @@ export async function GET(request: Request) {
     });
 
     if (!user) {
-      return NextResponse.redirect(`${origin}/login?login=verification-sent`, 303);
+      return done("verification-sent", "Verification email resent. Check your inbox.");
     }
 
     if (user.emailVerified) {
-      return NextResponse.redirect(
-        `${origin}/login?login=already-verified&identifier=${encodeURIComponent(identifier)}`,
-        303,
-      );
+      return done("already-verified", "Your email is already verified. You can log in now.");
     }
 
     const { token, tokenHash } = createVerificationToken();
@@ -49,16 +58,19 @@ export async function GET(request: Request) {
     );
 
     const emailResult = await sendVerificationEmail(user.email, verifyUrl);
-    const status = emailResult.sent ? "verification-sent" : "email-provider-needed";
-    return NextResponse.redirect(
-      `${origin}/login?login=${status}&identifier=${encodeURIComponent(identifier)}`,
-      303,
-    );
+    return emailResult.sent
+      ? done("verification-sent", "Verification email resent. Check your inbox.")
+      : done("email-provider-needed", "The verification email could not be sent. Please contact staff.");
   } catch (error) {
     console.error("Verification resend failed", error);
     const status = isDatabaseConnectionError(error)
       ? "database-unreachable"
       : "service-unavailable";
-    return NextResponse.redirect(`${origin}/login?login=${status}`, 303);
+    return done(
+      status,
+      status === "database-unreachable"
+        ? "The account database is not reachable right now."
+        : "Verification resend is temporarily unavailable.",
+    );
   }
 }
