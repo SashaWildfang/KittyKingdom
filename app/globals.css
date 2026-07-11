@@ -3219,3 +3219,28 @@ input[type="submit"] {
   padding: 0.08rem 0.32rem;
   text-transform: uppercase;
 }
+
+
+.rank-medal {
+  display: inline-grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  place-items: center;
+  border-radius: 999px;
+  color: #1d0b05;
+  font-size: 0.85rem;
+  font-weight: 1000;
+  box-shadow: 0 0 18px rgba(255, 210, 122, 0.22);
+}
+
+.rank-medal-1 {
+  background: linear-gradient(135deg, #fff3a6, #f3b324 54%, #9d6508);
+}
+
+.rank-medal-2 {
+  background: linear-gradient(135deg, #f4f6ff, #b8c0cb 54%, #6f7884);
+}
+
+.rank-medal-3 {
+  background: linear-gradient(135deg, #ffd6a6, #c87935 54%, #7a3d19);
+}

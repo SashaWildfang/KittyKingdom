@@ -245,9 +245,19 @@ export function LeaderboardsClient() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, index) => (
+            {rows.map((row, index) => {
+              const rank = (page - 1) * pageSize + index + 1;
+              return (
               <tr key={row._id} className={row.isCurrentUser ? "current-user-row" : undefined}>
-                <td>{(page - 1) * pageSize + index + 1}</td>
+                <td>
+                  {rank <= 3 ? (
+                    <span className={`rank-medal rank-medal-${rank}`} aria-label={`Rank ${rank}`}>
+                      {rank}
+                    </span>
+                  ) : (
+                    rank
+                  )}
+                </td>
                 <td>
                   <strong>{row.name}</strong>
                 </td>
@@ -261,7 +271,8 @@ export function LeaderboardsClient() {
                   </td>
                 ))}
               </tr>
-            ))}
+              );
+            })}
             {!loading && rows.length === 0 ? (
               <tr>
                 <td colSpan={9}>No members found.</td>

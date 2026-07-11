@@ -86,11 +86,12 @@ function coerceNumber(value: unknown) {
 }
 
 function getNumber(source: Record<string, unknown>, fields: string[]) {
+  let best = 0;
   for (const field of fields) {
     const parsed = coerceNumber(getPathValue(source, field));
-    if (parsed !== null) return parsed;
+    if (parsed !== null && parsed > best) best = parsed;
   }
-  return 0;
+  return best;
 }
 
 function getText(source: Record<string, unknown> | undefined, fields: string[]) {
