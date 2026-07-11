@@ -8,6 +8,31 @@ import {
 
 export const maxDuration = 10;
 
+function getCanonicalOrigin(request: Request) {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.PUBLIC_SITE_URL;
+  if (configured) {
+    const candidates = configured.split(/[|,\s]+/).filter(Boolean);
+    const preferred =
+      candidates.find((value) => value === "https://kittykingdom.net") ??
+      candidates[0];
+    if (preferred) {
+      const clean = preferred.replace(/\/$/, "");
+      try {
+        if (new URL(clean).hostname === "www.kittykingdom.net") {
+          return "https://kittykingdom.net";
+        }
+      } catch {
+        // Fall through and use the cleaned configured value.
+      }
+      return clean;
+    }
+  }
+
+  const url = new URL(request.url);
+  if (url.hostname === "www.kittykingdom.net") return "https://kittykingdom.net";
+  return url.origin.replace(/\/$/, "");
+}
+
 function calculateAge(value: unknown) {
   if (!value) return null;
   const date = new Date(String(value));
@@ -42,7 +67,7 @@ function getStoredAge(application: Record<string, unknown> | null) {
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const origin = url.origin;
+  const origin = getCanonicalOrigin(request);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
 

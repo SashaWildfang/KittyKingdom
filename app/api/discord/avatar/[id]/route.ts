@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 86400;
 
 const fallback = new URL("/logo.png", "https://kittykingdom.net");
+const cacheHeaders = {
+  "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800",
+};
+
+function redirectCached(url: string | URL) {
+  return NextResponse.redirect(url, { headers: cacheHeaders });
+}
 
 function getToken() {
   return (
@@ -34,7 +41,7 @@ async function discordFetch(path: string, token: string) {
       Authorization: `Bot ${token}`,
       "User-Agent": "KittyKingdomBot/1.0 (+https://kittykingdom.net)",
     },
-    cache: "no-store",
+    next: { revalidate: 86400 },
   });
 }
 
@@ -46,7 +53,7 @@ export async function GET(
   const guildId = process.env.DISCORD_GUILD_ID;
 
   if (!token) {
-    return NextResponse.redirect(fallback);
+    return redirectCached(fallback);
   }
 
   try {
@@ -62,13 +69,13 @@ export async function GET(
         };
 
         if (member.avatar) {
-          return NextResponse.redirect(
+          return redirectCached(
             guildAvatarCdnUrl(guildId, params.id, member.avatar),
           );
         }
 
         if (member.user?.avatar) {
-          return NextResponse.redirect(
+          return redirectCached(
             avatarCdnUrl(member.user.id, member.user.avatar),
           );
         }
@@ -77,7 +84,7 @@ export async function GET(
 
     const userResponse = await discordFetch(`/users/${params.id}`, token);
     if (!userResponse.ok) {
-      return NextResponse.redirect(fallback);
+      return redirectCached(fallback);
     }
 
     const user = (await userResponse.json()) as {
@@ -85,11 +92,11 @@ export async function GET(
       avatar: string | null;
     };
     if (!user.avatar) {
-      return NextResponse.redirect(fallback);
+      return redirectCached(fallback);
     }
 
-    return NextResponse.redirect(avatarCdnUrl(user.id, user.avatar));
+    return redirectCached(avatarCdnUrl(user.id, user.avatar));
   } catch {
-    return NextResponse.redirect(fallback);
+    return redirectCached(fallback);
   }
 }
