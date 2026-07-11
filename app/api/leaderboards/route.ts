@@ -366,7 +366,7 @@ export async function GET(request: Request) {
     const rowsWithDiscord = await Promise.all(
       pageRows.map(async (row) => {
         const liveMember = await getLiveGuildMember(row.discordId);
-        const liveUser = liveMember && liveMember !== false ? (liveMember.user as Record<string, unknown> | undefined) : undefined;
+        const liveUser = liveMember ? (liveMember.user as Record<string, unknown> | undefined) : undefined;
         const application = row.discordId ? applicationByDiscordId.get(row.discordId) ?? null : null;
         return {
           ...row,
