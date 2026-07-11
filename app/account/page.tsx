@@ -253,8 +253,11 @@ export default async function AccountPage({
           </div>
           <div className="summary-discord-card">
             <span>Discord</span>
-            <strong>{user.discord?.username ?? user.discordId ?? "Not linked"}</strong>
-            {user.discordId ? <span className="summary-linked-badge">✓ Linked</span> : null}
+            {user.discordId ? (
+              <strong className="summary-linked-badge" aria-label="Linked">✓</strong>
+            ) : (
+              <strong>Not linked</strong>
+            )}
           </div>
           <div>
             <span>Age</span>

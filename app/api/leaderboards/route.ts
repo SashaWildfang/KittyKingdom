@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "../../../lib/auth";
-import { getUsersCollection } from "../../../lib/mongodb";
+import {
+  getBotUsersCollection,
+  getUsersCollection,
+} from "../../../lib/mongodb";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 10;
@@ -14,35 +17,68 @@ type SortKey =
   | "total_vc_time"
   | "monthly_vc_time";
 
+type Order = "asc" | "desc";
+
+type LeaderboardRow = {
+  _id: string;
+  discordId: string | null;
+  name: string;
+  username: string | null;
+  balance: number;
+  level: number;
+  messages: number;
+  bumps: number;
+  monthly_bumps: number;
+  total_vc_time: number;
+  monthly_vc_time: number;
+  isCurrentUser: boolean;
+};
+
 const sortFields: Record<SortKey, string[]> = {
-  balance: ["balance", "leafs", "leaves"],
-  level: ["level"],
-  messages: ["messages", "message_count"],
-  bumps: ["bumps", "total_bumps"],
+  balance: ["balance", "leafs", "leaves", "wallet.balance", "economy.balance"],
+  level: ["level", "rank.level", "xp.level"],
+  messages: ["messages", "message_count", "messageCount", "total_messages", "totalMessages"],
+  bumps: ["bumps", "total_bumps", "totalBumps"],
   monthly_bumps: ["monthly_bumps", "monthlyBumps"],
-  total_vc_time: ["total_vc_time", "totalVcTime", "vc_time", "vcTime"],
-  monthly_vc_time: ["monthly_vc_time", "monthlyVcTime"],
+  total_vc_time: ["total_vc_time", "totalVcTime", "vc_time", "vcTime", "voice.total"],
+  monthly_vc_time: ["monthly_vc_time", "monthlyVcTime", "voice.monthly"],
+};
+
+const botProjection = {
+  email: 0,
+  passwordHash: 0,
+  passwordSalt: 0,
+  emailVerificationTokenHash: 0,
+  session: 0,
 };
 
 function escapeRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function getPathValue(source: Record<string, unknown> | undefined, path: string) {
+  if (!source) return undefined;
+  return path.split(".").reduce<unknown>((value, key) => {
+    if (!value || typeof value !== "object") return undefined;
+    return (value as Record<string, unknown>)[key];
+  }, source);
+}
+
 function getNumber(source: Record<string, unknown>, fields: string[]) {
   for (const field of fields) {
-    const value = source[field];
+    const value = getPathValue(source, field);
     if (typeof value === "number" && Number.isFinite(value)) return value;
     if (typeof value === "string" && value.trim() !== "") {
-      const parsed = Number(value);
+      const parsed = Number(value.replace(/,/g, ""));
       if (Number.isFinite(parsed)) return parsed;
     }
   }
   return 0;
 }
 
-function getText(source: Record<string, unknown>, fields: string[]) {
+function getText(source: Record<string, unknown> | undefined, fields: string[]) {
   for (const field of fields) {
-    const value = source[field];
+    const value = getPathValue(source, field);
     if (typeof value === "string" && value.trim()) return value.trim();
   }
   return null;
@@ -50,37 +86,45 @@ function getText(source: Record<string, unknown>, fields: string[]) {
 
 function getDiscord(source: Record<string, unknown>) {
   const discord = source.discord as Record<string, unknown> | undefined;
-  const guildMember = discord?.guildMember as Record<string, unknown> | undefined;
+  const guildMember =
+    (source.guildMember as Record<string, unknown> | undefined) ??
+    (source.member as Record<string, unknown> | undefined) ??
+    (discord?.guildMember as Record<string, unknown> | undefined);
   const memberUser = guildMember?.user as Record<string, unknown> | undefined;
-  const displayName =
-    getText(source, ["discordDisplayName", "displayName", "name"]) ??
-    getText(discord ?? {}, ["displayName", "globalName", "global_name", "username"]);
 
   return {
     id:
-      getText(source, ["discordId", "discord_id", "userId", "user_id", "id"]) ??
-      getText(discord ?? {}, ["id"]) ??
-      getText(memberUser ?? {}, ["id"]),
-    displayName: guildMember?.nick
-      ? String(guildMember.nick)
-      : displayName ?? getText(memberUser ?? {}, ["global_name", "username"]),
+      getText(source, ["discordId", "discord_id", "userId", "user_id", "id", "discord.id"]) ??
+      getText(memberUser, ["id"]),
+    displayName:
+      getText(guildMember, ["nick", "displayName"]) ??
+      getText(source, ["discordDisplayName", "displayName", "name", "username"]) ??
+      getText(discord, ["displayName", "globalName", "global_name", "username"]) ??
+      getText(memberUser, ["global_name", "username"]),
     username:
-      getText(discord ?? {}, ["username"]) ??
-      getText(memberUser ?? {}, ["username"]),
-    guildMember,
+      getText(source, ["username"]) ??
+      getText(discord, ["username"]) ??
+      getText(memberUser, ["username"]),
   };
 }
 
-function shouldHideNonMembers(source: Record<string, unknown>) {
+function knownNonMember(source: Record<string, unknown>) {
   const discord = source.discord as Record<string, unknown> | undefined;
   const knownMembership =
     source.inServer ??
     source.isInServer ??
     source.guildMember ??
+    source.member ??
     discord?.guildMember ??
     discord?.inServer;
 
   return knownMembership === false || knownMembership === null;
+}
+
+function matchesSearch(row: LeaderboardRow, search: string) {
+  if (!search) return true;
+  const haystack = [row.name, row.username, row.discordId].filter(Boolean).join(" ").toLowerCase();
+  return haystack.includes(search.toLowerCase());
 }
 
 async function getLiveGuildMember(discordId: string | null) {
@@ -109,11 +153,62 @@ async function getLiveGuildMember(discordId: string | null) {
   }
 }
 
+function toLeaderboardRow(
+  source: Record<string, unknown>,
+  currentDiscordId: string | null,
+  sourcePrefix: string,
+): LeaderboardRow | null {
+  if (knownNonMember(source)) return null;
+
+  const discord = getDiscord(source);
+  if (!discord.id) return null;
+
+  return {
+    _id: `${sourcePrefix}:${String(source._id ?? discord.id)}`,
+    discordId: discord.id,
+    name: discord.displayName ?? discord.id,
+    username: discord.username,
+    balance: getNumber(source, sortFields.balance),
+    level: getNumber(source, sortFields.level),
+    messages: getNumber(source, sortFields.messages),
+    bumps: getNumber(source, sortFields.bumps),
+    monthly_bumps: getNumber(source, sortFields.monthly_bumps),
+    total_vc_time: getNumber(source, sortFields.total_vc_time),
+    monthly_vc_time: getNumber(source, sortFields.monthly_vc_time),
+    isCurrentUser: Boolean(currentDiscordId && discord.id === currentDiscordId),
+  };
+}
+
+function mergeRows(rows: LeaderboardRow[]) {
+  const byDiscordId = new Map<string, LeaderboardRow>();
+
+  for (const row of rows) {
+    if (!row.discordId) continue;
+    const existing = byDiscordId.get(row.discordId);
+    if (!existing) {
+      byDiscordId.set(row.discordId, row);
+      continue;
+    }
+
+    byDiscordId.set(row.discordId, {
+      ...existing,
+      ...row,
+      _id: existing._id,
+      name: row.name !== row.discordId ? row.name : existing.name,
+      username: row.username ?? existing.username,
+      isCurrentUser: existing.isCurrentUser || row.isCurrentUser,
+    });
+  }
+
+  return [...byDiscordId.values()];
+}
+
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const search = (url.searchParams.get("search") ?? "").trim().slice(0, 80);
     const sort = (url.searchParams.get("sort") ?? "balance") as SortKey;
+    const order = url.searchParams.get("order") === "asc" ? "asc" : "desc";
     const requestedPage = Number(url.searchParams.get("page") ?? "1");
     const requestedPageSize = Number(url.searchParams.get("pageSize") ?? "25");
     const page = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
@@ -125,8 +220,9 @@ export async function GET(request: Request) {
       ? sort
       : "balance";
 
-    const [users, currentUser] = await Promise.all([
+    const [websiteUsers, botUsers, currentUser] = await Promise.all([
       getUsersCollection(),
+      getBotUsersCollection(),
       getCurrentUser(),
     ]);
 
@@ -139,50 +235,36 @@ export async function GET(request: Request) {
             { name: { $regex: escapedSearch, $options: "i" } },
             { discordId: { $regex: escapedSearch, $options: "i" } },
             { discord_id: { $regex: escapedSearch, $options: "i" } },
+            { userId: { $regex: escapedSearch, $options: "i" } },
+            { user_id: { $regex: escapedSearch, $options: "i" } },
             { "discord.username": { $regex: escapedSearch, $options: "i" } },
             { "discord.globalName": { $regex: escapedSearch, $options: "i" } },
             { "discord.guildMember.nick": { $regex: escapedSearch, $options: "i" } },
+            { "guildMember.nick": { $regex: escapedSearch, $options: "i" } },
           ],
         }
       : {};
 
-    const rawUsers = (await users
-      .find(searchQuery)
-      .project({
-        email: 0,
-        passwordHash: 0,
-        passwordSalt: 0,
-        emailVerificationTokenHash: 0,
-        session: 0,
-      })
-      .limit(500)
-      .toArray()) as Record<string, unknown>[];
+    const [rawWebsiteUsers, rawBotUsers] = (await Promise.all([
+      websiteUsers.find(searchQuery).project(botProjection).limit(500).toArray(),
+      botUsers.find(searchQuery).project(botProjection).limit(1000).toArray(),
+    ])) as [Record<string, unknown>[], Record<string, unknown>[]];
 
-    const sorted = rawUsers
-      .filter((user) => !shouldHideNonMembers(user))
-      .map((user) => {
-        const discord = getDiscord(user);
-        return {
-          _id: String(user._id ?? ""),
-          discordId: discord.id,
-          name:
-            discord.displayName ??
-            getText(user, ["username", "displayName", "name"]) ??
-            discord.id ??
-            "Unknown member",
-          username: getText(user, ["username"]),
-          balance: getNumber(user, sortFields.balance),
-          level: getNumber(user, sortFields.level),
-          messages: getNumber(user, sortFields.messages),
-          bumps: getNumber(user, sortFields.bumps),
-          monthly_bumps: getNumber(user, sortFields.monthly_bumps),
-          total_vc_time: getNumber(user, sortFields.total_vc_time),
-          monthly_vc_time: getNumber(user, sortFields.monthly_vc_time),
-          isCurrentUser: currentUser ? String(user._id ?? "") === String(currentUser._id) : false,
-        };
-      })
-      .filter((user) => Boolean(user.discordId))
-      .sort((a, b) => b[sortKey] - a[sortKey]);
+    const currentDiscordId = getText(currentUser ?? undefined, ["discordId", "discord_id", "discord.id"]);
+    const merged = mergeRows([
+      ...rawWebsiteUsers.map((user) => toLeaderboardRow(user, currentDiscordId, "site")),
+      ...rawBotUsers.map((user) => toLeaderboardRow(user, currentDiscordId, "bot")),
+    ].filter(Boolean) as LeaderboardRow[]).filter((row) => matchesSearch(row, search));
+
+    const sorted = merged.sort((a, b) => {
+      const comparison = a[sortKey] - b[sortKey];
+      return order === "asc" ? comparison : -comparison;
+    });
+
+    const currentRank = currentDiscordId
+      ? sorted.findIndex((row) => row.discordId === currentDiscordId) + 1
+      : 0;
+    const currentRow = currentRank > 0 ? sorted[currentRank - 1] : null;
 
     const pageRows = sorted.slice((page - 1) * pageSize, page * pageSize);
     const rowsWithDiscord = await Promise.all(
@@ -193,8 +275,8 @@ export async function GET(request: Request) {
         return {
           ...row,
           name:
-            (liveMember?.nick ? String(liveMember.nick) : null) ??
-            getText(liveUser ?? {}, ["global_name", "username"]) ??
+            getText(liveMember ?? undefined, ["nick", "displayName"]) ??
+            getText(liveUser, ["global_name", "username"]) ??
             row.name,
         };
       }),
@@ -208,6 +290,9 @@ export async function GET(request: Request) {
       page,
       pageSize,
       sort: sortKey,
+      order: order as Order,
+      currentRank,
+      currentValue: currentRow ? currentRow[sortKey] : null,
     });
   } catch (error) {
     console.error("Leaderboard lookup failed", error);
