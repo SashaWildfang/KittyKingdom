@@ -35,13 +35,13 @@ type LeaderboardRow = {
 };
 
 const sortFields: Record<SortKey, string[]> = {
-  balance: ["balance", "leafs", "leaves", "wallet.balance", "economy.balance"],
+  balance: ["balance", "leafs", "leaves", "wallet.balance", "economy.balance", "economy.wallet", "cash"],
   level: ["level", "rank.level", "xp.level"],
-  messages: ["messages", "message_count", "messageCount", "total_messages", "totalMessages"],
-  bumps: ["bumps", "total_bumps", "totalBumps"],
-  monthly_bumps: ["monthly_bumps", "monthlyBumps"],
-  total_vc_time: ["total_vc_time", "totalVcTime", "vc_time", "vcTime", "voice.total"],
-  monthly_vc_time: ["monthly_vc_time", "monthlyVcTime", "voice.monthly"],
+  messages: ["msgCount", "messages", "message_count", "messageCount", "total_messages", "totalMessages"],
+  bumps: ["bumpCount", "bumps", "total_bumps", "totalBumps"],
+  monthly_bumps: ["monthly_bumps", "monthlyBumps", "monthlyBumpCount", "bumpCountMonthly"],
+  total_vc_time: ["vc_time_total", "total_vc_time", "totalVcTime", "vc_time", "vcTime", "voice.total"],
+  monthly_vc_time: ["vc_time_monthly", "monthly_vc_time", "monthlyVcTime", "voice.monthly"],
 };
 
 const botProjection = {
@@ -64,14 +64,30 @@ function getPathValue(source: Record<string, unknown> | undefined, path: string)
   }, source);
 }
 
+function coerceNumber(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value.replace(/,/g, ""));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  if (value && typeof value === "object") {
+    const numeric = value as { toNumber?: () => number; toString?: () => string };
+    if (typeof numeric.toNumber === "function") {
+      const parsed = numeric.toNumber();
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+    if (typeof numeric.toString === "function") {
+      const parsed = Number(numeric.toString());
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+  }
+  return null;
+}
+
 function getNumber(source: Record<string, unknown>, fields: string[]) {
   for (const field of fields) {
-    const value = getPathValue(source, field);
-    if (typeof value === "number" && Number.isFinite(value)) return value;
-    if (typeof value === "string" && value.trim() !== "") {
-      const parsed = Number(value.replace(/,/g, ""));
-      if (Number.isFinite(parsed)) return parsed;
-    }
+    const parsed = coerceNumber(getPathValue(source, field));
+    if (parsed !== null) return parsed;
   }
   return 0;
 }
@@ -82,6 +98,11 @@ function getText(source: Record<string, unknown> | undefined, fields: string[]) 
     if (typeof value === "string" && value.trim()) return value.trim();
   }
   return null;
+}
+
+function getSnowflake(value: unknown) {
+  const text = typeof value === "string" || typeof value === "number" ? String(value) : null;
+  return text && /^\d{15,25}$/.test(text) ? text : null;
 }
 
 function getDiscord(source: Record<string, unknown>) {
@@ -161,12 +182,14 @@ function toLeaderboardRow(
   if (knownNonMember(source)) return null;
 
   const discord = getDiscord(source);
-  if (!discord.id) return null;
+  const botSnowflake = sourcePrefix === "bot" ? getSnowflake(source._id) : null;
+  const discordId = discord.id ?? botSnowflake;
+  if (!discordId) return null;
 
   return {
-    _id: `${sourcePrefix}:${String(source._id ?? discord.id)}`,
-    discordId: discord.id,
-    name: discord.displayName ?? discord.id,
+    _id: `${sourcePrefix}:${String(source._id ?? discordId)}`,
+    discordId,
+    name: discord.displayName ?? discord.username ?? discordId,
     username: discord.username,
     balance: getNumber(source, sortFields.balance),
     level: getNumber(source, sortFields.level),
@@ -175,7 +198,7 @@ function toLeaderboardRow(
     monthly_bumps: getNumber(source, sortFields.monthly_bumps),
     total_vc_time: getNumber(source, sortFields.total_vc_time),
     monthly_vc_time: getNumber(source, sortFields.monthly_vc_time),
-    isCurrentUser: Boolean(currentDiscordId && discord.id === currentDiscordId),
+    isCurrentUser: Boolean(currentDiscordId && discordId === currentDiscordId),
   };
 }
 
@@ -226,6 +249,10 @@ export async function GET(request: Request) {
       getCurrentUser(),
     ]);
 
+    if (!currentUser) {
+      return NextResponse.json({ rows: [], total: 0, error: "Login required." }, { status: 401 });
+    }
+
     const escapedSearch = escapeRegex(search);
     const searchQuery = escapedSearch
       ? {
@@ -237,6 +264,7 @@ export async function GET(request: Request) {
             { discord_id: { $regex: escapedSearch, $options: "i" } },
             { userId: { $regex: escapedSearch, $options: "i" } },
             { user_id: { $regex: escapedSearch, $options: "i" } },
+            { _id: { $regex: escapedSearch, $options: "i" } },
             { "discord.username": { $regex: escapedSearch, $options: "i" } },
             { "discord.globalName": { $regex: escapedSearch, $options: "i" } },
             { "discord.guildMember.nick": { $regex: escapedSearch, $options: "i" } },

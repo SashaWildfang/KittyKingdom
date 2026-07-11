@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { getCurrentUser } from "../../lib/auth";
 import { getDiscordInviteSummary } from "../../lib/discord";
 import { OnlineStatus } from "../online-status";
@@ -11,6 +12,8 @@ export default async function LeaderboardsPage() {
     getDiscordInviteSummary(),
     getCurrentUser(),
   ]);
+
+  if (!user) redirect("/login?account=login-required");
 
   return (
     <main className="site-shell leaderboard-shell">
@@ -27,7 +30,7 @@ export default async function LeaderboardsPage() {
           <a href="/news">News</a>
           <a href="https://discord.com/invite/M9XKHFdYQV">Discord</a>
           <a href="/staff">Staff</a>
-          <a href="/leaderboards">Leaderboards</a>
+          {user ? <a href="/leaderboards">Leaderboards</a> : null}
         </div>
         <div className="nav-actions">
           <ThemeToggle />
