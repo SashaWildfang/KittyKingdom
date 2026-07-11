@@ -252,12 +252,20 @@ export default async function AccountPage({
             <strong>{user.username ?? "Not set"}</strong>
           </div>
           <div className="summary-discord-card">
-            <span>Discord</span>
-            {user.discordId ? (
-              <strong className="summary-linked-badge" aria-label="Linked">✓</strong>
-            ) : (
-              <strong>Not linked</strong>
-            )}
+            <span className="summary-discord-heading">
+              Discord
+              {user.discordId ? (
+                <strong className="summary-linked-badge" aria-label="Linked">✓</strong>
+              ) : null}
+            </span>
+            <strong>
+              {user.discordId
+                ? user.discord?.guildMember?.nick ??
+                  user.discord?.globalName ??
+                  user.discord?.username ??
+                  user.discordId
+                : "Not linked"}
+            </strong>
           </div>
           <div>
             <span>Age</span>

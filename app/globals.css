@@ -3303,3 +3303,21 @@ body.paw-cursor-enabled .theme-toggle {
   width: 1rem;
   height: 1rem;
 }
+
+
+/* Account Discord summary layout */
+.summary-discord-heading {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.summary-discord-heading .summary-linked-badge {
+  margin: 0;
+}
+
+.summary-discord-card strong:not(.summary-linked-badge) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
