@@ -51,6 +51,12 @@ const compactFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2,
 });
 
+const rankMedals: Record<number, string> = {
+  1: "🥇",
+  2: "🥈",
+  3: "🥉",
+};
+
 function formatInteger(value: number) {
   return Math.round(value).toLocaleString();
 }
@@ -336,9 +342,9 @@ export function LeaderboardsClient() {
               return (
               <tr key={row._id} className={row.isCurrentUser ? "current-user-row" : undefined}>
                 <td>
-                  {!isSearching && rank <= 3 ? (
-                    <span className={`rank-medal rank-medal-${rank}`} aria-label={`Rank ${rank}`}>
-                      <span className="rank-medal-number">{rank}</span>
+                  {!isSearching && rankMedals[rank] ? (
+                    <span className="rank-medal" aria-label={`Rank ${rank}`}>
+                      {rankMedals[rank]}
                     </span>
                   ) : (
                     rank
