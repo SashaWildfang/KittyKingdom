@@ -3221,16 +3221,23 @@ input[type="submit"] {
 }
 
 
+.rank-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  min-width: 3rem;
+}
+
+.rank-number {
+  min-width: 1ch;
+}
+
 .rank-medal {
-  display: inline-grid;
-  width: 1.75rem;
-  height: 1.75rem;
-  place-items: center;
-  border-radius: 999px;
-  color: #1d0b05;
-  font-size: 0.85rem;
-  font-weight: 1000;
-  box-shadow: 0 0 18px rgba(255, 210, 122, 0.22);
+  display: inline-block;
+  width: 1rem;
+  height: 1.25rem;
+  border-radius: 999px 999px 0.25rem 0.25rem;
+  box-shadow: 0 0 16px rgba(255, 210, 122, 0.24);
 }
 
 .rank-medal-1 {

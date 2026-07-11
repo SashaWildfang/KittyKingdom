@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type SortKey =
   | "balance"
@@ -87,6 +87,26 @@ function formatDuration(value: number) {
   return `${hours}h ${minutes}m`;
 }
 
+
+function isDiscordId(value: string | null) {
+  return Boolean(value && /^\d{15,25}$/.test(value));
+}
+
+function rememberResolvedNames(rows: LeaderboardRow[], cache: Map<string, string>) {
+  rows.forEach((row) => {
+    if (row.discordId && row.name && !isDiscordId(row.name)) {
+      cache.set(row.discordId, row.name);
+    }
+  });
+
+  return rows.map((row) => {
+    if (row.discordId && isDiscordId(row.name)) {
+      const cachedName = cache.get(row.discordId);
+      if (cachedName) return { ...row, name: cachedName };
+    }
+    return row;
+  });
+}
 export function LeaderboardsClient() {
   const [rows, setRows] = useState<LeaderboardRow[]>([]);
   const [search, setSearch] = useState("");
@@ -99,6 +119,7 @@ export function LeaderboardsClient() {
   const [currentValue, setCurrentValue] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const nameCacheRef = useRef(new Map<string, string>());
 
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil(total / pageSize)),
@@ -129,7 +150,8 @@ export function LeaderboardsClient() {
         .then(async (response) => {
           const data = await response.json();
           if (!response.ok) throw new Error(data.error ?? "Failed to load leaderboard.");
-          setRows(data.rows ?? []);
+          const incomingRows = (data.rows ?? []) as LeaderboardRow[];
+          setRows(rememberResolvedNames(incomingRows, nameCacheRef.current));
           setTotal(data.total ?? 0);
           setCurrentRank(data.currentRank ?? 0);
           setCurrentValue(data.currentValue ?? null);
@@ -251,8 +273,9 @@ export function LeaderboardsClient() {
               <tr key={row._id} className={row.isCurrentUser ? "current-user-row" : undefined}>
                 <td>
                   {rank <= 3 ? (
-                    <span className={`rank-medal rank-medal-${rank}`} aria-label={`Rank ${rank}`}>
-                      {rank}
+                    <span className="rank-cell" aria-label={`Rank ${rank}`}>
+                      <span className="rank-number">{rank}</span>
+                      <span className={`rank-medal rank-medal-${rank}`} aria-hidden="true" />
                     </span>
                   ) : (
                     rank
