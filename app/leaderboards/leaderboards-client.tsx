@@ -62,7 +62,12 @@ function formatCompact(value: number) {
   return { compact, full, needsTitle: compact !== full };
 }
 
+function EmptyValue() {
+  return <span className="empty-stat" title="No data">-</span>;
+}
+
 function StatValue({ value, leaf }: { value: number; leaf?: boolean }) {
+  if (!value) return <EmptyValue />;
   const formatted = formatCompact(value);
   const content = (
     <>
@@ -99,7 +104,7 @@ function formatDuration(value: number) {
     minutes ? `${minutes}m` : null,
   ].filter(Boolean);
 
-  return parts.length ? parts.slice(0, 3).join(" ") : "0m";
+  return parts.length ? parts.slice(0, 3).join(" ") : "-";
 }
 
 
@@ -238,6 +243,8 @@ export function LeaderboardsClient() {
     setOrder("desc");
   }
 
+  const isSearching = search.trim().length > 0;
+
   return (
     <section className="leaderboard-panel" aria-label="Leaderboards">
       {currentRank > 0 && currentValue !== null ? (
@@ -329,9 +336,9 @@ export function LeaderboardsClient() {
               return (
               <tr key={row._id} className={row.isCurrentUser ? "current-user-row" : undefined}>
                 <td>
-                  {rank <= 3 ? (
+                  {!isSearching && rank <= 3 ? (
                     <span className={`rank-medal rank-medal-${rank}`} aria-label={`Rank ${rank}`}>
-                      {rank}
+                      <span className="rank-medal-number">{rank}</span>
                     </span>
                   ) : (
                     rank
