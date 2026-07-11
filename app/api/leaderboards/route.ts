@@ -219,6 +219,27 @@ async function getLiveGuildMember(discordId: string | null) {
   }
 }
 
+async function getDiscordUser(discordId: string | null) {
+  const token = getDiscordBotToken();
+  if (!token || !discordId) return null;
+
+  try {
+    const response = await fetch(`https://discord.com/api/v10/users/${discordId}`, {
+      headers: {
+        Authorization: `Bot ${token}`,
+        Accept: "application/json",
+        "User-Agent": "KittyKingdomBot/1.0 (+https://kittykingdom.net)",
+      },
+      cache: "no-store",
+    });
+
+    if (!response.ok) return null;
+    return (await response.json()) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
 function toLeaderboardRow(
   source: Record<string, unknown>,
   currentDiscordId: string | null,
@@ -320,7 +341,7 @@ export async function GET(request: Request) {
 
     const [rawWebsiteUsers, rawBotUsers] = (await Promise.all([
       websiteUsers.find(searchQuery).project(botProjection).limit(500).toArray(),
-      botUsers.find(searchQuery).project(botProjection).limit(5000).toArray(),
+      botUsers.find({}).project(botProjection).limit(5000).toArray(),
     ])) as [Record<string, unknown>[], Record<string, unknown>[]];
 
     const currentDiscordId = getSnowflakeField(currentUser ?? undefined, ["discordId", "discord_id", "discord.id"]);
@@ -367,11 +388,13 @@ export async function GET(request: Request) {
       pageRows.map(async (row) => {
         const liveMember = await getLiveGuildMember(row.discordId);
         const liveUser = liveMember ? (liveMember.user as Record<string, unknown> | undefined) : undefined;
+        const directUser = liveUser ? null : await getDiscordUser(row.discordId);
         const application = row.discordId ? applicationByDiscordId.get(row.discordId) ?? null : null;
         return {
           ...row,
           name:
             getText(liveUser, ["username"]) ??
+            getText(directUser ?? undefined, ["username", "global_name"]) ??
             getApplicationName(application) ??
             row.username ??
             row.name,
