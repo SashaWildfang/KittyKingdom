@@ -2,24 +2,46 @@
 
 import { useEffect, useState } from "react";
 
+const storageKey = "kitty-paw-cursor-enabled";
+
 export function PawCursor() {
   const [position, setPosition] = useState({ x: -100, y: -100 });
   const [active, setActive] = useState(false);
+  const [enabled, setEnabled] = useState(false);
 
   useEffect(() => {
+    function syncEnabled() {
+      const next = window.localStorage.getItem(storageKey) === "true";
+      setEnabled(next);
+      document.body.classList.toggle("paw-cursor-enabled", next);
+    }
+
     function onMove(event: MouseEvent) {
       setPosition({ x: event.clientX, y: event.clientY });
       const target = event.target as HTMLElement | null;
       setActive(
         Boolean(
-          target?.closest("a,button,input,label,.cta,.ghost,.form-button"),
+          target?.closest(
+            "a,button,input,label,.cta,.ghost,.form-button,.theme-toggle",
+          ),
         ),
       );
     }
 
+    syncEnabled();
     window.addEventListener("mousemove", onMove);
-    return () => window.removeEventListener("mousemove", onMove);
+    window.addEventListener("storage", syncEnabled);
+    window.addEventListener("kitty-paw-cursor-change", syncEnabled);
+
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("storage", syncEnabled);
+      window.removeEventListener("kitty-paw-cursor-change", syncEnabled);
+      document.body.classList.remove("paw-cursor-enabled");
+    };
   }, []);
+
+  if (!enabled) return null;
 
   return (
     <div

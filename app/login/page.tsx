@@ -3,7 +3,7 @@ import { PasswordField } from "../password-field";
 
 const statusMessages: Record<string, string> = {
   invalid:
-    "Email, username, or password was not recognized, or the email is not verified yet.",
+    "We couldn't sign you in. Check your email/username and password, and make sure your email is verified.",
   success: "You are signed in.",
   "login-required": "Please log in before opening account settings.",
   "service-unavailable":
@@ -22,6 +22,7 @@ export default function LoginPage({
     account?: string;
     discord?: string;
     verify?: string;
+    identifier?: string;
   };
 }) {
   const status =
@@ -29,6 +30,7 @@ export default function LoginPage({
     searchParams.account ??
     searchParams.discord ??
     searchParams.verify;
+  const identifier = searchParams.identifier ?? "";
 
   return (
     <main className="auth-screen">
@@ -73,6 +75,7 @@ export default function LoginPage({
                 placeholder="you@example.com or YourMCName"
                 required
                 type="text"
+                defaultValue={identifier}
               />
             </span>
           </label>

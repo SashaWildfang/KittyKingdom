@@ -49,3 +49,9 @@ export async function getServerStatsCollection() {
   const db = client.db(process.env.MONGODB_DB ?? "website");
   return db.collection<ServerStatsDocument>("server_stats");
 }
+
+export async function getJoinApplicationsCollection() {
+  const client = await getMongoClient();
+  const db = client.db("zeo_bot");
+  return db.collection("join_applications");
+}
