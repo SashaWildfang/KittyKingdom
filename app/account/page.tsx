@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "../../lib/auth";
+import { getDiscordInviteSummary } from "../../lib/discord";
+import { OnlineStatus } from "../online-status";
 import { PawSetting } from "../paw-setting";
+import { ThemeToggle } from "../theme-toggle";
 
 const statusMessages: Record<string, string> = {
   "username-saved": "Username saved. Usernames can only be set once.",
@@ -10,17 +13,24 @@ const statusMessages: Record<string, string> = {
   "username-mismatch": "The username confirmation did not match.",
   "invalid-username":
     "Username must be 3–20 characters using letters, numbers, or underscores.",
-  "password-saved": "Password updated.",
+  "password-saved": "Password updated successfully.",
   "password-invalid": "Current password was not correct.",
   "password-requirements":
     "New password must be 8+ characters with at least one number and one symbol.",
+  "delete-confirmation-invalid":
+    "Type DELETE MY ACCOUNT exactly before deleting your account.",
+  "delete-password-invalid": "Password was not correct, so the account was not deleted.",
   "service-unavailable": "Account settings are temporarily unavailable.",
   success: "Email verified. Welcome to Kitty Kingdom — finish your account details here.",
-  linked: "Discord account linked. Your Discord ID and application details were synced.",
-  invalid: "Discord linking could not be verified. Please start from the Link Discord button again.",
+  linked:
+    "Discord account linked. Your Discord ID and application details were synced.",
+  invalid:
+    "Discord linking could not be verified. Please start from the Link Discord button again.",
   "not-configured": "Discord linking is not configured yet. Please contact staff.",
-  "token-failed": "Discord rejected the login callback. Please try linking Discord again.",
-  "user-failed": "Discord connected, but your profile could not be loaded. Please try again.",
+  "token-failed":
+    "Discord rejected the login callback. Please try linking Discord again.",
+  "user-failed":
+    "Discord connected, but your profile could not be loaded. Please try again.",
   "guild-required": "Join the Kitty Kingdom Discord before linking your account.",
 };
 
@@ -39,6 +49,14 @@ function getAge(dateOfBirth: unknown, storedAge: unknown) {
   return typeof storedAge === "number" ? storedAge : null;
 }
 
+function DiscordIcon() {
+  return (
+    <svg viewBox="0 0 127.14 96.36" role="img" aria-hidden="true">
+      <path d="M107.7 8.07A105.15 105.15 0 0 0 81.47 0a72.06 72.06 0 0 0-3.36 6.83 97.68 97.68 0 0 0-29.11 0A72.37 72.37 0 0 0 45.64 0 105.89 105.89 0 0 0 19.39 8.09C2.79 32.65-1.71 56.6.54 80.21a105.73 105.73 0 0 0 32.17 16.15 77.7 77.7 0 0 0 6.89-11.11 68.42 68.42 0 0 1-10.85-5.18c.91-.66 1.8-1.34 2.66-2.03a75.57 75.57 0 0 0 64.32 0c.87.71 1.76 1.39 2.66 2.03a68.68 68.68 0 0 1-10.87 5.19 77 77 0 0 0 6.89 11.1 105.25 105.25 0 0 0 32.19-16.14c2.64-27.38-4.51-51.11-18.9-72.15ZM42.45 65.69C36.18 65.69 31 60 31 53s5-12.74 11.43-12.74S54 46 53.89 53s-5.05 12.69-11.44 12.69Zm42.24 0C78.41 65.69 73.25 60 73.25 53s5-12.74 11.44-12.74S96.23 46 96.12 53s-5.04 12.69-11.43 12.69Z" />
+    </svg>
+  );
+}
+
 export default async function AccountPage({
   searchParams,
 }: {
@@ -49,7 +67,10 @@ export default async function AccountPage({
     login?: string;
   };
 }) {
-  const user = await getCurrentUser();
+  const [user, discord] = await Promise.all([
+    getCurrentUser(),
+    getDiscordInviteSummary(),
+  ]);
   if (!user) redirect("/login?account=login-required");
 
   const status =
@@ -60,35 +81,55 @@ export default async function AccountPage({
   const age = getAge(user.dateOfBirth, user.age);
 
   return (
-    <main className="auth-screen">
-      <div className="auth-backdrop" />
-      <section
-        className="auth-card account-card compact-account-card"
-        aria-label="My Account"
-      >
-        <Link
-          className="auth-logo"
-          href="/home"
-          aria-label="Kitty Kingdom home"
-        >
+    <main className="site-shell account-site-shell">
+      <div className="leaf-field" aria-hidden="true" />
+      <nav className="topbar" aria-label="Main navigation">
+        <a className="brand" href="/home" aria-label="Kitty Kingdom home">
           <img
-            className="auth-logo-img"
+            className="brand-logo-img"
             src="/logo.png"
             alt="Kitty Kingdom logo"
           />
-        </Link>
+          <span className="brand-copy">
+            <strong>Kitty Kingdom</strong>
+            <OnlineStatus initialOnline={discord.online} />
+          </span>
+        </a>
+        <div className="tabs">
+          <a href="/home">Home</a>
+          <a href="/news">News</a>
+          <a href="https://discord.com/invite/M9XKHFdYQV">Discord</a>
+          <a href="/staff">Staff</a>
+        </div>
+        <div className="nav-actions">
+          <ThemeToggle />
+          <a className="login-link logged-in-link" href="/account">
+            Account
+          </a>
+          <form action="/api/account/logout" method="post">
+            <button className="primary-pill" type="submit">
+              Logout
+            </button>
+          </form>
+        </div>
+      </nav>
+
+      <section className="account-hero" aria-label="My Account">
+        <p className="eyebrow">Member portal</p>
         <h1>My Account</h1>
-        <p className="auth-intro">
-          Manage your account settings when you are ready. Username and date of
-          birth are locked after being set.
+        <p>
+          Manage your Kitty Kingdom profile, Discord link, password, and account
+          preferences.
         </p>
         {status ? (
-          <p className="auth-status">
+          <p className="auth-status account-status-banner">
             {statusMessages[status] ?? `Status: ${status}`}
           </p>
         ) : null}
+      </section>
 
-        <div className="account-summary-grid">
+      <section className="account-dashboard" aria-label="Account dashboard">
+        <div className="account-summary-panel">
           <div>
             <span>Email</span>
             <strong>{user.email}</strong>
@@ -99,9 +140,7 @@ export default async function AccountPage({
           </div>
           <div>
             <span>Discord</span>
-            <strong>
-              {user.discord?.username ?? user.discordId ?? "Not linked"}
-            </strong>
+            <strong>{user.discord?.username ?? user.discordId ?? "Not linked"}</strong>
           </div>
           <div>
             <span>Age</span>
@@ -109,9 +148,9 @@ export default async function AccountPage({
           </div>
         </div>
 
-        <div className="account-settings-grid compact-settings-grid">
+        <div className="account-main-grid">
           <form
-            className="auth-form account-section-card"
+            className="account-section-card"
             action="/api/account/username"
             method="post"
             autoComplete="off"
@@ -119,8 +158,8 @@ export default async function AccountPage({
             <h2>Account Details</h2>
             {user.username ? (
               <p className="form-note">
-                Your username is set to <strong>{user.username}</strong>.
-                Usernames can only be set once.
+                Your username is <strong>{user.username}</strong>. Usernames can
+                only be set once.
               </p>
             ) : (
               <>
@@ -149,17 +188,38 @@ export default async function AccountPage({
             )}
           </form>
 
+          <div className="account-section-card discord-account-card">
+            <span className="discord-mark">
+              <DiscordIcon />
+            </span>
+            <div>
+              <h2>Discord Account</h2>
+              <p>
+                {user.discordId
+                  ? "Your Discord account is linked. Relink if you need to refresh your Discord member details."
+                  : "Link Discord so your website account can match your community member identity."}
+              </p>
+            </div>
+            <Link className="discord-link-button" href="/api/auth/discord">
+              <DiscordIcon />
+              {user.discordId ? "Relink Discord" : "Link Discord Account"}
+            </Link>
+          </div>
+
           <form
-            className="auth-form account-section-card"
+            className="account-section-card"
             action="/api/account/password"
             method="post"
+            autoComplete="off"
           >
             <h2>Security</h2>
             <label>
               Current password
               <input
-                name="currentPassword"
-                autoComplete="current-password"
+                name="currentAccountPassword"
+                autoComplete="off"
+                data-1p-ignore="true"
+                data-lpignore="true"
                 type="password"
                 required
               />
@@ -167,8 +227,10 @@ export default async function AccountPage({
             <label>
               New password
               <input
-                name="newPassword"
-                autoComplete="new-password"
+                name="newAccountPassword"
+                autoComplete="off"
+                data-1p-ignore="true"
+                data-lpignore="true"
                 type="password"
                 minLength={8}
                 required
@@ -180,43 +242,50 @@ export default async function AccountPage({
             <button type="submit">Update password</button>
           </form>
 
-          <div className="auth-form account-section-card discord-settings-card">
-            <h2>Discord</h2>
-            <p>
-              {user.discordId
-                ? "Your Discord account is linked."
-                : "Connect Discord so your website account can match your community member identity."}
-            </p>
-            <Link className="form-button" href="/api/auth/discord">
-              {user.discordId
-                ? "Relink Discord account"
-                : "Link Discord account"}
-            </Link>
-          </div>
-
-          <div className="auth-form account-section-card">
+          <div className="account-section-card">
             <h2>Preferences</h2>
-            <p>
-              Paw cursor is off by default. You can enable it on this device.
-            </p>
+            <p>Paw cursor is off by default. You can enable it on this device.</p>
             <PawSetting />
           </div>
-
-          <form
-            className="auth-form account-section-card"
-            action="/api/account/logout"
-            method="post"
-          >
-            <h2>Session</h2>
-            <p>
-              You will be automatically signed out after a period of inactivity.
-            </p>
-            <button type="submit">Logout</button>
-          </form>
         </div>
-        <Link className="auth-help" href="/home">
-          Back to homepage
-        </Link>
+
+        <form
+          className="account-danger-zone"
+          action="/api/account/delete"
+          method="post"
+          autoComplete="off"
+        >
+          <div>
+            <p className="eyebrow">Danger zone</p>
+            <h2>Delete Account</h2>
+            <p>
+              This permanently deletes your website account. Type{" "}
+              <strong>DELETE MY ACCOUNT</strong> and enter your password to
+              confirm.
+            </p>
+          </div>
+          <label>
+            Confirmation
+            <input
+              name="deleteConfirmation"
+              autoComplete="off"
+              placeholder="DELETE MY ACCOUNT"
+              required
+            />
+          </label>
+          <label>
+            Password
+            <input
+              name="deletePassword"
+              autoComplete="off"
+              data-1p-ignore="true"
+              data-lpignore="true"
+              type="password"
+              required
+            />
+          </label>
+          <button type="submit">Delete account</button>
+        </form>
       </section>
     </main>
   );

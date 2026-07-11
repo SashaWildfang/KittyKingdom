@@ -3,8 +3,12 @@ import { PasswordField } from "../password-field";
 
 const statusMessages: Record<string, string> = {
   invalid:
-    "We couldn't sign you in. Check your email/username and password, and make sure your email is verified.",
+    "We couldn't sign you in. Check your email/username and password.",
   success: "You are signed in.",
+  "verification-sent": "Verification email sent. Check your inbox, then log in after verifying.",
+  "already-verified": "Your email address is already verified. You can log in now.",
+  "email-provider-needed": "The verification email could not be sent. Please contact staff.",
+  "missing-identifier": "Enter your email or username before requesting a new verification email.",
   "login-required": "Please log in before opening account settings.",
   "service-unavailable":
     "Login is temporarily unavailable. Please try again shortly.",
@@ -55,7 +59,17 @@ export default function LoginPage({
         <p className="auth-intro">
           Welcome back — log into your Kitty Kingdom account.
         </p>
-        {status && statusMessages[status] ? (
+        {status === "unverified" ? (
+          <p className="auth-status">
+            You have not verified your email address. Check your inbox or{" "}
+            <Link
+              href={`/api/account/resend-verification?identifier=${encodeURIComponent(identifier)}`}
+            >
+              resend verification
+            </Link>
+            .
+          </p>
+        ) : status && statusMessages[status] ? (
           <p className="auth-status">{statusMessages[status]}</p>
         ) : null}
         <form className="auth-form" action="/api/account/login" method="post">
