@@ -15,6 +15,8 @@ const statusMessages: Record<string, string> = {
   "username-mismatch": "The username confirmation did not match.",
   "invalid-username":
     "Username must be 3–20 characters using letters, numbers, or underscores.",
+  "name-saved": "Name saved successfully.",
+  "invalid-name": "Name must be 3–12 characters and use letters, numbers, or spaces only.",
   "password-saved": "Password updated successfully.",
   "password-invalid": "Current password was not correct.",
   "password-requirements":
@@ -178,6 +180,8 @@ export default async function AccountPage({
   const { ageSource, dobSource } = getApplicationAgeAndDob(application);
   const age = getAge(dobSource ?? user.dateOfBirth, ageSource ?? user.age);
   const dob = formatDob(dobSource ?? user.dateOfBirth);
+  const displayName = typeof user.displayName === "string" ? user.displayName : null;
+  const heading = displayName ? `Welcome ${displayName}` : "My Account";
 
   return (
     <main className="site-shell account-site-shell">
@@ -215,19 +219,29 @@ export default async function AccountPage({
 
       <section className="account-hero" aria-label="My Account">
         <p className="eyebrow">Member portal</p>
-        <h1>My Account</h1>
+        <h1>{heading}</h1>
         <p>
           Manage your Kitty Kingdom profile, Discord link, password, and account
           preferences.
         </p>
         {status ? (
-          <p className="auth-status account-status-banner">
+          <p
+            className={`auth-status account-status-banner ${status === "linked" ? "account-status-success" : ""}`}
+          >
             {statusMessages[status] ?? `Status: ${status}`}
           </p>
         ) : null}
       </section>
 
       <section className="account-dashboard" aria-label="Account dashboard">
+        <nav className="account-menu" aria-label="Account menu">
+          <a href="#account-details">Account Details</a>
+          <a href="#discord-account">Discord</a>
+          <a href="#security">Security</a>
+          <a href="#preferences">Preferences</a>
+          <a href="#delete-account">Delete Account</a>
+        </nav>
+
         <div className="account-summary-panel">
           <div>
             <span>Email</span>
@@ -237,9 +251,10 @@ export default async function AccountPage({
             <span>Username</span>
             <strong>{user.username ?? "Not set"}</strong>
           </div>
-          <div>
+          <div className="summary-discord-card">
             <span>Discord</span>
             <strong>{user.discord?.username ?? user.discordId ?? "Not linked"}</strong>
+            {user.discordId ? <span className="summary-linked-badge">✓ Linked</span> : null}
           </div>
           <div>
             <span>Age</span>
@@ -252,53 +267,71 @@ export default async function AccountPage({
         </div>
 
         <div className="account-main-grid">
-          <form
-            className="account-section-card"
-            action="/api/account/username"
-            method="post"
-            autoComplete="off"
-          >
+          <section className="account-section-card" id="account-details">
             <h2>Account Details</h2>
-            {user.username ? (
-              <p className="form-note">
-                Your username is <strong>{user.username}</strong>. Usernames can
-                only be set once.
-              </p>
-            ) : (
-              <>
-                <label>
-                  New username
-                  <input
-                    name="newUsername"
-                    autoComplete="off"
-                    placeholder="YourMCName"
-                    pattern="[A-Za-z0-9_]{3,20}"
-                    required
-                  />
-                </label>
-                <label>
-                  Confirm username
-                  <input
-                    name="confirmUsername"
-                    autoComplete="off"
-                    placeholder="YourMCName"
-                    pattern="[A-Za-z0-9_]{3,20}"
-                    required
-                  />
-                </label>
-                <button type="submit">Save username</button>
-              </>
-            )}
-          </form>
+            <form action="/api/account/name" method="post" autoComplete="off">
+              <label>
+                Name
+                <input
+                  name="displayName"
+                  autoComplete="off"
+                  defaultValue={displayName ?? ""}
+                  placeholder="Your name"
+                  minLength={3}
+                  maxLength={12}
+                  pattern="[A-Za-z0-9 ]{3,12}"
+                  required
+                />
+              </label>
+              <p className="form-note">3–12 characters. Letters, numbers, and spaces only.</p>
+              <button type="submit">Save name</button>
+            </form>
 
-          <div className="account-section-card discord-account-card">
+            <form action="/api/account/username" method="post" autoComplete="off">
+              <h3>Username</h3>
+              <p className="form-note">
+                Username can only be set once. If you need to change your username later,
+                contact the staff team on Discord.
+              </p>
+              {user.username ? (
+                <p className="form-note">
+                  Your username is <strong>{user.username}</strong>.
+                </p>
+              ) : (
+                <>
+                  <label>
+                    New username
+                    <input
+                      name="newUsername"
+                      autoComplete="off"
+                      placeholder="YourUsername"
+                      pattern="[A-Za-z0-9_]{3,20}"
+                      required
+                    />
+                  </label>
+                  <label>
+                    Confirm username
+                    <input
+                      name="confirmUsername"
+                      autoComplete="off"
+                      placeholder="YourUsername"
+                      pattern="[A-Za-z0-9_]{3,20}"
+                      required
+                    />
+                  </label>
+                  <button type="submit">Save username</button>
+                </>
+              )}
+            </form>
+          </section>
+
+          <div className="account-section-card discord-account-card" id="discord-account">
             <span className="discord-mark">
               <DiscordIcon />
             </span>
             <div>
               <div className="discord-title-row">
                 <h2>Discord Account</h2>
-                {user.discordId ? <span className="linked-badge">✓ Linked</span> : null}
               </div>
               <p>
                 {user.discordId
@@ -317,6 +350,7 @@ export default async function AccountPage({
 
           <form
             className="account-section-card"
+            id="security"
             action="/api/account/password"
             method="post"
             autoComplete="off"
@@ -351,15 +385,17 @@ export default async function AccountPage({
             <button type="submit">Update password</button>
           </form>
 
-          <div className="account-section-card">
-            <h2>Preferences</h2>
-            <p>Paw cursor is off by default. You can enable it on this device.</p>
-            <PawSetting />
-          </div>
         </div>
+
+        <section className="account-section-card preferences-section" id="preferences">
+          <h2>Preferences</h2>
+          <p>Paw cursor is off by default. You can enable it on this device.</p>
+          <PawSetting />
+        </section>
 
         <form
           className="account-danger-zone"
+          id="delete-account"
           action="/api/account/delete"
           method="post"
           autoComplete="off"
