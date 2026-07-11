@@ -212,7 +212,7 @@ export default async function Home({
           <a href="/news">News</a>
           <a href="https://discord.com/invite/M9XKHFdYQV">Discord</a>
           <a href="/staff">Staff</a>
-          <a href="/leaderboards">Leaderboards</a>
+          {user ? <a href="/leaderboards">Leaderboards</a> : null}
         </div>
         <div className="nav-actions">
           <ThemeToggle />
