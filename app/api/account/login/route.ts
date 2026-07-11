@@ -20,13 +20,16 @@ export async function POST(request: Request) {
       $or: [{ email: identifier }, { username: identifier }],
     });
 
-    if (
-      !user ||
-      !user.emailVerified ||
-      !verifyPassword(password, user.passwordSalt, user.passwordHash)
-    ) {
+    if (!user || !verifyPassword(password, user.passwordSalt, user.passwordHash)) {
       return NextResponse.redirect(
         `${origin}/login?login=invalid&identifier=${encodeURIComponent(identifier)}`,
+        303,
+      );
+    }
+
+    if (!user.emailVerified) {
+      return NextResponse.redirect(
+        `${origin}/login?login=unverified&identifier=${encodeURIComponent(identifier)}`,
         303,
       );
     }

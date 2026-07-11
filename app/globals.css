@@ -2462,3 +2462,248 @@ body.paw-cursor-enabled .form-button,
 body.paw-cursor-enabled .theme-toggle {
   cursor: none !important;
 }
+
+/* Account page: full site layout refinement */
+.account-site-shell {
+  min-height: 100vh;
+}
+
+.account-hero,
+.account-dashboard {
+  position: relative;
+  z-index: 2;
+  padding-inline: clamp(1rem, 6vw, 6rem);
+}
+
+.account-hero {
+  padding-top: clamp(2rem, 5vw, 4rem);
+  padding-bottom: 1.5rem;
+}
+
+.account-hero h1 {
+  margin: 0.2rem 0 0.65rem;
+  font-size: clamp(3rem, 9vw, 6.8rem);
+  letter-spacing: -0.08em;
+  line-height: 0.9;
+}
+
+.account-hero p:not(.eyebrow):not(.auth-status) {
+  max-width: 48rem;
+  color: var(--muted);
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  line-height: 1.7;
+}
+
+.account-status-banner {
+  max-width: 56rem;
+  margin-top: 1.2rem;
+}
+
+.account-dashboard {
+  display: grid;
+  gap: 1.25rem;
+  padding-bottom: clamp(3rem, 7vw, 6rem);
+}
+
+.account-summary-panel {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.account-summary-panel div,
+.account-section-card,
+.account-danger-zone {
+  border: 1px solid var(--line);
+  border-radius: 1.6rem;
+  background: color-mix(in srgb, var(--panel-strong) 88%, transparent);
+  box-shadow: 0 24px 70px var(--shadow);
+}
+
+.account-summary-panel div {
+  padding: 1rem;
+}
+
+.account-summary-panel span,
+.account-section-card h2,
+.account-danger-zone .eyebrow {
+  color: var(--ember);
+}
+
+.account-summary-panel span {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 1000;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.account-summary-panel strong {
+  display: block;
+  margin-top: 0.35rem;
+  overflow-wrap: anywhere;
+}
+
+.account-main-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.account-section-card,
+.account-danger-zone {
+  display: grid;
+  gap: 0.85rem;
+  padding: clamp(1.15rem, 3vw, 1.5rem);
+}
+
+.account-section-card h2,
+.account-danger-zone h2 {
+  margin: 0;
+  font-size: clamp(1.35rem, 3vw, 2rem);
+}
+
+.account-section-card p,
+.account-danger-zone p,
+.account-section-card .form-note {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.account-section-card label,
+.account-danger-zone label {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.account-section-card input,
+.account-danger-zone input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 0.8rem;
+  background: rgba(0, 0, 0, 0.28);
+  color: var(--text);
+  padding: 0.95rem 1rem;
+}
+
+.account-section-card input:focus,
+.account-danger-zone input:focus {
+  border-color: var(--ember);
+  outline: none;
+  box-shadow: 0 0 0 0.2rem rgba(245, 155, 42, 0.18);
+}
+
+.account-section-card button,
+.account-danger-zone button,
+.discord-link-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 1000;
+  padding: 0.95rem 1.2rem;
+}
+
+.account-section-card button {
+  background: var(--ember);
+  color: #1d0b05;
+}
+
+.discord-account-card {
+  overflow: hidden;
+  position: relative;
+  background:
+    radial-gradient(circle at 100% 0, rgba(88, 101, 242, 0.42), transparent 16rem),
+    linear-gradient(135deg, rgba(88, 101, 242, 0.9), rgba(35, 39, 79, 0.92));
+  color: white;
+}
+
+.discord-account-card h2,
+.discord-account-card p {
+  color: white;
+}
+
+.discord-mark {
+  display: grid;
+  width: 3.4rem;
+  height: 3.4rem;
+  place-items: center;
+  border-radius: 1.1rem;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.discord-mark svg,
+.discord-link-button svg {
+  width: 1.35rem;
+  height: 1.35rem;
+  fill: currentColor;
+}
+
+.discord-link-button {
+  background: #5865f2;
+  color: white;
+  box-shadow: 0 16px 35px rgba(88, 101, 242, 0.34);
+}
+
+.account-danger-zone {
+  border-color: rgba(255, 83, 83, 0.35);
+  background: color-mix(in srgb, var(--panel-strong) 86%, rgba(160, 24, 24, 0.28));
+}
+
+.account-danger-zone button {
+  background: #d93434;
+  color: white;
+}
+
+.staff-online-status {
+  color: var(--muted) !important;
+  font-weight: 500 !important;
+}
+
+.staff-online-status span {
+  display: inline-block;
+  background: #82aaff;
+  box-shadow: 0 0 10px rgba(130, 170, 255, 0.7);
+}
+
+.inline-rating {
+  gap: 0.65rem;
+  min-width: 8.8rem;
+  justify-content: center;
+  padding-inline: 0.85rem;
+}
+
+.inline-rating strong {
+  min-width: 2.9rem;
+  white-space: nowrap;
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  .account-summary-panel,
+  .account-main-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .account-summary-panel,
+  .account-main-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .account-hero {
+    text-align: center;
+  }
+
+  .account-hero p:not(.eyebrow):not(.auth-status) {
+    margin-inline: auto;
+  }
+}
