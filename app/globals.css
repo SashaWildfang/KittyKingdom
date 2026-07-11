@@ -3248,3 +3248,38 @@ input[type="submit"] {
 .rank-medal-3 {
   background: linear-gradient(135deg, #ffd9ab, #cf843d 54%, #7a3d19);
 }
+
+
+.empty-stat {
+  color: var(--muted) !important;
+  font-weight: 900;
+}
+
+.rank-medal {
+  position: relative;
+  width: 1.95rem;
+  height: 1.95rem;
+  border-radius: 999px;
+  color: #160806;
+  font-size: 0.92rem;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.rank-medal::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -0.42rem;
+  width: 0.9rem;
+  height: 0.55rem;
+  transform: translateX(-50%);
+  clip-path: polygon(0 0, 100% 0, 78% 100%, 50% 70%, 22% 100%);
+  background: inherit;
+  filter: brightness(0.78);
+  z-index: -1;
+}
+
+.rank-medal-number {
+  position: relative;
+  z-index: 1;
+}
