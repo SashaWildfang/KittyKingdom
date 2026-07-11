@@ -81,10 +81,10 @@ function StatValue({ value, leaf }: { value: number; leaf?: boolean }) {
 }
 
 function formatDuration(value: number) {
-  const minutes = Math.max(0, Math.round(value));
-  const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
-  return `${hours}h ${remainingMinutes}m`;
+  const seconds = Math.max(0, Math.round(value));
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  return `${hours}h ${minutes}m`;
 }
 
 export function LeaderboardsClient() {
@@ -246,7 +246,6 @@ export function LeaderboardsClient() {
                 <td>{(page - 1) * pageSize + index + 1}</td>
                 <td>
                   <strong>{row.name}</strong>
-                  {row.username ? <span>@{row.username}</span> : null}
                 </td>
                 {columns.map((column) => (
                   <td key={column.key}>
