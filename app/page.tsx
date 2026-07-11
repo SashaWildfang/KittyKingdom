@@ -217,7 +217,7 @@ export default async function Home({
           <ThemeToggle />
           {user ? (
             <a className="login-link logged-in-link" href="/account">
-              Account
+              My Account
             </a>
           ) : (
             <a className="login-link" href="/login">
@@ -226,7 +226,7 @@ export default async function Home({
           )}
           {user ? (
             <form action="/api/account/logout" method="post">
-              <button className="primary-pill" type="submit">
+              <button className="primary-pill logout-pill" type="submit">
                 Logout
               </button>
             </form>

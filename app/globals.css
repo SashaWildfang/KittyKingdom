@@ -2707,3 +2707,80 @@ body.paw-cursor-enabled .theme-toggle {
     margin-inline: auto;
   }
 }
+
+/* Discord/account status and ribbon cursor refinements */
+.tabs a,
+.login-link,
+.primary-pill,
+.logout-pill,
+.discord-link-button,
+.discord-unlink-button,
+.account-section-card button,
+.account-danger-zone button {
+  cursor: pointer !important;
+}
+
+.logged-in-link::before {
+  display: none !important;
+}
+
+.logout-pill {
+  background: linear-gradient(135deg, #d93434, #a81818) !important;
+  color: #fff !important;
+  box-shadow: 0 16px 38px rgba(217, 52, 52, 0.32) !important;
+}
+
+.account-summary-panel {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.discord-title-row,
+.discord-actions-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+
+.discord-title-row {
+  justify-content: space-between;
+}
+
+.linked-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(35, 211, 96, 0.18);
+  color: #d9ffe5;
+  font-size: 0.78rem;
+  font-weight: 1000;
+  padding: 0.35rem 0.65rem;
+  white-space: nowrap;
+}
+
+.discord-actions-row form {
+  margin: 0;
+}
+
+.discord-unlink-button {
+  border: 1px solid rgba(255, 255, 255, 0.28) !important;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
+  font-weight: 1000;
+  padding: 0.95rem 1.2rem;
+}
+
+@media (max-width: 1100px) {
+  .account-summary-panel {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .account-summary-panel {
+    grid-template-columns: 1fr;
+  }
+}
