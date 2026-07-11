@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "../../../lib/auth";
 import {
   getBotUsersCollection,
+  getJoinApplicationsCollection,
   getUsersCollection,
 } from "../../../lib/mongodb";
 
@@ -135,12 +136,15 @@ function getDiscord(source: Record<string, unknown>) {
       getSnowflakeField(source, ["discordId", "discord_id", "userId", "user_id", "id", "discord.id"]) ??
       getSnowflakeField(memberUser, ["id"]),
     displayName:
+      getText(source, ["discordUsername", "discordName", "discord.username", "username"]) ??
+      getText(discord, ["username"]) ??
+      getText(memberUser, ["username"]) ??
       getText(guildMember, ["nick", "displayName"]) ??
-      getText(source, ["discordDisplayName", "displayName", "name", "username"]) ??
-      getText(discord, ["displayName", "globalName", "global_name", "username"]) ??
-      getText(memberUser, ["global_name", "username"]),
+      getText(source, ["discordDisplayName", "displayName", "name"]) ??
+      getText(discord, ["displayName", "globalName", "global_name"]) ??
+      getText(memberUser, ["global_name"]),
     username:
-      getText(source, ["username"]) ??
+      getText(source, ["discordUsername", "discordName", "discord.username", "username"]) ??
       getText(discord, ["username"]) ??
       getText(memberUser, ["username"]),
   };
@@ -165,9 +169,33 @@ function matchesSearch(row: LeaderboardRow, search: string) {
   return haystack.includes(search.toLowerCase());
 }
 
+function getApplicationName(application: Record<string, unknown> | null) {
+  if (!application) return null;
+  return getText(application, [
+    "discordUsername",
+    "discordName",
+    "discord.username",
+    "username",
+    "name",
+    "displayName",
+    "minecraftName",
+    "mcName",
+  ]);
+}
+
+function getDiscordBotToken() {
+  return (
+    process.env.DISCORD_BOT_TOKEN ??
+    process.env.DISCORD_TOKEN ??
+    process.env.BOT_TOKEN ??
+    process.env.DISCORDPY_TOKEN ??
+    process.env.DISCORD_PY_TOKEN
+  );
+}
+
 async function getLiveGuildMember(discordId: string | null) {
   const guildId = process.env.DISCORD_GUILD_ID;
-  const token = process.env.DISCORD_BOT_TOKEN;
+  const token = getDiscordBotToken();
   if (!guildId || !token || !discordId) return null;
 
   try {
@@ -260,9 +288,10 @@ export async function GET(request: Request) {
       ? sort
       : "balance";
 
-    const [websiteUsers, botUsers, currentUser] = await Promise.all([
+    const [websiteUsers, botUsers, joinApplications, currentUser] = await Promise.all([
       getUsersCollection(),
       getBotUsersCollection(),
+      getJoinApplicationsCollection(),
       getCurrentUser(),
     ]);
 
@@ -311,16 +340,40 @@ export async function GET(request: Request) {
     const currentRow = currentRank > 0 ? sorted[currentRank - 1] : null;
 
     const pageRows = sorted.slice((page - 1) * pageSize, page * pageSize);
+    const pageDiscordIds = pageRows.map((row) => row.discordId).filter(Boolean) as string[];
+    const pageApplications = pageDiscordIds.length
+      ? ((await joinApplications
+          .find({
+            $or: [
+              { discordId: { $in: pageDiscordIds } },
+              { discord_id: { $in: pageDiscordIds } },
+              { userId: { $in: pageDiscordIds } },
+              { user_id: { $in: pageDiscordIds } },
+              { id: { $in: pageDiscordIds } },
+            ],
+          })
+          .toArray()) as Record<string, unknown>[])
+      : [];
+    const applicationByDiscordId = new Map(
+      pageApplications
+        .map((application) => {
+          const id = getSnowflakeField(application, ["discordId", "discord_id", "userId", "user_id", "id"]);
+          return id ? [id, application] : null;
+        })
+        .filter(Boolean) as [string, Record<string, unknown>][],
+    );
+
     const rowsWithDiscord = await Promise.all(
       pageRows.map(async (row) => {
         const liveMember = await getLiveGuildMember(row.discordId);
-        if (liveMember === false) return null;
-        const liveUser = liveMember?.user as Record<string, unknown> | undefined;
+        const liveUser = liveMember && liveMember !== false ? (liveMember.user as Record<string, unknown> | undefined) : undefined;
+        const application = row.discordId ? applicationByDiscordId.get(row.discordId) ?? null : null;
         return {
           ...row,
           name:
-            getText(liveMember ?? undefined, ["nick", "displayName"]) ??
-            getText(liveUser, ["global_name", "username"]) ??
+            getText(liveUser, ["username"]) ??
+            getApplicationName(application) ??
+            row.username ??
             row.name,
         };
       }),

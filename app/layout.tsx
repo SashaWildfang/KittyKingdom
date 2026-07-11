@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { PawCursor } from "./paw-cursor";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -20,10 +19,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body>
-        <PawCursor />
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

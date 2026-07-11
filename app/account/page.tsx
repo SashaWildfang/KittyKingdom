@@ -5,7 +5,6 @@ import { DiscordUnlinkForm } from "../discord-unlink-form";
 import { getDiscordInviteSummary } from "../../lib/discord";
 import { getJoinApplicationsCollection } from "../../lib/mongodb";
 import { OnlineStatus } from "../online-status";
-import { PawSetting } from "../paw-setting";
 import { ThemeToggle } from "../theme-toggle";
 
 const statusMessages: Record<string, string> = {
@@ -253,18 +252,10 @@ export default async function AccountPage({
           </div>
           <div className="summary-discord-card">
             <span className="summary-discord-heading">
-              Discord
-              {user.discordId ? (
-                <strong className="summary-linked-badge" aria-label="Linked">✓</strong>
-              ) : null}
+              Discord{user.discordId ? <span className="summary-linked-check" aria-label="Linked">✓</span> : null}
             </span>
             <strong>
-              {user.discordId
-                ? user.discord?.guildMember?.nick ??
-                  user.discord?.globalName ??
-                  user.discord?.username ??
-                  user.discordId
-                : "Not linked"}
+              {user.discordId ? user.discord?.username ?? user.discordId : "Not linked"}
             </strong>
           </div>
           <div>
@@ -397,12 +388,6 @@ export default async function AccountPage({
           </form>
 
         </div>
-
-        <section className="account-section-card preferences-section" id="preferences">
-          <h2>Preferences</h2>
-          <p>Paw cursor is off by default. You can enable it on this device.</p>
-          <PawSetting />
-        </section>
 
         <form
           className="account-danger-zone"
