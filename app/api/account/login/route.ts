@@ -25,11 +25,19 @@ export async function POST(request: Request) {
       !user.emailVerified ||
       !verifyPassword(password, user.passwordSalt, user.passwordHash)
     ) {
-      return NextResponse.redirect(`${origin}/login?login=invalid`, 303);
+      return NextResponse.redirect(
+        `${origin}/login?login=invalid&identifier=${encodeURIComponent(identifier)}`,
+        303,
+      );
     }
 
     await setSession(user._id);
-    return NextResponse.redirect(`${origin}/account?login=success`, 303);
+    return NextResponse.redirect(
+      user.username
+        ? `${origin}/home?login=success`
+        : `${origin}/account?login=success`,
+      303,
+    );
   } catch (error) {
     console.error("Login failed", error);
     const status = isDatabaseConnectionError(error)

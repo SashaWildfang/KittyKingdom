@@ -2237,3 +2237,93 @@ label,
   font-weight: 800;
   padding: 1rem;
 }
+
+/* Account and form polish */
+.input-shell {
+  position: relative;
+}
+
+.input-shell input {
+  padding-right: 3.2rem !important;
+}
+
+.password-eye {
+  position: absolute;
+  right: 0.45rem;
+  top: 50%;
+  z-index: 4;
+  transform: translateY(-50%);
+  pointer-events: auto;
+}
+
+.password-eye svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: currentColor;
+}
+
+.compact-account-card {
+  width: min(100%, 62rem);
+  padding: clamp(1.35rem, 4vw, 2rem);
+}
+
+.account-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 1.25rem 0;
+  text-align: left;
+}
+
+.account-summary-grid div {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.055);
+  padding: 0.9rem;
+}
+
+.account-summary-grid span {
+  display: block;
+  color: var(--ember);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.account-summary-grid strong {
+  display: block;
+  margin-top: 0.35rem;
+  overflow-wrap: anywhere;
+}
+
+.compact-settings-grid {
+  align-items: stretch;
+  gap: 1rem;
+}
+
+.compact-settings-grid .auth-form {
+  margin-top: 0;
+}
+
+.secondary-button {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  color: #fff2d7 !important;
+}
+
+@media (max-width: 900px) {
+  .account-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .password-eye {
+    right: 0.35rem;
+  }
+
+  .account-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
