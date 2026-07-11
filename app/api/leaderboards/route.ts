@@ -101,8 +101,25 @@ function getText(source: Record<string, unknown> | undefined, fields: string[]) 
 }
 
 function getSnowflake(value: unknown) {
-  const text = typeof value === "string" || typeof value === "number" ? String(value) : null;
-  return text && /^\d{15,25}$/.test(text) ? text : null;
+  if (typeof value === "string" || typeof value === "number") {
+    const text = String(value);
+    return /^\d{15,25}$/.test(text) ? text : null;
+  }
+
+  if (value && typeof value === "object") {
+    const text = String(value);
+    return /^\d{15,25}$/.test(text) ? text : null;
+  }
+
+  return null;
+}
+
+function getSnowflakeField(source: Record<string, unknown> | undefined, fields: string[]) {
+  for (const field of fields) {
+    const snowflake = getSnowflake(getPathValue(source, field));
+    if (snowflake) return snowflake;
+  }
+  return null;
 }
 
 function getDiscord(source: Record<string, unknown>) {
@@ -115,8 +132,8 @@ function getDiscord(source: Record<string, unknown>) {
 
   return {
     id:
-      getText(source, ["discordId", "discord_id", "userId", "user_id", "id", "discord.id"]) ??
-      getText(memberUser, ["id"]),
+      getSnowflakeField(source, ["discordId", "discord_id", "userId", "user_id", "id", "discord.id"]) ??
+      getSnowflakeField(memberUser, ["id"]),
     displayName:
       getText(guildMember, ["nick", "displayName"]) ??
       getText(source, ["discordDisplayName", "displayName", "name", "username"]) ??
@@ -274,10 +291,10 @@ export async function GET(request: Request) {
 
     const [rawWebsiteUsers, rawBotUsers] = (await Promise.all([
       websiteUsers.find(searchQuery).project(botProjection).limit(500).toArray(),
-      botUsers.find(searchQuery).project(botProjection).limit(1000).toArray(),
+      botUsers.find(searchQuery).project(botProjection).limit(5000).toArray(),
     ])) as [Record<string, unknown>[], Record<string, unknown>[]];
 
-    const currentDiscordId = getText(currentUser ?? undefined, ["discordId", "discord_id", "discord.id"]);
+    const currentDiscordId = getSnowflakeField(currentUser ?? undefined, ["discordId", "discord_id", "discord.id"]);
     const merged = mergeRows([
       ...rawWebsiteUsers.map((user) => toLeaderboardRow(user, currentDiscordId, "site")),
       ...rawBotUsers.map((user) => toLeaderboardRow(user, currentDiscordId, "bot")),
