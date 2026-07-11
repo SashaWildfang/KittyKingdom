@@ -2327,3 +2327,138 @@ label,
     grid-template-columns: 1fr;
   }
 }
+
+/* Account, pinned ribbon, review rating, and auth polish */
+.site-shell {
+  padding-top: 5.8rem;
+}
+
+.site-shell .topbar {
+  position: fixed;
+  inset: 0 0 auto;
+  width: 100%;
+}
+
+.review-heading-with-rating {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
+}
+
+.inline-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid rgba(245, 155, 42, 0.28);
+  border-radius: 999px;
+  background: rgba(245, 155, 42, 0.12);
+  color: var(--gold);
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  line-height: 1;
+  padding: 0.45rem 0.7rem;
+  white-space: nowrap;
+}
+
+.inline-rating strong {
+  color: var(--text);
+  font-size: 0.88rem;
+}
+
+.account-section-card {
+  border: 1px solid var(--line);
+  border-radius: 1.35rem;
+  background: color-mix(in srgb, var(--panel-strong) 80%, transparent);
+  box-shadow: 0 18px 45px var(--shadow);
+  padding: 1.1rem;
+}
+
+.account-section-card h2 {
+  border-bottom: 1px solid var(--line);
+  margin: 0 0 0.9rem;
+  padding-bottom: 0.65rem;
+}
+
+.account-summary-grid div {
+  border-color: var(--line);
+  background: color-mix(in srgb, var(--panel) 72%, transparent);
+}
+
+.password-eye {
+  z-index: 10;
+  touch-action: manipulation;
+}
+
+.input-shell input {
+  min-height: 3.1rem;
+}
+
+.staff-online-status {
+  color: var(--muted) !important;
+  font-weight: 500 !important;
+}
+
+.staff-online-status span {
+  display: none;
+}
+
+:root[data-theme="light"] .staff-card span,
+:root[data-theme="light"] .staff-group > h2,
+:root[data-theme="light"] .staff-card h3 {
+  color: #3a1d12;
+}
+
+:root[data-theme="light"] .staff-card span {
+  color: #8f3a16;
+}
+
+.staff-card img {
+  background: rgba(245, 155, 42, 0.16);
+}
+
+@media (max-width: 760px) {
+  .site-shell {
+    padding-top: 11.5rem;
+  }
+
+  .password-eye {
+    right: 0.55rem;
+    top: 50%;
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  .input-shell input {
+    padding-right: 3.4rem !important;
+  }
+
+  .review-heading-with-rating {
+    justify-content: center;
+  }
+}
+
+/* Keep the normal cursor unless the paw cursor preference is enabled. */
+html,
+body,
+a,
+button,
+input,
+label,
+.cta,
+.ghost,
+.form-button,
+.theme-toggle {
+  cursor: auto !important;
+}
+
+body.paw-cursor-enabled,
+body.paw-cursor-enabled a,
+body.paw-cursor-enabled button,
+body.paw-cursor-enabled input,
+body.paw-cursor-enabled label,
+body.paw-cursor-enabled .cta,
+body.paw-cursor-enabled .ghost,
+body.paw-cursor-enabled .form-button,
+body.paw-cursor-enabled .theme-toggle {
+  cursor: none !important;
+}
