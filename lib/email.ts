@@ -28,7 +28,12 @@ export async function sendVerificationEmail(email: string, verifyUrl: string) {
             </tr>
             <tr>
               <td style="padding:0 32px 32px;color:rgba(255,242,215,.82);font-size:16px;line-height:1.7;">
-                <p>Thanks for creating an account. Please confirm this email address before logging in. After verification, you can visit My Account to set your username, link Discord, and manage your profile.</p>
+                <p>Thanks for creating an account with Kitty Kingdom. Please confirm this email address before logging in so we can protect your account and keep the member portal secure.</p>
+                <p>After verification, you will be taken to My Account where you can set your username one time, link your Discord account, and sync your member details from the community application system.</p>
+                <div style="background:rgba(245,155,42,.12);border:1px solid rgba(245,155,42,.28);border-radius:16px;padding:16px;margin:22px 0;">
+                  <p style="margin:0 0 8px;font-weight:800;color:#fff2d7;">What happens next?</p>
+                  <p style="margin:0;color:rgba(255,242,215,.82);">1. Confirm this email. 2. Log in to My Account. 3. Link Discord to connect your Kitty Kingdom profile.</p>
+                </div>
                 <p style="text-align:center;margin:30px 0;">
                   <a href="${verifyUrl}" style="display:inline-block;background:#f59b2a;color:#1d0b05;text-decoration:none;font-weight:800;padding:14px 24px;border-radius:999px;box-shadow:0 14px 32px rgba(245,155,42,.28);">Confirm email</a>
                 </p>

@@ -126,6 +126,17 @@ const features = [
 
 const leaves = Array.from({ length: 18 }, (_, index) => index + 1);
 
+const registerMessages: Record<string, string> = {
+  "check-email":
+    "Account created. Check your email to verify your account, then log in when you are ready.",
+  "email-provider-needed":
+    "Account created, but the verification email could not be sent yet. Please contact staff so they can check email delivery.",
+  "database-unreachable":
+    "Registration could not reach the account database. Please try again shortly.",
+  "service-unavailable":
+    "Registration is temporarily unavailable. Please try again shortly.",
+};
+
 const iconPaths: Record<string, string> = {
   bot: "M7 8h10a3 3 0 0 1 3 3v5a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4v-5a3 3 0 0 1 3-3Zm2 4.5A1.5 1.5 0 1 0 9 15.5 1.5 1.5 0 0 0 9 12.5Zm6 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3ZM12 3l2 3h-4l2-3Z",
   chat: "M4 5h16v11H8l-4 4V5Zm4 4v2h8V9H8Zm0 4v2h5v-2H8Z",
@@ -176,7 +187,7 @@ export default async function Home({
     getCurrentUser(),
   ]);
   return (
-    <main>
+    <main className="site-shell">
       <div className="leaf-field" aria-hidden="true">
         {leaves.map((leaf) => (
           <span className="falling-leaf" key={leaf} />
@@ -198,7 +209,7 @@ export default async function Home({
         <div className="tabs">
           <a href="/home">Home</a>
           <a href="/news">News</a>
-          <a href="/discord">Discord</a>
+          <a href="https://discord.com/invite/M9XKHFdYQV">Discord</a>
           <a href="/staff">Staff</a>
         </div>
         <div className="nav-actions">
@@ -226,10 +237,9 @@ export default async function Home({
         </div>
       </nav>
 
-      {searchParams?.register === "check-email" ? (
+      {searchParams?.register && registerMessages[searchParams.register] ? (
         <div className="home-status-banner">
-          Account created. Check your email to verify your account, then log in
-          when you are ready.
+          {registerMessages[searchParams.register]}
         </div>
       ) : null}
 
@@ -327,10 +337,12 @@ export default async function Home({
       <section className="reviews-section" aria-label="Kitty Kingdom reviews">
         <div className="section-heading">
           <p className="eyebrow">Reviews</p>
-          <h2>
-            {disboard.rating
-              ? `We have a ${disboard.rating}/5 star review`
-              : "What people are saying"}
+          <h2 className="review-heading-with-rating">
+            <span>What people are saying</span>
+            <span className="inline-rating" aria-label="5 out of 5 star rating">
+              <span aria-hidden="true">★★★★★</span>
+              <strong>{disboard.rating ?? "5"}/5</strong>
+            </span>
           </h2>
           <p>Here’s what people are saying about Kitty Kingdom on DISBOARD.</p>
         </div>
@@ -341,7 +353,7 @@ export default async function Home({
           }
         />
         <div className="review-actions">
-          <a className="cta" href="/reviews">
+          <a className="cta" href="https://disboard.org/server/reviews/1358452494128250940">
             View all reviews
           </a>
           <a
@@ -393,12 +405,12 @@ export default async function Home({
             <h3>Play</h3>
             <a href="/login">My Account</a>
             <a href="/news">News</a>
-            <a href="/discord">Learn how to join</a>
+            <a href="https://discord.com/invite/M9XKHFdYQV">Learn how to join</a>
           </div>
           <div>
             <h3>Community</h3>
-            <a href="/discord">Discord</a>
-            <a href="/reviews">Reviews</a>
+            <a href="https://discord.com/invite/M9XKHFdYQV">Discord</a>
+            <a href="https://disboard.org/server/reviews/1358452494128250940">Reviews</a>
             <a href="/account">Account Settings</a>
           </div>
           <div>

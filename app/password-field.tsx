@@ -46,6 +46,7 @@ export function PasswordField({
         <button
           className="password-eye"
           type="button"
+          onMouseDown={(event) => event.preventDefault()}
           onClick={() => setVisible((current) => !current)}
           aria-label={visible ? "Hide password" : "Show password"}
         >

@@ -15,7 +15,13 @@ const statusMessages: Record<string, string> = {
   "password-requirements":
     "New password must be 8+ characters with at least one number and one symbol.",
   "service-unavailable": "Account settings are temporarily unavailable.",
-  linked: "Discord account linked.",
+  success: "Email verified. Welcome to Kitty Kingdom — finish your account details here.",
+  linked: "Discord account linked. Your Discord ID and application details were synced.",
+  invalid: "Discord linking could not be verified. Please start from the Link Discord button again.",
+  "not-configured": "Discord linking is not configured yet. Please contact staff.",
+  "token-failed": "Discord rejected the login callback. Please try linking Discord again.",
+  "user-failed": "Discord connected, but your profile could not be loaded. Please try again.",
+  "guild-required": "Join the Kitty Kingdom Discord before linking your account.",
 };
 
 function getAge(dateOfBirth: unknown, storedAge: unknown) {
@@ -105,12 +111,12 @@ export default async function AccountPage({
 
         <div className="account-settings-grid compact-settings-grid">
           <form
-            className="auth-form"
+            className="auth-form account-section-card"
             action="/api/account/username"
             method="post"
             autoComplete="off"
           >
-            <h2>Username</h2>
+            <h2>Account Details</h2>
             {user.username ? (
               <p className="form-note">
                 Your username is set to <strong>{user.username}</strong>.
@@ -144,11 +150,11 @@ export default async function AccountPage({
           </form>
 
           <form
-            className="auth-form"
+            className="auth-form account-section-card"
             action="/api/account/password"
             method="post"
           >
-            <h2>Password</h2>
+            <h2>Security</h2>
             <label>
               Current password
               <input
@@ -174,7 +180,7 @@ export default async function AccountPage({
             <button type="submit">Update password</button>
           </form>
 
-          <div className="auth-form discord-settings-card">
+          <div className="auth-form account-section-card discord-settings-card">
             <h2>Discord</h2>
             <p>
               {user.discordId
@@ -188,7 +194,7 @@ export default async function AccountPage({
             </Link>
           </div>
 
-          <div className="auth-form">
+          <div className="auth-form account-section-card">
             <h2>Preferences</h2>
             <p>
               Paw cursor is off by default. You can enable it on this device.
@@ -197,7 +203,7 @@ export default async function AccountPage({
           </div>
 
           <form
-            className="auth-form"
+            className="auth-form account-section-card"
             action="/api/account/logout"
             method="post"
           >
