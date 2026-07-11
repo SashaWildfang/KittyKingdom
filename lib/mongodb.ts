@@ -55,3 +55,9 @@ export async function getJoinApplicationsCollection() {
   const db = client.db("zeo_bot");
   return db.collection("join_applications");
 }
+
+export async function getZeoUsersCollection() {
+  const client = await getMongoClient();
+  const db = client.db("zeo_bot");
+  return db.collection("users");
+}

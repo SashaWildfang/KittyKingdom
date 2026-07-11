@@ -5,7 +5,6 @@ import { DiscordUnlinkForm } from "../discord-unlink-form";
 import { getDiscordInviteSummary } from "../../lib/discord";
 import { getJoinApplicationsCollection } from "../../lib/mongodb";
 import { OnlineStatus } from "../online-status";
-import { PawSetting } from "../paw-setting";
 import { ThemeToggle } from "../theme-toggle";
 
 const statusMessages: Record<string, string> = {
@@ -37,6 +36,8 @@ const statusMessages: Record<string, string> = {
     "Discord connected, but your profile could not be loaded. Please try again.",
   "guild-required": "Join the Kitty Kingdom Discord before linking your account.",
   unlinked: "Discord account unlinked. Discord-only features are disabled until you link again.",
+  "application-required": "You must submit a join application in the Discord server before linking your Discord account.",
+  "application-pending": "Your join application is not approved yet. Please wait until staff verifies you before linking Discord.",
 };
 
 const monthNames: Record<string, number> = {
@@ -203,6 +204,7 @@ export default async function AccountPage({
           <a href="/news">News</a>
           <a href="https://discord.com/invite/M9XKHFdYQV">Discord</a>
           <a href="/staff">Staff</a>
+          <a href="/leaderboards">Leaderboards</a>
         </div>
         <div className="nav-actions">
           <ThemeToggle />
@@ -238,7 +240,6 @@ export default async function AccountPage({
           <a href="#account-details">Account Details</a>
           <a href="#discord-account">Discord</a>
           <a href="#security">Security</a>
-          <a href="#preferences">Preferences</a>
           <a href="#delete-account">Delete Account</a>
         </nav>
 
@@ -252,9 +253,10 @@ export default async function AccountPage({
             <strong>{user.username ?? "Not set"}</strong>
           </div>
           <div className="summary-discord-card">
-            <span>Discord</span>
+            <span>
+              Discord {user.discordId ? <b className="summary-check" aria-label="Discord linked">✓</b> : null}
+            </span>
             <strong>{user.discord?.username ?? user.discordId ?? "Not linked"}</strong>
-            {user.discordId ? <span className="summary-linked-badge">✓ Linked</span> : null}
           </div>
           <div>
             <span>Age</span>
@@ -386,12 +388,6 @@ export default async function AccountPage({
           </form>
 
         </div>
-
-        <section className="account-section-card preferences-section" id="preferences">
-          <h2>Preferences</h2>
-          <p>Paw cursor is off by default. You can enable it on this device.</p>
-          <PawSetting />
-        </section>
 
         <form
           className="account-danger-zone"
