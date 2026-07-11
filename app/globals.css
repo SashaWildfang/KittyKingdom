@@ -3288,3 +3288,18 @@ body.paw-cursor-enabled .theme-toggle {
   font-size: inherit;
   font-weight: inherit;
 }
+
+
+/* Leaderboard data/display fixes */
+.leafs-cell {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.leafs-cell img {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+}
