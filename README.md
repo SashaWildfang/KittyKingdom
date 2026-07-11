@@ -17,6 +17,7 @@ Required for account storage and sessions:
 - `DATABASE_URL`
 - `AUTH_SECRET`
 - `MONGODB_DB` optional; defaults to `kittykingdom`
+- `BOT_MONGODB_DB` optional; defaults to `zeo_bot` for bot leaderboard stats
 
 Required for email confirmation through Resend:
 

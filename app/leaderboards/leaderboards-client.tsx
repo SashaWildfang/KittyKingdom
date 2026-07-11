@@ -11,6 +11,8 @@ type SortKey =
   | "total_vc_time"
   | "monthly_vc_time";
 
+type SortOrder = "asc" | "desc";
+
 type LeaderboardRow = {
   _id: string;
   discordId: string | null;
@@ -26,20 +28,56 @@ type LeaderboardRow = {
   isCurrentUser: boolean;
 };
 
-const sortOptions: { value: SortKey; label: string }[] = [
-  { value: "balance", label: "Leafs" },
-  { value: "level", label: "Level" },
-  { value: "messages", label: "Messages" },
-  { value: "bumps", label: "Total Bumps" },
-  { value: "monthly_bumps", label: "Monthly Bumps" },
-  { value: "total_vc_time", label: "Total VC Time" },
-  { value: "monthly_vc_time", label: "Monthly VC Time" },
+type LeaderboardColumn = {
+  key: SortKey;
+  label: string;
+  type?: "number" | "duration" | "leafs";
+};
+
+const columns: LeaderboardColumn[] = [
+  { key: "balance", label: "Leafs", type: "leafs" },
+  { key: "level", label: "Level", type: "number" },
+  { key: "messages", label: "Messages", type: "number" },
+  { key: "bumps", label: "Total Bumps", type: "number" },
+  { key: "monthly_bumps", label: "Monthly Bumps", type: "number" },
+  { key: "total_vc_time", label: "Total VC Time", type: "duration" },
+  { key: "monthly_vc_time", label: "Monthly VC Time", type: "duration" },
 ];
 
+const sortOptions = columns.map(({ key, label }) => ({ value: key, label }));
 const pageSizes = [10, 25, 50, 100];
+const compactFormatter = new Intl.NumberFormat("en-US", {
+  notation: "compact",
+  maximumFractionDigits: 2,
+});
 
-function formatNumber(value: number) {
+function formatInteger(value: number) {
   return Math.round(value).toLocaleString();
+}
+
+function formatCompact(value: number) {
+  const rounded = Math.round(value);
+  const compact = compactFormatter.format(rounded);
+  const full = rounded.toLocaleString();
+  return { compact, full, needsTitle: compact !== full };
+}
+
+function StatValue({ value, leaf }: { value: number; leaf?: boolean }) {
+  const formatted = formatCompact(value);
+  const content = (
+    <>
+      {leaf ? <img src="/leaf.png" alt="" width="18" height="18" /> : null}
+      {formatted.compact}
+    </>
+  );
+
+  return formatted.needsTitle ? (
+    <span className={leaf ? "leafs-cell" : undefined} title={formatted.full}>
+      {content}
+    </span>
+  ) : (
+    <span className={leaf ? "leafs-cell" : undefined}>{content}</span>
+  );
 }
 
 function formatDuration(value: number) {
@@ -53,9 +91,12 @@ export function LeaderboardsClient() {
   const [rows, setRows] = useState<LeaderboardRow[]>([]);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortKey>("balance");
+  const [order, setOrder] = useState<SortOrder>("desc");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [total, setTotal] = useState(0);
+  const [currentRank, setCurrentRank] = useState(0);
+  const [currentValue, setCurrentValue] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -64,12 +105,16 @@ export function LeaderboardsClient() {
     [total, pageSize],
   );
 
+  const selectedSortLabel =
+    sortOptions.find((option) => option.value === sort)?.label ?? "Leafs";
+
   useEffect(() => {
     const controller = new AbortController();
     const timeout = window.setTimeout(() => {
       const params = new URLSearchParams({
         search,
         sort,
+        order,
         page: String(page),
         pageSize: String(pageSize),
       });
@@ -86,6 +131,8 @@ export function LeaderboardsClient() {
           if (!response.ok) throw new Error(data.error ?? "Failed to load leaderboard.");
           setRows(data.rows ?? []);
           setTotal(data.total ?? 0);
+          setCurrentRank(data.currentRank ?? 0);
+          setCurrentValue(data.currentValue ?? null);
         })
         .catch((fetchError) => {
           if (fetchError.name !== "AbortError") {
@@ -100,10 +147,26 @@ export function LeaderboardsClient() {
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [search, sort, page, pageSize]);
+  }, [search, sort, order, page, pageSize]);
+
+  function setColumnSort(column: SortKey) {
+    setPage(1);
+    if (column === sort) {
+      setOrder((value) => (value === "desc" ? "asc" : "desc"));
+      return;
+    }
+    setSort(column);
+    setOrder("desc");
+  }
 
   return (
     <section className="leaderboard-panel" aria-label="Leaderboards">
+      {currentRank > 0 && currentValue !== null ? (
+        <div className="leaderboard-rank-summary">
+          You are Rank #{currentRank.toLocaleString()} - {formatInteger(currentValue)} {selectedSortLabel}
+        </div>
+      ) : null}
+
       <div className="leaderboard-controls">
         <label className="leaderboard-search">
           <span>Search members</span>
@@ -124,6 +187,7 @@ export function LeaderboardsClient() {
             value={sort}
             onChange={(event) => {
               setSort(event.target.value as SortKey);
+              setOrder("desc");
               setPage(1);
             }}
           >
@@ -161,13 +225,19 @@ export function LeaderboardsClient() {
             <tr>
               <th>Rank</th>
               <th>Member</th>
-              <th>Leafs</th>
-              <th>Level</th>
-              <th>Messages</th>
-              <th>Total Bumps</th>
-              <th>Monthly Bumps</th>
-              <th>Total VC Time</th>
-              <th>Monthly VC Time</th>
+              {columns.map((column) => (
+                <th key={column.key}>
+                  <button
+                    className="leaderboard-sort-button"
+                    type="button"
+                    onClick={() => setColumnSort(column.key)}
+                    aria-sort={sort === column.key ? (order === "desc" ? "descending" : "ascending") : undefined}
+                  >
+                    {column.label}
+                    {sort === column.key ? <span>{order === "desc" ? "↓" : "↑"}</span> : null}
+                  </button>
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -178,16 +248,15 @@ export function LeaderboardsClient() {
                   <strong>{row.name}</strong>
                   {row.username ? <span>@{row.username}</span> : null}
                 </td>
-                <td className="leafs-cell">
-                  <img src="/leaf.png" alt="" width="18" height="18" />
-                  {formatNumber(row.balance)}
-                </td>
-                <td>{formatNumber(row.level)}</td>
-                <td>{formatNumber(row.messages)}</td>
-                <td>{formatNumber(row.bumps)}</td>
-                <td>{formatNumber(row.monthly_bumps)}</td>
-                <td>{formatDuration(row.total_vc_time)}</td>
-                <td>{formatDuration(row.monthly_vc_time)}</td>
+                {columns.map((column) => (
+                  <td key={column.key}>
+                    {column.type === "duration" ? (
+                      formatDuration(row[column.key])
+                    ) : (
+                      <StatValue value={row[column.key]} leaf={column.type === "leafs"} />
+                    )}
+                  </td>
+                ))}
               </tr>
             ))}
             {!loading && rows.length === 0 ? (
@@ -201,17 +270,19 @@ export function LeaderboardsClient() {
 
       <div className="leaderboard-footer">
         <p>{loading ? "Refreshing leaderboard…" : `${total.toLocaleString()} members`}</p>
-        <div className="leaderboard-pagination">
-          <button type="button" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={page === 1}>
-            Previous
-          </button>
-          <span>
-            Page {page} of {totalPages}
-          </span>
-          <button type="button" onClick={() => setPage((value) => Math.min(totalPages, value + 1))} disabled={page >= totalPages}>
-            Next
-          </button>
-        </div>
+        {totalPages > 1 ? (
+          <div className="leaderboard-pagination">
+            <button type="button" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={page === 1}>
+              Previous
+            </button>
+            <span>
+              Page {page} of {totalPages}
+            </span>
+            <button type="button" onClick={() => setPage((value) => Math.min(totalPages, value + 1))} disabled={page >= totalPages}>
+              Next
+            </button>
+          </div>
+        ) : null}
       </div>
     </section>
   );
