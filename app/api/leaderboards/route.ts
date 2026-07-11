@@ -264,7 +264,6 @@ export async function GET(request: Request) {
             { discord_id: { $regex: escapedSearch, $options: "i" } },
             { userId: { $regex: escapedSearch, $options: "i" } },
             { user_id: { $regex: escapedSearch, $options: "i" } },
-            { _id: { $regex: escapedSearch, $options: "i" } },
             { "discord.username": { $regex: escapedSearch, $options: "i" } },
             { "discord.globalName": { $regex: escapedSearch, $options: "i" } },
             { "discord.guildMember.nick": { $regex: escapedSearch, $options: "i" } },
