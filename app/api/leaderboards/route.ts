@@ -102,14 +102,22 @@ function getText(source: Record<string, unknown> | undefined, fields: string[]) 
 }
 
 function getSnowflake(value: unknown) {
-  if (typeof value === "string" || typeof value === "number") {
-    const text = String(value);
+  if (typeof value === "string") {
+    const text = value.trim();
+    return /^\d{15,25}$/.test(text) ? text : null;
+  }
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    const text = Math.trunc(value).toString();
     return /^\d{15,25}$/.test(text) ? text : null;
   }
 
   if (value && typeof value === "object") {
-    const text = String(value);
-    return /^\d{15,25}$/.test(text) ? text : null;
+    const stringifier = value as { toString?: () => string };
+    if (typeof stringifier.toString === "function") {
+      const text = stringifier.toString().trim();
+      return /^\d{15,25}$/.test(text) ? text : null;
+    }
   }
 
   return null;
@@ -245,7 +253,7 @@ function toLeaderboardRow(
   currentDiscordId: string | null,
   sourcePrefix: string,
 ): LeaderboardRow | null {
-  if (knownNonMember(source)) return null;
+  if (sourcePrefix !== "bot" && knownNonMember(source)) return null;
 
   const discord = getDiscord(source);
   const botSnowflake = sourcePrefix === "bot" ? getSnowflake(source._id) : null;
@@ -285,6 +293,13 @@ function mergeRows(rows: LeaderboardRow[]) {
       _id: existing._id,
       name: row.name !== row.discordId ? row.name : existing.name,
       username: row.username ?? existing.username,
+      balance: Math.max(existing.balance, row.balance),
+      level: Math.max(existing.level, row.level),
+      messages: Math.max(existing.messages, row.messages),
+      bumps: Math.max(existing.bumps, row.bumps),
+      monthly_bumps: Math.max(existing.monthly_bumps, row.monthly_bumps),
+      total_vc_time: Math.max(existing.total_vc_time, row.total_vc_time),
+      monthly_vc_time: Math.max(existing.monthly_vc_time, row.monthly_vc_time),
       isCurrentUser: existing.isCurrentUser || row.isCurrentUser,
     });
   }
@@ -348,9 +363,11 @@ export async function GET(request: Request) {
     const merged = mergeRows([
       ...rawWebsiteUsers.map((user) => toLeaderboardRow(user, currentDiscordId, "site")),
       ...rawBotUsers.map((user) => toLeaderboardRow(user, currentDiscordId, "bot")),
-    ].filter(Boolean) as LeaderboardRow[]).filter((row) => matchesSearch(row, search));
+    ].filter(Boolean) as LeaderboardRow[]);
 
-    const sorted = merged.sort((a, b) => {
+    const filtered = merged.filter((row) => matchesSearch(row, search));
+
+    const sorted = filtered.sort((a, b) => {
       const comparison = a[sortKey] - b[sortKey];
       return order === "asc" ? comparison : -comparison;
     });
