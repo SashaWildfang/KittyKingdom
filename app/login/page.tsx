@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PasswordField } from "../password-field";
+import { ResendVerificationLink } from "../resend-verification-link";
 
 const statusMessages: Record<string, string> = {
   invalid:
@@ -62,12 +63,7 @@ export default function LoginPage({
         {status === "unverified" ? (
           <p className="auth-status">
             You have not verified your email address. Check your inbox or{" "}
-            <Link
-              href={`/api/account/resend-verification?identifier=${encodeURIComponent(identifier)}`}
-            >
-              resend verification
-            </Link>
-            .
+            <ResendVerificationLink identifier={identifier} />.
           </p>
         ) : status && statusMessages[status] ? (
           <p className="auth-status">{statusMessages[status]}</p>

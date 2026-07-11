@@ -2784,3 +2784,180 @@ body.paw-cursor-enabled .theme-toggle {
     grid-template-columns: 1fr;
   }
 }
+
+/* Account page compact pass and interaction fixes */
+.brand,
+.brand *,
+.auth-logo,
+.auth-logo *,
+.tabs a,
+.login-link,
+.theme-toggle,
+.primary-pill,
+.logout-pill {
+  cursor: pointer !important;
+}
+
+.password-eye,
+.password-eye:hover,
+.password-eye:focus,
+.password-eye:active {
+  animation: none !important;
+  transform: translateY(-50%) !important;
+}
+
+.resend-link-button {
+  display: inline;
+  border: 0;
+  background: transparent;
+  color: var(--ember);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 1000;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.account-status-success {
+  border-color: rgba(35, 211, 96, 0.42) !important;
+  background: rgba(35, 211, 96, 0.14) !important;
+  color: #d9ffe5 !important;
+}
+
+.account-menu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.account-menu a {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--panel) 70%, transparent);
+  color: var(--muted);
+  cursor: pointer !important;
+  font-size: 0.82rem;
+  font-weight: 1000;
+  padding: 0.65rem 0.85rem;
+}
+
+.account-menu a:hover {
+  color: var(--text);
+  border-color: rgba(245, 155, 42, 0.34);
+}
+
+.account-hero {
+  padding-top: clamp(1.25rem, 3vw, 2.5rem);
+  padding-bottom: 1rem;
+}
+
+.account-hero h1 {
+  font-size: clamp(2.6rem, 7vw, 5.4rem);
+}
+
+.account-dashboard {
+  gap: 1rem;
+}
+
+.account-summary-panel {
+  gap: 0.7rem;
+}
+
+.account-summary-panel div {
+  border-radius: 1.25rem;
+  min-height: 4.35rem;
+  padding: 0.8rem 0.9rem;
+}
+
+.account-summary-panel span {
+  font-size: 0.66rem;
+}
+
+.account-summary-panel strong {
+  font-size: 0.9rem;
+}
+
+.summary-discord-card {
+  position: relative;
+}
+
+.summary-linked-badge {
+  display: inline-flex;
+  margin-top: 0.35rem;
+  border: 1px solid rgba(35, 211, 96, 0.38);
+  border-radius: 999px;
+  background: rgba(35, 211, 96, 0.14);
+  color: #d9ffe5;
+  font-size: 0.7rem;
+  font-weight: 1000;
+  padding: 0.22rem 0.48rem;
+}
+
+.account-main-grid {
+  gap: 0.9rem;
+}
+
+.account-section-card,
+.account-danger-zone {
+  border-radius: 1.25rem;
+  gap: 0.7rem;
+  padding: 1rem;
+}
+
+.account-section-card form {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.account-section-card h2,
+.account-danger-zone h2 {
+  font-size: clamp(1.15rem, 2.4vw, 1.55rem);
+}
+
+.account-section-card h3 {
+  margin: 0.35rem 0 0;
+  color: var(--ember);
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.account-section-card p,
+.account-danger-zone p,
+.account-section-card .form-note {
+  font-size: 0.9rem;
+}
+
+.account-section-card input,
+.account-danger-zone input {
+  border-radius: 0.7rem;
+  min-height: 2.75rem;
+  padding: 0.75rem 0.85rem;
+}
+
+.account-section-card button,
+.account-danger-zone button,
+.discord-link-button,
+.discord-unlink-button {
+  min-height: 2.75rem;
+  padding: 0.75rem 1rem;
+}
+
+.discord-unlink-button {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  background: #d93434 !important;
+  color: #fff !important;
+  box-shadow: 0 12px 26px rgba(217, 52, 52, 0.28) !important;
+}
+
+.preferences-section {
+  scroll-margin-top: 7rem;
+}
+
+#account-details,
+#discord-account,
+#security,
+#delete-account {
+  scroll-margin-top: 7rem;
+}
