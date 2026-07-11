@@ -12,15 +12,14 @@ export async function GET(request: Request) {
   }
 
   const clientId = process.env.DISCORD_CLIENT_ID;
-  const redirectUri = process.env.DISCORD_REDIRECT_URI;
+  const redirectUri = `${origin}/api/auth/callback/discord`;
 
-  if (!clientId || !redirectUri) {
+  if (!clientId) {
     return NextResponse.json(
       {
         error: "Discord OAuth is not configured yet.",
         requiredEnv: [
           "DISCORD_CLIENT_ID",
-          "DISCORD_REDIRECT_URI",
           "DISCORD_CLIENT_SECRET",
           "DISCORD_GUILD_ID",
         ],

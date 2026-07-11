@@ -17,7 +17,12 @@ export async function POST(request: Request) {
     }
 
     const form = await request.formData();
-    const username = String(form.get("username") ?? "")
+    const username = String(
+      form.get("newUsername") ?? form.get("username") ?? "",
+    )
+      .trim()
+      .toLowerCase();
+    const confirmUsername = String(form.get("confirmUsername") ?? "")
       .trim()
       .toLowerCase();
 
@@ -28,7 +33,29 @@ export async function POST(request: Request) {
       );
     }
 
+    if (username !== confirmUsername) {
+      return NextResponse.redirect(
+        `${origin}/account?account=username-mismatch`,
+        303,
+      );
+    }
+
     const users = await getUsersCollection();
+    const user = await users.findOne({ _id: userId });
+    if (!user) {
+      return NextResponse.redirect(
+        `${origin}/login?account=login-required`,
+        303,
+      );
+    }
+
+    if (user.username) {
+      return NextResponse.redirect(
+        `${origin}/account?account=username-locked`,
+        303,
+      );
+    }
+
     const existing = await users.findOne({ username, _id: { $ne: userId } });
     if (existing) {
       return NextResponse.redirect(

@@ -1,9 +1,44 @@
 import { ObjectId } from "mongodb";
 import { NextResponse } from "next/server";
 import { getSessionUserId } from "../../../../../lib/auth";
-import { getUsersCollection } from "../../../../../lib/mongodb";
+import {
+  getJoinApplicationsCollection,
+  getUsersCollection,
+} from "../../../../../lib/mongodb";
 
 export const maxDuration = 10;
+
+function calculateAge(value: unknown) {
+  if (!value) return null;
+  const date = new Date(String(value));
+  if (Number.isNaN(date.getTime())) return null;
+
+  const now = new Date();
+  let age = now.getFullYear() - date.getFullYear();
+  const monthDiff = now.getMonth() - date.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < date.getDate()))
+    age -= 1;
+  return age;
+}
+
+function getDob(application: Record<string, unknown> | null) {
+  if (!application) return null;
+  return (
+    application.dateOfBirth ??
+    application.date_of_birth ??
+    application.dob ??
+    application.DoB ??
+    application.DOB ??
+    application.birthdate ??
+    null
+  );
+}
+
+function getStoredAge(application: Record<string, unknown> | null) {
+  if (!application) return null;
+  const raw = application.age ?? application.Age;
+  return typeof raw === "number" ? raw : raw ? Number(raw) : null;
+}
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -26,9 +61,9 @@ export async function GET(request: Request) {
 
     const clientId = process.env.DISCORD_CLIENT_ID;
     const clientSecret = process.env.DISCORD_CLIENT_SECRET;
-    const redirectUri = process.env.DISCORD_REDIRECT_URI;
+    const redirectUri = `${origin}/api/auth/callback/discord`;
 
-    if (!clientId || !clientSecret || !redirectUri) {
+    if (!clientId || !clientSecret) {
       return NextResponse.redirect(
         `${origin}/account?discord=not-configured`,
         303,
@@ -94,11 +129,37 @@ export async function GET(request: Request) {
       guildMember = await memberResponse.json();
     }
 
+    const joinApplications = await getJoinApplicationsCollection();
+    const application = (await joinApplications.findOne({
+      $or: [
+        { discordId: discordUser.id },
+        { discord_id: discordUser.id },
+        { userId: discordUser.id },
+        { user_id: discordUser.id },
+        { id: discordUser.id },
+      ],
+    })) as Record<string, unknown> | null;
+
+    const dob = getDob(application);
+    const age = calculateAge(dob) ?? getStoredAge(application);
+
     const users = await getUsersCollection();
+    const existingUser = await users.findOne({ _id: new ObjectId(state) });
+    const profileUpdate: Record<string, unknown> = {};
+
+    if (!existingUser?.dateOfBirth && dob) {
+      profileUpdate.dateOfBirth = String(dob);
+    }
+
+    if (age !== null && Number.isFinite(age)) {
+      profileUpdate.age = age;
+    }
+
     await users.updateOne(
       { _id: new ObjectId(state) },
       {
         $set: {
+          discordId: discordUser.id,
           discord: {
             id: discordUser.id,
             username: discordUser.username,
@@ -107,6 +168,7 @@ export async function GET(request: Request) {
             guildMember,
             linkedAt: new Date(),
           },
+          ...profileUpdate,
           updatedAt: new Date(),
         },
       },
