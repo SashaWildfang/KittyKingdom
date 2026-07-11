@@ -81,10 +81,25 @@ function StatValue({ value, leaf }: { value: number; leaf?: boolean }) {
 }
 
 function formatDuration(value: number) {
-  const seconds = Math.max(0, Math.round(value));
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  return `${hours}h ${minutes}m`;
+  let minutes = Math.max(0, Math.round(value / 60));
+  const months = Math.floor(minutes / (60 * 24 * 30));
+  minutes -= months * 60 * 24 * 30;
+  const weeks = Math.floor(minutes / (60 * 24 * 7));
+  minutes -= weeks * 60 * 24 * 7;
+  const days = Math.floor(minutes / (60 * 24));
+  minutes -= days * 60 * 24;
+  const hours = Math.floor(minutes / 60);
+  minutes -= hours * 60;
+
+  const parts = [
+    months ? `${months}mo` : null,
+    weeks ? `${weeks}w` : null,
+    days ? `${days}d` : null,
+    hours ? `${hours}h` : null,
+    minutes ? `${minutes}m` : null,
+  ].filter(Boolean);
+
+  return parts.length ? parts.slice(0, 3).join(" ") : "0m";
 }
 
 
@@ -273,9 +288,8 @@ export function LeaderboardsClient() {
               <tr key={row._id} className={row.isCurrentUser ? "current-user-row" : undefined}>
                 <td>
                   {rank <= 3 ? (
-                    <span className="rank-cell" aria-label={`Rank ${rank}`}>
-                      <span className="rank-number">{rank}</span>
-                      <span className={`rank-medal rank-medal-${rank}`} aria-hidden="true" />
+                    <span className={`rank-medal rank-medal-${rank}`} aria-label={`Rank ${rank}`}>
+                      {rank}
                     </span>
                   ) : (
                     rank
