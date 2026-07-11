@@ -200,7 +200,7 @@ function mergeRows(rows: LeaderboardRow[]) {
     });
   }
 
-  return [...byDiscordId.values()];
+  return Array.from(byDiscordId.values());
 }
 
 export async function GET(request: Request) {
