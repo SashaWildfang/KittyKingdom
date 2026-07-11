@@ -53,12 +53,12 @@ export function OnlineStatus({ initialOnline }: OnlineStatusProps) {
         <span aria-hidden="true" />
         {online === null ? "Live now" : `${online.toLocaleString()} online`}
       </small>
-      <small className="online-status staff-online-status">
-        <span aria-hidden="true" />
-        {staffOnline === null
-          ? "staff status live soon"
-          : `${staffOnline.toLocaleString()} staff online`}
-      </small>
+      {staffOnline && staffOnline > 0 ? (
+        <small className="online-status staff-online-status">
+          <span aria-hidden="true" />
+          {`${staffOnline.toLocaleString()} staff online`}
+        </small>
+      ) : null}
     </span>
   );
 }

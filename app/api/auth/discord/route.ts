@@ -1,11 +1,36 @@
 import { NextResponse } from "next/server";
 import { getSessionUserId } from "../../../../lib/auth";
 
+function getCanonicalOrigin(request: Request) {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.PUBLIC_SITE_URL;
+  if (configured) {
+    const candidates = configured.split(/[|,\s]+/).filter(Boolean);
+    const preferred =
+      candidates.find((value) => value === "https://kittykingdom.net") ??
+      candidates[0];
+    if (preferred) {
+      const clean = preferred.replace(/\/$/, "");
+      try {
+        if (new URL(clean).hostname === "www.kittykingdom.net") {
+          return "https://kittykingdom.net";
+        }
+      } catch {
+        // Fall through and use the cleaned configured value.
+      }
+      return clean;
+    }
+  }
+
+  const url = new URL(request.url);
+  if (url.hostname === "www.kittykingdom.net") return "https://kittykingdom.net";
+  return url.origin.replace(/\/$/, "");
+}
+
 export const maxDuration = 10;
 
 export async function GET(request: Request) {
   const userId = await getSessionUserId();
-  const origin = new URL(request.url).origin;
+  const origin = getCanonicalOrigin(request);
 
   if (!userId) {
     return NextResponse.redirect(`${origin}/login?discord=login-required`, 303);

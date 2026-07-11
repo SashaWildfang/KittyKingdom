@@ -103,6 +103,10 @@ export default function StaffPage() {
                   <img
                     src={avatarUrl(member.id)}
                     alt={`${member.name} Discord avatar`}
+                    width="88"
+                    height="88"
+                    loading="eager"
+                    decoding="async"
                   />
                   <div>
                     <span>{member.role}</span>
