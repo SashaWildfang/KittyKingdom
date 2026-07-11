@@ -13,18 +13,16 @@ function getCanonicalOrigin(request: Request) {
   if (configured) {
     const candidates = configured.split(/[|,\s]+/).filter(Boolean);
     const preferred =
-      candidates.find((value) => value === "https://kittykingdom.net") ??
-      candidates[0];
-    if (preferred) {
-      const clean = preferred.replace(/\/$/, "");
-      try {
-        if (new URL(clean).hostname === "www.kittykingdom.net") {
-          return "https://kittykingdom.net";
-        }
-      } catch {
-        // Fall through and use the cleaned configured value.
-      }
-      return clean;
+      candidates.find((value) => value.includes("kittykingdom.net")) ?? candidates[0];
+    const match = preferred?.match(/https?:\/\/[^\s)\]]+/);
+    const clean = (match?.[0] ?? preferred ?? "").replace(/\/$/, "");
+
+    try {
+      const parsed = new URL(clean);
+      if (parsed.hostname === "www.kittykingdom.net") return "https://kittykingdom.net";
+      return parsed.origin;
+    } catch {
+      // Fall through to the request origin.
     }
   }
 

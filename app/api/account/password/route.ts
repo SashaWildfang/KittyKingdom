@@ -21,8 +21,12 @@ export async function POST(request: Request) {
     }
 
     const form = await request.formData();
-    const currentPassword = String(form.get("currentPassword") ?? "");
-    const newPassword = String(form.get("newPassword") ?? "");
+    const currentPassword = String(
+      form.get("currentAccountPassword") ?? form.get("currentPassword") ?? "",
+    );
+    const newPassword = String(
+      form.get("newAccountPassword") ?? form.get("newPassword") ?? "",
+    );
 
     if (!/^(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(newPassword)) {
       return NextResponse.redirect(
