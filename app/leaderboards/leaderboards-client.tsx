@@ -107,19 +107,48 @@ function isDiscordId(value: string | null) {
   return Boolean(value && /^\d{15,25}$/.test(value));
 }
 
-function rememberResolvedNames(rows: LeaderboardRow[], cache: Map<string, string>) {
-  rows.forEach((row) => {
-    if (row.discordId && row.name && !isDiscordId(row.name)) {
-      cache.set(row.discordId, row.name);
-    }
-  });
+function mergeRowsForCache(incoming: LeaderboardRow, cached?: LeaderboardRow) {
+  if (!cached) return incoming;
 
+  return {
+    ...cached,
+    ...incoming,
+    name: incoming.name && !isDiscordId(incoming.name) ? incoming.name : cached.name,
+    username: incoming.username ?? cached.username,
+    balance: Math.max(cached.balance, incoming.balance),
+    level: Math.max(cached.level, incoming.level),
+    messages: Math.max(cached.messages, incoming.messages),
+    bumps: Math.max(cached.bumps, incoming.bumps),
+    monthly_bumps: Math.max(cached.monthly_bumps, incoming.monthly_bumps),
+    total_vc_time: Math.max(cached.total_vc_time, incoming.total_vc_time),
+    monthly_vc_time: Math.max(cached.monthly_vc_time, incoming.monthly_vc_time),
+    isCurrentUser: cached.isCurrentUser || incoming.isCurrentUser,
+  };
+}
+
+function rowMatchesSearch(row: LeaderboardRow, search: string) {
+  if (!search.trim()) return true;
+  const query = search.trim().toLowerCase();
+  return [row.name, row.username, row.discordId]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+    .includes(query);
+}
+
+function sortRows(rows: LeaderboardRow[], sort: SortKey, order: SortOrder) {
+  return [...rows].sort((a, b) => {
+    const comparison = a[sort] - b[sort];
+    return order === "asc" ? comparison : -comparison;
+  });
+}
+
+function rememberResolvedRows(rows: LeaderboardRow[], cache: Map<string, LeaderboardRow>) {
   return rows.map((row) => {
-    if (row.discordId && isDiscordId(row.name)) {
-      const cachedName = cache.get(row.discordId);
-      if (cachedName) return { ...row, name: cachedName };
-    }
-    return row;
+    if (!row.discordId) return row;
+    const merged = mergeRowsForCache(row, cache.get(row.discordId));
+    cache.set(row.discordId, merged);
+    return merged;
   });
 }
 export function LeaderboardsClient() {
@@ -134,7 +163,7 @@ export function LeaderboardsClient() {
   const [currentValue, setCurrentValue] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const nameCacheRef = useRef(new Map<string, string>());
+  const rowCacheRef = useRef(new Map<string, LeaderboardRow>());
 
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil(total / pageSize)),
@@ -165,9 +194,22 @@ export function LeaderboardsClient() {
         .then(async (response) => {
           const data = await response.json();
           if (!response.ok) throw new Error(data.error ?? "Failed to load leaderboard.");
-          const incomingRows = (data.rows ?? []) as LeaderboardRow[];
-          setRows(rememberResolvedNames(incomingRows, nameCacheRef.current));
-          setTotal(data.total ?? 0);
+          const incomingRows = rememberResolvedRows(
+            (data.rows ?? []) as LeaderboardRow[],
+            rowCacheRef.current,
+          );
+          const cachedMatches = search.trim() && incomingRows.length === 0
+            ? sortRows(
+                Array.from(rowCacheRef.current.values()).filter((row) => rowMatchesSearch(row, search)),
+                sort,
+                order,
+              )
+            : [];
+          const fallbackRows = cachedMatches.length
+            ? cachedMatches.slice((page - 1) * pageSize, page * pageSize)
+            : incomingRows;
+          setRows(fallbackRows);
+          setTotal(cachedMatches.length || data.total || 0);
           setCurrentRank(data.currentRank ?? 0);
           setCurrentValue(data.currentValue ?? null);
         })
