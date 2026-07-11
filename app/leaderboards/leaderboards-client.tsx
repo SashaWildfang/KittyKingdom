@@ -232,9 +232,13 @@ export function LeaderboardsClient() {
                     type="button"
                     onClick={() => setColumnSort(column.key)}
                     aria-sort={sort === column.key ? (order === "desc" ? "descending" : "ascending") : undefined}
+                    data-active={sort === column.key ? "true" : undefined}
+                    data-order={sort === column.key ? order : undefined}
                   >
                     {column.label}
-                    {sort === column.key ? <span>{order === "desc" ? "↓" : "↑"}</span> : null}
+                    {sort === column.key ? (
+                      <span className="sort-indicator">{order === "desc" ? "desc" : "asc"}</span>
+                    ) : null}
                   </button>
                 </th>
               ))}

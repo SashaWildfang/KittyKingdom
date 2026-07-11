@@ -465,13 +465,6 @@ h2 {
   letter-spacing: -0.1em;
   color: #fff2d7;
 }
-.paw-row {
-  color: #fff2d7;
-  font-size: 0.82rem;
-  font-weight: 900;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-}
 
 .panel-grid,
 .member-preview,
@@ -1910,25 +1903,8 @@ h2 {
   }
 }
 
-/* Paw cursor, staff grouping, and carousel arrows */
-body {
-  cursor:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cg fill='white' stroke='%233a1d12' stroke-width='1.5'%3E%3Cellipse cx='10' cy='11' rx='3.2' ry='4.2'/%3E%3Cellipse cx='16' cy='8' rx='3.2' ry='4.2'/%3E%3Cellipse cx='22' cy='11' rx='3.2' ry='4.2'/%3E%3Cpath d='M8 23c0-5 4-8 8-8s8 3 8 8c0 3-2 5-5 4-1-.4-2-.8-3-.8s-2 .4-3 .8c-3 1-5-1-5-4Z'/%3E%3C/g%3E%3C/svg%3E")
-      8 8,
-    auto;
-}
+/* Staff grouping and carousel arrows */
 
-a,
-button,
-input,
-.cta,
-.ghost,
-.form-button {
-  cursor:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cg fill='%23f59b2a' stroke='white' stroke-width='1.5'%3E%3Cellipse cx='10' cy='11' rx='3.2' ry='4.2'/%3E%3Cellipse cx='16' cy='8' rx='3.2' ry='4.2'/%3E%3Cellipse cx='22' cy='11' rx='3.2' ry='4.2'/%3E%3Cpath d='M8 23c0-5 4-8 8-8s8 3 8 8c0 3-2 5-5 4-1-.4-2-.8-3-.8s-2 .4-3 .8c-3 1-5-1-5-4Z'/%3E%3C/g%3E%3C/svg%3E")
-      8 8,
-    pointer;
-}
 
 .carousel-arrow {
   position: relative;
@@ -1976,20 +1952,6 @@ input,
   font-size: clamp(1.5rem, 3vw, 2.2rem);
 }
 
-@keyframes pawPulse {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-}
-
-a:hover,
-button:hover {
-  animation: pawPulse 520ms ease;
-}
 
 @media (max-width: 760px) {
   .community-carousel-card {
@@ -2017,78 +1979,13 @@ button:hover {
   color: #fff;
 }
 
-/* Cursor overlay and in-row carousel controls patch */
-html,
-body,
-a,
-button,
-input,
-label,
-.cta,
-.ghost,
-.form-button,
-.theme-toggle {
-  cursor: none !important;
-}
+/* In-row carousel controls patch */
 
-.paw-cursor {
-  position: fixed;
-  left: -100px;
-  top: -100px;
-  z-index: 2147483647;
-  width: 34px;
-  height: 34px;
-  pointer-events: none;
-  transform: translate(-22%, -20%) rotate(-18deg) scale(0.9);
-  transition:
-    transform 120ms ease,
-    opacity 120ms ease;
-  opacity: 0.95;
-  mix-blend-mode: normal;
-}
 
-.paw-cursor svg {
-  width: 100%;
-  height: 100%;
-  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.42));
-}
 
-.paw-cursor svg g {
-  fill: #fff;
-  stroke: #9b6a60;
-  stroke-width: 2;
-  animation: pawFloat 1.4s ease-in-out infinite;
-  transform-origin: center;
-}
 
-.paw-cursor-active {
-  transform: translate(-18%, -18%) rotate(8deg) scale(1.08);
-}
 
-.paw-cursor-active svg g {
-  fill: #fff7f2;
-  stroke: #d5857d;
-  animation: pawPoint 420ms ease-in-out infinite alternate;
-}
 
-@keyframes pawFloat {
-  0%,
-  100% {
-    transform: translateY(0) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-2px) rotate(3deg);
-  }
-}
-
-@keyframes pawPoint {
-  0% {
-    transform: translateX(0) rotate(0deg) scale(1);
-  }
-  100% {
-    transform: translateX(3px) rotate(7deg) scale(1.08);
-  }
-}
 
 .community-carousel-card {
   grid-template-columns: 1fr;
@@ -2134,22 +2031,6 @@ label,
 }
 
 @media (max-width: 760px) {
-  .paw-cursor {
-    display: none;
-  }
-
-  html,
-  body,
-  a,
-  button,
-  input,
-  label,
-  .cta,
-  .ghost,
-  .form-button,
-  .theme-toggle {
-    cursor: auto !important;
-  }
 
   .community-carousel-slide {
     grid-template-columns: 1fr;
@@ -2170,28 +2051,6 @@ label,
 .staff-online-status span {
   background: #82aaff;
   box-shadow: 0 0 10px rgba(130, 170, 255, 0.7);
-}
-
-/* Paw cursor print-style refinement */
-.paw-cursor {
-  width: 42px;
-  height: 42px;
-  transform: translate(-18%, -18%) rotate(-8deg) scale(0.82);
-}
-
-.paw-cursor svg g {
-  fill: #fff;
-  stroke: #efb8b8;
-  stroke-width: 2.4;
-}
-
-.paw-cursor-active {
-  transform: translate(-14%, -14%) rotate(14deg) scale(0.96);
-}
-
-.paw-cursor-active svg g {
-  fill: #fff;
-  stroke: #f2a7ac;
 }
 
 /* Auth/ribbon/review final polish */
@@ -2437,31 +2296,6 @@ label,
   }
 }
 
-/* Keep the normal cursor unless the paw cursor preference is enabled. */
-html,
-body,
-a,
-button,
-input,
-label,
-.cta,
-.ghost,
-.form-button,
-.theme-toggle {
-  cursor: auto !important;
-}
-
-body.paw-cursor-enabled,
-body.paw-cursor-enabled a,
-body.paw-cursor-enabled button,
-body.paw-cursor-enabled input,
-body.paw-cursor-enabled label,
-body.paw-cursor-enabled .cta,
-body.paw-cursor-enabled .ghost,
-body.paw-cursor-enabled .form-button,
-body.paw-cursor-enabled .theme-toggle {
-  cursor: none !important;
-}
 
 /* Account page: full site layout refinement */
 .account-site-shell {
@@ -2951,9 +2785,6 @@ body.paw-cursor-enabled .theme-toggle {
   box-shadow: 0 12px 26px rgba(217, 52, 52, 0.28) !important;
 }
 
-.preferences-section {
-  scroll-margin-top: 7rem;
-}
 
 #account-details,
 #discord-account,
@@ -3320,4 +3151,71 @@ body.paw-cursor-enabled .theme-toggle {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+
+/* Tighten Discord/leaderboard UI */
+a,
+button,
+select,
+input[type="search"],
+input[type="button"],
+input[type="submit"] {
+  cursor: pointer;
+}
+
+.summary-linked-check {
+  color: #6dff9a;
+  font-size: 0.82rem;
+  line-height: 1;
+}
+
+.summary-discord-heading .summary-linked-badge {
+  display: none !important;
+}
+
+.discord-account-card {
+  min-height: 0 !important;
+  align-content: start;
+  gap: 0.55rem !important;
+  padding: 0.78rem !important;
+}
+
+.discord-account-card .discord-mark {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.75rem;
+}
+
+.discord-account-card h2 {
+  font-size: 1.05rem !important;
+}
+
+.discord-account-card p {
+  max-width: 30rem;
+  font-size: 0.78rem !important;
+  line-height: 1.35 !important;
+}
+
+.discord-actions-row {
+  gap: 0.45rem !important;
+}
+
+.discord-link-button,
+.discord-unlink-button {
+  min-height: 2.1rem !important;
+  padding: 0.48rem 0.7rem !important;
+  font-size: 0.82rem;
+}
+
+.leaderboard-sort-button .sort-indicator {
+  display: inline-flex;
+  margin-left: 0.28rem;
+  border: 1px solid rgba(245, 155, 42, 0.34);
+  border-radius: 999px;
+  color: var(--gold);
+  font-size: 0.58rem;
+  letter-spacing: 0.05em;
+  padding: 0.08rem 0.32rem;
+  text-transform: uppercase;
 }
