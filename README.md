@@ -16,8 +16,8 @@ Required for account storage and sessions:
 
 - `DATABASE_URL`
 - `AUTH_SECRET`
-- `MONGODB_DB` optional; defaults to `kittykingdom`
-- `BOT_MONGODB_DB` optional; defaults to `zeo_bot` for bot leaderboard stats
+- `MONGODB_DB` optional;
+- `BOT_MONGODB_DB` optional; 
 
 Required for email confirmation through Resend:
 
@@ -29,7 +29,6 @@ Required for Discord linking:
 - `DISCORD_CLIENT_ID`
 - `DISCORD_CLIENT_SECRET`
 - `DISCORD_REDIRECT_URI`
-- `DISCORD_GUILD_ID` optional, but set it to require membership in the Kitty Kingdom Discord server
-- `DISCORD_BOT_TOKEN` optional; enables leaderboards to resolve live server display names and hide members who left the server
+- `DISCORD_GUILD_ID` optional, 
+- `DISCORD_BOT_TOKEN` optional;
 
-The current account implementation writes users to the `users` collection in MongoDB. Discord bot-specific behavior can be added after the bot/guild requirements are finalized.
