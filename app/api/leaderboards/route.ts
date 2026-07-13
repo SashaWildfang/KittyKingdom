@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "../../../lib/auth";
 import {
   getBotUsersCollection,
+  getJoinApplicationsCollection,
   getUsersCollection,
 } from "../../../lib/mongodb";
 
@@ -85,11 +86,12 @@ function coerceNumber(value: unknown) {
 }
 
 function getNumber(source: Record<string, unknown>, fields: string[]) {
+  let best = 0;
   for (const field of fields) {
     const parsed = coerceNumber(getPathValue(source, field));
-    if (parsed !== null) return parsed;
+    if (parsed !== null && parsed > best) best = parsed;
   }
-  return 0;
+  return best;
 }
 
 function getText(source: Record<string, unknown> | undefined, fields: string[]) {
@@ -101,14 +103,22 @@ function getText(source: Record<string, unknown> | undefined, fields: string[]) 
 }
 
 function getSnowflake(value: unknown) {
-  if (typeof value === "string" || typeof value === "number") {
-    const text = String(value);
+  if (typeof value === "string") {
+    const text = value.trim();
+    return /^\d{15,25}$/.test(text) ? text : null;
+  }
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    const text = Math.trunc(value).toString();
     return /^\d{15,25}$/.test(text) ? text : null;
   }
 
   if (value && typeof value === "object") {
-    const text = String(value);
-    return /^\d{15,25}$/.test(text) ? text : null;
+    const stringifier = value as { toString?: () => string };
+    if (typeof stringifier.toString === "function") {
+      const text = stringifier.toString().trim();
+      return /^\d{15,25}$/.test(text) ? text : null;
+    }
   }
 
   return null;
@@ -135,12 +145,15 @@ function getDiscord(source: Record<string, unknown>) {
       getSnowflakeField(source, ["discordId", "discord_id", "userId", "user_id", "id", "discord.id"]) ??
       getSnowflakeField(memberUser, ["id"]),
     displayName:
+      getText(source, ["discordUsername", "discordName", "discord.username", "username"]) ??
+      getText(discord, ["username"]) ??
+      getText(memberUser, ["username"]) ??
       getText(guildMember, ["nick", "displayName"]) ??
-      getText(source, ["discordDisplayName", "displayName", "name", "username"]) ??
-      getText(discord, ["displayName", "globalName", "global_name", "username"]) ??
-      getText(memberUser, ["global_name", "username"]),
+      getText(source, ["discordDisplayName", "displayName", "name"]) ??
+      getText(discord, ["displayName", "globalName", "global_name"]) ??
+      getText(memberUser, ["global_name"]),
     username:
-      getText(source, ["username"]) ??
+      getText(source, ["discordUsername", "discordName", "discord.username", "username"]) ??
       getText(discord, ["username"]) ??
       getText(memberUser, ["username"]),
   };
@@ -165,9 +178,33 @@ function matchesSearch(row: LeaderboardRow, search: string) {
   return haystack.includes(search.toLowerCase());
 }
 
+function getApplicationName(application: Record<string, unknown> | null) {
+  if (!application) return null;
+  return getText(application, [
+    "discordUsername",
+    "discordName",
+    "discord.username",
+    "username",
+    "name",
+    "displayName",
+    "minecraftName",
+    "mcName",
+  ]);
+}
+
+function getDiscordBotToken() {
+  return (
+    process.env.DISCORD_BOT_TOKEN ??
+    process.env.DISCORD_TOKEN ??
+    process.env.BOT_TOKEN ??
+    process.env.DISCORDPY_TOKEN ??
+    process.env.DISCORD_PY_TOKEN
+  );
+}
+
 async function getLiveGuildMember(discordId: string | null) {
   const guildId = process.env.DISCORD_GUILD_ID;
-  const token = process.env.DISCORD_BOT_TOKEN;
+  const token = getDiscordBotToken();
   if (!guildId || !token || !discordId) return null;
 
   try {
@@ -191,12 +228,33 @@ async function getLiveGuildMember(discordId: string | null) {
   }
 }
 
+async function getDiscordUser(discordId: string | null) {
+  const token = getDiscordBotToken();
+  if (!token || !discordId) return null;
+
+  try {
+    const response = await fetch(`https://discord.com/api/v10/users/${discordId}`, {
+      headers: {
+        Authorization: `Bot ${token}`,
+        Accept: "application/json",
+        "User-Agent": "KittyKingdomBot/1.0 (+https://kittykingdom.net)",
+      },
+      cache: "no-store",
+    });
+
+    if (!response.ok) return null;
+    return (await response.json()) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
 function toLeaderboardRow(
   source: Record<string, unknown>,
   currentDiscordId: string | null,
   sourcePrefix: string,
 ): LeaderboardRow | null {
-  if (knownNonMember(source)) return null;
+  if (sourcePrefix !== "bot" && knownNonMember(source)) return null;
 
   const discord = getDiscord(source);
   const botSnowflake = sourcePrefix === "bot" ? getSnowflake(source._id) : null;
@@ -236,6 +294,13 @@ function mergeRows(rows: LeaderboardRow[]) {
       _id: existing._id,
       name: row.name !== row.discordId ? row.name : existing.name,
       username: row.username ?? existing.username,
+      balance: Math.max(existing.balance, row.balance),
+      level: Math.max(existing.level, row.level),
+      messages: Math.max(existing.messages, row.messages),
+      bumps: Math.max(existing.bumps, row.bumps),
+      monthly_bumps: Math.max(existing.monthly_bumps, row.monthly_bumps),
+      total_vc_time: Math.max(existing.total_vc_time, row.total_vc_time),
+      monthly_vc_time: Math.max(existing.monthly_vc_time, row.monthly_vc_time),
       isCurrentUser: existing.isCurrentUser || row.isCurrentUser,
     });
   }
@@ -260,9 +325,10 @@ export async function GET(request: Request) {
       ? sort
       : "balance";
 
-    const [websiteUsers, botUsers, currentUser] = await Promise.all([
+    const [websiteUsers, botUsers, joinApplications, currentUser] = await Promise.all([
       getUsersCollection(),
       getBotUsersCollection(),
+      getJoinApplicationsCollection(),
       getCurrentUser(),
     ]);
 
@@ -291,16 +357,18 @@ export async function GET(request: Request) {
 
     const [rawWebsiteUsers, rawBotUsers] = (await Promise.all([
       websiteUsers.find(searchQuery).project(botProjection).limit(500).toArray(),
-      botUsers.find(searchQuery).project(botProjection).limit(5000).toArray(),
+      botUsers.find({}).project(botProjection).limit(5000).toArray(),
     ])) as [Record<string, unknown>[], Record<string, unknown>[]];
 
     const currentDiscordId = getSnowflakeField(currentUser ?? undefined, ["discordId", "discord_id", "discord.id"]);
     const merged = mergeRows([
       ...rawWebsiteUsers.map((user) => toLeaderboardRow(user, currentDiscordId, "site")),
       ...rawBotUsers.map((user) => toLeaderboardRow(user, currentDiscordId, "bot")),
-    ].filter(Boolean) as LeaderboardRow[]).filter((row) => matchesSearch(row, search));
+    ].filter(Boolean) as LeaderboardRow[]);
 
-    const sorted = merged.sort((a, b) => {
+    const filtered = merged.filter((row) => matchesSearch(row, search));
+
+    const sorted = filtered.sort((a, b) => {
       const comparison = a[sortKey] - b[sortKey];
       return order === "asc" ? comparison : -comparison;
     });
@@ -311,16 +379,42 @@ export async function GET(request: Request) {
     const currentRow = currentRank > 0 ? sorted[currentRank - 1] : null;
 
     const pageRows = sorted.slice((page - 1) * pageSize, page * pageSize);
+    const pageDiscordIds = pageRows.map((row) => row.discordId).filter(Boolean) as string[];
+    const pageApplications = pageDiscordIds.length
+      ? ((await joinApplications
+          .find({
+            $or: [
+              { discordId: { $in: pageDiscordIds } },
+              { discord_id: { $in: pageDiscordIds } },
+              { userId: { $in: pageDiscordIds } },
+              { user_id: { $in: pageDiscordIds } },
+              { id: { $in: pageDiscordIds } },
+            ],
+          })
+          .toArray()) as Record<string, unknown>[])
+      : [];
+    const applicationByDiscordId = new Map(
+      pageApplications
+        .map((application) => {
+          const id = getSnowflakeField(application, ["discordId", "discord_id", "userId", "user_id", "id"]);
+          return id ? [id, application] : null;
+        })
+        .filter(Boolean) as [string, Record<string, unknown>][],
+    );
+
     const rowsWithDiscord = await Promise.all(
       pageRows.map(async (row) => {
         const liveMember = await getLiveGuildMember(row.discordId);
-        if (liveMember === false) return null;
-        const liveUser = liveMember?.user as Record<string, unknown> | undefined;
+        const liveUser = liveMember ? (liveMember.user as Record<string, unknown> | undefined) : undefined;
+        const directUser = liveUser ? null : await getDiscordUser(row.discordId);
+        const application = row.discordId ? applicationByDiscordId.get(row.discordId) ?? null : null;
         return {
           ...row,
           name:
-            getText(liveMember ?? undefined, ["nick", "displayName"]) ??
-            getText(liveUser, ["global_name", "username"]) ??
+            getText(liveUser, ["username"]) ??
+            getText(directUser ?? undefined, ["username", "global_name"]) ??
+            getApplicationName(application) ??
+            row.username ??
             row.name,
         };
       }),
