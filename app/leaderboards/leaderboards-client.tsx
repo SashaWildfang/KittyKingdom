@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type SortKey =
   | "balance"
@@ -51,6 +51,12 @@ const compactFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2,
 });
 
+const rankMedals: Record<number, string> = {
+  1: "🥇",
+  2: "🥈",
+  3: "🥉",
+};
+
 function formatInteger(value: number) {
   return Math.round(value).toLocaleString();
 }
@@ -62,7 +68,12 @@ function formatCompact(value: number) {
   return { compact, full, needsTitle: compact !== full };
 }
 
+function EmptyValue() {
+  return <span className="empty-stat" title="No data">-</span>;
+}
+
 function StatValue({ value, leaf }: { value: number; leaf?: boolean }) {
+  if (!value) return <EmptyValue />;
   const formatted = formatCompact(value);
   const content = (
     <>
@@ -81,12 +92,76 @@ function StatValue({ value, leaf }: { value: number; leaf?: boolean }) {
 }
 
 function formatDuration(value: number) {
-  const seconds = Math.max(0, Math.round(value));
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  return `${hours}h ${minutes}m`;
+  let minutes = Math.max(0, Math.round(value / 60));
+  const months = Math.floor(minutes / (60 * 24 * 30));
+  minutes -= months * 60 * 24 * 30;
+  const weeks = Math.floor(minutes / (60 * 24 * 7));
+  minutes -= weeks * 60 * 24 * 7;
+  const days = Math.floor(minutes / (60 * 24));
+  minutes -= days * 60 * 24;
+  const hours = Math.floor(minutes / 60);
+  minutes -= hours * 60;
+
+  const parts = [
+    months ? `${months}mo` : null,
+    weeks ? `${weeks}w` : null,
+    days ? `${days}d` : null,
+    hours ? `${hours}h` : null,
+    minutes ? `${minutes}m` : null,
+  ].filter(Boolean);
+
+  return parts.length ? parts.slice(0, 3).join(" ") : "-";
 }
 
+
+function isDiscordId(value: string | null) {
+  return Boolean(value && /^\d{15,25}$/.test(value));
+}
+
+function mergeRowsForCache(incoming: LeaderboardRow, cached?: LeaderboardRow) {
+  if (!cached) return incoming;
+
+  return {
+    ...cached,
+    ...incoming,
+    name: incoming.name && !isDiscordId(incoming.name) ? incoming.name : cached.name,
+    username: incoming.username ?? cached.username,
+    balance: Math.max(cached.balance, incoming.balance),
+    level: Math.max(cached.level, incoming.level),
+    messages: Math.max(cached.messages, incoming.messages),
+    bumps: Math.max(cached.bumps, incoming.bumps),
+    monthly_bumps: Math.max(cached.monthly_bumps, incoming.monthly_bumps),
+    total_vc_time: Math.max(cached.total_vc_time, incoming.total_vc_time),
+    monthly_vc_time: Math.max(cached.monthly_vc_time, incoming.monthly_vc_time),
+    isCurrentUser: cached.isCurrentUser || incoming.isCurrentUser,
+  };
+}
+
+function rowMatchesSearch(row: LeaderboardRow, search: string) {
+  if (!search.trim()) return true;
+  const query = search.trim().toLowerCase();
+  return [row.name, row.username, row.discordId]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+    .includes(query);
+}
+
+function sortRows(rows: LeaderboardRow[], sort: SortKey, order: SortOrder) {
+  return [...rows].sort((a, b) => {
+    const comparison = a[sort] - b[sort];
+    return order === "asc" ? comparison : -comparison;
+  });
+}
+
+function rememberResolvedRows(rows: LeaderboardRow[], cache: Map<string, LeaderboardRow>) {
+  return rows.map((row) => {
+    if (!row.discordId) return row;
+    const merged = mergeRowsForCache(row, cache.get(row.discordId));
+    cache.set(row.discordId, merged);
+    return merged;
+  });
+}
 export function LeaderboardsClient() {
   const [rows, setRows] = useState<LeaderboardRow[]>([]);
   const [search, setSearch] = useState("");
@@ -99,6 +174,7 @@ export function LeaderboardsClient() {
   const [currentValue, setCurrentValue] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const rowCacheRef = useRef(new Map<string, LeaderboardRow>());
 
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil(total / pageSize)),
@@ -129,8 +205,22 @@ export function LeaderboardsClient() {
         .then(async (response) => {
           const data = await response.json();
           if (!response.ok) throw new Error(data.error ?? "Failed to load leaderboard.");
-          setRows(data.rows ?? []);
-          setTotal(data.total ?? 0);
+          const incomingRows = rememberResolvedRows(
+            (data.rows ?? []) as LeaderboardRow[],
+            rowCacheRef.current,
+          );
+          const cachedMatches = search.trim() && incomingRows.length === 0
+            ? sortRows(
+                Array.from(rowCacheRef.current.values()).filter((row) => rowMatchesSearch(row, search)),
+                sort,
+                order,
+              )
+            : [];
+          const fallbackRows = cachedMatches.length
+            ? cachedMatches.slice((page - 1) * pageSize, page * pageSize)
+            : incomingRows;
+          setRows(fallbackRows);
+          setTotal(cachedMatches.length || data.total || 0);
           setCurrentRank(data.currentRank ?? 0);
           setCurrentValue(data.currentValue ?? null);
         })
@@ -158,6 +248,8 @@ export function LeaderboardsClient() {
     setSort(column);
     setOrder("desc");
   }
+
+  const isSearching = search.trim().length > 0;
 
   return (
     <section className="leaderboard-panel" aria-label="Leaderboards">
@@ -232,18 +324,32 @@ export function LeaderboardsClient() {
                     type="button"
                     onClick={() => setColumnSort(column.key)}
                     aria-sort={sort === column.key ? (order === "desc" ? "descending" : "ascending") : undefined}
+                    data-active={sort === column.key ? "true" : undefined}
+                    data-order={sort === column.key ? order : undefined}
                   >
                     {column.label}
-                    {sort === column.key ? <span>{order === "desc" ? "↓" : "↑"}</span> : null}
+                    {sort === column.key ? (
+                      <span className="sort-indicator">{order === "desc" ? "desc" : "asc"}</span>
+                    ) : null}
                   </button>
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, index) => (
+            {rows.map((row, index) => {
+              const rank = (page - 1) * pageSize + index + 1;
+              return (
               <tr key={row._id} className={row.isCurrentUser ? "current-user-row" : undefined}>
-                <td>{(page - 1) * pageSize + index + 1}</td>
+                <td>
+                  {!isSearching && rankMedals[rank] ? (
+                    <span className="rank-medal" aria-label={`Rank ${rank}`}>
+                      {rankMedals[rank]}
+                    </span>
+                  ) : (
+                    rank
+                  )}
+                </td>
                 <td>
                   <strong>{row.name}</strong>
                 </td>
@@ -257,7 +363,8 @@ export function LeaderboardsClient() {
                   </td>
                 ))}
               </tr>
-            ))}
+              );
+            })}
             {!loading && rows.length === 0 ? (
               <tr>
                 <td colSpan={9}>No members found.</td>
