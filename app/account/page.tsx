@@ -201,6 +201,7 @@ export default async function AccountPage({
             </div>
             <h2>{shownName}</h2>
             {user.username ? <p className="acct-handle">@{user.username}</p> : null}
+            {roles.isStaff ? <p className="acct-staff-line">Staff Member</p> : null}
             {roles.rank ? (
               <div className="acct-rank-row">
                 <span className="acct-rank" style={rankStyle(roles.rank.colors)} title="Your highest Discord role">
@@ -209,7 +210,6 @@ export default async function AccountPage({
                 </span>
               </div>
             ) : null}
-            {roles.isStaff ? <p className="acct-staff-line">Staff Member</p> : null}
             <div className="acct-badges">
               <span className={`acct-badge ${discordLinked ? "acct-badge--discord" : "acct-badge--muted"}`}>
                 {discordLinked ? "Discord linked" : "Discord not linked"}

@@ -3,7 +3,7 @@
 
 const STAFF_TEAM_ROLE_ID = "1358470109965979859";
 // Overridable only so local tests can point at a stand-in Discord API
-const DISCORD_API = process.env.DISCORD_API_BASE ?? "https://discord.com/api/v10";
+export const DISCORD_API = process.env.DISCORD_API_BASE ?? "https://discord.com/api/v10";
 const inviteCode = process.env.DISCORD_INVITE_CODE ?? "M9XKHFdYQV";
 
 type DiscordRole = {
