@@ -138,6 +138,20 @@ const homeMessages: Record<string, string> = {
   deleted: "Your website account has been deleted.",
 };
 
+// Messages that report a problem or a destructive action show in red instead of the usual orange
+const errorMessages = new Set([
+  "deleted",
+  "database-unreachable",
+  "service-unavailable",
+  "email-provider-needed",
+]);
+
+function bannerClass(status: string) {
+  return errorMessages.has(status)
+    ? "home-status-banner home-status-banner--error"
+    : "home-status-banner";
+}
+
 const iconPaths: Record<string, string> = {
   bot: "M7 8h10a3 3 0 0 1 3 3v5a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4v-5a3 3 0 0 1 3-3Zm2 4.5A1.5 1.5 0 1 0 9 15.5 1.5 1.5 0 0 0 9 12.5Zm6 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3ZM12 3l2 3h-4l2-3Z",
   chat: "M4 5h16v11H8l-4 4V5Zm4 4v2h8V9H8Zm0 4v2h5v-2H8Z",
@@ -240,11 +254,11 @@ export default async function Home({
       </nav>
 
       {searchParams?.register && homeMessages[searchParams.register] ? (
-        <div className="home-status-banner">
+        <div className={bannerClass(searchParams.register)} role="status">
           {homeMessages[searchParams.register]}
         </div>
       ) : searchParams?.account && homeMessages[searchParams.account] ? (
-        <div className="home-status-banner">
+        <div className={bannerClass(searchParams.account)} role="status">
           {homeMessages[searchParams.account]}
         </div>
       ) : null}
