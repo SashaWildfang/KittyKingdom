@@ -7,6 +7,7 @@ import { getJoinApplicationsCollection } from "../../lib/mongodb";
 import type { CSSProperties } from "react";
 import { SiteNav } from "../site-nav";
 import { VerifyEmailBanner } from "../verify-email-banner";
+import { BrandIcon } from "../brand-icon";
 import { getMemberRoleSummary } from "../../lib/discord-member";
 import { formatPhone, SOCIALS, type SocialLink } from "../../lib/contact";
 import { calculateAge, formatDateOfBirth, parseAge, parseDateOfBirth } from "../../lib/dates";
@@ -200,17 +201,15 @@ export default async function AccountPage({
             </div>
             <h2>{shownName}</h2>
             {user.username ? <p className="acct-handle">@{user.username}</p> : null}
-            {roles.rank || roles.isStaff ? (
+            {roles.rank ? (
               <div className="acct-rank-row">
-                {roles.rank ? (
-                  <span className="acct-rank" style={rankStyle(roles.rank.colors)} title="Your highest Discord role">
-                    <i aria-hidden="true" />
-                    <span>{roles.rank.name}</span>
-                  </span>
-                ) : null}
-                {roles.isStaff ? <span className="acct-staff-badge">🛡️ Staff</span> : null}
+                <span className="acct-rank" style={rankStyle(roles.rank.colors)} title="Your highest Discord role">
+                  <i aria-hidden="true" />
+                  <span>{roles.rank.name}</span>
+                </span>
               </div>
             ) : null}
+            {roles.isStaff ? <p className="acct-staff-line">Staff Member</p> : null}
             <div className="acct-badges">
               <span className={`acct-badge ${discordLinked ? "acct-badge--discord" : "acct-badge--muted"}`}>
                 {discordLinked ? "Discord linked" : "Discord not linked"}
@@ -227,7 +226,7 @@ export default async function AccountPage({
                     title={`${s.label}: ${socials[s.key]!.handle}`}
                     aria-label={`${s.label}: ${socials[s.key]!.handle}`}
                   >
-                    {s.icon}
+                    <BrandIcon network={s.key} />
                   </a>
                 ))}
               </div>
@@ -359,7 +358,7 @@ export default async function AccountPage({
                 {SOCIALS.map((s) => (
                   <label key={s.key}>
                     <span className="acct-social-label">
-                      <span aria-hidden="true">{s.icon}</span> {s.label}
+                      <BrandIcon network={s.key} size={15} /> {s.label}
                     </span>
                     <input name={s.key} defaultValue={socialInputValue(socials[s.key])} placeholder={s.placeholder} maxLength={200} />
                   </label>
