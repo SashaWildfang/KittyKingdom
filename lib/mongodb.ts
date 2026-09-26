@@ -17,7 +17,7 @@ function getDatabaseUrl() {
   return uri;
 }
 
-async function getMongoClient() {
+export async function getMongoClient() {
   if (!clientPromise) {
     const client = new MongoClient(getDatabaseUrl(), {
       connectTimeoutMS: 5000,

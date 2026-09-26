@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "../../../lib/auth";
+import { loadDirectory, resolveMissing } from "../../../lib/member-directory";
 import {
   getBotUsersCollection,
   getJoinApplicationsCollection,
@@ -33,6 +34,8 @@ type LeaderboardRow = {
   total_vc_time: number;
   monthly_vc_time: number;
   isCurrentUser: boolean;
+  avatar?: string | null;
+  inServer?: boolean;
 };
 
 const sortFields: Record<SortKey, string[]> = {
@@ -192,63 +195,6 @@ function getApplicationName(application: Record<string, unknown> | null) {
   ]);
 }
 
-function getDiscordBotToken() {
-  return (
-    process.env.DISCORD_BOT_TOKEN ??
-    process.env.DISCORD_TOKEN ??
-    process.env.BOT_TOKEN ??
-    process.env.DISCORDPY_TOKEN ??
-    process.env.DISCORD_PY_TOKEN
-  );
-}
-
-async function getLiveGuildMember(discordId: string | null) {
-  const guildId = process.env.DISCORD_GUILD_ID;
-  const token = getDiscordBotToken();
-  if (!guildId || !token || !discordId) return null;
-
-  try {
-    const response = await fetch(
-      `https://discord.com/api/v10/guilds/${guildId}/members/${discordId}`,
-      {
-        headers: {
-          Authorization: `Bot ${token}`,
-          Accept: "application/json",
-          "User-Agent": "KittyKingdomBot/1.0 (+https://kittykingdom.net)",
-        },
-        cache: "no-store",
-      },
-    );
-
-    if (response.status === 404) return false;
-    if (!response.ok) return null;
-    return (await response.json()) as Record<string, unknown>;
-  } catch {
-    return null;
-  }
-}
-
-async function getDiscordUser(discordId: string | null) {
-  const token = getDiscordBotToken();
-  if (!token || !discordId) return null;
-
-  try {
-    const response = await fetch(`https://discord.com/api/v10/users/${discordId}`, {
-      headers: {
-        Authorization: `Bot ${token}`,
-        Accept: "application/json",
-        "User-Agent": "KittyKingdomBot/1.0 (+https://kittykingdom.net)",
-      },
-      cache: "no-store",
-    });
-
-    if (!response.ok) return null;
-    return (await response.json()) as Record<string, unknown>;
-  } catch {
-    return null;
-  }
-}
-
 function toLeaderboardRow(
   source: Record<string, unknown>,
   currentDiscordId: string | null,
@@ -366,6 +312,16 @@ export async function GET(request: Request) {
       ...rawBotUsers.map((user) => toLeaderboardRow(user, currentDiscordId, "bot")),
     ].filter(Boolean) as LeaderboardRow[]);
 
+    const directory = await loadDirectory(merged.map((row) => row.discordId).filter(Boolean) as string[]);
+    for (const row of merged) {
+      const entry = row.discordId ? directory.get(row.discordId) : undefined;
+      if (!entry) continue;
+      row.name = entry.displayName ?? entry.username ?? row.name;
+      row.username = entry.username ?? row.username;
+      row.avatar = entry.avatar;
+      row.inServer = entry.inServer;
+    }
+
     const filtered = merged.filter((row) => matchesSearch(row, search));
 
     const sorted = filtered.sort((a, b) => {
@@ -402,25 +358,23 @@ export async function GET(request: Request) {
         .filter(Boolean) as [string, Record<string, unknown>][],
     );
 
-    const rowsWithDiscord = await Promise.all(
-      pageRows.map(async (row) => {
-        const liveMember = await getLiveGuildMember(row.discordId);
-        const liveUser = liveMember ? (liveMember.user as Record<string, unknown> | undefined) : undefined;
-        const directUser = liveUser ? null : await getDiscordUser(row.discordId);
-        const application = row.discordId ? applicationByDiscordId.get(row.discordId) ?? null : null;
-        return {
-          ...row,
-          name:
-            getText(liveUser, ["username"]) ??
-            getText(directUser ?? undefined, ["username", "global_name"]) ??
-            getApplicationName(application) ??
-            row.username ??
-            row.name,
-        };
-      }),
-    );
+    // Rows the directory doesn't know yet get a few direct lookups, then an application name
+    await resolveMissing(pageDiscordIds, directory);
+    const rows = pageRows.map((row) => {
+      const entry = row.discordId ? directory.get(row.discordId) : undefined;
+      const application = row.discordId ? applicationByDiscordId.get(row.discordId) ?? null : null;
+      const nameIsId = row.name === row.discordId;
+      return {
+        ...row,
+        name: entry?.displayName ?? entry?.username ?? (nameIsId ? getApplicationName(application) ?? row.username ?? "Unknown member" : row.name),
+        username: entry?.username ?? row.username,
+        avatar: entry?.avatar ?? null,
+        inServer: entry ? entry.inServer : true,
+      };
+    });
 
-    const rows = rowsWithDiscord.filter(Boolean);
+    // The member just ahead of you, so the page can show how far you are from passing them
+    const above = currentRank > 1 ? sorted[currentRank - 2] : null;
 
     return NextResponse.json({
       rows,
@@ -431,6 +385,8 @@ export async function GET(request: Request) {
       order: order as Order,
       currentRank,
       currentValue: currentRow ? currentRow[sortKey] : null,
+      above: above ? { name: above.name === above.discordId ? "the next member" : above.name, value: above[sortKey] } : null,
+      updatedAt: new Date().toISOString(),
     });
   } catch (error) {
     console.error("Leaderboard lookup failed", error);
