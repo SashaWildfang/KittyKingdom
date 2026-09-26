@@ -62,3 +62,10 @@ export async function getBotUsersCollection() {
   const db = client.db(process.env.BOT_MONGODB_DB ?? "zeo_bot");
   return db.collection("users");
 }
+
+// Staff Team members, kept up to date by the main bot's staff sync (events/staff_sync.py)
+export async function getStaffCollection() {
+  const client = await getMongoClient();
+  const db = client.db(process.env.MONGODB_DB ?? "website");
+  return db.collection("staff");
+}
