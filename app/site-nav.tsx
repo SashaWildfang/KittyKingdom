@@ -22,6 +22,7 @@ export function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
         <a href="/news">News</a>
         <a href="https://discord.com/invite/M9XKHFdYQV">Discord</a>
         <a href="/staff">Staff</a>
+        <a href="/store">Store</a>
         {signedIn ? <a href="/leaderboards">Leaderboards</a> : null}
       </div>
       <div className="nav-actions">
