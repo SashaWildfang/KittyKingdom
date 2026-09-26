@@ -6,6 +6,7 @@ import { getDiscordInviteSummary } from "../../lib/discord";
 import { getJoinApplicationsCollection } from "../../lib/mongodb";
 import { OnlineStatus } from "../online-status";
 import { ThemeToggle } from "../theme-toggle";
+import { calculateAge, formatDateOfBirth, parseAge, parseDateOfBirth } from "../../lib/dates";
 
 const statusMessages: Record<string, string> = {
   "username-saved": "Username saved. Usernames can only be set once.",
@@ -38,74 +39,16 @@ const statusMessages: Record<string, string> = {
   unlinked: "Discord account unlinked. Discord-only features are disabled until you link again.",
 };
 
-const monthNames: Record<string, number> = {
-  jan: 0,
-  january: 0,
-  feb: 1,
-  february: 1,
-  mar: 2,
-  march: 2,
-  apr: 3,
-  april: 3,
-  may: 4,
-  jun: 5,
-  june: 5,
-  jul: 6,
-  july: 6,
-  aug: 7,
-  august: 7,
-  sep: 8,
-  sept: 8,
-  september: 8,
-  oct: 9,
-  october: 9,
-  nov: 10,
-  november: 10,
-  dec: 11,
-  december: 11,
-};
-
-function normalizeDate(value: unknown) {
-  if (!value) return null;
-  const text = String(value).trim();
-  const direct = new Date(text);
-  if (!Number.isNaN(direct.getTime())) return direct;
-
-  const match = text.match(
-    /\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?\s+(\d{1,2})(?:st|nd|rd|th)?[,]?\s+(\d{4})\b/i,
-  );
-  if (!match) return null;
-
-  const month = monthNames[match[1].toLowerCase().replace(/\.$/, "")];
-  const day = Number(match[2]);
-  const year = Number(match[3]);
-  if (month === undefined || !day || !year) return null;
-  const parsed = new Date(Date.UTC(year, month, day));
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+function getAge(dobSource: unknown, ageSource: unknown) {
+  // The birth date is the most reliable source; otherwise use a stated age ("36" or "36 years old")
+  const birthDate = parseDateOfBirth(dobSource);
+  if (birthDate) return calculateAge(birthDate);
+  return parseAge(ageSource) ?? parseAge(dobSource);
 }
 
-function getAge(dateOfBirth: unknown, storedAge: unknown) {
-  const date = normalizeDate(dateOfBirth);
-  if (date) {
-    const now = new Date();
-    let age = now.getFullYear() - date.getUTCFullYear();
-    const monthDiff = now.getMonth() - date.getUTCMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < date.getUTCDate()))
-      age -= 1;
-    return age;
-  }
-  return typeof storedAge === "number" ? storedAge : null;
-}
-
-function formatDob(dateOfBirth: unknown) {
-  const date = normalizeDate(dateOfBirth);
-  if (!date) return dateOfBirth ? String(dateOfBirth) : "Not available";
-  return new Intl.DateTimeFormat("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(date);
+function formatDob(dobSource: unknown) {
+  const birthDate = parseDateOfBirth(dobSource);
+  return birthDate ? formatDateOfBirth(birthDate) : "Not available";
 }
 
 async function getJoinApplicationProfile(discordId: unknown) {

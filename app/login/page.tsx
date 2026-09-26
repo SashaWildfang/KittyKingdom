@@ -16,7 +16,8 @@ const statusMessages: Record<string, string> = {
   "database-unreachable":
     "The account database is not reachable right now. Please try again after the database network settings are updated.",
   "missing-token": "The verification link is missing its token.",
-  "invalid-or-expired": "The verification link is invalid or expired.",
+  "invalid-or-expired":
+    "That verification link has expired. Use the resend option below to get a fresh one.",
 };
 
 export default function LoginPage({
