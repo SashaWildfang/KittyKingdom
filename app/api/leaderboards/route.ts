@@ -312,7 +312,9 @@ export async function GET(request: Request) {
       ...rawBotUsers.map((user) => toLeaderboardRow(user, currentDiscordId, "bot")),
     ].filter(Boolean) as LeaderboardRow[]);
 
-    const directory = await loadDirectory(merged.map((row) => row.discordId).filter(Boolean) as string[]);
+    const { entries: directory, complete: directoryComplete } = await loadDirectory(
+      merged.map((row) => row.discordId).filter(Boolean) as string[],
+    );
     for (const row of merged) {
       const entry = row.discordId ? directory.get(row.discordId) : undefined;
       if (!entry) continue;
@@ -322,7 +324,14 @@ export async function GET(request: Request) {
       row.inServer = entry.inServer;
     }
 
-    const filtered = merged.filter((row) => matchesSearch(row, search));
+    // Members who left the server don't count towards the rankings at all
+    const inServer = merged.filter((row) => {
+      const entry = row.discordId ? directory.get(row.discordId) : undefined;
+      if (entry) return entry.inServer;
+      return !directoryComplete;
+    });
+
+    const filtered = inServer.filter((row) => matchesSearch(row, search));
 
     const sorted = filtered.sort((a, b) => {
       const comparison = a[sortKey] - b[sortKey];

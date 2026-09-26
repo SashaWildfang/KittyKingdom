@@ -25,9 +25,13 @@ const NOTE_MAX_LENGTH = 200;
 const BOOSTER_LOG_CHANNEL_ID = "1358485891361804358"; // same channel the bot posts booster redemptions in
 const STAFF_LOG_CHANNEL_ID = "1360344042705256660"; // private staff log (gifts)
 
+// Items that no longer exist. Hidden everywhere on the site even if old copies are still in the database.
+const RETIRED_ITEM_IDS = ["booster_crab"];
+const isRetired = (item: Record<string, unknown>) =>
+  RETIRED_ITEM_IDS.includes(String(item.item_id)) || item.retired === true;
+
 const ITEM_ICONS: Record<string, string> = {
   booster_xp: "⭐",
-  booster_crab: "🦀",
   booster_profile: "💖",
   booster_balance: "🍃",
 };
@@ -148,12 +152,12 @@ export async function getStoreState(discordId: string): Promise<StoreState> {
   const c = await collections();
   const now = new Date();
   const [activeItems, allRoleItems, timers, balanceDoc, invDocs, boosterDocs, memberRoles, guildRoles, cooldown] = await Promise.all([
-    c.storeInventory.find({ is_active: true, quantity: { $ne: 0 } }, BIG).toArray(),
+    c.storeInventory.find({ is_active: true, quantity: { $ne: 0 }, item_id: { $nin: RETIRED_ITEM_IDS }, retired: { $ne: true } }, BIG).toArray(),
     c.storeInventory.find({ role_id: { $ne: null } }, { projection: { item_id: 1, role_id: 1, requires_message: 1 }, ...BIG }).toArray(),
     c.shopSettings.findOne({ _id: "rotation_timers" as never }),
     getBalanceDoc(discordId),
-    c.userInventory.find({ discordId }, BIG).toArray(),
-    c.boosters.find({ discordId, end_time: { $gt: now } }).toArray(),
+    c.userInventory.find({ discordId, item_id: { $nin: RETIRED_ITEM_IDS } }, BIG).toArray(),
+    c.boosters.find({ discordId, end_time: { $gt: now }, item_id: { $nin: RETIRED_ITEM_IDS } }).toArray(),
     getMemberRoleIds(discordId),
     getGuildRoles(),
     c.cooldowns.findOne({ _id: toLong(discordId) as never }),
@@ -246,7 +250,7 @@ export async function buyItem(discordId: string, itemId: string, amount: number)
   }
   const c = await collections();
   const item = await c.storeInventory.findOne({ item_id: itemId }, BIG);
-  if (!item || !item.is_active) throw new StoreError("That item isn't in the store right now.");
+  if (!item || !item.is_active || isRetired(item)) throw new StoreError("That item isn't in the store right now.");
   const stock = num(item.quantity);
   if (stock === 0) throw new StoreError("That item is out of stock.");
 
@@ -307,7 +311,7 @@ export async function buyItem(discordId: string, itemId: string, amount: number)
 export async function activateItem(discordId: string, itemId: string) {
   const c = await collections();
   const owned = await c.userInventory.findOne({ discordId, item_id: itemId }, BIG);
-  if (!owned) throw new StoreError("You don't own that item anymore.");
+  if (!owned || RETIRED_ITEM_IDS.includes(itemId)) throw new StoreError("You don't own that item anymore.");
   if (owned.type === "gift") throw new StoreError("Gifts are meant to be given! Use Send gift instead.");
   if (owned.type !== "booster") throw new StoreError("That item can't be used.");
 
