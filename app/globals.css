@@ -3515,3 +3515,585 @@ input[type="submit"] {
     justify-content: center;
   }
 }
+
+/* ==========================================
+   Account page (sidebar + section cards)
+   ========================================== */
+.acct-hero {
+  padding-bottom: 1rem;
+}
+
+.acct-status {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 0 clamp(1rem, 6vw, 6rem) 1.25rem;
+  border: 1px solid;
+  border-radius: 1rem;
+  font-weight: 800;
+  padding: 0.9rem 1.1rem;
+}
+
+.acct-status > span {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.acct-status--success {
+  border-color: rgba(59, 165, 92, 0.5);
+  background: rgba(59, 165, 92, 0.14);
+}
+
+.acct-status--success > span {
+  background: #3ba55c;
+}
+
+.acct-status--error {
+  border-color: rgba(239, 68, 68, 0.5);
+  background: rgba(220, 38, 38, 0.14);
+}
+
+.acct-status--error > span {
+  background: #dc2626;
+}
+
+.acct-layout {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 17.5rem minmax(0, 1fr);
+  align-items: start;
+  gap: 1.5rem;
+  padding: 0 clamp(1rem, 6vw, 6rem) 4rem;
+}
+
+/* ---------- Sidebar ---------- */
+.acct-sidebar {
+  position: sticky;
+  top: 6.5rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.acct-profile-card,
+.acct-card,
+.acct-nav {
+  border: 1px solid var(--line);
+  border-radius: 1.4rem;
+  background: var(--panel);
+  box-shadow: 0 18px 40px var(--shadow);
+  backdrop-filter: blur(12px);
+}
+
+.acct-profile-card {
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.75rem 1.25rem 1.4rem;
+  text-align: center;
+}
+
+.acct-profile-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4.8rem;
+  background: linear-gradient(135deg, rgba(245, 155, 42, 0.45), rgba(200, 95, 24, 0.25));
+}
+
+.acct-avatar {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 5.5rem;
+  height: 5.5rem;
+  overflow: hidden;
+  border: 4px solid var(--panel-strong);
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--ember), var(--maple));
+  box-shadow: 0 10px 24px var(--shadow);
+}
+
+.acct-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.acct-avatar span {
+  color: #fff;
+  font-size: 2.2rem;
+  font-weight: 1000;
+}
+
+.acct-profile-card h2 {
+  margin: 0.8rem 0 0;
+  font-size: 1.45rem;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.acct-handle {
+  margin: 0.1rem 0 0;
+  color: var(--muted);
+}
+
+.acct-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-top: 0.85rem;
+}
+
+.acct-badge {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  padding: 0.28rem 0.65rem;
+}
+
+.acct-badge--ok {
+  border-color: rgba(59, 165, 92, 0.5);
+  background: rgba(59, 165, 92, 0.14);
+}
+
+.acct-badge--discord {
+  border-color: rgba(88, 101, 242, 0.55);
+  background: rgba(88, 101, 242, 0.16);
+}
+
+.acct-badge--muted {
+  color: var(--muted);
+}
+
+.acct-since {
+  margin: 0.9rem 0 0;
+  color: var(--gold);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.acct-nav {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.5rem;
+}
+
+.acct-nav a {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  border-radius: 0.85rem;
+  color: var(--text);
+  font-weight: 700;
+  padding: 0.7rem 0.85rem;
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+
+.acct-nav a:hover {
+  background: rgba(245, 155, 42, 0.14);
+}
+
+.acct-nav a.acct-nav-danger {
+  color: #f87171;
+}
+
+.acct-nav a.acct-nav-danger:hover {
+  background: rgba(220, 38, 38, 0.12);
+}
+
+/* ---------- Main column ---------- */
+.acct-main {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.acct-card {
+  scroll-margin-top: 7rem;
+  padding: clamp(1.25rem, 2.5vw, 1.75rem);
+}
+
+.acct-card-header {
+  margin-bottom: 1.1rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.9rem;
+}
+
+.acct-card h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.35rem;
+  letter-spacing: -0.02em;
+}
+
+.acct-card-header p {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.acct-info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.acct-info-grid div {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: rgba(0, 0, 0, 0.14);
+  padding: 0.85rem 1rem;
+}
+
+
+.acct-info-grid dt {
+  color: var(--gold);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.acct-info-grid dd {
+  margin: 0.3rem 0 0;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.acct-muted {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.acct-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+.acct-form {
+  display: grid;
+  align-content: start;
+  gap: 0.6rem;
+}
+
+.acct-form label {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.acct-form input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 0.8rem;
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--text);
+  font: inherit;
+  padding: 0.8rem 0.95rem;
+}
+
+
+.acct-form input:focus {
+  border-color: var(--ember);
+  outline: none;
+  box-shadow: 0 0 0 0.2rem rgba(245, 155, 42, 0.18);
+}
+
+.acct-form input[readonly] {
+  cursor: default;
+  opacity: 0.75;
+}
+
+.acct-form .form-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.acct-form p {
+  margin: 0;
+}
+
+.acct-locked-field {
+  position: relative;
+  display: block;
+}
+
+.acct-locked-field span {
+  position: absolute;
+  top: 50%;
+  right: 0.9rem;
+  transform: translateY(-50%);
+}
+
+.acct-fields-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.acct-button {
+  justify-self: start;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ember);
+  color: #1d0b05;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 900;
+  padding: 0.7rem 1.35rem;
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+.acct-button:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.acct-button--danger {
+  background: #dc2626;
+  color: #fff;
+}
+
+/* ---------- Discord card ---------- */
+.acct-discord {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.25rem;
+  background:
+    radial-gradient(circle at 100% 0, rgba(88, 101, 242, 0.28), transparent 18rem),
+    var(--panel);
+}
+
+.acct-discord-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 3.4rem;
+  height: 3.4rem;
+  border-radius: 1rem;
+  background: #5865f2;
+  box-shadow: 0 12px 26px rgba(88, 101, 242, 0.35);
+}
+
+.acct-discord-icon svg {
+  width: 1.9rem;
+  fill: #fff;
+}
+
+.acct-discord-copy {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.acct-discord-copy p {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+}
+
+.acct-discord-copy strong {
+  color: var(--text);
+}
+
+.acct-discord-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.acct-discord-actions form {
+  margin: 0;
+}
+
+.acct-discord .discord-link-button,
+.acct-discord .discord-unlink-button {
+  min-height: 2.6rem !important;
+  padding: 0.6rem 1.05rem !important;
+  font-size: 0.9rem;
+}
+
+.acct-discord .discord-link-button svg {
+  width: 1.15rem;
+  fill: currentColor;
+}
+
+.acct-discord .discord-unlink-button {
+  border-color: var(--line) !important;
+  background: transparent !important;
+  color: var(--text) !important;
+  cursor: pointer;
+}
+
+.acct-discord .discord-unlink-button:hover {
+  border-color: rgba(239, 68, 68, 0.6) !important;
+  color: #f87171 !important;
+}
+
+/* ---------- Danger zone (collapsed until opened) ---------- */
+.acct-danger {
+  border-color: rgba(239, 68, 68, 0.35);
+  padding: 0;
+}
+
+.acct-danger summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  cursor: pointer;
+  list-style: none;
+  padding: 1.1rem clamp(1.25rem, 2.5vw, 1.75rem);
+}
+
+.acct-danger summary::-webkit-details-marker {
+  display: none;
+}
+
+.acct-danger-title {
+  display: block;
+  color: #f87171;
+  font-size: 1.1rem;
+  font-weight: 900;
+}
+
+.acct-danger-sub {
+  display: block;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.acct-danger-chevron {
+  color: var(--muted);
+  transition: transform 0.2s ease;
+}
+
+.acct-danger[open] .acct-danger-chevron {
+  transform: rotate(180deg);
+}
+
+.acct-danger .acct-form {
+  border-top: 1px solid rgba(239, 68, 68, 0.25);
+  padding: 1.1rem clamp(1.25rem, 2.5vw, 1.75rem) 1.4rem;
+}
+
+/* Ribbon at medium widths: tighter spacing so everything fits on one row without clipping */
+.topbar .brand-copy strong,
+.topbar .login-link {
+  white-space: nowrap;
+}
+
+@media (min-width: 761px) and (max-width: 1180px) {
+  .topbar {
+    gap: 0.5rem;
+    padding-inline: clamp(0.75rem, 2vw, 1.5rem);
+  }
+
+  .topbar .brand-copy strong {
+    font-size: 0.85rem;
+  }
+
+  .topbar .tabs {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.1rem;
+    min-width: 0;
+  }
+
+  .topbar .tabs a,
+  .topbar .login-link,
+  .topbar .theme-toggle {
+    padding: 0.55rem 0.6rem;
+    font-size: 0.88rem;
+  }
+
+  .topbar .nav-actions {
+    gap: 0.35rem;
+  }
+
+  .topbar .primary-pill {
+    padding-inline: 0.9rem;
+    white-space: nowrap;
+  }
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1100px) {
+  .acct-info-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .acct-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .acct-sidebar {
+    position: static;
+  }
+
+  .acct-nav {
+    display: flex;
+    overflow-x: auto;
+    gap: 0.35rem;
+  }
+
+  .acct-nav a {
+    flex: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .acct-info-grid,
+  .acct-form-grid,
+  .acct-fields-row {
+    grid-template-columns: 1fr;
+  }
+
+  .acct-button {
+    justify-self: stretch;
+  }
+}
+
+.acct-hero h1 {
+  font-size: clamp(2.6rem, 6vw, 4.6rem);
+}
+
+.acct-discord .discord-unlink-button {
+  box-shadow: none !important;
+}
+
+.acct-danger .acct-form {
+  gap: 0.85rem;
+}
+
+/* Light-mode fills for the account page. Phones keep dark panels in light mode (see the
+   max-width: 760px theme override), so these only apply on wider screens. */
+@media (min-width: 761px) {
+  :root[data-theme="light"] .acct-info-grid div {
+    background: rgba(255, 255, 255, 0.5);
+  }
+
+  :root[data-theme="light"] .acct-form input {
+    background: rgba(255, 255, 255, 0.7);
+  }
+}

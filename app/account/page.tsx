@@ -4,8 +4,7 @@ import { getCurrentUser } from "../../lib/auth";
 import { DiscordUnlinkForm } from "../discord-unlink-form";
 import { getDiscordInviteSummary } from "../../lib/discord";
 import { getJoinApplicationsCollection } from "../../lib/mongodb";
-import { OnlineStatus } from "../online-status";
-import { ThemeToggle } from "../theme-toggle";
+import { SiteNav } from "../site-nav";
 import { calculateAge, formatDateOfBirth, parseAge, parseDateOfBirth } from "../../lib/dates";
 
 const statusMessages: Record<string, string> = {
@@ -38,6 +37,12 @@ const statusMessages: Record<string, string> = {
   "guild-required": "Join the Kitty Kingdom Discord before linking your account.",
   unlinked: "Discord account unlinked. Discord-only features are disabled until you link again.",
 };
+
+const successStatuses = new Set(["username-saved", "name-saved", "password-saved", "success", "linked", "unlinked"]);
+
+function formatMonthYear(date: Date) {
+  return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC" }).format(date);
+}
 
 function getAge(dobSource: unknown, ageSource: unknown) {
   // The birth date is the most reliable source; otherwise use a stated age ("36" or "36 years old")
@@ -123,254 +128,228 @@ export default async function AccountPage({
   const age = getAge(dobSource ?? user.dateOfBirth, ageSource ?? user.age);
   const dob = formatDob(dobSource ?? user.dateOfBirth);
   const displayName = typeof user.displayName === "string" ? user.displayName : null;
-  const heading = displayName ? `Welcome ${displayName}` : "My Account";
+  const heading = displayName ? `Welcome back, ${displayName}` : "My Account";
+  const shownName = displayName ?? user.username ?? user.email.split("@")[0];
+  const discordLinked = Boolean(user.discordId);
+  const discordName = discordLinked ? String(user.discord?.username ?? user.discordId) : null;
+  const memberSince = user.createdAt instanceof Date ? formatMonthYear(user.createdAt) : null;
+  const statusText = status ? statusMessages[status] ?? `Status: ${status}` : null;
+  const statusTone = status && successStatuses.has(status) ? "success" : "error";
 
   return (
     <main className="site-shell account-site-shell">
       <div className="leaf-field" aria-hidden="true" />
-      <nav className="topbar" aria-label="Main navigation">
-        <a className="brand" href="/home" aria-label="Kitty Kingdom home">
-          <img
-            className="brand-logo-img"
-            src="/logo.png"
-            alt="Kitty Kingdom logo"
-          />
-          <span className="brand-copy">
-            <strong>Kitty Kingdom</strong>
-            <OnlineStatus initialOnline={discord.online} />
-          </span>
-        </a>
-        <div className="tabs">
-          <a href="/home">Home</a>
-          <a href="/news">News</a>
-          <a href="https://discord.com/invite/M9XKHFdYQV">Discord</a>
-          <a href="/staff">Staff</a>
-          <a href="/leaderboards">Leaderboards</a>
-        </div>
-        <div className="nav-actions">
-          <ThemeToggle />
-          <a className="login-link logged-in-link" href="/account">
-            My Account
-          </a>
-          <form action="/api/account/logout" method="post">
-            <button className="primary-pill logout-pill" type="submit">
-              Logout
-            </button>
-          </form>
-        </div>
-      </nav>
+      <SiteNav signedIn discordOnline={discord.online} />
 
-      <section className="account-hero" aria-label="My Account">
+      <section className="account-hero acct-hero" aria-label="My Account">
         <p className="eyebrow">Member portal</p>
         <h1>{heading}</h1>
-        <p>
-          Manage your Kitty Kingdom profile, Discord link, password, and account
-          preferences.
-        </p>
-        {status ? (
-          <p
-            className={`auth-status account-status-banner ${status === "linked" ? "account-status-success" : ""}`}
-          >
-            {statusMessages[status] ?? `Status: ${status}`}
-          </p>
-        ) : null}
+        <p>Manage your Kitty Kingdom profile, Discord link, and account security — all in one place.</p>
       </section>
 
-      <section className="account-dashboard" aria-label="Account dashboard">
-        <nav className="account-menu" aria-label="Account menu">
-          <a href="#account-details">Account Details</a>
-          <a href="#discord-account">Discord</a>
-          <a href="#security">Security</a>
-          <a className="account-menu-danger" href="#delete-account">Delete Account</a>
-        </nav>
-
-        <div className="account-summary-panel">
-          <div>
-            <span>Email</span>
-            <strong>{user.email}</strong>
-          </div>
-          <div>
-            <span>Username</span>
-            <strong>{user.username ?? "Not set"}</strong>
-          </div>
-          <div className="summary-discord-card">
-            <span className="summary-discord-heading">
-              Discord{user.discordId ? <span className="summary-linked-check" aria-label="Linked">✓</span> : null}
-            </span>
-            <strong>
-              {user.discordId ? user.discord?.username ?? user.discordId : "Not linked"}
-            </strong>
-          </div>
-          <div>
-            <span>Age</span>
-            <strong>{age ?? "Not available"}</strong>
-          </div>
-          <div>
-            <span>Date of Birth</span>
-            <strong>{dob}</strong>
-          </div>
+      {statusText ? (
+        <div className={`acct-status acct-status--${statusTone}`} role="status">
+          <span aria-hidden="true">{statusTone === "success" ? "✓" : "!"}</span>
+          {statusText}
         </div>
+      ) : null}
 
-        <div className="account-main-grid">
-          <section className="account-section-card" id="account-details">
-            <h2>Account Details</h2>
-            <form action="/api/account/name" method="post" autoComplete="off">
-              <label>
-                Name
-                <input
-                  name="displayName"
-                  autoComplete="off"
-                  defaultValue={displayName ?? ""}
-                  placeholder="Your name"
-                  minLength={3}
-                  maxLength={12}
-                  pattern="[A-Za-z0-9 ]{3,12}"
-                  required
-                />
-              </label>
-              <p className="form-note">3–12 characters. Letters, numbers, and spaces only.</p>
-              <button type="submit">Save name</button>
-            </form>
-
-            <form action="/api/account/username" method="post" autoComplete="off">
-              <h3>Username</h3>
-              <p className="form-note">
-                Username can only be set once. If you need to change your username later,
-                contact the staff team on Discord.
-              </p>
-              {user.username ? (
-                <p className="form-note">
-                  Your username is <strong>{user.username}</strong>.
-                </p>
+      <div className="acct-layout">
+        {/* ---------- Sidebar: profile summary + section links ---------- */}
+        <aside className="acct-sidebar">
+          <div className="acct-profile-card">
+            <div className="acct-avatar">
+              {discordLinked ? (
+                <img src={`/api/discord/avatar/${user.discordId}`} alt="" width="88" height="88" />
               ) : (
-                <>
-                  <label>
-                    New username
-                    <input
-                      name="newUsername"
-                      autoComplete="off"
-                      placeholder="YourUsername"
-                      pattern="[A-Za-z0-9_]{3,20}"
-                      required
-                    />
-                  </label>
-                  <label>
-                    Confirm username
-                    <input
-                      name="confirmUsername"
-                      autoComplete="off"
-                      placeholder="YourUsername"
-                      pattern="[A-Za-z0-9_]{3,20}"
-                      required
-                    />
-                  </label>
-                  <button type="submit">Save username</button>
-                </>
+                <span aria-hidden="true">{shownName.charAt(0).toUpperCase()}</span>
               )}
+            </div>
+            <h2>{shownName}</h2>
+            {user.username ? <p className="acct-handle">@{user.username}</p> : null}
+            <div className="acct-badges">
+              {user.emailVerified ? <span className="acct-badge acct-badge--ok">✓ Email verified</span> : null}
+              <span className={`acct-badge ${discordLinked ? "acct-badge--discord" : "acct-badge--muted"}`}>
+                {discordLinked ? "Discord linked" : "Discord not linked"}
+              </span>
+            </div>
+            {memberSince ? <p className="acct-since">🍂 Member since {memberSince}</p> : null}
+          </div>
+
+          <nav className="acct-nav" aria-label="Account sections">
+            <a href="#overview"><span aria-hidden="true">📋</span> Overview</a>
+            <a href="#profile"><span aria-hidden="true">👤</span> Profile</a>
+            <a href="#discord-account"><span aria-hidden="true">💬</span> Discord</a>
+            <a href="#security"><span aria-hidden="true">🔒</span> Security</a>
+            <a className="acct-nav-danger" href="#delete-account"><span aria-hidden="true">⚠️</span> Delete account</a>
+          </nav>
+        </aside>
+
+        {/* ---------- Main column ---------- */}
+        <div className="acct-main">
+          <section className="acct-card" id="overview">
+            <header className="acct-card-header">
+              <h2>Overview</h2>
+              <p>Your account details. Age and birthday come from your Discord join application.</p>
+            </header>
+            <dl className="acct-info-grid">
+              <div>
+                <dt>Email</dt>
+                <dd>{user.email}</dd>
+              </div>
+              <div>
+                <dt>Username</dt>
+                <dd>{user.username ?? <span className="acct-muted">Not set</span>}</dd>
+              </div>
+              <div>
+                <dt>Discord</dt>
+                <dd>{discordName ?? <span className="acct-muted">Not linked</span>}</dd>
+              </div>
+              <div>
+                <dt>Age</dt>
+                <dd>{age ?? <span className="acct-muted">Not available</span>}</dd>
+              </div>
+              <div>
+                <dt>Date of birth</dt>
+                <dd>{dob === "Not available" ? <span className="acct-muted">Not available</span> : dob}</dd>
+              </div>
+              <div>
+                <dt>Member since</dt>
+                <dd>{memberSince ?? <span className="acct-muted">—</span>}</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section className="acct-card" id="profile">
+            <header className="acct-card-header">
+              <h2>Profile</h2>
+              <p>How you appear around the site.</p>
+            </header>
+            <div className="acct-form-grid">
+              <form className="acct-form" action="/api/account/name" method="post" autoComplete="off">
+                <label>
+                  Display name
+                  <input
+                    name="displayName"
+                    autoComplete="off"
+                    defaultValue={displayName ?? ""}
+                    placeholder="Your name"
+                    minLength={3}
+                    maxLength={12}
+                    pattern="[A-Za-z0-9 ]{3,12}"
+                    required
+                  />
+                </label>
+                <p className="form-note">3–12 characters. Letters, numbers, and spaces only.</p>
+                <button className="acct-button" type="submit">Save name</button>
+              </form>
+
+              <form className="acct-form" action="/api/account/username" method="post" autoComplete="off">
+                {user.username ? (
+                  <>
+                    <label>
+                      Username
+                      <span className="acct-locked-field">
+                        <input value={user.username} readOnly aria-readonly="true" />
+                        <span aria-hidden="true">🔒</span>
+                      </span>
+                    </label>
+                    <p className="form-note">
+                      Usernames can only be set once. Need a change? Contact the staff team on Discord.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <label>
+                      Username
+                      <input name="newUsername" autoComplete="off" placeholder="YourUsername" pattern="[A-Za-z0-9_]{3,20}" required />
+                    </label>
+                    <label>
+                      Confirm username
+                      <input name="confirmUsername" autoComplete="off" placeholder="YourUsername" pattern="[A-Za-z0-9_]{3,20}" required />
+                    </label>
+                    <p className="form-note">3–20 letters, numbers, or underscores. This can only be set once.</p>
+                    <button className="acct-button" type="submit">Save username</button>
+                  </>
+                )}
+              </form>
+            </div>
+          </section>
+
+          <section className="acct-card acct-discord" id="discord-account">
+            <span className="acct-discord-icon">
+              <DiscordIcon />
+            </span>
+            <div className="acct-discord-copy">
+              <h2>Discord</h2>
+              <p>
+                {discordLinked ? (
+                  <>
+                    Linked as <strong>{discordName}</strong>. Relink to refresh your member details.
+                  </>
+                ) : (
+                  "Link Discord so your website account matches your community member identity."
+                )}
+              </p>
+            </div>
+            <div className="acct-discord-actions">
+              <Link className="discord-link-button" href="/api/auth/discord">
+                <DiscordIcon />
+                {discordLinked ? "Relink" : "Link Discord"}
+              </Link>
+              {discordLinked ? <DiscordUnlinkForm /> : null}
+            </div>
+          </section>
+
+          <section className="acct-card" id="security">
+            <header className="acct-card-header">
+              <h2>Security</h2>
+              <p>Change your password. You&apos;ll need your current one.</p>
+            </header>
+            <form className="acct-form" action="/api/account/password" method="post" autoComplete="off">
+              <div className="acct-fields-row">
+                <label>
+                  Current password
+                  <input name="currentAccountPassword" autoComplete="off" data-1p-ignore="true" data-lpignore="true" type="password" required />
+                </label>
+                <label>
+                  New password
+                  <input name="newAccountPassword" autoComplete="off" data-1p-ignore="true" data-lpignore="true" type="password" minLength={8} required />
+                </label>
+              </div>
+              <p className="form-note">8+ characters with at least one number and one symbol.</p>
+              <button className="acct-button" type="submit">Update password</button>
             </form>
           </section>
 
-          <div className="account-section-card discord-account-card" id="discord-account">
-            <span className="discord-mark">
-              <DiscordIcon />
-            </span>
-            <div>
-              <div className="discord-title-row">
-                <h2>Discord Account</h2>
-              </div>
+          <details className="acct-card acct-danger" id="delete-account">
+            <summary>
+              <span>
+                <span className="acct-danger-title">Delete account</span>
+                <span className="acct-danger-sub">Permanently remove your website account</span>
+              </span>
+              <span className="acct-danger-chevron" aria-hidden="true">▾</span>
+            </summary>
+            <form className="acct-form" action="/api/account/delete" method="post" autoComplete="off">
               <p>
-                {user.discordId
-                  ? "Your Discord account is linked. Relink if you need to refresh your Discord member details."
-                  : "Link Discord so your website account can match your community member identity."}
+                This permanently deletes your website account and can&apos;t be undone. Type{" "}
+                <strong>DELETE MY ACCOUNT</strong> and enter your password to confirm.
               </p>
-            </div>
-            <div className="discord-actions-row">
-              <Link className="discord-link-button" href="/api/auth/discord">
-                <DiscordIcon />
-                {user.discordId ? "Relink Discord" : "Link Discord Account"}
-              </Link>
-              {user.discordId ? <DiscordUnlinkForm /> : null}
-            </div>
-          </div>
-
-          <form
-            className="account-section-card"
-            id="security"
-            action="/api/account/password"
-            method="post"
-            autoComplete="off"
-          >
-            <h2>Security</h2>
-            <label>
-              Current password
-              <input
-                name="currentAccountPassword"
-                autoComplete="off"
-                data-1p-ignore="true"
-                data-lpignore="true"
-                type="password"
-                required
-              />
-            </label>
-            <label>
-              New password
-              <input
-                name="newAccountPassword"
-                autoComplete="off"
-                data-1p-ignore="true"
-                data-lpignore="true"
-                type="password"
-                minLength={8}
-                required
-              />
-            </label>
-            <p className="form-note">
-              8+ characters with at least one number and one symbol.
-            </p>
-            <button type="submit">Update password</button>
-          </form>
-
+              <div className="acct-fields-row">
+                <label>
+                  Confirmation
+                  <input name="deleteConfirmation" autoComplete="off" placeholder="DELETE MY ACCOUNT" required />
+                </label>
+                <label>
+                  Password
+                  <input name="deletePassword" autoComplete="off" data-1p-ignore="true" data-lpignore="true" type="password" required />
+                </label>
+              </div>
+              <button className="acct-button acct-button--danger" type="submit">Delete my account</button>
+            </form>
+          </details>
         </div>
-
-        <form
-          className="account-danger-zone"
-          id="delete-account"
-          action="/api/account/delete"
-          method="post"
-          autoComplete="off"
-        >
-          <div>
-            <p className="eyebrow">Danger zone</p>
-            <h2>Delete Account</h2>
-            <p>
-              This permanently deletes your website account. Type{" "}
-              <strong>DELETE MY ACCOUNT</strong> and enter your password to
-              confirm.
-            </p>
-          </div>
-          <label>
-            Confirmation
-            <input
-              name="deleteConfirmation"
-              autoComplete="off"
-              placeholder="DELETE MY ACCOUNT"
-              required
-            />
-          </label>
-          <label>
-            Password
-            <input
-              name="deletePassword"
-              autoComplete="off"
-              data-1p-ignore="true"
-              data-lpignore="true"
-              type="password"
-              required
-            />
-          </label>
-          <button type="submit">Delete account</button>
-        </form>
-      </section>
+      </div>
     </main>
   );
 }
