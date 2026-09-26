@@ -135,17 +135,27 @@ async function lookupSingle(id: string, guild: string | null, now: Date): Promis
   };
 }
 
-/** Names for every id (from the cache), refreshing the cache first when needed. */
-export async function loadDirectory(ids: string[]): Promise<Map<string, DirectoryEntry>> {
-  const map = new Map<string, DirectoryEntry>();
-  if (!ids.length) return map;
+export type Directory = {
+  entries: Map<string, DirectoryEntry>;
+  /** True once a full member sweep has succeeded, so "not in the directory" really means "not in the server". */
+  complete: boolean;
+};
 
+/** Names for every id (from the cache), refreshing the cache first when needed. */
+export async function loadDirectory(ids: string[]): Promise<Directory> {
+  const entries = new Map<string, DirectoryEntry>();
   await refreshIfStale().catch((error) => console.error("Member directory refresh failed", error));
 
   const col = await directory();
-  const docs = (await col.find({ _id: { $in: ids } }).toArray()) as DirectoryEntry[];
-  for (const doc of docs) map.set(doc._id, doc);
-  return map;
+  const [docs, meta] = await Promise.all([
+    ids.length ? (col.find({ _id: { $in: ids } }).toArray() as Promise<DirectoryEntry[]>) : Promise.resolve([] as DirectoryEntry[]),
+    col.findOne({ _id: META_ID }) as Promise<{ refreshedAt?: Date } | null>,
+  ]);
+  for (const doc of docs) entries.set(doc._id, doc);
+  const refreshedAt = meta?.refreshedAt ? new Date(meta.refreshedAt).getTime() : 0;
+  // A sweep older than a few refresh cycles is too stale to judge who left
+  const complete = refreshedAt > 0 && Date.now() - refreshedAt < REFRESH_MS * 4;
+  return { entries, complete };
 }
 
 /** Fills in a few ids that the directory doesn't know yet (or that left and are due a re-check). */
