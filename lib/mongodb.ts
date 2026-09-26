@@ -69,3 +69,16 @@ export async function getStaffCollection() {
   const db = client.db(process.env.MONGODB_DB ?? "website");
   return db.collection("staff");
 }
+
+type PresenceDocument = { _id: string; lastSeen: Date };
+let presenceIndexReady: Promise<string> | null = null;
+
+// Open website tabs (one doc per visitor), cleaned up automatically a few minutes after they leave
+export async function getPresenceCollection() {
+  const client = await getMongoClient();
+  const db = client.db(process.env.MONGODB_DB ?? "website");
+  const presence = db.collection<PresenceDocument>("website_presence");
+  presenceIndexReady ??= presence.createIndex({ lastSeen: 1 }, { expireAfterSeconds: 300 });
+  await presenceIndexReady;
+  return presence;
+}

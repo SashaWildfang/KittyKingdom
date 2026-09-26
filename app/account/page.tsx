@@ -4,10 +4,20 @@ import { getCurrentUser } from "../../lib/auth";
 import { DiscordUnlinkForm } from "../discord-unlink-form";
 import { getDiscordInviteSummary } from "../../lib/discord";
 import { getJoinApplicationsCollection } from "../../lib/mongodb";
+import type { CSSProperties } from "react";
 import { SiteNav } from "../site-nav";
+import { VerifyEmailBanner } from "../verify-email-banner";
+import { getMemberRoleSummary } from "../../lib/discord-member";
+import { formatPhone, SOCIALS, type SocialLink } from "../../lib/contact";
 import { calculateAge, formatDateOfBirth, parseAge, parseDateOfBirth } from "../../lib/dates";
 
 const statusMessages: Record<string, string> = {
+  "contact-saved": "Contact details and social links saved.",
+  "invalid-phone": "That phone number doesn't look right. Include your country code, e.g. +1 555 123 4567.",
+  "invalid-twitter": "That Twitter / X handle isn't valid. Use @handle or an x.com link.",
+  "invalid-telegram": "That Telegram username isn't valid. Use @username (5+ characters) or a t.me link.",
+  "invalid-youtube": "That YouTube channel isn't valid. Use @channel or a youtube.com link.",
+  "invalid-steam": "That Steam profile isn't valid. Use your custom ID or a steamcommunity.com link.",
   "username-saved": "Username saved. Usernames can only be set once.",
   "username-taken": "That username is already taken.",
   "username-locked": "Your username is already set and cannot be changed.",
@@ -38,7 +48,19 @@ const statusMessages: Record<string, string> = {
   unlinked: "Discord account unlinked. Discord-only features are disabled until you link again.",
 };
 
-const successStatuses = new Set(["username-saved", "name-saved", "password-saved", "success", "linked", "unlinked"]);
+const successStatuses = new Set(["username-saved", "name-saved", "password-saved", "success", "linked", "unlinked", "contact-saved"]);
+
+// What to show in a social link's input box: the short handle/ID when there is one, else the full link
+function socialInputValue(link: SocialLink | undefined) {
+  if (!link) return "";
+  return link.handle === "Steam profile" || link.handle === "YouTube channel" ? link.url : link.handle;
+}
+
+function rankStyle(colors: string[]): CSSProperties {
+  // One color for normal roles; Discord's gradient roles have two (or three for holographic)
+  const stops = colors.length === 1 ? [colors[0], colors[0]] : colors;
+  return { "--rank-gradient": `linear-gradient(90deg, ${stops.join(", ")})` } as CSSProperties;
+}
 
 function formatMonthYear(date: Date) {
   return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC" }).format(date);
@@ -123,7 +145,12 @@ export default async function AccountPage({
     searchParams.discord ??
     searchParams.verify ??
     searchParams.login;
-  const application = await getJoinApplicationProfile(user.discordId);
+  const [application, roles] = await Promise.all([
+    getJoinApplicationProfile(user.discordId),
+    getMemberRoleSummary(user.discordId),
+  ]);
+  const socials = (user.socials ?? {}) as Partial<Record<string, SocialLink>>;
+  const phone = typeof user.phone === "string" ? user.phone : null;
   const { ageSource, dobSource } = getApplicationAgeAndDob(application);
   const age = getAge(dobSource ?? user.dateOfBirth, ageSource ?? user.age);
   const dob = formatDob(dobSource ?? user.dateOfBirth);
@@ -147,6 +174,12 @@ export default async function AccountPage({
         <p>Manage your Kitty Kingdom profile, Discord link, and account security — all in one place.</p>
       </section>
 
+      {user.emailVerified === false ? (
+        <div className="acct-banner-wrap">
+          <VerifyEmailBanner email={user.email} />
+        </div>
+      ) : null}
+
       {statusText ? (
         <div className={`acct-status acct-status--${statusTone}`} role="status">
           <span aria-hidden="true">{statusTone === "success" ? "✓" : "!"}</span>
@@ -167,18 +200,45 @@ export default async function AccountPage({
             </div>
             <h2>{shownName}</h2>
             {user.username ? <p className="acct-handle">@{user.username}</p> : null}
+            {roles.rank || roles.isStaff ? (
+              <div className="acct-rank-row">
+                {roles.rank ? (
+                  <span className="acct-rank" style={rankStyle(roles.rank.colors)} title="Your highest Discord role">
+                    <i aria-hidden="true" />
+                    <span>{roles.rank.name}</span>
+                  </span>
+                ) : null}
+                {roles.isStaff ? <span className="acct-staff-badge">🛡️ Staff</span> : null}
+              </div>
+            ) : null}
             <div className="acct-badges">
-              {user.emailVerified ? <span className="acct-badge acct-badge--ok">✓ Email verified</span> : null}
               <span className={`acct-badge ${discordLinked ? "acct-badge--discord" : "acct-badge--muted"}`}>
                 {discordLinked ? "Discord linked" : "Discord not linked"}
               </span>
             </div>
+            {SOCIALS.some((s) => socials[s.key]) ? (
+              <div className="acct-social-icons">
+                {SOCIALS.filter((s) => socials[s.key]).map((s) => (
+                  <a
+                    key={s.key}
+                    href={socials[s.key]!.url}
+                    target="_blank"
+                    rel="noopener noreferrer nofollow"
+                    title={`${s.label}: ${socials[s.key]!.handle}`}
+                    aria-label={`${s.label}: ${socials[s.key]!.handle}`}
+                  >
+                    {s.icon}
+                  </a>
+                ))}
+              </div>
+            ) : null}
             {memberSince ? <p className="acct-since">🍂 Member since {memberSince}</p> : null}
           </div>
 
           <nav className="acct-nav" aria-label="Account sections">
             <a href="#overview"><span aria-hidden="true">📋</span> Overview</a>
             <a href="#profile"><span aria-hidden="true">👤</span> Profile</a>
+            <a href="#contact"><span aria-hidden="true">🔗</span> Contact &amp; socials</a>
             <a href="#discord-account"><span aria-hidden="true">💬</span> Discord</a>
             <a href="#security"><span aria-hidden="true">🔒</span> Security</a>
             <a className="acct-nav-danger" href="#delete-account"><span aria-hidden="true">⚠️</span> Delete account</a>
@@ -274,6 +334,39 @@ export default async function AccountPage({
                 )}
               </form>
             </div>
+          </section>
+
+          <section className="acct-card" id="contact">
+            <header className="acct-card-header">
+              <h2>Contact &amp; socials</h2>
+              <p>All optional. Paste a link or type your @handle — leave a box empty to remove it.</p>
+            </header>
+            <form className="acct-form" action="/api/account/contact" method="post" autoComplete="off">
+              <label>
+                Phone number
+                <input
+                  name="phone"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  defaultValue={phone ? formatPhone(phone) : ""}
+                  placeholder="+1 555 123 4567"
+                  maxLength={24}
+                />
+              </label>
+              <p className="form-note">🔒 Private — only you can see your phone number. Include your country code if you&apos;re outside the US/Canada.</p>
+              <div className="acct-socials-grid">
+                {SOCIALS.map((s) => (
+                  <label key={s.key}>
+                    <span className="acct-social-label">
+                      <span aria-hidden="true">{s.icon}</span> {s.label}
+                    </span>
+                    <input name={s.key} defaultValue={socialInputValue(socials[s.key])} placeholder={s.placeholder} maxLength={200} />
+                  </label>
+                ))}
+              </div>
+              <button className="acct-button" type="submit">Save contact details</button>
+            </form>
           </section>
 
           <section className="acct-card acct-discord" id="discord-account">
