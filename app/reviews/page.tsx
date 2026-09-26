@@ -1,62 +1,42 @@
 import Link from "next/link";
-import { getDisboardSummary } from "../../lib/disboard";
-import { manualReviews } from "../../lib/manual-reviews";
+import { LEAVE_REVIEW_URL, REVIEWS_URL, getReviews } from "../../lib/reviews";
 
-const reviewsUrl = "https://disboard.org/server/reviews/1358452494128250940";
-const leaveReviewUrl = "https://disboard.org/review/create/1358452494128250940";
+export const dynamic = "force-dynamic";
 
 export default async function ReviewsPage() {
-  const disboard = await getDisboardSummary();
+  const { reviews, average, count } = await getReviews();
 
   return (
     <main className="legal-page">
       <section className="legal-card reviews-page-card">
         <Link className="auth-logo" href="/" aria-label="Kitty Kingdom home">
-          <img
-            className="auth-logo-img"
-            src="/logo.png"
-            alt="Kitty Kingdom logo"
-          />
+          <img className="auth-logo-img" src="/logo.png" alt="Kitty Kingdom logo" />
         </Link>
         <p className="eyebrow">Reviews</p>
         <h1>What people are saying</h1>
         <p>
-          Star rating:{" "}
-          <strong>{disboard.rating ? `${disboard.rating}/5` : "5/5"}</strong>
+          Star rating: <strong>{average.toFixed(1)}/5</strong> from {count} reviews on DISBOARD
         </p>
         <div className="review-list">
-          {(disboard.reviews.length > 0 ? disboard.reviews : manualReviews)
-            .length > 0 ? (
-            (disboard.reviews.length > 0
-              ? disboard.reviews
-              : manualReviews
-            ).map((review) => (
-              <article
-                className="review-card"
-                key={`${review.author}-${review.text}`}
-              >
-                <div className="rating-row">
-                  <span className="review-stars" aria-label="Review rating">
-                    ★★★★★
-                  </span>
-                  {review.rating ? <strong>{review.rating}/5</strong> : null}
-                </div>
-                <p>“{review.text}”</p>
-                <span className="review-source">{review.author}</span>
-              </article>
-            ))
-          ) : (
-            <p>
-              Live DISBOARD reviews could not be fetched during this request.
-              Use the button below to view the live review page.
-            </p>
-          )}
+          {reviews.map((review) => (
+            <article className="review-card" key={`${review.author}-${review.text}`}>
+              <div className="rating-row">
+                <span className="review-stars" aria-label={`${review.rating} out of 5 stars`}>
+                  {"★".repeat(review.rating)}
+                </span>
+                <strong>{review.rating}/5</strong>
+              </div>
+              {review.title ? <h3>{review.title}</h3> : null}
+              <p>“{review.text}”</p>
+              <span className="review-source">{review.author}</span>
+            </article>
+          ))}
         </div>
         <div className="review-actions legal-actions">
-          <a className="cta" href={reviewsUrl}>
+          <a className="cta" href={REVIEWS_URL}>
             View all reviews
           </a>
-          <a className="ghost" href={leaveReviewUrl}>
+          <a className="ghost" href={LEAVE_REVIEW_URL}>
             Leave a review
           </a>
         </div>

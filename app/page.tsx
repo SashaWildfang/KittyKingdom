@@ -1,162 +1,49 @@
-import { getDisboardSummary } from "../lib/disboard";
-import { manualReviews } from "../lib/manual-reviews";
-import { getDiscordInviteSummary } from "../lib/discord";
 import { getCurrentUser } from "../lib/auth";
-import { CommunityCarousel } from "./community-carousel";
-import { ReviewCarousel } from "./review-carousel";
+import { getDiscordInviteSummary } from "../lib/discord";
+import { LEAVE_REVIEW_URL, REVIEWS_URL, getReviews, type Review } from "../lib/reviews";
+import { BrandIcon } from "./brand-icon";
+import { Embers, FallEffects, FallingLeaves, LeafSvg, TiltCard } from "./fall-effects";
+import { HomeShowcase } from "./home-showcase";
 import { SiteNav } from "./site-nav";
+
+const DISCORD_INVITE = "https://discord.com/invite/M9XKHFdYQV";
 
 const news = [
   {
+    tag: "Update",
     title: "Fall Update",
     text: "We permanently moved Kitty Kingdom over to a cozy fall theme.",
   },
   {
+    tag: "Website",
     title: "Discord Website",
     text: "We started work on the Discord website and account portal.",
   },
   {
+    tag: "Economy",
     title: "Leaves Currency",
     text: "We changed the server currency to leaves.",
   },
 ];
 
-const memberSections = [
-  {
-    title: "Leaderboards",
-    text: "Track top members, activity, events, and seasonal achievements.",
-  },
-  {
-    title: "Dating Profiles",
-    text: "Create introductions and match with other verified community members.",
-  },
-  {
-    title: "Server Store",
-    text: "Purchase roles, boosters, and supporter perks from the website.",
-  },
-  {
-    title: "Role Customization",
-    text: "Manage role selection, profile identity, and community personalization.",
-  },
-  {
-    title: "Much More",
-    text: "More member tools will be added as the website grows with the Discord server.",
-  },
+const tickerItems = [
+  "🍂 Dating profiles",
+  "🍁 Leaf economy",
+  "🤖 Custom bot",
+  "🏆 Leaderboards",
+  "🛍️ Leaf Shop",
+  "🎙️ Voice chats",
+  "🛡️ AutoMod protection",
+  "💞 Matchmaking",
+  "🎨 Art & media",
+  "☕ Cozy vibes",
 ];
-
-const reasons = [
-  {
-    label: "Updates",
-    detail: "Consistent server updates keep the community fresh.",
-    icon: "spark",
-  },
-  {
-    label: "Owner Care",
-    detail: "Dedicated owner who cares about the community.",
-    icon: "heart",
-  },
-  {
-    label: "Feedback",
-    detail: "Listens to community feedback and criticism.",
-    icon: "chat",
-  },
-  {
-    label: "Community",
-    detail: "Friendly and active furry community.",
-    icon: "users",
-  },
-  {
-    label: "Verification",
-    detail: "Secure anti-raid gate and fast manual verification.",
-    icon: "lock",
-  },
-  {
-    label: "Protection",
-    detail: "Built-in AutoMod system for protection.",
-    icon: "shield",
-  },
-  {
-    label: "Custom Bot",
-    detail: "Fully custom coded Discord bot.",
-    icon: "bot",
-  },
-  { label: "Home", detail: "A place you can call home.", icon: "home" },
-];
-
-const features = [
-  {
-    label: "18+ Areas",
-    detail: "18+ NSFW and dating channels for ID-verified users.",
-    icon: "id",
-  },
-  {
-    label: "Ranks",
-    detail: "Leveling, ranks, and role rewards.",
-    icon: "rank",
-  },
-  { label: "Perks", detail: "Nitro Booster and Patreon perks.", icon: "gem" },
-  {
-    label: "Media",
-    detail: "Role selection, media channels, and voice chats.",
-    icon: "media",
-  },
-  {
-    label: "Dating",
-    detail: "Dating introduction profiles and date matching.",
-    icon: "heart",
-  },
-  {
-    label: "Store",
-    detail: "Server store to purchase roles and boosters.",
-    icon: "store",
-  },
-  {
-    label: "Currency",
-    detail: "Custom server currency and chat-triggered events.",
-    icon: "leaf",
-  },
-  {
-    label: "Website",
-    detail:
-      "Fully functioning server website with accounts and member features.",
-    icon: "site",
-  },
-];
-
-const leaves = Array.from({ length: 18 }, (_, index) => index + 1);
-
-const homeMessages: Record<string, string> = {
-  "check-email":
-    "Account created. Check your email to verify your account, then log in when you are ready.",
-  "email-provider-needed":
-    "Account created, but the verification email could not be sent yet. Please contact staff so they can check email delivery.",
-  "database-unreachable":
-    "Registration could not reach the account database. Please try again shortly.",
-  "service-unavailable":
-    "Registration is temporarily unavailable. Please try again shortly.",
-  deleted: "Your website account has been deleted.",
-};
-
-// Messages that report a problem or a destructive action show in red instead of the usual orange
-const errorMessages = new Set([
-  "deleted",
-  "database-unreachable",
-  "service-unavailable",
-  "email-provider-needed",
-]);
-
-function bannerClass(status: string) {
-  return errorMessages.has(status)
-    ? "home-status-banner home-status-banner--error"
-    : "home-status-banner";
-}
 
 const iconPaths: Record<string, string> = {
   bot: "M7 8h10a3 3 0 0 1 3 3v5a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4v-5a3 3 0 0 1 3-3Zm2 4.5A1.5 1.5 0 1 0 9 15.5 1.5 1.5 0 0 0 9 12.5Zm6 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3ZM12 3l2 3h-4l2-3Z",
   chat: "M4 5h16v11H8l-4 4V5Zm4 4v2h8V9H8Zm0 4v2h5v-2H8Z",
   gem: "M12 3 4 8l8 13 8-13-8-5Zm-5 6 3-3h4l3 3-5 8-5-8Z",
-  heart:
-    "M12 21s-8-4.7-8-11a4.7 4.7 0 0 1 8-3.3A4.7 4.7 0 0 1 20 10c0 6.3-8 11-8 11Z",
+  heart: "M12 21s-8-4.7-8-11a4.7 4.7 0 0 1 8-3.3A4.7 4.7 0 0 1 20 10c0 6.3-8 11-8 11Z",
   home: "M3 11 12 3l9 8v10h-6v-6H9v6H3V11Z",
   id: "M4 5h16v14H4V5Zm3 4v3h4V9H7Zm0 5v2h10v-2H7Zm6-5v2h4V9h-4Z",
   leaf: "M20 4C10 4 5 9 5 18c5 0 11-2 15-14ZM5 18c3-5 7-8 12-10",
@@ -171,224 +58,412 @@ const iconPaths: Record<string, string> = {
     "M8 12a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm8 0a3 3 0 1 1 0-6 3 3 0 0 1 0 6ZM2 21c.4-4 2.8-6 6-6s5.6 2 6 6H2Zm11.5-6c2.8.2 4.8 2.1 5.2 6H22c-.3-3.5-2.4-5.5-5.5-6Z",
 };
 
-function CleanIcon({ name }: { name: string }) {
+const reasons = [
+  { label: "Updates", detail: "Consistent server updates keep the community fresh.", icon: "spark" },
+  { label: "Owner Care", detail: "Dedicated owner who cares about the community.", icon: "heart" },
+  { label: "Feedback", detail: "Listens to community feedback and criticism.", icon: "chat" },
+  { label: "Community", detail: "Friendly and active furry community.", icon: "users" },
+  { label: "Verification", detail: "Secure anti-raid gate and fast manual verification.", icon: "lock" },
+  { label: "Protection", detail: "Built-in AutoMod system for protection.", icon: "shield" },
+  { label: "Custom Bot", detail: "Fully custom coded Discord bot.", icon: "bot" },
+  { label: "Home", detail: "A place you can call home.", icon: "home" },
+];
+
+const features = [
+  { label: "18+ Areas", detail: "18+ NSFW and dating channels for ID-verified users.", icon: "id" },
+  { label: "Ranks", detail: "Leveling, ranks, and role rewards.", icon: "rank" },
+  { label: "Perks", detail: "Nitro Booster and Patreon perks.", icon: "gem" },
+  { label: "Media", detail: "Role selection, media channels, and voice chats.", icon: "media" },
+  { label: "Dating", detail: "Dating introduction profiles and date matching.", icon: "heart" },
+  { label: "Store", detail: "Server store to purchase roles and boosters.", icon: "store" },
+  { label: "Currency", detail: "Custom server currency and chat-triggered events.", icon: "leaf" },
+  { label: "Website", detail: "Fully functioning server website with accounts and member features.", icon: "site" },
+];
+
+const showcaseTabs = [
+  {
+    key: "why",
+    label: "Why join",
+    title: "Why you should join Kitty Kingdom",
+    items: reasons.map((r) => ({ label: r.label, detail: r.detail, iconPath: iconPaths[r.icon] })),
+  },
+  {
+    key: "features",
+    label: "Features",
+    title: "More ways to make the kingdom yours",
+    items: features.map((f) => ({ label: f.label, detail: f.detail, iconPath: iconPaths[f.icon] })),
+  },
+];
+
+const memberSections = [
+  { title: "Leaderboards", text: "Track top members, activity and seasonal achievements, live.", href: "/leaderboards", icon: "rank", ready: true },
+  { title: "Leaf Shop", text: "Buy roles, boosters and gifts, and manage your inventory.", href: "/store", icon: "store", ready: true },
+  { title: "Dating Profiles", text: "Create introductions and match with verified members.", href: DISCORD_INVITE, icon: "heart", ready: true },
+  { title: "Role Customization", text: "Manage role selection, profile identity and personalization.", href: DISCORD_INVITE, icon: "users", ready: true },
+  { title: "Much More", text: "More member tools arrive as the website grows with the server.", href: "/news", icon: "spark", ready: false },
+];
+
+const homeMessages: Record<string, string> = {
+  "check-email": "Account created. Check your email to verify your account, then log in when you are ready.",
+  "email-provider-needed":
+    "Account created, but the verification email could not be sent yet. Please contact staff so they can check email delivery.",
+  "database-unreachable": "Registration could not reach the account database. Please try again shortly.",
+  "service-unavailable": "Registration is temporarily unavailable. Please try again shortly.",
+  deleted: "Your website account has been deleted.",
+};
+
+// Messages that report a problem or a destructive action show in red instead of the usual orange
+const errorMessages = new Set(["deleted", "database-unreachable", "service-unavailable", "email-provider-needed"]);
+
+function bannerClass(status: string) {
+  return errorMessages.has(status) ? "home-status-banner home-status-banner--error" : "home-status-banner";
+}
+
+function Icon({ name }: { name: string }) {
   return (
-    <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d={iconPaths[name]} />
     </svg>
   );
 }
 
-const reasonCarouselItems = reasons.map((item) => ({
-  ...item,
-  iconPath: iconPaths[item.icon],
-}));
-const featureCarouselItems = features.map((item) => ({
-  ...item,
-  iconPath: iconPaths[item.icon],
-}));
+function timeAgo(iso: string) {
+  const days = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000));
+  if (days === 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 30) return `${days} days ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return months === 1 ? "a month ago" : `${months} months ago`;
+  const years = Math.floor(days / 365);
+  return years <= 1 ? "a year ago" : `${years} years ago`;
+}
+
+function Stars({ value }: { value: number }) {
+  return (
+    <span className="home-stars" aria-label={`${value} out of 5 stars`}>
+      {"★★★★★".slice(0, Math.round(value))}
+      <span className="home-stars-empty">{"★★★★★".slice(Math.round(value))}</span>
+    </span>
+  );
+}
+
+function ReviewCard({ review }: { review: Review }) {
+  return (
+    <article className="home-review">
+      <Stars value={review.rating} />
+      {review.title ? <h3>{review.title}</h3> : null}
+      <p>“{review.text}”</p>
+      <footer>
+        <span className="home-review-avatar" aria-hidden="true">
+          {review.author.charAt(0).toUpperCase()}
+        </span>
+        <span>
+          <strong>{review.author}</strong>
+          <small>{timeAgo(review.postedAt)} · DISBOARD</small>
+        </span>
+      </footer>
+    </article>
+  );
+}
+
+function DiscordLogo({ size }: { size: number }) {
+  return (
+    <svg viewBox="0 0 127.14 96.36" width={size} height={size} aria-hidden="true" fill="currentColor">
+      <path d="M107.7 8.07A105.15 105.15 0 0 0 81.47 0a72.06 72.06 0 0 0-3.36 6.83 97.68 97.68 0 0 0-29.11 0A72.37 72.37 0 0 0 45.64 0 105.89 105.89 0 0 0 19.39 8.09C2.79 32.65-1.71 56.6.54 80.21a105.73 105.73 0 0 0 32.17 16.15 77.7 77.7 0 0 0 6.89-11.11 68.42 68.42 0 0 1-10.85-5.18c.91-.66 1.8-1.34 2.66-2.03a75.57 75.57 0 0 0 64.32 0c.87.71 1.76 1.39 2.66 2.03a68.68 68.68 0 0 1-10.87 5.19 77 77 0 0 0 6.89 11.1 105.25 105.25 0 0 0 32.19-16.14c2.64-27.38-4.51-51.11-18.9-72.15ZM42.45 65.69C36.18 65.69 31 60 31 53s5-12.74 11.43-12.74S54 46 53.89 53s-5.05 12.69-11.44 12.69Zm42.24 0C78.41 65.69 73.25 60 73.25 53s5-12.74 11.44-12.74S96.23 46 96.12 53s-5.04 12.69-11.43 12.69Z" />
+    </svg>
+  );
+}
+
+/** Autumn hills along the bottom of the hero. */
+function Hills() {
+  return (
+    <svg className="home-hills" viewBox="0 0 1440 180" preserveAspectRatio="none" aria-hidden="true">
+      <path
+        className="home-hills-back"
+        d="M0 120 C160 70 280 60 420 96 C560 132 660 70 820 64 C980 58 1080 118 1220 104 C1320 94 1390 70 1440 72 V180 H0 Z"
+      />
+      <path
+        className="home-hills-front"
+        d="M0 150 C140 116 260 118 380 138 C520 162 640 118 800 112 C960 106 1080 150 1240 142 C1340 138 1400 120 1440 118 V180 H0 Z"
+      />
+    </svg>
+  );
+}
 
 export const dynamic = "force-dynamic";
 
-export default async function Home({
-  searchParams,
-}: {
-  searchParams?: { register?: string; account?: string };
-}) {
-  const [disboard, discord, user] = await Promise.all([
-    getDisboardSummary(),
-    getDiscordInviteSummary(),
-    getCurrentUser(),
-  ]);
+export default async function Home({ searchParams }: { searchParams?: { register?: string; account?: string } }) {
+  const [reviews, discord, user] = await Promise.all([getReviews(), getDiscordInviteSummary(), getCurrentUser()]);
+  const status = searchParams?.register ?? searchParams?.account;
+  const signedIn = Boolean(user);
+
+  // Split reviews into two rows that scroll in opposite directions
+  const rowA = reviews.reviews.filter((_, i) => i % 2 === 0);
+  const rowB = reviews.reviews.filter((_, i) => i % 2 === 1);
+
   return (
-    <main className="site-shell">
-      <div className="leaf-field" aria-hidden="true">
-        {leaves.map((leaf) => (
-          <span className="falling-leaf" key={leaf} />
-        ))}
-      </div>
+    <main className="site-shell home">
+      <FallingLeaves />
+      <FallEffects />
 
-      <SiteNav signedIn={Boolean(user)} discordOnline={discord.online} />
+      <SiteNav signedIn={signedIn} discordOnline={discord.online} />
 
-      {searchParams?.register && homeMessages[searchParams.register] ? (
-        <div className={bannerClass(searchParams.register)} role="status">
-          {homeMessages[searchParams.register]}
-        </div>
-      ) : searchParams?.account && homeMessages[searchParams.account] ? (
-        <div className={bannerClass(searchParams.account)} role="status">
-          {homeMessages[searchParams.account]}
+      {status && homeMessages[status] ? (
+        <div className={bannerClass(status)} role="status">
+          {homeMessages[status]}
         </div>
       ) : null}
 
-      <section className="hero" id="home">
-        <div className="hero-copy">
-          <p className="eyebrow">Furry community • dating platform</p>
-          <h1>Find your place in Kitty Kingdom.</h1>
-          <p className="subtitle">
-            A warm fall-themed community home for friends, verified members,
-            dating profiles, events, roles, and a place to call home.
+      {/* Hero */}
+      <section className="home-hero" id="home">
+        <Embers />
+        <div className="home-sun" aria-hidden="true" />
+        <div className="home-hero-copy">
+          <p className="home-kicker">
+            <LeafSvg shape="maple" color="#f39c12" size={18} /> Furry community · dating platform
           </p>
-          <div className="hero-actions">
-            <a className="cta" href="/register">
-              Create your account
-            </a>
+          <h1 className="home-title">
+            Find your place in <span className="home-title-glow">Kitty Kingdom.</span>
+          </h1>
+          <p className="home-subtitle">
+            A warm, fall-themed community for friends, verified members, dating profiles, events, roles, and a place to call
+            home.
+          </p>
+          <div className="home-actions">
+            {signedIn ? (
+              <>
+                <a className="home-btn home-btn--primary" href="/store" data-leaf-burst>
+                  Visit the Leaf Shop
+                </a>
+                <a className="home-btn home-btn--ghost" href="/account">
+                  My Account
+                </a>
+              </>
+            ) : (
+              <>
+                <a className="home-btn home-btn--primary" href="/register" data-leaf-burst>
+                  Create your account
+                </a>
+                <a className="home-btn home-btn--ghost" href={DISCORD_INVITE} data-leaf-burst>
+                  Join the Discord
+                </a>
+              </>
+            )}
           </div>
+          <ul className="home-stats" aria-label="Community stats">
+            <li>
+              <strong>
+                <i className="home-dot" aria-hidden="true" />
+                {discord.online !== null ? discord.online.toLocaleString() : "Live"}
+              </strong>
+              <span>online now</span>
+            </li>
+            {discord.members ? (
+              <li>
+                <strong>{discord.members.toLocaleString()}</strong>
+                <span>members</span>
+              </li>
+            ) : null}
+            <li>
+              <strong>
+                {reviews.average.toFixed(1)} <span className="home-star">★</span>
+              </strong>
+              <span>on DISBOARD</span>
+            </li>
+          </ul>
         </div>
-        <div
-          className="showcase artwork-showcase"
-          aria-label="Kitty Kingdom server artwork"
-        >
-          <img
-            className="banner-image"
-            src="/banner.jpg"
-            alt="Kitty Kingdom fall banner"
-          />
-          <img
-            className="logo-image-card"
-            src="/logo.png"
-            alt="Kitty Kingdom logo"
-          />
-        </div>
+
+        <TiltCard className="home-art">
+          <div className="home-art-frame">
+            <img className="home-art-banner" src="/banner.jpg" alt="Kitty Kingdom fall banner" />
+            <span className="home-art-glare" aria-hidden="true" />
+          </div>
+          <img className="home-art-logo" src="/logo.png" alt="Kitty Kingdom logo" />
+          <span className="home-art-chip home-art-chip--top">🍁 Fall all year</span>
+          <span className="home-art-chip home-art-chip--bottom">
+            <i className="home-dot" aria-hidden="true" /> {discord.online !== null ? `${discord.online.toLocaleString()} online` : "Live now"}
+          </span>
+        </TiltCard>
+
+        <Hills />
       </section>
 
-      <section
-        className="panel-grid"
-        id="news"
-        aria-label="Latest Kitty Kingdom news"
-      >
-        <div className="section-heading">
-          <p className="eyebrow">News</p>
-          <h2>What is happening in the kingdom</h2>
+      {/* Ticker */}
+      <div className="home-ticker" aria-hidden="true">
+        <div className="home-ticker-track">
+          {[...tickerItems, ...tickerItems].map((item, i) => (
+            <span key={i}>{item}</span>
+          ))}
         </div>
-        {news.map((item, index) => (
-          <article className="feature-card" key={item.title}>
-            <span className="card-kicker">Update {index + 1}</span>
-            <h3>{item.title}</h3>
-            <p>{item.text}</p>
-          </article>
-        ))}
-      </section>
+      </div>
 
-      <CommunityCarousel
-        eyebrow="Why join?"
-        items={reasonCarouselItems}
-        title="Why you should join Kitty Kingdom"
-      />
-
-      <CommunityCarousel
-        eyebrow="Other features"
-        items={featureCarouselItems}
-        title="More ways to make the kingdom yours"
-      />
-
-      <section className="discord-panel" id="discord">
-        <div>
-          <p className="eyebrow">Discord community</p>
-          <h2>Join the Kitty Kingdom Discord.</h2>
-          <p>
-            Meet the community, verify your account, join events, browse
-            channels, and start building your place in the kingdom.
-          </p>
+      {/* News */}
+      <section className="home-section" id="news" data-reveal>
+        <div className="home-section-head">
+          <div>
+            <p className="home-eyebrow">News</p>
+            <h2>What&apos;s happening in the kingdom</h2>
+          </div>
+          <a className="home-link" href="/news">
+            All news →
+          </a>
         </div>
-        <a className="cta" href="https://discord.com/invite/M9XKHFdYQV">
-          Join the Discord
-        </a>
-      </section>
-
-      <section className="member-preview" aria-label="Signed-in member areas">
-        <div className="section-heading">
-          <p className="eyebrow">Member features</p>
-          <h2>Everything your account will unlock</h2>
-        </div>
-        <div className="member-grid">
-          {memberSections.map((section) => (
-            <article className="locked-card" key={section.title}>
-              <span className="lock-badge">Members</span>
-              <h3>{section.title}</h3>
-              <p>{section.text}</p>
+        <div className="home-news">
+          {news.map((item, index) => (
+            <article className="home-news-card" data-spotlight key={item.title}>
+              <span className="home-news-num">0{index + 1}</span>
+              <span className="home-news-tag">{item.tag}</span>
+              <h3>{item.title}</h3>
+              <p>{item.text}</p>
+              <LeafSvg shape={(["maple", "oak", "birch"] as const)[index % 3]} color="rgba(245,155,42,0.16)" size={120} />
             </article>
           ))}
         </div>
       </section>
 
-      <section className="reviews-section" aria-label="Kitty Kingdom reviews">
-        <div className="section-heading">
-          <p className="eyebrow">Reviews</p>
-          <h2 className="review-heading-with-rating">
-            <span>What people are saying</span>
-            <span className="inline-rating" aria-label="5 out of 5 star rating">
-              <span aria-hidden="true">★★★★★</span>
-              <strong>{disboard.rating ?? "5"} / 5</strong>
-            </span>
-          </h2>
-          <p>Here’s what people are saying about Kitty Kingdom on DISBOARD.</p>
+      {/* Why join / features */}
+      <section className="home-section" data-reveal>
+        <p className="home-eyebrow">Why join?</p>
+        <HomeShowcase tabs={showcaseTabs} />
+      </section>
+
+      {/* Member features */}
+      <section className="home-section" aria-label="Member features" data-reveal>
+        <div className="home-section-head">
+          <div>
+            <p className="home-eyebrow">Member features</p>
+            <h2>Everything your account unlocks</h2>
+          </div>
+          {!signedIn ? (
+            <a className="home-link" href="/register">
+              Create an account →
+            </a>
+          ) : null}
         </div>
-        <ReviewCarousel
-          rating={disboard.rating}
-          reviews={
-            disboard.reviews.length > 0 ? disboard.reviews : manualReviews
-          }
-        />
-        <div className="review-actions">
-          <a className="cta" href="https://disboard.org/server/reviews/1358452494128250940">
+        <div className="home-members">
+          {memberSections.map((section) => (
+            <a
+              className="home-member-card"
+              data-spotlight
+              key={section.title}
+              href={signedIn || !section.href.startsWith("/") || section.href === "/news" ? section.href : "/register"}
+            >
+              <span className="home-member-icon">
+                <Icon name={section.icon} />
+              </span>
+              <span className={section.ready ? "home-badge" : "home-badge home-badge--soon"}>
+                {!section.ready ? "Coming soon" : signedIn ? "Open" : "Members"}
+              </span>
+              <h3>{section.title}</h3>
+              <p>{section.text}</p>
+              <span className="home-member-arrow" aria-hidden="true">
+                →
+              </span>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      {/* Reviews */}
+      <section className="home-section home-reviews-section" aria-label="Kitty Kingdom reviews" data-reveal>
+        <div className="home-reviews-head">
+          <div>
+            <p className="home-eyebrow">Reviews</p>
+            <h2>What people are saying</h2>
+          </div>
+          <div className="home-rating">
+            <strong>{reviews.average.toFixed(1)}</strong>
+            <div>
+              <Stars value={reviews.average} />
+              <small>
+                {reviews.count} reviews on DISBOARD
+              </small>
+            </div>
+          </div>
+        </div>
+        <div className="home-review-rows">
+          {[rowA, rowB].map((row, r) =>
+            row.length ? (
+              <div className={`home-review-row${r === 1 ? " home-review-row--reverse" : ""}`} key={r}>
+                <div className="home-review-track" style={{ animationDuration: `${Math.max(40, row.length * 11)}s` }}>
+                  {[...row, ...row].map((review, i) => (
+                    <ReviewCard review={review} key={`${review.author}-${i}`} />
+                  ))}
+                </div>
+              </div>
+            ) : null,
+          )}
+        </div>
+        <div className="home-actions home-actions--center">
+          <a className="home-btn home-btn--primary" href={REVIEWS_URL}>
             View all reviews
           </a>
-          <a
-            className="ghost"
-            href="https://disboard.org/review/create/1358452494128250940"
-          >
+          <a className="home-btn home-btn--ghost" href={LEAVE_REVIEW_URL} data-leaf-burst>
             Leave a review
           </a>
         </div>
       </section>
 
-      <footer className="site-footer" aria-label="Footer navigation">
-        <div className="footer-brand">
-          <a className="brand" href="/home" aria-label="Kitty Kingdom home">
-            <img
-              className="brand-logo-img"
-              src="/logo.png"
-              alt="Kitty Kingdom logo"
-            />
-            <span className="brand-copy">
+      {/* Discord call to action */}
+      <section className="home-section" id="discord" data-reveal>
+        <div className="home-cta">
+          <div className="home-cta-leaves" aria-hidden="true">
+            <LeafSvg shape="maple" color="#e25822" size={90} />
+            <LeafSvg shape="oak" color="#f39c12" size={70} />
+            <LeafSvg shape="birch" color="#c0392b" size={60} />
+          </div>
+          <div className="home-cta-copy">
+            <p className="home-eyebrow">Discord community</p>
+            <h2>Pull up a chair by the fire.</h2>
+            <p>
+              Meet the community, verify your account, join events, browse channels, and start building your place in the
+              kingdom.
+            </p>
+          </div>
+          <a className="home-btn home-btn--discord" href={DISCORD_INVITE} data-leaf-burst>
+            <DiscordLogo size={22} />
+            Join the Discord
+            {discord.online !== null ? <small>{discord.online.toLocaleString()} online</small> : null}
+          </a>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="home-footer" aria-label="Footer navigation">
+        <div className="home-footer-brand">
+          <a className="home-footer-logo" href="/home" aria-label="Kitty Kingdom home">
+            <img src="/logo.png" alt="" width="48" height="48" />
+            <span>
               <strong>Kitty Kingdom</strong>
               <small>Community portal</small>
             </span>
           </a>
-          <div className="social-links" aria-label="Social links">
-            <a
-              href="https://discord.com/invite/M9XKHFdYQV"
-              aria-label="Discord"
-            >
-              <svg viewBox="0 0 127.14 96.36" role="img">
-                <path d="M107.7 8.07A105.15 105.15 0 0 0 81.47 0a72.06 72.06 0 0 0-3.36 6.83 97.68 97.68 0 0 0-29.11 0A72.37 72.37 0 0 0 45.64 0 105.89 105.89 0 0 0 19.39 8.09C2.79 32.65-1.71 56.6.54 80.21a105.73 105.73 0 0 0 32.17 16.15 77.7 77.7 0 0 0 6.89-11.11 68.42 68.42 0 0 1-10.85-5.18c.91-.66 1.8-1.34 2.66-2.03a75.57 75.57 0 0 0 64.32 0c.87.71 1.76 1.39 2.66 2.03a68.68 68.68 0 0 1-10.87 5.19 77 77 0 0 0 6.89 11.1 105.25 105.25 0 0 0 32.19-16.14c2.64-27.38-4.51-51.11-18.9-72.15ZM42.45 65.69C36.18 65.69 31 60 31 53s5-12.74 11.43-12.74S54 46 53.89 53s-5.05 12.69-11.44 12.69Zm42.24 0C78.41 65.69 73.25 60 73.25 53s5-12.74 11.44-12.74S96.23 46 96.12 53s-5.04 12.69-11.43 12.69Z" />
-              </svg>
+          <div className="home-socials" aria-label="Social links">
+            <a href={DISCORD_INVITE} aria-label="Discord">
+              <DiscordLogo size={18} />
             </a>
             <a href="https://youtube.com" aria-label="YouTube">
-              <svg viewBox="0 0 24 24" role="img">
-                <path d="M21.6 7.2s-.2-1.5-.8-2.1c-.8-.8-1.7-.8-2.1-.9C15.8 4 12 4 12 4s-3.8 0-6.7.2c-.4.1-1.3.1-2.1.9-.6.6-.8 2.1-.8 2.1S2.2 9 2.2 10.8v1.7c0 1.8.2 3.6.2 3.6s.2 1.5.8 2.1c.8.8 1.9.8 2.4.9 1.7.2 6.4.2 6.4.2s3.8 0 6.7-.2c.4-.1 1.3-.1 2.1-.9.6-.6.8-2.1.8-2.1s.2-1.8.2-3.6v-1.7c0-1.8-.2-3.6-.2-3.6ZM10.2 14.8V8.6l5 3.1-5 3.1Z" />
-              </svg>
+              <BrandIcon network="youtube" />
             </a>
             <a href="https://x.com" aria-label="X">
-              <svg viewBox="0 0 24 24" role="img">
-                <path d="M14.7 10.6 22 2h-1.7l-6.4 7.5L8.8 2H3l7.7 11.2L3 22h1.7l6.8-7.9 5.4 7.9H22l-7.3-11.4Zm-2.4 2.8-.8-1.1L5.3 3.3H8l5 7.2.8 1.1 6.5 9.3h-2.7l-5.3-7.5Z" />
-              </svg>
+              <BrandIcon network="twitter" />
             </a>
           </div>
           <p>© 2026 Kitty Kingdom. All rights reserved.</p>
         </div>
-        <div className="footer-columns">
+        <nav className="home-footer-cols">
           <div>
             <h3>Play</h3>
             <a href="/login">My Account</a>
             <a href="/news">News</a>
-            <a href="https://discord.com/invite/M9XKHFdYQV">Learn how to join</a>
+            <a href="/leaderboards">Leaderboards</a>
+            <a href="/store">Leaf Shop</a>
           </div>
           <div>
             <h3>Community</h3>
-            <a href="https://discord.com/invite/M9XKHFdYQV">Discord</a>
-            <a href="https://disboard.org/server/reviews/1358452494128250940">Reviews</a>
-            <a href="/account">Account Settings</a>
+            <a href={DISCORD_INVITE}>Discord</a>
+            <a href="/staff">Staff</a>
+            <a href={REVIEWS_URL}>Reviews</a>
           </div>
           <div>
             <h3>Corporate</h3>
@@ -396,7 +471,7 @@ export default async function Home({
             <a href="/privacy">Privacy Policy</a>
             <a href="/terms">Terms of Service</a>
           </div>
-        </div>
+        </nav>
       </footer>
     </main>
   );
