@@ -43,6 +43,19 @@ export function createVerificationToken() {
   return { token, tokenHash: hashToken(token) };
 }
 
+// Verification links stay valid for 3 days, and the last few links all keep working so
+// requesting a resend doesn't break an email the user already has open.
+export const verificationTokenTtlMs = 1000 * 60 * 60 * 72;
+export const maxActiveVerificationTokens = 5;
+
+export function createVerificationTokenEntry() {
+  const { token, tokenHash } = createVerificationToken();
+  return {
+    token,
+    entry: { hash: tokenHash, expiresAt: new Date(Date.now() + verificationTokenTtlMs) },
+  };
+}
+
 function sign(value: string) {
   return createHmac("sha256", getSecret()).update(value).digest("hex");
 }

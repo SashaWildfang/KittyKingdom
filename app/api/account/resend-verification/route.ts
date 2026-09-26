@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { createVerificationToken } from "../../../../lib/auth";
+import type { Document, UpdateFilter } from "mongodb";
+import { createVerificationTokenEntry, maxActiveVerificationTokens } from "../../../../lib/auth";
 import { isDatabaseConnectionError } from "../../../../lib/db-errors";
 import { sendVerificationEmail } from "../../../../lib/email";
 import { getUsersCollection } from "../../../../lib/mongodb";
@@ -43,17 +44,17 @@ export async function GET(request: Request) {
       return done("already-verified", "Your email is already verified. You can log in now.");
     }
 
-    const { token, tokenHash } = createVerificationToken();
+    const { token, entry } = createVerificationTokenEntry();
     const verifyUrl = `${origin}/api/account/verify-email?token=${token}`;
 
     await users.updateOne(
       { _id: user._id },
       {
-        $set: {
-          emailVerificationTokenHash: tokenHash,
-          emailVerificationExpiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
-          updatedAt: new Date(),
-        },
+        // Add the new link without cancelling earlier ones (keeps the most recent few)
+        $push: {
+          emailVerificationTokens: { $each: [entry], $slice: -maxActiveVerificationTokens },
+        } as unknown as UpdateFilter<Document>["$push"],
+        $set: { updatedAt: new Date() },
       },
     );
 

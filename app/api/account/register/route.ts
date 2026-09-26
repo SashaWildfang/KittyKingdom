@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createVerificationToken, hashPassword } from "../../../../lib/auth";
+import { createVerificationTokenEntry, hashPassword } from "../../../../lib/auth";
 import { isDatabaseConnectionError } from "../../../../lib/db-errors";
 import { sendVerificationEmail } from "../../../../lib/email";
 import { getUsersCollection } from "../../../../lib/mongodb";
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     }
 
     const { salt, hash } = hashPassword(password);
-    const { token, tokenHash } = createVerificationToken();
+    const { token, entry } = createVerificationTokenEntry();
     const verifyUrl = `${origin}/api/account/verify-email?token=${token}`;
 
     await users.insertOne({
@@ -57,8 +57,7 @@ export async function POST(request: Request) {
       passwordSalt: salt,
       passwordHash: hash,
       emailVerified: false,
-      emailVerificationTokenHash: tokenHash,
-      emailVerificationExpiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
+      emailVerificationTokens: [entry],
       acceptedPoliciesAt: new Date(),
       discord: null,
       createdAt: new Date(),

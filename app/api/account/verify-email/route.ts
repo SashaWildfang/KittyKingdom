@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
+import type { Document, UpdateFilter } from "mongodb";
 import { hashToken, setSession } from "../../../../lib/auth";
 import { isDatabaseConnectionError } from "../../../../lib/db-errors";
 import { getUsersCollection } from "../../../../lib/mongodb";
 
 export const maxDuration = 10;
+
+// A second click within this window (e.g. after an email scanner used the link first) still signs you in
+const recentVerificationWindowMs = 1000 * 60 * 60;
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -16,9 +20,14 @@ export async function GET(request: Request) {
     }
 
     const users = await getUsersCollection();
+    const tokenHash = hashToken(token);
+    const now = new Date();
     const user = await users.findOne({
-      emailVerificationTokenHash: hashToken(token),
-      emailVerificationExpiresAt: { $gt: new Date() },
+      $or: [
+        { emailVerificationTokens: { $elemMatch: { hash: tokenHash, expiresAt: { $gt: now } } } },
+        // Links sent before multi-link support
+        { emailVerificationTokenHash: tokenHash, emailVerificationExpiresAt: { $gt: now } },
+      ],
     });
 
     if (!user) {
@@ -28,10 +37,23 @@ export async function GET(request: Request) {
       );
     }
 
+    // Email security scanners often open links before the person does. The link stays valid,
+    // so the person's own click still works: shortly after verification it signs them in,
+    // later it just tells them they're already verified.
+    if (user.emailVerified) {
+      const verifiedAt = user.emailVerifiedAt instanceof Date ? user.emailVerifiedAt.getTime() : 0;
+      if (now.getTime() - verifiedAt < recentVerificationWindowMs) {
+        await setSession(user._id);
+        return NextResponse.redirect(`${origin}/account?verify=success`, 303);
+      }
+      return NextResponse.redirect(`${origin}/login?verify=already-verified`, 303);
+    }
+
     await users.updateOne(
       { _id: user._id },
       {
-        $set: { emailVerified: true, updatedAt: new Date() },
+        $set: { emailVerified: true, emailVerifiedAt: now, updatedAt: now },
+        $pull: { emailVerificationTokens: { expiresAt: { $lte: now } } } as unknown as UpdateFilter<Document>["$pull"],
         $unset: {
           emailVerificationTokenHash: "",
           emailVerificationExpiresAt: "",
