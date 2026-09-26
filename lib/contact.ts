@@ -6,11 +6,11 @@ export type SocialKey = "telegram" | "youtube" | "twitter" | "steam";
 
 export type SocialLink = { handle: string; url: string };
 
-export const SOCIALS: { key: SocialKey; label: string; placeholder: string; icon: string }[] = [
-  { key: "twitter", label: "Twitter / X", placeholder: "@handle or x.com link", icon: "𝕏" },
-  { key: "telegram", label: "Telegram", placeholder: "@username or t.me link", icon: "✈️" },
-  { key: "youtube", label: "YouTube", placeholder: "@channel or youtube.com link", icon: "▶️" },
-  { key: "steam", label: "Steam", placeholder: "Custom ID or profile link", icon: "🎮" },
+export const SOCIALS: { key: SocialKey; label: string; placeholder: string }[] = [
+  { key: "twitter", label: "Twitter / X", placeholder: "@handle or x.com link" },
+  { key: "telegram", label: "Telegram", placeholder: "@username or t.me link" },
+  { key: "youtube", label: "YouTube", placeholder: "@channel or youtube.com link" },
+  { key: "steam", label: "Steam", placeholder: "Custom ID or profile link" },
 ];
 
 function stripUrl(raw: string, hosts: string[]) {

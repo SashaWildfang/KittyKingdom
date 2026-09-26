@@ -1,0 +1,474 @@
+// The website store. Mirrors the Discord bot's store (main_bot/store/*.py) and reads/writes the
+// same collections in the same shapes, so purchases, inventories, boosters and gifts stay in
+// sync between Discord and the website.
+//
+// Discord ids are 64-bit integers - too big for JS numbers - so every read that can contain an
+// id uses `useBigInt64` and every id written to the bot's integer fields is a BSON Long.
+
+import { Long, MongoServerError, type Document } from "mongodb";
+import { getBotCollection } from "./mongodb";
+import {
+  addMemberRole,
+  getGuildMember,
+  getGuildRoles,
+  getMemberRoleIds,
+  postChannelMessage,
+  removeMemberRole,
+  sendDirectMessage,
+} from "./discord-member";
+
+export const STACKABLE_CATEGORIES = ["Consumables", "Boosters", "Gifts"];
+export const MAX_BUY_AMOUNT = 50;
+const GIFT_COOLDOWN_MS = 5 * 60 * 1000;
+const LETTER_MAX_LENGTH = 1000;
+const NOTE_MAX_LENGTH = 200;
+const BOOSTER_LOG_CHANNEL_ID = "1358485891361804358"; // same channel the bot posts booster redemptions in
+const STAFF_LOG_CHANNEL_ID = "1360344042705256660"; // private staff log (gifts)
+
+const ITEM_ICONS: Record<string, string> = {
+  booster_xp: "⭐",
+  booster_crab: "🦀",
+  booster_profile: "💖",
+  booster_balance: "🍃",
+};
+
+const BIG = { useBigInt64: true } as const;
+
+export class StoreError extends Error {
+  constructor(message: string, public status = 400) {
+    super(message);
+  }
+}
+
+// ---------- helpers ----------
+const idString = (value: unknown) => (value === null || value === undefined ? null : String(value));
+const num = (value: unknown) => (typeof value === "bigint" ? Number(value) : typeof value === "number" ? value : Number(value ?? 0) || 0);
+const toLong = (id: string) => Long.fromString(id);
+
+/** Bot user docs store discordId as an integer (older ones as a string) - match either. */
+const discordIdFilter = (discordId: string) => ({ discordId: { $in: [toLong(discordId), discordId] } });
+
+function iconFor(item: Document) {
+  if (typeof item.emoji === "string" && item.emoji) return item.emoji;
+  if (ITEM_ICONS[item.item_id]) return ITEM_ICONS[item.item_id];
+  if (item.type === "booster") return "🚀";
+  if (item.type === "gift") return "🎁";
+  return null;
+}
+
+function isStackable(item: Document) {
+  return STACKABLE_CATEGORIES.includes(item.category);
+}
+
+async function collections() {
+  const [storeInventory, storeSales, userInventory, users, shopSettings, boosters, cooldowns, giftLog, datingProfiles] =
+    await Promise.all([
+      getBotCollection("store_inventory"),
+      getBotCollection("store_sales"),
+      getBotCollection("user_inventory"),
+      getBotCollection("users"),
+      getBotCollection("shop_settings"),
+      getBotCollection("temporary_boosters"),
+      getBotCollection("gift_cooldowns"),
+      getBotCollection("gift_log"),
+      getBotCollection("dating_profiles"),
+    ]);
+  return { storeInventory, storeSales, userInventory, users, shopSettings, boosters, cooldowns, giftLog, datingProfiles };
+}
+
+async function getBalanceDoc(discordId: string) {
+  const { users } = await collections();
+  return users.findOne(discordIdFilter(discordId), { projection: { balance: 1 }, ...BIG });
+}
+
+async function boughtInLast24h(discordId: string, itemIds: string[]) {
+  const { storeSales } = await collections();
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const counts = new Map<string, number>();
+  if (!itemIds.length) return counts;
+  const sales = await storeSales.find({ buyerId: discordId, item_id: { $in: itemIds }, timestamp: { $gte: since } }).toArray();
+  for (const sale of sales) counts.set(sale.item_id, (counts.get(sale.item_id) ?? 0) + (num(sale.quantity) || 1));
+  return counts;
+}
+
+// ==========================================
+// STATE
+// ==========================================
+export type StoreItem = {
+  itemId: string;
+  name: string;
+  description: string;
+  category: string;
+  price: number;
+  stock: number | null; // null = unlimited
+  rotation: "daily" | "weekly" | "permanent";
+  type: string;
+  icon: string | null;
+  imageUrl: string | null;
+  roleId: string | null;
+  roleColors: string[];
+  stackable: boolean;
+  dailyLimit: number | null;
+  boughtToday: number;
+  owned: number;
+  equipped: boolean;
+  requiresMessage: boolean;
+};
+
+export type InventoryEntry = {
+  itemId: string;
+  name: string;
+  description: string;
+  type: string;
+  icon: string | null;
+  count: number;
+  roleId: string | null;
+  roleColors: string[];
+  equipped: boolean;
+  durationSeconds: number | null;
+  giftedCount: number;
+  requiresMessage: boolean;
+};
+
+export type ActiveBooster = { itemId: string; name: string; icon: string | null; endsAt: string };
+
+export type StoreState = {
+  balance: number;
+  items: StoreItem[];
+  inventory: InventoryEntry[];
+  boosters: ActiveBooster[];
+  nextDaily: string | null;
+  nextWeekly: string | null;
+  giftCooldownEndsAt: string | null;
+  inServer: boolean;
+  serverTime: string;
+};
+
+export async function getStoreState(discordId: string): Promise<StoreState> {
+  const c = await collections();
+  const now = new Date();
+  const [activeItems, allRoleItems, timers, balanceDoc, invDocs, boosterDocs, memberRoles, guildRoles, cooldown] = await Promise.all([
+    c.storeInventory.find({ is_active: true, quantity: { $ne: 0 } }, BIG).toArray(),
+    c.storeInventory.find({ role_id: { $ne: null } }, { projection: { item_id: 1, role_id: 1, requires_message: 1 }, ...BIG }).toArray(),
+    c.shopSettings.findOne({ _id: "rotation_timers" as never }),
+    getBalanceDoc(discordId),
+    c.userInventory.find({ discordId }, BIG).toArray(),
+    c.boosters.find({ discordId, end_time: { $gt: now } }).toArray(),
+    getMemberRoleIds(discordId),
+    getGuildRoles(),
+    c.cooldowns.findOne({ _id: toLong(discordId) as never }),
+  ]);
+
+  const memberRoleSet = new Set(memberRoles ?? []);
+  const ownedCounts = new Map<string, number>();
+  for (const doc of invDocs) ownedCounts.set(doc.item_id, (ownedCounts.get(doc.item_id) ?? 0) + 1);
+  const limited = activeItems.filter((i) => num(i.daily_limit) > 0).map((i) => i.item_id as string);
+  const today = await boughtInLast24h(discordId, limited);
+  const roleIdByItem = new Map(allRoleItems.map((i) => [i.item_id as string, idString(i.role_id)]));
+
+  const items: StoreItem[] = activeItems.map((item) => {
+    const roleId = idString(item.role_id);
+    const stock = num(item.quantity);
+    return {
+      itemId: item.item_id,
+      name: item.name,
+      description: item.description ?? "",
+      category: item.category ?? "Misc",
+      price: num(item.price),
+      stock: stock < 0 ? null : stock,
+      rotation: ["daily", "weekly"].includes(item.rotation_type) ? item.rotation_type : "permanent",
+      type: item.type ?? "role",
+      icon: iconFor(item),
+      imageUrl: item.image_url || null,
+      roleId,
+      roleColors: roleId ? guildRoles.get(roleId)?.colors ?? [] : [],
+      stackable: isStackable(item),
+      dailyLimit: num(item.daily_limit) || null,
+      boughtToday: today.get(item.item_id) ?? 0,
+      owned: ownedCounts.get(item.item_id) ?? 0,
+      equipped: roleId ? memberRoleSet.has(roleId) : false,
+      requiresMessage: Boolean(item.requires_message),
+    };
+  });
+
+  // Inventory, grouped by item (roles bought before they rotated out still show up)
+  const grouped = new Map<string, InventoryEntry>();
+  for (const doc of invDocs) {
+    const existing = grouped.get(doc.item_id);
+    if (existing) {
+      existing.count += 1;
+      if (doc.gifted_by) existing.giftedCount += 1;
+      continue;
+    }
+    const roleId = idString(doc.role_id) ?? roleIdByItem.get(doc.item_id) ?? null;
+    const storeItem = activeItems.find((i) => i.item_id === doc.item_id) ?? allRoleItems.find((i) => i.item_id === doc.item_id);
+    grouped.set(doc.item_id, {
+      itemId: doc.item_id,
+      name: doc.name ?? doc.item_id,
+      description: doc.description ?? "",
+      type: doc.type ?? "role",
+      icon: iconFor({ ...doc, ...(storeItem ?? {}) }),
+      count: 1,
+      roleId,
+      roleColors: roleId ? guildRoles.get(roleId)?.colors ?? [] : [],
+      equipped: roleId ? memberRoleSet.has(roleId) : false,
+      durationSeconds: doc.duration ? num(doc.duration) : null,
+      giftedCount: doc.gifted_by ? 1 : 0,
+      requiresMessage: Boolean(storeItem?.requires_message),
+    });
+  }
+
+  const cooldownEnd = cooldown?.next_gift_at instanceof Date && cooldown.next_gift_at > now ? cooldown.next_gift_at : null;
+  return {
+    balance: num(balanceDoc?.balance),
+    items,
+    inventory: Array.from(grouped.values()),
+    boosters: boosterDocs.map((b) => ({
+      itemId: b.item_id,
+      name: b.item_name ?? b.item_id,
+      icon: ITEM_ICONS[b.item_id] ?? "🚀",
+      endsAt: (b.end_time as Date).toISOString(),
+    })),
+    nextDaily: timers?.next_daily instanceof Date ? timers.next_daily.toISOString() : null,
+    nextWeekly: timers?.next_weekly instanceof Date ? timers.next_weekly.toISOString() : null,
+    giftCooldownEndsAt: cooldownEnd ? cooldownEnd.toISOString() : null,
+    inServer: memberRoles !== null,
+    serverTime: now.toISOString(),
+  };
+}
+
+// ==========================================
+// BUY (same rules as the bot's /store buy)
+// ==========================================
+export async function buyItem(discordId: string, itemId: string, amount: number) {
+  if (!Number.isInteger(amount) || amount < 1 || amount > MAX_BUY_AMOUNT) {
+    throw new StoreError(`You can buy between 1 and ${MAX_BUY_AMOUNT} at a time.`);
+  }
+  const c = await collections();
+  const item = await c.storeInventory.findOne({ item_id: itemId }, BIG);
+  if (!item || !item.is_active) throw new StoreError("That item isn't in the store right now.");
+  const stock = num(item.quantity);
+  if (stock === 0) throw new StoreError("That item is out of stock.");
+
+  if (!isStackable(item)) {
+    if (amount > 1) throw new StoreError("You can only buy one of this item.");
+    if (await c.userInventory.findOne({ discordId, item_id: itemId })) throw new StoreError("You already own this item!");
+  }
+  if (stock > 0 && amount > stock) throw new StoreError(`Only ${stock} left in stock.`);
+
+  const dailyLimit = num(item.daily_limit);
+  if (dailyLimit > 0) {
+    const bought = (await boughtInLast24h(discordId, [itemId])).get(itemId) ?? 0;
+    if (bought + amount > dailyLimit) {
+      const left = Math.max(dailyLimit - bought, 0);
+      throw new StoreError(left === 0
+        ? `You've reached the daily limit of ${dailyLimit} for this item.`
+        : `This item has a daily limit of ${dailyLimit} — you can buy ${left} more today.`);
+    }
+  }
+
+  const total = num(item.price) * amount;
+  const balanceDoc = await getBalanceDoc(discordId);
+  if (!balanceDoc || num(balanceDoc.balance) < total) {
+    throw new StoreError(`You need ${total.toLocaleString()} leaves for this.`);
+  }
+
+  // Take stock first (atomic, so two buyers can't both get the last copies)
+  if (stock > 0) {
+    const taken = await c.storeInventory.updateOne({ item_id: itemId, quantity: { $gte: amount } }, { $inc: { quantity: -amount } });
+    if (taken.modifiedCount === 0) throw new StoreError("There isn't enough stock left for this purchase.");
+  }
+  // Charge in the same step as the balance check
+  const charged = await c.users.updateOne({ _id: balanceDoc._id, balance: { $gte: total } }, { $inc: { balance: -total } });
+  if (charged.modifiedCount === 0) {
+    if (stock > 0) await c.storeInventory.updateOne({ item_id: itemId }, { $inc: { quantity: amount } });
+    throw new StoreError("You no longer have enough leaves for this purchase.");
+  }
+
+  const now = new Date();
+  await c.userInventory.insertMany(Array.from({ length: amount }, () => ({
+    discordId,
+    item_id: itemId,
+    name: item.name,
+    description: item.description ?? "No description provided.",
+    image_url: item.image_url ?? "",
+    role_id: item.role_id ?? null, // kept as the bot's 64-bit integer
+    type: item.type ?? "role",
+    duration: item.duration ?? null,
+    purchasedAt: now,
+  })));
+  await c.storeSales.insertOne({ buyerId: discordId, item_id: itemId, quantity: amount, price_paid: total, timestamp: now, source: "website" });
+  return { message: `Bought ${amount > 1 ? `${amount}× ` : ""}${item.name}!` };
+}
+
+// ==========================================
+// USE A BOOSTER (same as /inventory use)
+// ==========================================
+export async function activateItem(discordId: string, itemId: string) {
+  const c = await collections();
+  const owned = await c.userInventory.findOne({ discordId, item_id: itemId }, BIG);
+  if (!owned) throw new StoreError("You don't own that item anymore.");
+  if (owned.type === "gift") throw new StoreError("Gifts are meant to be given! Use Send gift instead.");
+  if (owned.type !== "booster") throw new StoreError("That item can't be used.");
+
+  if (itemId === "booster_profile") {
+    const profile = await c.datingProfiles.findOne({ _id: { $in: [toLong(discordId), discordId] } as never });
+    if (!profile) throw new StoreError("You need a dating profile before using a Profile Booster. Create one with /startprofile in Discord.");
+  }
+
+  // Consume the item first so a double-click can't use one item twice
+  const removed = await c.userInventory.deleteOne({ _id: owned._id });
+  if (removed.deletedCount === 0) throw new StoreError("You don't own that item anymore.");
+
+  const now = new Date();
+  const seconds = num(owned.duration) || 3600;
+  const active = await c.boosters.findOne({ discordId, item_id: itemId });
+  let endsAt: Date;
+  if (active && active.end_time instanceof Date && active.end_time > now) {
+    endsAt = new Date(active.end_time.getTime() + seconds * 1000);
+    await c.boosters.updateOne({ _id: active._id }, { $set: { end_time: endsAt } });
+  } else {
+    endsAt = new Date(now.getTime() + seconds * 1000);
+    await c.boosters.insertOne({ discordId, item_id: itemId, item_name: owned.name, start_time: now, end_time: endsAt, duration: seconds });
+  }
+
+  await postChannelMessage(
+    BOOSTER_LOG_CHANNEL_ID,
+    { content: `🔥 <@${discordId}>, you redeemed a personal **${owned.name}** on the website! Active until <t:${Math.floor(endsAt.getTime() / 1000)}:f>.` },
+    [discordId],
+  );
+  return { message: `${owned.name} activated!`, endsAt: endsAt.toISOString() };
+}
+
+// ==========================================
+// EQUIP / UNEQUIP ROLES (same as /inventory equip)
+// ==========================================
+async function ownedRoleId(discordId: string, itemId: string) {
+  const c = await collections();
+  const owned = await c.userInventory.findOne({ discordId, item_id: itemId }, BIG);
+  const roleId = idString(owned?.role_id) ??
+    idString((await c.storeInventory.findOne({ item_id: itemId }, { projection: { role_id: 1 }, ...BIG }))?.role_id);
+  if (!owned || !roleId || (owned.type && owned.type !== "role")) throw new StoreError("You don't own that role.");
+  return roleId;
+}
+
+export async function equipRole(discordId: string, itemId: string) {
+  const roleId = await ownedRoleId(discordId, itemId);
+  const memberRoles = await getMemberRoleIds(discordId);
+  if (!memberRoles) throw new StoreError("You need to be in the Kitty Kingdom Discord server to equip roles.");
+  if (memberRoles.includes(roleId)) throw new StoreError("That role is already equipped.");
+
+  // Only one shop role at a time, like the bot
+  const c = await collections();
+  const shopRoles = new Set(
+    (await c.storeInventory.find({ role_id: { $ne: null } }, { projection: { role_id: 1 }, ...BIG }).toArray())
+      .map((i) => idString(i.role_id))
+      .filter((id): id is string => Boolean(id)),
+  );
+  for (const current of memberRoles) {
+    if (shopRoles.has(current)) await removeMemberRole(discordId, current);
+  }
+  if (!(await addMemberRole(discordId, roleId))) {
+    throw new StoreError("The bot couldn't give you that role. Please contact staff.", 502);
+  }
+  return { message: "Role equipped!" };
+}
+
+export async function unequipRole(discordId: string, itemId: string) {
+  const roleId = await ownedRoleId(discordId, itemId);
+  const memberRoles = await getMemberRoleIds(discordId);
+  if (!memberRoles) throw new StoreError("You need to be in the Kitty Kingdom Discord server to manage roles.");
+  if (!memberRoles.includes(roleId)) throw new StoreError("That role isn't equipped.");
+  if (!(await removeMemberRole(discordId, roleId))) {
+    throw new StoreError("The bot couldn't remove that role. Please contact staff.", 502);
+  }
+  return { message: "Role unequipped." };
+}
+
+// ==========================================
+// GIFTS (same as /gift)
+// ==========================================
+export async function giftItem(
+  sender: { discordId: string; name: string },
+  recipientId: string,
+  itemId: string,
+  rawMessage: string,
+) {
+  const c = await collections();
+  const item = await c.storeInventory.findOne({ item_id: itemId }, BIG);
+  if (!item || item.type !== "gift") throw new StoreError("That isn't a giftable item.");
+  if (recipientId === sender.discordId) throw new StoreError("You can't gift yourself!");
+  // Look the recipient up on Discord ourselves - never trust names/bot flags sent by the browser
+  const recipient = await getGuildMember(recipientId);
+  if (!recipient) throw new StoreError("That member isn't in the server.");
+  if (recipient.bot) throw new StoreError("You can't send gifts to bots!");
+
+  const message = rawMessage.trim().replace(/`/g, "'") || null;
+  const limit = item.requires_message ? LETTER_MAX_LENGTH : NOTE_MAX_LENGTH;
+  if (item.requires_message && !message) throw new StoreError("Write your letter first!");
+  if (message && message.length > limit) throw new StoreError(`Your message is too long (${message.length}/${limit}).`);
+  if (!(await c.userInventory.findOne({ discordId: sender.discordId, item_id: itemId }))) {
+    throw new StoreError(`You don't have a ${item.name} to give.`);
+  }
+
+  // Claim the shared 5-minute cooldown atomically (same doc the bot uses)
+  const now = new Date();
+  try {
+    await c.cooldowns.updateOne(
+      { _id: toLong(sender.discordId) as never, next_gift_at: { $lte: now } },
+      { $set: { next_gift_at: new Date(now.getTime() + GIFT_COOLDOWN_MS) } },
+      { upsert: true },
+    );
+  } catch (error) {
+    if (error instanceof MongoServerError && error.code === 11000) {
+      throw new StoreError("You're sending gifts too fast! Wait for the cooldown to finish.", 429);
+    }
+    throw error;
+  }
+
+  const moved = await c.userInventory.findOneAndUpdate(
+    { discordId: sender.discordId, item_id: itemId },
+    { $set: { discordId: recipient.id, gifted_by: sender.discordId, gifted_at: now, gift_message: message } },
+    { sort: { purchasedAt: 1 } },
+  );
+  if (!moved) {
+    await c.cooldowns.updateOne({ _id: toLong(sender.discordId) as never }, { $set: { next_gift_at: now } });
+    throw new StoreError(`You no longer have a ${item.name} to give.`);
+  }
+
+  await c.giftLog.insertOne({
+    sender_id: sender.discordId, recipient_id: recipient.id, item_id: itemId, message, channel_id: null,
+    source: "website", timestamp: now,
+  });
+
+  const color = parseInt(String(item.color ?? "#ff7eb9").replace("#", ""), 16) || 0xff7eb9;
+  const description = String(item.gift_text ?? `{sender} sent {recipient} a **${item.name}**!`)
+    .replace("{sender}", `<@${sender.discordId}>`).replace("{recipient}", `<@${recipient.id}>`);
+  const fields = message
+    ? [{ name: item.requires_message ? "💌 The letter reads..." : "📝 Note", value: `>>> ${message}` }]
+    : [];
+
+  await sendDirectMessage(recipient.id, {
+    embeds: [{
+      title: `${item.emoji ?? "🎁"} You got a gift!`,
+      description, color, fields,
+      footer: { text: `From ${sender.name} • It's been added to your /inventory` },
+      timestamp: now.toISOString(),
+    }],
+  });
+  await postChannelMessage(STAFF_LOG_CHANNEL_ID, {
+    embeds: [{
+      title: `${item.emoji ?? "🎁"} Gift Sent • ${item.name}`,
+      color,
+      fields: [
+        { name: "From", value: `<@${sender.discordId}>\n\`${sender.discordId}\``, inline: true },
+        { name: "To", value: `<@${recipient.id}>\n\`${recipient.id}\``, inline: true },
+        { name: "Channel", value: "🌐 Website", inline: true },
+        ...(message ? [{ name: item.requires_message ? "💌 Letter" : "📝 Note", value: message.slice(0, 1024) }] : []),
+      ],
+      footer: { text: `Item ID: ${itemId}` },
+      timestamp: now.toISOString(),
+    }],
+  });
+  return { message: `${item.name} sent to ${recipient.displayName}!` };
+}
