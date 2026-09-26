@@ -185,7 +185,7 @@ export function StoreClient({ initialState }: { initialState: StoreState }) {
             if (!items.length) return null;
             return (
               <section className="store-section" key={section.key}>
-                <div className="store-section-head">
+                <div className="store-section-head store-section-head--stacked">
                   <h2>{section.title}</h2>
                   {section.ends ? (
                     <span className="store-timer">⏳ Ends in {formatCountdown(new Date(section.ends).getTime() - now)}</span>

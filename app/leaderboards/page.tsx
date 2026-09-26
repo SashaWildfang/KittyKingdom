@@ -22,7 +22,7 @@ export default async function LeaderboardsPage() {
         <p className="eyebrow">Community stats</p>
         <h1>Leaderboards</h1>
         <p>
-          Search, sort, and compare Kitty Kingdom member stats. Your row is highlighted when you are signed in.
+          See who&apos;s on top in Kitty Kingdom. Rankings update live, so watch the leafs roll in.
         </p>
       </section>
 
