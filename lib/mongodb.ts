@@ -82,3 +82,9 @@ export async function getPresenceCollection() {
   await presenceIndexReady;
   return presence;
 }
+
+// Any collection in the bot's database (store, inventory, economy, gifts...)
+export async function getBotCollection(name: string) {
+  const client = await getMongoClient();
+  return client.db(process.env.BOT_MONGODB_DB ?? "zeo_bot").collection(name);
+}
