@@ -3234,3 +3234,29 @@ input[type="submit"] {
   color: var(--muted) !important;
   font-weight: 900;
 }
+
+
+/* Red status banner for errors and account deletion */
+.home-status-banner--error {
+  border-color: rgba(239, 68, 68, 0.55);
+  background: rgba(220, 38, 38, 0.16);
+  color: #ffb4b4;
+}
+
+:root[data-theme="light"] .home-status-banner--error {
+  border-color: rgba(185, 28, 28, 0.45);
+  background: rgba(220, 38, 38, 0.1);
+  color: #991b1b;
+}
+
+/* Mobile: the top ribbon scrolls away with the page instead of staying pinned */
+@media (max-width: 760px) {
+  .site-shell {
+    padding-top: 0;
+  }
+
+  .site-shell .topbar {
+    position: relative;
+    inset: auto;
+  }
+}
