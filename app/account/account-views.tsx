@@ -5,6 +5,8 @@ import { useEffect, useState, type ReactNode } from "react";
 import { StatsView } from "./stats-view";
 
 const isStats = () => typeof window !== "undefined" && window.location.hash === "#stats";
+// "Back to profile" changes the URL without a hashchange event, so it announces itself
+const VIEW_EVENT = "kk-account-view";
 
 /**
  * My Account's main column. On #stats it swaps the sections (Discord, Overview, roles, daily…)
@@ -43,6 +45,7 @@ export function AccountViews({ children }: { children: ReactNode }) {
   const back = () => {
     history.pushState(null, "", window.location.pathname + window.location.search);
     setStats(false);
+    window.dispatchEvent(new Event(VIEW_EVENT));
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -56,8 +59,22 @@ export function AccountViews({ children }: { children: ReactNode }) {
   );
 }
 
-/** Profile card button that opens the stats page. */
+/** Profile card button that opens the stats page (hidden while the stats page is open). */
 export function StatsButton() {
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => {
+    const sync = () => setHidden(isStats());
+    sync();
+    window.addEventListener("hashchange", sync);
+    window.addEventListener("popstate", sync);
+    window.addEventListener(VIEW_EVENT, sync);
+    return () => {
+      window.removeEventListener("hashchange", sync);
+      window.removeEventListener("popstate", sync);
+      window.removeEventListener(VIEW_EVENT, sync);
+    };
+  }, []);
+  if (hidden) return null;
   return (
     <a className="acct-stats-button" href="#stats">
       <BarChart3 size={16} aria-hidden="true" /> View my stats
