@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 import { PageTracker } from "./page-tracker";
 import { TimeZoneSync } from "./time-zone-sync";
+import { ViewAsBar } from "./view-as-bar";
 
 export const metadata: Metadata = {
   title: "Kitty Kingdom | Furry Community",
@@ -27,6 +28,7 @@ export default function RootLayout({
         {children}
         <PageTracker />
         <TimeZoneSync />
+        <ViewAsBar />
       </body>
     </html>
   );

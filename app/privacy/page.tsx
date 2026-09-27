@@ -239,8 +239,10 @@ const sections: LegalSection[] = [
           </li>
           <li>
             <b>Administrators</b> can additionally see Site account details (email, phone, birthday, linked Discord, sign-in sessions and devices), ticket
-            transcripts, the live chat mirror, inventories and purchase history, and can manage accounts, roles and inventories. Administrator actions are
-            logged.
+            transcripts, the live chat mirror, inventories and purchase history, and can manage accounts, roles and inventories. To help with support
+            and fix problems, an administrator can also view the Site as a member who has linked Discord and verified their email, seeing the
+            pages exactly as that member does. This view is read only (nothing can be changed or bought), ends after an hour, and each use is
+            recorded in the audit log. Administrator actions are logged.
           </li>
           <li>We do not publish your email, phone number, IP address or date of birth.</li>
         </ul>

@@ -93,7 +93,7 @@ function streaks(days: [string, number][]) {
 }
 
 export async function memberStats(discordId: string, timeZone: string) {
-  const [users, activityCol, gambling, sales, gifts, inventory, qotd, active, resolved, boosters, globals] = await Promise.all([
+  const [users, activityCol, gambling, sales, gifts, inventory, qotd, active, resolved, boosters, globals, gamblingLogs, catalogCol] = await Promise.all([
     getBotCollection("users"),
     getBotCollection("member_activity"),
     getBotCollection("gambling"),
@@ -105,6 +105,8 @@ export async function memberStats(discordId: string, timeZone: string) {
     getBotCollection("resolvedTickets"),
     getBotCollection("temporary_boosters"),
     getBotCollection("globals"),
+    getBotCollection("gambling_logs"),
+    getBotCollection("store_inventory"),
   ]);
 
   const [user, activity, meta, gamble, salesAgg, giftsSent, giftsReceived, items, qotdCount, openTickets, closedTickets, booster, global, profile, roles, channels, inServer] =
@@ -128,21 +130,61 @@ export async function memberStats(discordId: string, timeZone: string) {
       memberIdFilter(),
     ]);
 
+  // ---------- Store, gifts and games details ----------
+  const [boughtAgg, lastSale, giftTo, giftFrom, recentGames, catalogDocs] = await Promise.all([
+    sales.aggregate([{ $match: { buyerId: discordId } }, { $group: { _id: "$item_id", n: { $sum: 1 }, spent: { $sum: "$price_paid" } } }, { $sort: { n: -1, spent: -1 } }, { $limit: 3 }]).toArray(),
+    sales.find({ buyerId: discordId }).sort({ timestamp: -1 }).limit(1).toArray(),
+    gifts.aggregate([{ $match: { sender_id: discordId } }, { $group: { _id: "$recipient_id", n: { $sum: 1 } } }, { $sort: { n: -1 } }, { $limit: 1 }]).toArray(),
+    gifts.aggregate([{ $match: { recipient_id: discordId } }, { $group: { _id: "$sender_id", n: { $sum: 1 } } }, { $sort: { n: -1 } }, { $limit: 1 }]).toArray(),
+    gamblingLogs.find(idFilter(discordId)).sort({ timestamp: -1 }).limit(8).toArray(),
+    catalogCol.find({}, { projection: { item_id: 1, name: 1 } }).toArray(),
+  ]);
+  const itemName = new Map(catalogDocs.map((d) => [String(d.item_id), String(d.name ?? d.item_id)]));
+
   // ---------- Level & XP ----------
   const level = Math.max(1, num(user?.level) || 1);
   const xp = num(user?.xp);
   const needed = xpForLevel(level);
   const balance = num(user?.balance);
   const msgCount = num(user?.msgCount);
-  const [levelRank, balanceRank, messageRank, ranked] = await Promise.all([
+  const [levelRank, balanceRank, messageRank, ranked, averages] = await Promise.all([
     users.countDocuments({ ...inServer, $or: [{ level: { $gt: level } }, { level, xp: { $gt: xp } }] } as never),
     users.countDocuments({ ...inServer, balance: { $gt: balance } } as never),
     users.countDocuments({ ...inServer, msgCount: { $gt: msgCount } } as never),
     users.countDocuments(inServer as never),
+    users
+      .aggregate([
+        { $match: inServer },
+        { $group: { _id: null, messages: { $avg: "$msgCount" }, level: { $avg: "$level" }, balance: { $avg: "$balance" }, voice: { $avg: "$vc_time_total" } } },
+      ])
+      .toArray()
+      .then((r) => r[0] ?? null),
   ]);
   const currentRole = [...LEVEL_ROLES].reverse().find(([min]) => level >= min);
   const nextRole = LEVEL_ROLES.find(([min]) => min > level);
   const roleName = (id?: string) => (id && roles.get(id) ? cleanRoleName(roles.get(id).name) : null);
+  // XP from level 1 to the start of each level
+  const xpToReach = (target: number) => {
+    let total = 0;
+    for (let l = 1; l < target; l++) total += xpForLevel(l);
+    return total;
+  };
+  const journey = LEVEL_ROLES.map(([min, id], i) => {
+    const role = roles.get(id);
+    const next = LEVEL_ROLES[i + 1]?.[0] ?? null;
+    return {
+      level: Math.max(1, min),
+      until: next ? next - 1 : null,
+      name: roleName(id) ?? `Level ${min}+`,
+      colors: (role?.colors ?? []) as string[],
+      icon: (role?.icon ?? null) as string | null,
+      emoji: (role?.emoji ?? null) as string | null,
+      reached: level >= min,
+      current: currentRole?.[1] === id,
+      xpToReach: xpToReach(Math.max(1, min)),
+    };
+  });
+  const currentLevelRole = currentRole ? roles.get(currentRole[1]) : null;
 
   // ---------- Multipliers (same rules as the bot) ----------
   const memberRoles = new Set(profile?.roles ?? []);
@@ -164,7 +206,24 @@ export async function memberStats(discordId: string, timeZone: string) {
   const tracked = num(a.messages);
   const dayEntries = entries(a.days);
   const { current: currentStreak, longest: longestStreak } = streaks(dayEntries);
-  const busiestDay = dayEntries.sort((x, y) => y[1] - x[1])[0] ?? null;
+  const busiestDay = [...dayEntries].sort((x, y) => y[1] - x[1])[0] ?? null;
+  const dayCount = new Map(dayEntries);
+  const sumDays = (from: number, to: number) => {
+    let n = 0;
+    for (let i = from; i < to; i++) n += dayCount.get(new Date(Date.now() - i * 86400000).toISOString().slice(0, 10)) ?? 0;
+    return n;
+  };
+  const trends = {
+    last7: sumDays(0, 7),
+    prev7: sumDays(7, 14),
+    last30: sumDays(0, 30),
+    prev30: sumDays(30, 60),
+    spark: Array.from({ length: 14 }, (_, i) => dayCount.get(new Date(Date.now() - (13 - i) * 86400000).toISOString().slice(0, 10)) ?? 0),
+  };
+  const monthTotals = new Map<string, number>();
+  for (const [d, n] of dayEntries) monthTotals.set(d.slice(0, 7), (monthTotals.get(d.slice(0, 7)) ?? 0) + n);
+  const busiestMonth = Array.from(monthTotals.entries()).sort((x, y) => y[1] - x[1])[0] ?? null;
+  const sumMap = (map: unknown) => entries(map).reduce((acc, [, v]) => acc + v, 0);
 
   // Hours are stored in UTC (Monday = 0); shift them into the viewer's zone
   const shift = Math.round(zoneOffsetMinutes(timeZone) / 60);
@@ -182,10 +241,10 @@ export async function memberStats(discordId: string, timeZone: string) {
   const hours = Array.from({ length: 24 }, (_, h) => heat.reduce((s, row) => s + row[h], 0));
   const weekdays = heat.map((row) => row.reduce((s, v) => s + v, 0));
 
-  // Last 26 weeks of daily counts for the calendar
+  // Last 52 weeks of daily counts for the calendar
   const calendar: { date: string; n: number }[] = [];
   const dayMap = new Map(dayEntries);
-  for (let i = 181; i >= 0; i--) {
+  for (let i = 363; i >= 0; i--) {
     const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
     calendar.push({ date: d, n: dayMap.get(d) ?? 0 });
   }
@@ -217,7 +276,9 @@ export async function memberStats(discordId: string, timeZone: string) {
   const topBuddies = top(a.voiceBuddies, 5);
   const reactedBy = top(a.reactedBy, 1);
   const circleIds = Array.from(scores.entries()).sort((x, y) => y[1].score - x[1].score).slice(0, 12).map(([id]) => id);
-  const who = await people([...circleIds, ...topBuddies.map(([id]) => id), ...reactedBy.map(([id]) => id)]).catch(() => ({} as Record<string, Person>));
+  const giftToId = giftTo[0]?._id ? String(giftTo[0]._id) : null;
+  const giftFromId = giftFrom[0]?._id ? String(giftFrom[0]._id) : null;
+  const who = await people([...circleIds, ...topBuddies.map(([id]) => id), ...reactedBy.map(([id]) => id), giftToId, giftFromId]).catch(() => ({} as Record<string, Person>));
   const person = (id: string) => ({ id, name: who[id]?.name ?? "Unknown member", avatar: who[id]?.avatar ?? null, inServer: who[id]?.inServer ?? false });
   // Prefer people still in the server
   const circle = circleIds
@@ -262,11 +323,44 @@ export async function memberStats(discordId: string, timeZone: string) {
       rank: levelRank + 1,
       of: ranked,
       role: roleName(currentRole?.[1]),
+      icon: (currentLevelRole?.icon ?? null) as string | null,
+      emoji: (currentLevelRole?.emoji ?? null) as string | null,
+      journey,
+      startXp: xpToReach(level),
       // The level role's color (two or three stops for gradient roles), for the level badge
       color: (currentRole && roles.get(currentRole[1])?.colors?.length ? roles.get(currentRole[1]).colors : null) as string[] | null,
       nextRole: nextRole ? { name: roleName(nextRole[1]) ?? `Level ${nextRole[0]} role`, level: nextRole[0] } : null,
     },
     multipliers: { xp: Math.round(xpMultiplier * 100) / 100, leaves: Math.round(leafMultiplier * 100) / 100, patreon: patreon?.name ?? null, booster: isBooster, xpWeekend: weekend > 1, globalBooster: globalBoost > 1, consumable },
+    compare: averages
+      ? {
+          messages: Math.round(num(averages.messages)),
+          level: Math.round(num(averages.level) * 10) / 10,
+          balance: Math.round(num(averages.balance)),
+          voiceSeconds: Math.round(num(averages.voice)),
+        }
+      : null,
+    trends,
+    records: {
+      longestMessage: num(a.longestMessage),
+      questions: num(a.questions),
+      mentionsSent: sumMap(a.mentionsTo),
+      mentionsReceived: sumMap(a.mentionsFrom),
+      conversations: sumMap(a.conversations),
+      people: new Set([...entries(a.conversations), ...entries(a.repliesTo), ...entries(a.repliesFrom), ...entries(a.mentionsTo)].map(([id]) => id)).size,
+      busiestMonth: busiestMonth ? { month: busiestMonth[0], n: busiestMonth[1] } : null,
+      commandsUsed: num(a.commandsUsed),
+      commands: top(a.commands, 5).map(([name, n]) => ({ name, n })),
+    },
+    store: {
+      topItems: boughtAgg.map((b) => ({ name: itemName.get(String(b._id)) ?? String(b._id), n: num(b.n), spent: num(b.spent) })),
+      lastPurchase: lastSale[0] ? { name: itemName.get(String(lastSale[0].item_id)) ?? String(lastSale[0].item_id), at: iso(lastSale[0].timestamp), price: num(lastSale[0].price_paid) } : null,
+      giftsMostTo: giftToId ? { ...person(giftToId), n: num(giftTo[0].n) } : null,
+      giftsMostFrom: giftFromId ? { ...person(giftFromId), n: num(giftFrom[0].n) } : null,
+    },
+    games: {
+      recent: recentGames.map((g) => ({ game: String(g.game ?? "slots"), spent: num(g.spent), won: num(g.won), net: num(g.net), symbols: g.symbols ? String(g.symbols) : null, at: iso(g.timestamp) })),
+    },
     economy: {
       balance,
       rank: balanceRank + 1,
@@ -326,6 +420,12 @@ export async function memberStats(discordId: string, timeZone: string) {
       monthSeconds: num(user?.vc_time_monthly),
       trackedSeconds: num(a.voiceSeconds),
       withOthersSeconds: num(a.voiceWithOthersSeconds),
+      longestSession: num(a.voiceLongestSession),
+      sessions: num(a.voiceSessions),
+      streamSeconds: num(a.streamSeconds),
+      cameraSeconds: num(a.cameraSeconds),
+      hours: toLocal(a.voiceHours).map((row) => row.reduce((acc, v) => acc + v, 0)),
+      byHour: Array.from({ length: 24 }, (_, h) => toLocal(a.voiceHours).reduce((acc, row) => acc + row[h], 0)),
       joins: num(a.voiceJoins),
       channels: topVoiceChannels.map(([id, s]) => ({ id, name: channels.get(id)?.name ?? "deleted channel", seconds: Math.round(s) })),
       buddies: topBuddies.map(([id, s]) => ({ ...person(id), seconds: Math.round(s) })),
