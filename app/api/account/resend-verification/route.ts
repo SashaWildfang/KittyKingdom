@@ -1,77 +1,60 @@
 import { NextResponse } from "next/server";
 import type { Document, UpdateFilter } from "mongodb";
 import { createVerificationTokenEntry, maxActiveVerificationTokens } from "../../../../lib/auth";
-import { isDatabaseConnectionError } from "../../../../lib/db-errors";
 import { sendVerificationEmail } from "../../../../lib/email";
 import { getUsersCollection } from "../../../../lib/mongodb";
+import { HOUR, allow, clientIp } from "../../../../lib/rate-limit";
+import { cleanIdentifier, hasOperatorKeys } from "../../../../lib/validate";
 
 export const maxDuration = 10;
 
-export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const origin = url.origin;
-  const identifier = String(url.searchParams.get("identifier") ?? "")
-    .trim()
-    .toLowerCase();
-  const wantsJson = url.searchParams.get("ajax") === "1";
+// Same answer whether or not the account exists, so this can't be used to look people up
+const GENERIC = "If that account still needs verifying, a new confirmation email is on its way. Check your inbox (and spam).";
 
-  function done(status: string, message: string) {
-    if (wantsJson) return NextResponse.json({ status, message });
-    return NextResponse.redirect(
-      `${origin}/login?login=${status}&identifier=${encodeURIComponent(identifier)}`,
-      303,
-    );
+/** Old GET links no longer send email (that allowed inbox flooding). */
+export async function GET() {
+  return NextResponse.json({ ok: false, message: "Use the resend button on the site." }, { status: 405, headers: { Allow: "POST" } });
+}
+
+/** { identifier } — resends the verification email, rate limited per address and per account. */
+export async function POST(request: Request) {
+  const origin = new URL(request.url).origin;
+  const sameSite = request.headers.get("origin");
+  if (sameSite && sameSite !== origin) return NextResponse.json({ ok: false, message: "Invalid request origin." }, { status: 403 });
+
+  const body = (await request.json().catch(() => null)) as unknown;
+  if (!body || typeof body !== "object" || hasOperatorKeys(body)) {
+    return NextResponse.json({ ok: false, message: "Invalid request." }, { status: 400 });
+  }
+  const identifier = cleanIdentifier((body as { identifier?: unknown }).identifier);
+  if (!identifier) return NextResponse.json({ ok: false, message: "Enter your email or username first." }, { status: 400 });
+
+  const allowed = await allow([
+    { key: `resend:ip:${await clientIp()}`, limit: 5, windowMs: HOUR },
+    { key: `resend:id:${identifier}`, limit: 3, windowMs: HOUR },
+  ]);
+  if (!allowed) {
+    return NextResponse.json({ ok: false, message: "You've asked for a few emails already. Please wait a while before trying again." }, { status: 429 });
   }
 
   try {
-    if (!identifier) {
-      return done(
-        "missing-identifier",
-        "Enter your email or username before requesting a new verification email.",
-      );
-    }
-
     const users = await getUsersCollection();
-    const user = await users.findOne({
-      $or: [{ email: identifier }, { username: identifier }],
-    });
-
-    if (!user) {
-      return done("verification-sent", "Verification email resent. Check your inbox.");
+    const user = await users.findOne({ $or: [{ email: identifier }, { username: identifier }] });
+    if (user && !user.emailVerified && typeof user.email === "string") {
+      const { token, entry } = createVerificationTokenEntry();
+      await users.updateOne(
+        { _id: user._id },
+        {
+          // Add the new link without cancelling earlier ones (keeps the most recent few)
+          $push: { emailVerificationTokens: { $each: [entry], $slice: -maxActiveVerificationTokens } } as unknown as UpdateFilter<Document>["$push"],
+          $set: { updatedAt: new Date() },
+        },
+      );
+      const result = await sendVerificationEmail(user.email, `${origin}/api/account/verify-email?token=${token}`);
+      if (!result.sent) console.error("Verification resend failed", result.reason);
     }
-
-    if (user.emailVerified) {
-      return done("already-verified", "Your email is already verified. You can log in now.");
-    }
-
-    const { token, entry } = createVerificationTokenEntry();
-    const verifyUrl = `${origin}/api/account/verify-email?token=${token}`;
-
-    await users.updateOne(
-      { _id: user._id },
-      {
-        // Add the new link without cancelling earlier ones (keeps the most recent few)
-        $push: {
-          emailVerificationTokens: { $each: [entry], $slice: -maxActiveVerificationTokens },
-        } as unknown as UpdateFilter<Document>["$push"],
-        $set: { updatedAt: new Date() },
-      },
-    );
-
-    const emailResult = await sendVerificationEmail(user.email, verifyUrl);
-    return emailResult.sent
-      ? done("verification-sent", "Verification email resent. Check your inbox.")
-      : done("email-provider-needed", "The verification email could not be sent. Please contact staff.");
   } catch (error) {
     console.error("Verification resend failed", error);
-    const status = isDatabaseConnectionError(error)
-      ? "database-unreachable"
-      : "service-unavailable";
-    return done(
-      status,
-      status === "database-unreachable"
-        ? "The account database is not reachable right now."
-        : "Verification resend is temporarily unavailable.",
-    );
   }
+  return NextResponse.json({ ok: true, message: GENERIC });
 }

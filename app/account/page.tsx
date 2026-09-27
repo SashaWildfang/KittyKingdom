@@ -1,3 +1,5 @@
+import { BadgeCheck, Check, CircleAlert, ClipboardList, Gem, Image as ImageIcon, KeyRound, Link2, Lock, MessageCircle, Mic, Minus, ShieldCheck, Sparkles, Star, TriangleAlert, UserRound, type LucideIcon } from "lucide-react";
+import { LeafEmote } from "../ui-icons";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "../../lib/auth";
@@ -13,6 +15,7 @@ import { formatDateOfBirth } from "../../lib/dates";
 import { applicationBirthday, getJoinApplication } from "../../lib/join-application";
 import { getRoleState } from "../../lib/member-roles";
 import { CollapsibleCard } from "./collapsible-card";
+import { DiscordLinkCode } from "./discord-link-code";
 import { RoleManager } from "./role-manager";
 
 const statusMessages: Record<string, string> = {
@@ -45,6 +48,7 @@ const statusMessages: Record<string, string> = {
   invalid:
     "Discord linking could not be verified. Please start from the Link Discord button again.",
   "not-configured": "Discord linking is not configured yet. Please contact staff.",
+  "link-required": "Link your Discord account to use the Store and Leaderboards. Grab a code below and run /link in the server.",
   "token-failed":
     "Discord rejected the login callback. Please try linking Discord again.",
   "user-failed":
@@ -69,6 +73,13 @@ function rankStyle(colors: string[]): CSSProperties {
 
 function formatMonthYear(date: Date) {
   return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC" }).format(date);
+}
+
+// Icons for the server status list on the profile card
+const STATUS_ICONS: Record<string, LucideIcon> = { adult: ShieldCheck, member: BadgeCheck, media: ImageIcon, vc: Mic, patreon: Gem };
+function StatusIcon({ name }: { name: string }) {
+  const Icon = STATUS_ICONS[name] ?? BadgeCheck;
+  return <Icon className="acct-status-icon" size={14} aria-hidden="true" />;
 }
 
 function DiscordIcon() {
@@ -139,14 +150,14 @@ export default async function AccountPage({
 
       {statusText ? (
         <div className={`acct-status acct-status--${statusTone}`} role="status">
-          <span aria-hidden="true">{statusTone === "success" ? "✓" : "!"}</span>
+          <span aria-hidden="true">{statusTone === "success" ? <Check size={16} /> : <CircleAlert size={16} />}</span>
           {statusText}
         </div>
       ) : null}
 
       {user.mustChangePassword ? (
         <div className="acct-temp-password" role="alert">
-          <strong>🔑 You&apos;re using a temporary password from staff.</strong>
+          <strong className="acct-inline-icon"><KeyRound size={16} aria-hidden="true" /> You&apos;re using a temporary password from staff.</strong>
           <span>Please choose your own password now.</span>
           <a href="#security">Change password →</a>
         </div>
@@ -178,7 +189,7 @@ export default async function AccountPage({
               <div className="acct-server-status" aria-label="Server status">
                 {roleState.level !== null ? (
                   <span className="acct-level" title="Your level in the Discord server">
-                    ⭐ Level <strong>{roleState.level}</strong>
+                    <Star size={14} aria-hidden="true" /> Level <strong>{roleState.level}</strong>
                   </span>
                 ) : null}
                 <ul>
@@ -186,8 +197,9 @@ export default async function AccountPage({
                     .filter((r) => r.key !== "patreon" || r.has)
                     .map((r) => (
                       <li key={r.key} className={r.has ? "is-on" : undefined} title={r.has ? `You have ${r.label}` : `You don't have ${r.label} yet`}>
-                        <span aria-hidden="true">{r.icon}</span> {r.label}
-                        <i aria-hidden="true">{r.has ? "✓" : "–"}</i>
+                        <StatusIcon name={r.key} />
+                        <span className="acct-status-label">{r.label}</span>
+                        <i aria-hidden="true">{r.has ? <Check size={14} strokeWidth={3} /> : <Minus size={14} />}</i>
                       </li>
                     ))}
                 </ul>
@@ -215,17 +227,17 @@ export default async function AccountPage({
                 ))}
               </div>
             ) : null}
-            {memberSince ? <p className="acct-since">🍂 Member since {memberSince}</p> : null}
+            {memberSince ? <p className="acct-since"><LeafEmote size={16} /> Member since {memberSince}</p> : null}
           </div>
 
           <nav className="acct-nav" aria-label="Account sections">
-            <a href="#overview"><span aria-hidden="true">📋</span> Overview</a>
-            {discordLinked ? <a href="#roles"><span aria-hidden="true">🎭</span> Server roles</a> : null}
-            <a href="#profile"><span aria-hidden="true">👤</span> Profile</a>
-            <a href="#contact"><span aria-hidden="true">🔗</span> Contact &amp; socials</a>
-            <a href="#discord-account"><span aria-hidden="true">💬</span> Discord</a>
-            <a href="#security"><span aria-hidden="true">🔒</span> Security</a>
-            <a className="acct-nav-danger" href="#delete-account"><span aria-hidden="true">⚠️</span> Delete account</a>
+            <a href="#overview"><ClipboardList size={16} aria-hidden="true" /> Overview</a>
+            {discordLinked ? <a href="#roles"><Sparkles size={16} aria-hidden="true" /> Server roles</a> : null}
+            <a href="#profile"><UserRound size={16} aria-hidden="true" /> Profile</a>
+            <a href="#contact"><Link2 size={16} aria-hidden="true" /> Contact &amp; socials</a>
+            <a href="#discord-account"><MessageCircle size={16} aria-hidden="true" /> Discord</a>
+            <a href="#security"><Lock size={16} aria-hidden="true" /> Security</a>
+            <a className="acct-nav-danger" href="#delete-account"><TriangleAlert size={16} aria-hidden="true" /> Delete account</a>
           </nav>
         </aside>
 
@@ -302,7 +314,7 @@ export default async function AccountPage({
                       Username
                       <span className="acct-locked-field">
                         <input value={user.username} readOnly aria-readonly="true" />
-                        <span aria-hidden="true">🔒</span>
+                        <Lock size={15} aria-hidden="true" />
                       </span>
                     </label>
                     <p className="form-note">
@@ -341,7 +353,7 @@ export default async function AccountPage({
                   maxLength={24}
                 />
               </label>
-              <p className="form-note">🔒 Private — only you can see your phone number. Include your country code if you&apos;re outside the US/Canada.</p>
+              <p className="form-note acct-inline-icon"><Lock size={13} aria-hidden="true" /> Private — only you can see your phone number. Include your country code if you&apos;re outside the US/Canada.</p>
               <div className="acct-socials-grid">
                 {SOCIALS.map((s) => (
                   <label key={s.key}>
@@ -368,17 +380,21 @@ export default async function AccountPage({
                     Linked as <strong>{discordName}</strong>. Relink to refresh your member details.
                   </>
                 ) : (
-                  "Link Discord so your website account matches your community member identity."
+                  "Link Discord to unlock the Store, Leaderboards and your server roles. Just grab a code and use /link in the server."
                 )}
               </p>
             </div>
-            <div className="acct-discord-actions">
-              <Link className="discord-link-button" href="/api/auth/discord">
-                <DiscordIcon />
-                {discordLinked ? "Relink" : "Link Discord"}
-              </Link>
-              {discordLinked ? <DiscordUnlinkForm /> : null}
-            </div>
+            {discordLinked ? (
+              <div className="acct-discord-actions">
+                <Link className="discord-link-button" href="/api/auth/discord">
+                  <DiscordIcon />
+                  Relink
+                </Link>
+                <DiscordUnlinkForm />
+              </div>
+            ) : (
+              <DiscordLinkCode />
+            )}
           </section>
 
           <CollapsibleCard id="security" title={"Security"} description={"Change your password. You'll need your current one."}>

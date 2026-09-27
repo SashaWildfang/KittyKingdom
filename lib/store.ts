@@ -30,11 +30,23 @@ const RETIRED_ITEM_IDS = ["booster_crab"];
 const isRetired = (item: Record<string, unknown>) =>
   RETIRED_ITEM_IDS.includes(String(item.item_id)) || item.retired === true;
 
+// Icon keys the website maps to its icon set (app/ui-icons.tsx)
 const ITEM_ICONS: Record<string, string> = {
-  booster_xp: "⭐",
-  booster_profile: "💖",
-  booster_balance: "🍃",
+  booster_xp: "xp",
+  booster_profile: "heart",
+  booster_balance: "leaf",
 };
+
+const ICON_BY_NAME: [RegExp, string][] = [
+  [/latte|coffee/, "coffee"],
+  [/rose|bouquet|flower/, "flower"],
+  [/chocolate|candy/, "candy"],
+  [/teddy|bear|plush/, "paw"],
+  [/letter|note/, "mail"],
+  [/cookie/, "cookie"],
+  [/boba|tea|soda/, "soda"],
+  [/cake/, "cake"],
+];
 
 const BIG = { useBigInt64: true } as const;
 
@@ -53,10 +65,11 @@ const toLong = (id: string) => Long.fromString(id);
 const discordIdFilter = (discordId: string) => ({ discordId: { $in: [toLong(discordId), discordId] } });
 
 function iconFor(item: Document) {
-  if (typeof item.emoji === "string" && item.emoji) return item.emoji;
   if (ITEM_ICONS[item.item_id]) return ITEM_ICONS[item.item_id];
-  if (item.type === "booster") return "🚀";
-  if (item.type === "gift") return "🎁";
+  const id = String(item.item_id ?? "").toLowerCase();
+  for (const [pattern, key] of ICON_BY_NAME) if (pattern.test(id)) return key;
+  if (item.type === "booster") return "rocket";
+  if (item.type === "gift") return "gift";
   return null;
 }
 
@@ -230,7 +243,7 @@ export async function getStoreState(discordId: string): Promise<StoreState> {
     boosters: boosterDocs.map((b) => ({
       itemId: b.item_id,
       name: b.item_name ?? b.item_id,
-      icon: ITEM_ICONS[b.item_id] ?? "🚀",
+      icon: ITEM_ICONS[b.item_id] ?? "rocket",
       endsAt: (b.end_time as Date).toISOString(),
     })),
     nextDaily: timers?.next_daily instanceof Date ? timers.next_daily.toISOString() : null,

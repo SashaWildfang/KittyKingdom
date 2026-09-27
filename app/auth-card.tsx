@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowBigUpDash, Check, Circle, CircleCheck, MailCheck, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { ResendVerificationLink } from "./resend-verification-link";
@@ -85,7 +86,7 @@ function PasswordInput({
           <span>{visible ? "Hide" : "Show"}</span>
         </button>
       </div>
-      {capsLock ? <p className="kk-hint kk-hint--warn">⇪ Caps Lock is on</p> : null}
+      {capsLock ? <p className="kk-hint kk-hint--warn"><ArrowBigUpDash size={14} aria-hidden="true" /> Caps Lock is on</p> : null}
     </div>
   );
 }
@@ -112,7 +113,7 @@ function StatusBox({ status, identifier }: { status: AuthStatus; identifier: str
   if (!status) return null;
   return (
     <div className={`kk-alert kk-alert--${status.tone}`} role={status.tone === "error" ? "alert" : "status"}>
-      <span aria-hidden="true">{status.tone === "error" ? "⚠️" : status.tone === "success" ? "✅" : "📬"}</span>
+      <span aria-hidden="true">{status.tone === "error" ? <TriangleAlert size={18} /> : status.tone === "success" ? <CircleCheck size={18} /> : <MailCheck size={18} />}</span>
       <p>
         {status.text}
         {status.unverified ? (
@@ -231,7 +232,7 @@ function RegisterForm({ active }: { active: boolean }) {
           />
           {emailOk ? (
             <span className="kk-input-ok" aria-hidden="true">
-              ✓
+              <Check size={16} strokeWidth={3} />
             </span>
           ) : null}
         </div>
@@ -250,7 +251,7 @@ function RegisterForm({ active }: { active: boolean }) {
       <ul className="kk-checks">
         {checks.map((c) => (
           <li key={c.label} className={c.ok ? "is-ok" : undefined}>
-            <span aria-hidden="true">{c.ok ? "✓" : "○"}</span> {c.label}
+            <span aria-hidden="true">{c.ok ? <Check size={12} strokeWidth={3} /> : <Circle size={10} />}</span> {c.label}
           </li>
         ))}
       </ul>
@@ -258,7 +259,7 @@ function RegisterForm({ active }: { active: boolean }) {
       <label className="kk-terms">
         <input name="acceptedPolicies" type="checkbox" value="yes" required checked={accepted} onChange={(e) => setAccepted(e.target.checked)} tabIndex={active ? 0 : -1} />
         <span className="kk-checkbox" aria-hidden="true">
-          ✓
+          <Check size={14} strokeWidth={3} />
         </span>
         <span>
           I&apos;ve read and accept the <Link href="/terms">Terms of Service</Link> and <Link href="/privacy">Privacy Policy</Link>.

@@ -1,5 +1,7 @@
 "use client";
 
+import { CalendarDays, CalendarRange, Crown, Medal, Megaphone, MessageCircle, Mic, Search, Star, type LucideIcon } from "lucide-react";
+import { LeafEmote } from "../ui-icons";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 type SortKey =
@@ -39,16 +41,32 @@ type LeaderboardResponse = {
   error?: string;
 };
 
-type Stat = { key: SortKey; label: string; short: string; icon: string; type: "leafs" | "number" | "duration" };
+type Stat = { key: SortKey; label: string; short: string; icon: LucideIcon | "leaf"; type: "leafs" | "number" | "duration" };
+
+/** A stat's icon: the leaf emote for leafs, otherwise a Lucide icon. */
+function StatIcon({ stat, size = 15 }: { stat: Stat; size?: number }) {
+  if (stat.icon === "leaf") return <LeafEmote size={size + 3} />;
+  const Icon = stat.icon;
+  return <Icon size={size} aria-hidden="true" />;
+}
+
+const MEDAL_CLASSES = ["lb-medal lb-medal--gold", "lb-medal lb-medal--silver", "lb-medal lb-medal--bronze"];
+function MedalIcon({ place, size = 18 }: { place: number; size?: number }) {
+  return (
+    <span className={MEDAL_CLASSES[place]} aria-label={`Rank ${place + 1}`}>
+      <Medal size={size} strokeWidth={2.2} />
+    </span>
+  );
+}
 
 const stats: Stat[] = [
-  { key: "balance", label: "Leafs", short: "Leafs", icon: "🍃", type: "leafs" },
-  { key: "level", label: "Level", short: "Level", icon: "⭐", type: "number" },
-  { key: "messages", label: "Messages", short: "Msgs", icon: "💬", type: "number" },
-  { key: "bumps", label: "Bumps", short: "Bumps", icon: "📣", type: "number" },
-  { key: "monthly_bumps", label: "Monthly Bumps", short: "Bumps/mo", icon: "📅", type: "number" },
-  { key: "total_vc_time", label: "VC Time", short: "VC", icon: "🎙️", type: "duration" },
-  { key: "monthly_vc_time", label: "Monthly VC", short: "VC/mo", icon: "🗓️", type: "duration" },
+  { key: "balance", label: "Leafs", short: "Leafs", icon: "leaf", type: "leafs" },
+  { key: "level", label: "Level", short: "Level", icon: Star, type: "number" },
+  { key: "messages", label: "Messages", short: "Msgs", icon: MessageCircle, type: "number" },
+  { key: "bumps", label: "Bumps", short: "Bumps", icon: Megaphone, type: "number" },
+  { key: "monthly_bumps", label: "Monthly Bumps", short: "Bumps/mo", icon: CalendarDays, type: "number" },
+  { key: "total_vc_time", label: "VC Time", short: "VC", icon: Mic, type: "duration" },
+  { key: "monthly_vc_time", label: "Monthly VC", short: "VC/mo", icon: CalendarRange, type: "duration" },
 ];
 
 const pageSizes = [10, 25, 50, 100];
@@ -320,7 +338,7 @@ export function LeaderboardsClient() {
             className={sort === s.key ? "lb-tab is-active" : "lb-tab"}
             onClick={() => chooseStat(s.key)}
           >
-            <span aria-hidden="true">{s.icon}</span> {s.label}
+            <StatIcon stat={s} /> {s.label}
           </button>
         ))}
       </div>
@@ -337,11 +355,11 @@ export function LeaderboardsClient() {
               </div>
               <div className="lb-standing-body">
                 <p className="lb-standing-value">
-                  {stat.type === "leafs" ? <img src="/leaf.png" alt="" width="22" height="22" /> : <span aria-hidden="true">{stat.icon}</span>}
+                  <StatIcon stat={stat} size={20} />
                   <AnimatedValue value={standing.value} stat={stat} /> <small>{stat.type === "leafs" ? "leafs" : stat.label.toLowerCase()}</small>
                 </p>
                 {standing.rank === 1 && order === "desc" ? (
-                  <p className="lb-standing-note">👑 You&apos;re in first place. Hold the crown!</p>
+                  <p className="lb-standing-note"><Crown size={15} className="lb-crown-inline" aria-hidden="true" /> You&apos;re in first place. Hold the crown!</p>
                 ) : standing.gap !== null && standing.aboveName ? (
                   <p className="lb-standing-note">
                     <strong>{formatStat(stat, standing.gap + (stat.type === "duration" ? 60 : 1))}</strong> more to pass{" "}
@@ -373,7 +391,7 @@ export function LeaderboardsClient() {
         <div className="lb-controls">
           <label className="lb-search">
             <span className="sr-only">Search members</span>
-            <span aria-hidden="true">🔍</span>
+            <Search size={16} aria-hidden="true" />
             <input
               type="search"
               placeholder="Search members…"
@@ -442,16 +460,16 @@ export function LeaderboardsClient() {
                 className={`lb-podium-card lb-place-${i + 1}${row.isCurrentUser ? " is-me" : ""}`}
               >
                 <span className="lb-podium-medal" aria-label={`Rank ${i + 1}`}>
-                  {["🥇", "🥈", "🥉"][i]}
+                  <MedalIcon place={i} />
                 </span>
                 <div className="lb-podium-avatar">
-                  {i === 0 ? <span className="lb-crown" aria-hidden="true">👑</span> : null}
+                  {i === 0 ? <Crown className="lb-crown" size={26} aria-hidden="true" /> : null}
                   <Avatar row={row} size={i === 0 ? 84 : 68} />
                 </div>
                 <strong className="lb-podium-name" title={row.name}>{row.name}</strong>
                 {row.username && row.username !== row.name ? <small>@{row.username}</small> : <small>&nbsp;</small>}
                 <p className={`lb-podium-value${delta ? (delta.amount > 0 ? " is-up" : " is-down") : ""}`}>
-                  {stat.type === "leafs" ? <img src="/leaf.png" alt="" width="18" height="18" /> : null}
+                  {stat.type === "leafs" ? <LeafEmote size={18} /> : null}
                   <AnimatedValue value={row[sort]} stat={stat} short />
                   {delta ? (
                     <span key={delta.at} className={delta.amount > 0 ? "lb-delta is-up" : "lb-delta is-down"}>
@@ -481,7 +499,7 @@ export function LeaderboardsClient() {
             >
               <button type="button" className="lb-row-main" onClick={() => setExpanded(open ? null : row._id)} aria-expanded={open}>
                 <span className="lb-rank">
-                  {!searching && order === "desc" && rank <= 3 ? ["🥇", "🥈", "🥉"][rank - 1] : `#${rank.toLocaleString()}`}
+                  {!searching && order === "desc" && rank <= 3 ? <MedalIcon place={rank - 1} size={17} /> : `#${rank.toLocaleString()}`}
                 </span>
                 <span className="lb-move" aria-label={move ? (move.by > 0 ? `Up ${move.by}` : `Down ${-move.by}`) : undefined}>
                   {move ? (move.by > 0 ? <em className="is-up">▲{move.by}</em> : <em className="is-down">▼{-move.by}</em>) : null}
@@ -500,7 +518,7 @@ export function LeaderboardsClient() {
                 <span className="lb-secondary">
                   {secondary.map((s) => (
                     <span key={s.key} title={s.label}>
-                      <span aria-hidden="true">{s.icon}</span> {formatStat(s, row[s.key], true)}
+                      <StatIcon stat={s} size={13} /> {formatStat(s, row[s.key], true)}
                     </span>
                   ))}
                 </span>
@@ -510,7 +528,7 @@ export function LeaderboardsClient() {
                       {formatDelta(stat, delta.amount)}
                     </span>
                   ) : null}
-                  {stat.type === "leafs" ? <img src="/leaf.png" alt="" width="18" height="18" /> : null}
+                  {stat.type === "leafs" ? <LeafEmote size={18} /> : null}
                   <AnimatedValue value={row[sort]} stat={stat} short />
                 </span>
               </button>
@@ -519,7 +537,7 @@ export function LeaderboardsClient() {
                   {stats.map((s) => (
                     <div key={s.key} className={s.key === sort ? "is-current" : undefined}>
                       <small>
-                        <span aria-hidden="true">{s.icon}</span> {s.label}
+                        <StatIcon stat={s} size={13} /> {s.label}
                       </small>
                       <strong>{formatStat(s, row[s.key])}</strong>
                     </div>

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { setSession, verifyPassword } from "../../../../lib/auth";
 import { isDatabaseConnectionError } from "../../../../lib/db-errors";
 import { getUsersCollection } from "../../../../lib/mongodb";
+import { HOUR, MINUTE, allow, clientIp } from "../../../../lib/rate-limit";
+import { cleanIdentifier, cleanPassword, isFormPost } from "../../../../lib/validate";
 
 export const maxDuration = 10;
 
@@ -9,11 +11,20 @@ export async function POST(request: Request) {
   const origin = new URL(request.url).origin;
 
   try {
+    if (!isFormPost(request)) return NextResponse.redirect(`${origin}/login?login=invalid`, 303);
     const form = await request.formData();
-    const identifier = String(form.get("identifier") ?? "")
-      .trim()
-      .toLowerCase();
-    const password = String(form.get("password") ?? "");
+    const identifier = cleanIdentifier(form.get("identifier"));
+    const password = cleanPassword(form.get("password"));
+    if (!identifier || !password) return NextResponse.redirect(`${origin}/login?login=invalid`, 303);
+
+    // Slow down password guessing: per address and per account
+    const ip = await clientIp();
+    const allowed = await allow([
+      { key: `login:ip:${ip}`, limit: 20, windowMs: 10 * MINUTE },
+      { key: `login:id:${identifier}`, limit: 10, windowMs: 15 * MINUTE },
+      { key: `login:day:${identifier}`, limit: 60, windowMs: 24 * HOUR },
+    ]);
+    if (!allowed) return NextResponse.redirect(`${origin}/login?login=too-many&identifier=${encodeURIComponent(identifier)}`, 303);
 
     const users = await getUsersCollection();
     const user = await users.findOne({

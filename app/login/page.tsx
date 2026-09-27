@@ -4,6 +4,7 @@ const statusMessages: Record<string, string> = {
   invalid:
     "We couldn't sign you in. Check your email/username and password.",
   success: "You are signed in.",
+  "too-many": "Too many login attempts. Please wait a few minutes and try again.",
   "verification-sent": "Verification email sent. Check your inbox, then log in after verifying.",
   "already-verified": "Your email address is already verified. You can log in now.",
   "email-provider-needed": "The verification email could not be sent. Please contact staff.",

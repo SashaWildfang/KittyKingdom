@@ -1,5 +1,6 @@
 "use client";
 
+import { FileText, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   LiveBadge,
@@ -90,7 +91,7 @@ export function TicketsTab({
     <div className="adm-panel">
       <div className="adm-filters">
         <label className="adm-search">
-          <span aria-hidden="true">🔍</span>
+          <Search size={16} aria-hidden="true" />
           <input
             type="search"
             placeholder="Ticket #, member name or ID, staff, topic…"
@@ -113,7 +114,7 @@ export function TicketsTab({
           ))}
         </select>
         <button type="button" className={`adm-chip-btn${filters.transcriptsOnly ? " is-active" : ""}`} onClick={() => update({ transcriptsOnly: !filters.transcriptsOnly })}>
-          📄 With transcript
+          <FileText size={15} aria-hidden="true" /> With transcript
         </button>
         <LiveBadge updatedAt={updatedAt} loading={loading} />
       </div>
@@ -204,7 +205,7 @@ export function TicketsTab({
                         onOpenTranscript(t.ticketId);
                       }}
                     >
-                      📄 View
+                      <FileText size={14} aria-hidden="true" /> View
                     </button>
                   ) : (
                     <span className="adm-muted">None</span>
