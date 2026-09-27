@@ -47,7 +47,171 @@ const FILTERS = [
   { key: "temp", label: "Temporary password" },
 ];
 
+type OnlineUser = { id: string; name: string; username: string | null; discordId: string | null; avatar: string | null; lastSeenAt: string; devices: { type: string; label: string }[] };
+
+type DeviceSession = {
+  id: string;
+  device: { browser: string; os: string; type: string };
+  ip: string | null;
+  location: { city: string | null; region: string | null; country: string | null };
+  createdAt: string;
+  lastSeenAt: string;
+  online: boolean;
+  active: boolean;
+  revokedAt: string | null;
+  revokedBy: string | null;
+  current: boolean;
+  userAgent: string | null;
+};
+
+const DEVICE_ICONS: Record<string, string> = { mobile: "📱", tablet: "📲", desktop: "💻" };
+
+/** "🇺🇸" from "US" */
+function flag(country: string | null) {
+  if (!country || !/^[A-Z]{2}$/.test(country)) return "";
+  return String.fromCodePoint(...country.split("").map((c) => 0x1f1e6 + c.charCodeAt(0) - 65));
+}
+
+function OnlineNow({ onOpen }: { onOpen: (id: string) => void }) {
+  const { data } = useLive<{ users: OnlineUser[]; visitors: number }>("/api/admin/online", 15_000);
+  return (
+    <section className="adm-online">
+      <div className="adm-online-head">
+        <h3>
+          <i className="adm-online-dot" aria-hidden="true" /> Online now
+        </h3>
+        <span className="adm-muted">
+          {data ? `${data.users.length} signed in · ${data.visitors} on the site in total` : "…"}
+        </span>
+      </div>
+      <div className="adm-online-list">
+        {data?.users.map((u) => (
+          <button key={u.id} type="button" className="adm-online-user" onClick={() => onOpen(u.id)} title={u.devices.map((d) => d.label).join("\n")}>
+            {u.avatar ? (
+              <img className="adm-avatar" src={u.avatar} alt="" width={28} height={28} />
+            ) : (
+              <span className="adm-avatar adm-avatar--letter" style={{ width: 28, height: 28 }} aria-hidden="true">
+                {u.name.charAt(0).toUpperCase()}
+              </span>
+            )}
+            <span className="adm-person-text">
+              <strong>{u.name}</strong>
+              <small>
+                {u.devices.map((d) => DEVICE_ICONS[d.type] ?? "💻").join(" ")} · {timeAgo(u.lastSeenAt)}
+              </small>
+            </span>
+          </button>
+        ))}
+        {data && !data.users.length ? <p className="adm-muted">Nobody signed in is active right now.</p> : null}
+      </div>
+    </section>
+  );
+}
+
+function Devices({ accountId }: { accountId: string }) {
+  const { data, reload } = useLive<{ sessions: DeviceSession[] }>(`/api/admin/accounts/${accountId}/sessions`, 15_000);
+  const [confirming, setConfirming] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ text: string; tone: "ok" | "error" } | null>(null);
+  const [showEnded, setShowEnded] = useState(false);
+
+  async function disconnect(id: string) {
+    setBusy(id);
+    setConfirming(null);
+    try {
+      const r = await fetch(`/api/admin/accounts/${accountId}/sessions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: id }),
+      });
+      const body = await r.json();
+      if (!r.ok || !body.ok) throw new Error(body.error ?? "Couldn't disconnect that device.");
+      setMessage({ text: body.message, tone: "ok" });
+      await reload();
+    } catch (e) {
+      setMessage({ text: e instanceof Error ? e.message : "Couldn't disconnect that device.", tone: "error" });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const sessions = data?.sessions ?? [];
+  const live = sessions.filter((s) => !s.revokedAt && s.active);
+  const ended = sessions.filter((s) => s.revokedAt || !s.active);
+
+  const row = (s: DeviceSession) => {
+    const place = [s.location.city, s.location.region, s.location.country].filter(Boolean).join(", ");
+    return (
+      <li key={s.id} className={`adm-device${s.revokedAt ? " is-ended" : ""}`}>
+        <span className="adm-device-icon" aria-hidden="true">
+          {DEVICE_ICONS[s.device.type] ?? "💻"}
+        </span>
+        <div className="adm-device-main">
+          <strong>
+            {s.device.browser} on {s.device.os}
+            {s.current ? <span className="adm-tag">this is you</span> : null}
+          </strong>
+          <small>
+            {s.online ? <span className="adm-status adm-status--active">● Online now</span> : s.revokedAt ? `Disconnected ${timeAgo(s.revokedAt)}${s.revokedBy?.startsWith("admin") ? " by staff" : s.revokedBy === "logout" ? " (logged out)" : ""}` : `Active ${timeAgo(s.lastSeenAt)}`}
+            {" · "}signed in {formatDate(s.createdAt)}
+          </small>
+          <small className="adm-device-ip">
+            {s.ip ? (
+              <>
+                IP <code>{s.ip}</code>{" "}
+                <a href={`https://ipinfo.io/${encodeURIComponent(s.ip)}`} target="_blank" rel="noopener noreferrer nofollow">
+                  lookup ↗
+                </a>
+              </>
+            ) : (
+              "IP unknown"
+            )}
+            {place ? ` · ${flag(s.location.country)} ${place}` : ""}
+          </small>
+        </div>
+        {!s.revokedAt ? (
+          confirming === s.id ? (
+            <div className="adm-confirm">
+              <button type="button" className="adm-btn adm-btn--small" onClick={() => void disconnect(s.id)}>
+                Disconnect
+              </button>
+              <button type="button" className="adm-btn adm-btn--ghost adm-btn--small" onClick={() => setConfirming(null)}>
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button type="button" className="adm-btn adm-btn--ghost adm-btn--small" disabled={Boolean(busy)} onClick={() => setConfirming(s.id)}>
+              {busy === s.id ? "…" : "Disconnect"}
+            </button>
+          )
+        ) : null}
+      </li>
+    );
+  };
+
+  return (
+    <section className="adm-drawer-section">
+      <h3>
+        Devices &amp; sessions <small>{live.length} active</small>
+      </h3>
+      {message ? <p className={message.tone === "ok" ? "adm-notice" : "adm-error"}>{message.text}</p> : null}
+      {!data ? <div className="adm-skeleton adm-skeleton--short" /> : null}
+      <ul className="adm-devices">{live.map(row)}</ul>
+      {data && !live.length ? <p className="adm-empty">No active sessions. Logins from before device tracking only show up once they sign in again.</p> : null}
+      {ended.length ? (
+        <>
+          <button type="button" className="adm-link" onClick={() => setShowEnded((v) => !v)}>
+            {showEnded ? "Hide" : "Show"} {ended.length} past session{ended.length === 1 ? "" : "s"}
+          </button>
+          {showEnded ? <ul className="adm-devices">{ended.map(row)}</ul> : null}
+        </>
+      ) : null}
+    </section>
+  );
+}
+
 const ACTION_LABELS: Record<string, string> = {
+  "disconnect-device": "Disconnected a device",
   "send-reset": "Sent a password reset link",
   "temp-password": "Set a temporary password",
   "sign-out": "Signed out everywhere",
@@ -84,6 +248,7 @@ export function AccountsTab({ onOpenMember }: { onOpenMember: (id: string) => vo
 
   return (
     <div className="adm-panel">
+      <OnlineNow onOpen={setOpen} />
       <div className="adm-kpis adm-kpis--4">
         <div className="adm-kpi">
           <small>Accounts</small>
@@ -355,6 +520,8 @@ function AccountDrawer({ id, onClose, onChanged, onOpenMember }: { id: string; o
                 </div>
               ) : null}
             </section>
+
+            <Devices accountId={account.id} />
 
             <section className="adm-drawer-section">
               <h3>Password &amp; sign-in</h3>

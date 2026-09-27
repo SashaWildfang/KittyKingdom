@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { createPortal } from "react-dom";
-import { DrillPanel, type Drill } from "./drill-panel";
+import type { Drill } from "./drill-panel";
 import { BarList, Donut, HourStrip, StackedBars } from "./admin-charts";
 import {
   ActionBadge,
@@ -69,9 +68,11 @@ const WIDGETS = [
 export function OverviewTab({
   level,
   onOpenMember,
+  onDrill,
   onFilterPunishments,
 }: {
   level: "admin" | "staff";
+  onDrill: (drill: Drill) => void;
   onOpenMember: (id: string) => void;
   onFilterPunishments: (action: string) => void;
 }) {
@@ -81,7 +82,8 @@ export function OverviewTab({
   const [hiddenActions, setHiddenActions] = useStored<string[]>("overview-hidden-actions", []);
   const [hiddenWidgets, setHiddenWidgets] = useStored<string[]>("overview-hidden-widgets", []);
   const [customizing, setCustomizing] = useState(false);
-  const [drill, setDrill] = useState<Drill | null>(null);
+  // Drill-downs open with the overview's current range and source
+  const setDrill = (d: Drill) => onDrill({ ...d, range, source } as Drill);
 
   const params = new URLSearchParams({ unit, source, ...(range !== "all" ? { range } : {}) });
   const { data, error, loading, updatedAt } = useLive<Stats>(`/api/admin/stats?${params}`, 15_000);
@@ -369,12 +371,6 @@ export function OverviewTab({
         ) : null}
       </div>
 
-      {drill
-        ? createPortal(
-            <DrillPanel drill={drill} range={range} source={source} onClose={() => setDrill(null)} onOpenMember={onOpenMember} />,
-            document.body,
-          )
-        : null}
     </div>
   );
 }

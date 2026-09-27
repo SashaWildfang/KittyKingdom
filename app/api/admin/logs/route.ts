@@ -17,6 +17,7 @@ export async function GET(request: Request) {
     const { from, to } = dateRange(params);
     const result = await queryLogs({
       types: listParam(params, "types"),
+      categories: listParam(params, "categories"),
       userId: params.get("userId") ?? undefined,
       search: params.get("search") ?? undefined,
       from,

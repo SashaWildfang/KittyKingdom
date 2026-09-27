@@ -10278,7 +10278,7 @@ button.adm-barlist-row:hover .adm-barlist-go {
 /* Bot logs */
 .adm-logs {
   display: grid;
-  grid-template-columns: 15.5rem minmax(0, 1fr);
+  grid-template-columns: 17.5rem minmax(0, 1fr);
   align-items: start;
   gap: 1rem;
 }
@@ -10566,4 +10566,524 @@ button.adm-barlist-row:hover .adm-barlist-go {
 
 .adm-md-link:hover {
   text-decoration: underline;
+}
+
+/* Log sidebar v2: categories that stay inside the card */
+.adm-logs-side {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.adm-logs-cats {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin-right: -0.4rem;
+  padding-right: 0.4rem;
+}
+
+.adm-logs-side ul {
+  overflow: visible;
+}
+
+.adm-logs-cat {
+  border-bottom: 1px solid var(--line);
+  padding: 0.2rem 0;
+}
+
+.adm-logs-cat:last-child {
+  border-bottom: 0;
+}
+
+.adm-logs-cat-head {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.adm-logs-cat-head label {
+  flex: 1;
+  min-width: 0;
+  font-weight: 800;
+}
+
+.adm-logs-cat-toggle {
+  flex: none;
+  width: 1.7rem;
+  height: 1.7rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  transition: transform 0.2s ease, background 0.15s ease;
+  transform: rotate(-90deg);
+}
+
+.adm-logs-cat-toggle:hover {
+  background: rgba(255, 242, 215, 0.06);
+}
+
+.adm-logs-cat.is-open .adm-logs-cat-toggle {
+  transform: none;
+}
+
+.adm-logs-cat ul {
+  margin: 0 0 0.3rem 0.9rem;
+  border-left: 1px dashed var(--line);
+  padding-left: 0.3rem;
+}
+
+.adm-logs-cat li.is-rare label {
+  opacity: 0.8;
+  font-size: 0.8rem;
+}
+
+.adm-logs-rare {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 0.3rem 0.45rem;
+}
+
+.adm-logs-rare:hover {
+  color: var(--text);
+}
+
+/* Inline media in logs (archived deleted-message files) */
+.adm-log-media {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.adm-log-thumb {
+  display: block;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 0.7rem;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.adm-log-thumb img {
+  display: block;
+  max-width: min(100%, 22rem);
+  max-height: 16rem;
+  object-fit: contain;
+  transition: transform 0.2s ease;
+}
+
+.adm-log-thumb:hover img {
+  transform: scale(1.02);
+}
+
+.adm-log-video {
+  max-width: min(100%, 26rem);
+  max-height: 18rem;
+  border-radius: 0.7rem;
+  background: #000;
+}
+
+/* ==========================================
+   Day / night theme switch
+   ========================================== */
+.theme-switch {
+  position: relative;
+  flex: none;
+  width: 4.1rem;
+  height: 2.1rem;
+  overflow: hidden;
+  border: 1px solid rgba(255, 210, 122, 0.45);
+  border-radius: 999px;
+  background: linear-gradient(160deg, #ffcf7a 0%, #f59b2a 45%, #e0701e 100%);
+  box-shadow: inset 0 2px 6px rgba(120, 40, 5, 0.35), 0 4px 14px rgba(245, 155, 42, 0.3);
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.6s ease, border-color 0.6s ease, box-shadow 0.6s ease;
+}
+
+.theme-switch.is-dark {
+  border-color: rgba(160, 170, 255, 0.35);
+  background: linear-gradient(160deg, #1b1840 0%, #2a2360 50%, #120f2b 100%);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.55), 0 4px 14px rgba(90, 80, 200, 0.28);
+}
+
+.theme-switch:focus-visible {
+  outline: 2px solid #ffd27a;
+  outline-offset: 3px;
+}
+
+.theme-switch-sky {
+  position: absolute;
+  inset: 0;
+}
+
+/* Clouds drift off when night falls */
+.ts-cloud {
+  position: absolute;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  transition: transform 0.6s cubic-bezier(0.5, 0, 0.2, 1), opacity 0.4s ease;
+}
+
+.ts-cloud::before {
+  content: "";
+  position: absolute;
+  bottom: 0.2rem;
+  left: 0.3rem;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: inherit;
+}
+
+.ts-cloud--1 {
+  right: 0.55rem;
+  bottom: 0.45rem;
+  width: 1.3rem;
+  animation: ts-drift 6s ease-in-out infinite alternate;
+}
+
+.ts-cloud--2 {
+  right: 1.35rem;
+  top: 0.35rem;
+  width: 0.9rem;
+  opacity: 0.7;
+  animation: ts-drift 8s ease-in-out -3s infinite alternate;
+}
+
+.theme-switch.is-dark .ts-cloud {
+  opacity: 0;
+  transform: translateY(1.4rem);
+}
+
+@keyframes ts-drift {
+  to {
+    translate: -0.25rem 0;
+  }
+}
+
+/* Stars appear at night */
+.ts-star {
+  position: absolute;
+  width: 0.2rem;
+  height: 0.2rem;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 4px #fff;
+  opacity: 0;
+  transform: translateY(-0.8rem) scale(0.4);
+  transition: opacity 0.5s ease, transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.ts-star--1 {
+  top: 0.4rem;
+  left: 0.65rem;
+}
+
+.ts-star--2 {
+  top: 1.2rem;
+  left: 1.2rem;
+  width: 0.14rem;
+  height: 0.14rem;
+}
+
+.ts-star--3 {
+  top: 0.55rem;
+  left: 1.75rem;
+  width: 0.14rem;
+  height: 0.14rem;
+}
+
+.ts-star--4 {
+  top: 1.35rem;
+  left: 0.45rem;
+  width: 0.12rem;
+  height: 0.12rem;
+}
+
+.theme-switch.is-dark .ts-star {
+  opacity: 1;
+  transform: none;
+  animation: ts-twinkle 2.4s ease-in-out infinite;
+}
+
+.theme-switch.is-dark .ts-star--2 {
+  animation-delay: -0.8s;
+}
+
+.theme-switch.is-dark .ts-star--3 {
+  animation-delay: -1.6s;
+}
+
+.theme-switch.is-dark .ts-star--4 {
+  animation-delay: -0.4s;
+}
+
+@keyframes ts-twinkle {
+  50% {
+    opacity: 0.35;
+    transform: scale(0.7);
+  }
+}
+
+/* The knob: a glowing sun that slides over and becomes a crescent-ish moon */
+.theme-switch-knob {
+  position: absolute;
+  top: 0.22rem;
+  left: 0.24rem;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fff6c9, #ffd23f 55%, #f5a623);
+  box-shadow: 0 0 0 0.22rem rgba(255, 230, 140, 0.35), 0 0 14px rgba(255, 210, 63, 0.9);
+  transition: transform 0.55s cubic-bezier(0.68, -0.35, 0.27, 1.35), background 0.5s ease, box-shadow 0.5s ease;
+}
+
+.theme-switch:hover .theme-switch-knob {
+  box-shadow: 0 0 0 0.3rem rgba(255, 230, 140, 0.45), 0 0 20px rgba(255, 210, 63, 1);
+}
+
+.theme-switch.is-dark .theme-switch-knob {
+  transform: translateX(1.95rem) rotate(-30deg);
+  background: radial-gradient(circle at 35% 35%, #ffffff, #e6e6f5 60%, #b9bbd8);
+  box-shadow: inset -0.35rem -0.1rem 0 rgba(160, 165, 210, 0.55), 0 0 12px rgba(200, 205, 255, 0.55);
+}
+
+.ts-crater {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(150, 155, 195, 0.55);
+  opacity: 0;
+  transition: opacity 0.4s ease 0.15s;
+}
+
+.ts-crater--1 {
+  top: 0.38rem;
+  left: 0.5rem;
+  width: 0.36rem;
+  height: 0.36rem;
+}
+
+.ts-crater--2 {
+  top: 0.9rem;
+  left: 0.85rem;
+  width: 0.24rem;
+  height: 0.24rem;
+}
+
+.theme-switch.is-dark .ts-crater {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-switch,
+  .theme-switch *,
+  .theme-switch *::before {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Punishments table: reason gets the room, everything else stays compact */
+.adm-table--pun {
+  table-layout: fixed;
+}
+
+.adm-table--pun th:nth-child(1) {
+  width: 9.5rem;
+}
+
+.adm-table--pun th:nth-child(2) {
+  width: 8.5rem;
+}
+
+.adm-table--pun th:nth-child(3),
+.adm-table--pun th:nth-child(4) {
+  width: 12.5rem;
+}
+
+.adm-table--pun th:nth-child(6) {
+  width: 7.5rem;
+}
+
+.adm-table--pun td {
+  overflow: hidden;
+}
+
+.adm-table--pun .adm-reason-cell {
+  max-width: none;
+  white-space: normal;
+}
+
+.adm-clamp {
+  display: -webkit-box;
+  overflow: hidden;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.adm-table--pun .adm-person {
+  max-width: 100%;
+}
+
+.adm-table--pun .adm-detail {
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 0.8rem 1.4rem;
+  border-left: 3px solid var(--c, var(--ember));
+  border-radius: 0.6rem;
+  background: rgba(0, 0, 0, 0.12);
+  padding: 0.8rem 1rem;
+}
+
+.adm-table--pun .adm-detail dl {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .adm-table--pun {
+    table-layout: auto;
+    min-width: 52rem;
+  }
+}
+
+/* Staff actions in the member drawer */
+.adm-h3-link {
+  margin-left: auto;
+  font-size: 0.82rem;
+}
+
+.adm-staff-actions {
+  border: 1px solid rgba(62, 99, 221, 0.35);
+  border-radius: 0.9rem;
+  background: rgba(62, 99, 221, 0.06);
+  padding: 0.8rem;
+}
+
+/* Online now + devices */
+.adm-online {
+  border: 1px solid rgba(61, 220, 132, 0.3);
+  border-radius: 1rem;
+  background: linear-gradient(180deg, rgba(61, 220, 132, 0.07), transparent 70%), var(--panel);
+  padding: 0.85rem 1rem;
+}
+
+.adm-online-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 1rem;
+  margin-bottom: 0.6rem;
+}
+
+.adm-online-head h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.adm-online-dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: #3ddc84;
+  animation: lb-pulse 1.8s infinite;
+}
+
+.adm-online-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.adm-online-list p {
+  margin: 0;
+}
+
+.adm-online-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: 0.25rem 0.8rem 0.25rem 0.25rem;
+  text-align: left;
+}
+
+.adm-online-user:hover {
+  border-color: rgba(61, 220, 132, 0.6);
+}
+
+.adm-devices {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.adm-device {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 0.8rem;
+  background: var(--panel);
+  padding: 0.65rem 0.8rem;
+}
+
+.adm-device.is-ended {
+  opacity: 0.6;
+}
+
+.adm-device-icon {
+  font-size: 1.4rem;
+}
+
+.adm-device-main {
+  display: grid;
+  flex: 1 1 14rem;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.adm-device-main strong {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.92rem;
+}
+
+.adm-device-main small {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.adm-device-ip code {
+  border-radius: 0.3rem;
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text);
+  padding: 0 0.3rem;
+}
+
+.adm-device-ip a {
+  color: var(--ember);
+  font-weight: 800;
 }
