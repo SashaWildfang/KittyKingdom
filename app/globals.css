@@ -16048,3 +16048,222 @@ p.acct-inline-icon > svg:first-child {
 .reg-wait span {
   flex: 1;
 }
+
+/* ==========================================
+   Live Chat v3: stat dropdowns, staff colors, bulk unhide
+   ========================================== */
+.live-top {
+  position: relative;
+}
+
+button.live-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  padding: 0.2rem 0.55rem;
+}
+
+button.live-stat:hover,
+button.live-stat.is-open {
+  border-color: var(--line);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+}
+
+button.live-stat svg {
+  transition: transform 0.2s ease;
+}
+
+button.live-stat.is-open svg {
+  transform: rotate(180deg);
+}
+
+.live-stat-panel {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 0.6rem;
+  z-index: 30;
+  display: grid;
+  gap: 0.5rem;
+  width: min(26rem, calc(100% - 1.2rem));
+  max-height: 24rem;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--bg);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  padding: 0.7rem;
+  animation: lb-pop 0.16s ease;
+}
+
+.live-stat-panel header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.live-stat-panel ul {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.live-stat-panel li > button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  border: 0;
+  border-radius: 0.6rem;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.86rem;
+  padding: 0.4rem 0.55rem;
+  text-align: left;
+}
+
+.live-stat-panel li > button:hover {
+  background: rgba(245, 155, 42, 0.12);
+}
+
+.live-stat-name {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  font-weight: 700;
+}
+
+.live-stat-name .live-rank {
+  justify-self: start;
+}
+
+.live-stat-name small {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.live-stat-panel b {
+  flex: none;
+  font-size: 0.8rem;
+}
+
+.live-stat-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.live-stat-bar i {
+  display: inline-block;
+  height: 0.35rem;
+  min-width: 0.4rem;
+  max-width: 7rem;
+  border-radius: 999px;
+  background: #46a758;
+}
+
+.live-stat-faces .live-face {
+  margin-right: -0.2rem;
+}
+
+.live-stat-voice {
+  display: grid;
+  gap: 0.3rem;
+  border-radius: 0.6rem;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.45rem 0.55rem;
+}
+
+.live-stat-vchan {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.live-stat-vchan small {
+  color: var(--muted);
+}
+
+button.live-voice-member {
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.live-stat-action {
+  justify-self: start;
+}
+
+/* Staff names in their staff role color */
+.live-msg-name.is-staff {
+  color: var(--rank);
+}
+
+.live-hidden-bulk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.live-hidden-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+}
+
+.live-hidden-pick input,
+.live-hidden-bulk input {
+  accent-color: #f59b2a;
+}
+
+.adm-danger-type {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0.2rem 0 0.6rem;
+  font-size: 0.85rem;
+}
+
+.adm-danger-type input {
+  max-width: 14rem;
+  border: 1px solid rgba(229, 72, 77, 0.5);
+  border-radius: 0.6rem;
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  outline: none;
+  padding: 0.45rem 0.7rem;
+}
+
+.adm-danger-type input:focus {
+  border-color: #e5484d;
+}
+
+.adm-danger-confirm.is-final {
+  border-color: #e5484d;
+  background: rgba(229, 72, 77, 0.14);
+}
