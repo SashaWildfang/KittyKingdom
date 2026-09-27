@@ -12,9 +12,11 @@ export const STATUS_ROLES = [
   { key: "member", id: "1358469854725931038", label: "Member", icon: "✅" },
   { key: "media", id: "1502679664894677063", label: "Media Perms", icon: "📷" },
   { key: "vc", id: "1503200525527810269", label: "VC Perms", icon: "🎙️" },
-  { key: "patreon", id: "1360260086500561237", label: "Patreon", icon: "💎" },
+  // 🍂 Golden Leaf (Nitro), the server booster role
+  { key: "nitro", id: "1360260086500561237", label: "Nitro Booster", icon: "💎" },
 ] as const;
 
+const STAFF_TEAM_ROLE_ID = "1358470109965979859";
 const STATUS_IDS = new Set<string>(STATUS_ROLES.map((r) => r.id));
 const ADULT_VERIFIED_ID = "1358469974552870913";
 // Level roles are named like "Maple Leaf [41-50]"
@@ -29,6 +31,9 @@ export class RoleError extends Error {
 export type RoleState = {
   inServer: boolean;
   isAdult: boolean;
+  isStaff: boolean;
+  /** Highest colored role, the one Discord colors their name with */
+  rank: { name: string; colors: string[] } | null;
   level: number | null;
   status: { key: string; label: string; icon: string; has: boolean }[];
   categories: {
@@ -78,9 +83,16 @@ export async function getRoleState(discordId: string): Promise<RoleState> {
     (LEVEL_ROLE.test(role.name) ? levelRoles : otherRoles).push(role);
   }
 
+  const top = Array.from(has)
+    .map((id) => guildRoles.get(id))
+    .filter((r): r is GuildRole => Boolean(r && r.colors.length))
+    .sort((a, b) => b.position - a.position)[0];
+
   return {
     inServer: memberRoles !== null,
     isAdult,
+    isStaff: has.has(STAFF_TEAM_ROLE_ID),
+    rank: top ? { name: top.name, colors: top.colors } : null,
     level,
     status: STATUS_ROLES.map((r) => ({ key: r.key, label: r.label, icon: r.icon, has: has.has(r.id) })),
     categories: ROLE_CATEGORIES.map((c) => ({

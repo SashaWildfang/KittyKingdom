@@ -104,7 +104,13 @@ export function DailyCard({ initial, guildId }: { initial: DailyStatus | null; g
             <LeafEmote size={26} /> {status.nextReward.toLocaleString()}
           </strong>
           <small>
-            {bonus > 0 ? `${status.base} + ${bonus} day ${status.nextCycleDay} streak bonus` : `${status.base} leaves every day`}
+            {bonus > 0 ? (
+              `${status.base} + ${bonus} day ${status.nextCycleDay} streak bonus`
+            ) : (
+              <>
+                {status.base} <LeafEmote size={14} /> every day
+              </>
+            )}
           </small>
           {popped ? (
             <span className="daily-pop" aria-hidden="true">
@@ -114,8 +120,15 @@ export function DailyCard({ initial, guildId }: { initial: DailyStatus | null; g
         </div>
 
         {claimable ? (
-          <button type="button" className="daily-claim" onClick={() => void claim()} disabled={busy}>
-            <Gift size={18} aria-hidden="true" /> {busy ? "Claiming…" : `Claim ${status.nextReward.toLocaleString()} leaves`}
+          <button type="button" className="daily-claim" onClick={() => void claim()} disabled={busy} aria-label={`Claim ${status.nextReward} leaves`}>
+            <Gift size={18} aria-hidden="true" />
+            {busy ? (
+              "Claiming…"
+            ) : (
+              <>
+                Claim {status.nextReward.toLocaleString()} <LeafEmote size={22} />
+              </>
+            )}
           </button>
         ) : (
           <div className="daily-timer" role="timer" aria-live="off">
@@ -177,7 +190,7 @@ export function DailyCard({ initial, guildId }: { initial: DailyStatus | null; g
           <div>
             <strong>Unlock streak bonuses with Nitro</strong>
             <p>
-              Boost Kitty Kingdom with Discord Nitro to get the <b>Nitro</b> role. Boosters earn a streak bonus on top of the daily {status.base}: +{status.step} on
+              Boost Kitty Kingdom with Discord Nitro to get the <b>🍂 Golden Leaf (Nitro)</b> role. Boosters earn a streak bonus on top of the daily {status.base}: +{status.step} on
               day 1, up to +{status.step * 7} on day 7, then the week starts again. That&apos;s up to <b>{(status.base * 7 + status.step * 28).toLocaleString()}</b> leaves a
               week instead of {(status.base * 7).toLocaleString()}.
             </p>
@@ -186,7 +199,7 @@ export function DailyCard({ initial, guildId }: { initial: DailyStatus | null; g
             </p>
             {nitroLink ? (
               <a className="daily-nitro-link" href={nitroLink} target="_blank" rel="noreferrer">
-                See all booster perks <ExternalLink size={13} aria-hidden="true" />
+                See all perks in #✨nitro-perks <ExternalLink size={13} aria-hidden="true" />
               </a>
             ) : null}
           </div>

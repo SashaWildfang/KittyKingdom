@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
+import { PageTracker } from "./page-tracker";
 
 export const metadata: Metadata = {
   title: "Kitty Kingdom | Furry Community",
@@ -21,7 +22,10 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <PageTracker />
+      </body>
     </html>
   );
 }
