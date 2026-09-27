@@ -1,3 +1,4 @@
+import { userTimeZone } from "../../lib/timezone";
 import { Backpack, ChevronDown, Gift, ShieldCheck, Check, CircleAlert, ClipboardList, KeyRound, Link2, Lock, MessageCircle, Sparkles, TriangleAlert, UserRound } from "lucide-react";
 import { LeafEmote } from "../ui-icons";
 import { redirect } from "next/navigation";
@@ -23,6 +24,8 @@ import { getDailyStatus } from "../../lib/daily";
 import { AccountInventory } from "./account-inventory";
 import { DiscordLinkCode } from "./discord-link-code";
 import { RoleManager } from "./role-manager";
+import { AccountViews, StatsButton } from "./account-views";
+import { accountName } from "../../lib/names";
 
 const statusMessages: Record<string, string> = {
   "contact-saved": "Contact details and social links saved.",
@@ -77,7 +80,7 @@ function socialInputValue(link: SocialLink | undefined) {
 }
 
 function formatMonthYear(date: Date) {
-  return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC" }).format(date);
+  return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: userTimeZone() }).format(date);
 }
 
 function DiscordIcon() {
@@ -124,11 +127,12 @@ export default async function AccountPage({
   const age = birthday.age;
   const dob = birthday.birthDate ? formatDateOfBirth(birthday.birthDate) : "Not available";
   const displayName = typeof user.displayName === "string" ? user.displayName : null;
-  const heading = displayName ? `Welcome back, ${displayName}` : "My Account";
-  const shownName = displayName ?? user.username ?? user.email.split("@")[0];
+  // No display name set: their Discord nickname, then Discord username
+  const shownName = accountName(user, roles);
+  const heading = displayName || user.discordId ? `Welcome back, ${shownName}` : "My Account";
   const discordLinked = Boolean(user.discordId);
   const twoFactor = twoFactorStatus(user);
-  const discordName = discordLinked ? String(user.discord?.username ?? user.discordId) : null;
+  const discordName = discordLinked ? String(user.discord?.username ?? roles.username ?? user.discordId) : null;
   const memberSince = user.createdAt instanceof Date ? formatMonthYear(user.createdAt) : null;
   const statusText = status ? statusMessages[status] ?? `Status: ${status}` : null;
   const statusTone = status && successStatuses.has(status) ? "success" : "error";
@@ -178,7 +182,7 @@ export default async function AccountPage({
             </div>
             <h2>{shownName}</h2>
             {user.username ? <p className="acct-handle">@{user.username}</p> : null}
-            <LiveServerStatus initial={roleState} discordLinked={discordLinked} fallbackRank={roles.rank} fallbackStaff={roles.isStaff} />
+            <LiveServerStatus initial={roleState} discordLinked={discordLinked} fallbackStaff={roles.isStaff} />
             {SOCIALS.some((s) => socials[s.key]) ? (
               <div className="acct-social-icons">
                 {SOCIALS.filter((s) => socials[s.key]).map((s) => (
@@ -196,23 +200,49 @@ export default async function AccountPage({
               </div>
             ) : null}
             {memberSince ? <p className="acct-since"><LeafEmote size={16} /> Member since {memberSince}</p> : null}
+            {discordLinked ? <StatsButton /> : null}
           </div>
 
           <nav className="acct-nav" aria-label="Account sections">
+            <a href="#discord-account"><MessageCircle size={16} aria-hidden="true" /> Discord</a>
             <a href="#overview"><ClipboardList size={16} aria-hidden="true" /> Overview</a>
             {discordLinked ? <a href="#roles"><Sparkles size={16} aria-hidden="true" /> Server roles</a> : null}
             {discordLinked ? <a href="#daily"><Gift size={16} aria-hidden="true" /> Daily</a> : null}
             {discordLinked ? <a href="#inventory"><Backpack size={16} aria-hidden="true" /> Inventory</a> : null}
             <a href="#profile"><UserRound size={16} aria-hidden="true" /> Profile</a>
             <a href="#contact"><Link2 size={16} aria-hidden="true" /> Contact &amp; socials</a>
-            <a href="#discord-account"><MessageCircle size={16} aria-hidden="true" /> Discord</a>
             <a href="#security"><Lock size={16} aria-hidden="true" /> Security{twoFactor.enabled ? null : <span className="acct-nav-dot" title="Two-factor is off" />}</a>
             <a className="acct-nav-danger" href="#delete-account"><TriangleAlert size={16} aria-hidden="true" /> Delete account</a>
           </nav>
         </aside>
 
-        {/* ---------- Main column ---------- */}
-        <div className="acct-main">
+        {/* ---------- Main column (swaps to the stats page on #stats) ---------- */}
+        <AccountViews>
+          <section className="acct-card acct-discord" id="discord-account">
+            <span className="acct-discord-icon">
+              <DiscordIcon />
+            </span>
+            <div className="acct-discord-copy">
+              <h2>Discord</h2>
+              <p>
+                {discordLinked ? (
+                  <>
+                    Linked as <strong>{discordName}</strong>. Your roles, level and store stay in sync automatically.
+                  </>
+                ) : (
+                  "Link Discord to unlock the Store, Leaderboards and your server roles. Just grab a code and use /link in the server."
+                )}
+              </p>
+            </div>
+            {discordLinked ? (
+              <div className="acct-discord-actions">
+                <DiscordUnlinkForm />
+              </div>
+            ) : (
+              <DiscordLinkCode />
+            )}
+          </section>
+
           <CollapsibleCard id="overview" title={"Overview"} description={"Your account details. Age and birthday come from your Discord join application."}>
             <dl className="acct-info-grid">
               <div>
@@ -350,30 +380,6 @@ export default async function AccountPage({
             </form>
           </CollapsibleCard>
 
-          <section className="acct-card acct-discord" id="discord-account">
-            <span className="acct-discord-icon">
-              <DiscordIcon />
-            </span>
-            <div className="acct-discord-copy">
-              <h2>Discord</h2>
-              <p>
-                {discordLinked ? (
-                  <>
-                    Linked as <strong>{discordName}</strong>. Your roles, level and store stay in sync automatically.
-                  </>
-                ) : (
-                  "Link Discord to unlock the Store, Leaderboards and your server roles. Just grab a code and use /link in the server."
-                )}
-              </p>
-            </div>
-            {discordLinked ? (
-              <div className="acct-discord-actions">
-                <DiscordUnlinkForm />
-              </div>
-            ) : (
-              <DiscordLinkCode />
-            )}
-          </section>
 
           <CollapsibleCard id="security" title={"Security"} description={"Your password and two-factor authentication."} summary={twoFactor.enabled ? "Two-factor on" : "Two-factor off"}>
             <h3 className="acct-subhead">Password</h3>
@@ -417,7 +423,7 @@ export default async function AccountPage({
             </form>
             )}
           </details>
-        </div>
+        </AccountViews>
       </div>
     </main>
   );

@@ -3,6 +3,7 @@ import { requireAdmin } from "../../../../lib/admin";
 import { people } from "../../../../lib/admin-people";
 import { getPresenceCollection, getUsersCollection } from "../../../../lib/mongodb";
 import { ONLINE_WINDOW_MS, sessionsCollection } from "../../../../lib/sessions";
+import { accountName } from "../../../../lib/names";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,7 @@ export async function GET(request: Request) {
         const discordId = account?.discordId ? String(account.discordId) : null;
         return {
           id,
-          name: String(account?.displayName ?? account?.username ?? account?.email ?? "Unknown"),
+          name: account ? accountName(account, discordId ? who[discordId] : null) : "Unknown",
           username: account?.username ? String(account.username) : null,
           discordId,
           avatar: discordId ? who[discordId]?.avatar ?? null : null,

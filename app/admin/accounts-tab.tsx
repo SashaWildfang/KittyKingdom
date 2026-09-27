@@ -11,6 +11,7 @@ type AccountRow = {
   email: string;
   username: string | null;
   displayName: string | null;
+  name: string;
   emailVerified: boolean;
   discordId: string | null;
   discordName: string | null;
@@ -23,9 +24,9 @@ type AccountRow = {
 };
 
 /** Discord profile picture when linked, otherwise their initial. */
-function AccountAvatar({ account, size }: { account: { avatar: string | null; displayName: string | null; username: string | null; email: string; online?: boolean }; size: number }) {
+function AccountAvatar({ account, size }: { account: { avatar: string | null; name?: string; displayName: string | null; username: string | null; email: string; online?: boolean }; size: number }) {
   const [failed, setFailed] = useState(false);
-  const letter = (account.displayName ?? account.username ?? account.email).charAt(0).toUpperCase();
+  const letter = (account.name ?? account.displayName ?? account.username ?? account.email).charAt(0).toUpperCase();
   const face =
     account.avatar && !failed ? (
       <img className="adm-avatar" src={account.avatar} alt="" width={size} height={size} loading="lazy" onError={() => setFailed(true)} />
@@ -361,7 +362,7 @@ export function AccountsTab({ onOpenMember }: { onOpenMember: (id: string) => vo
                   <span className="adm-account">
                     <AccountAvatar account={a} size={30} />
                     <span className="adm-person-text">
-                      <strong>{a.displayName ?? a.username ?? "No name yet"}</strong>
+                      <strong>{a.name}</strong>
                       <small>{a.username ? `@${a.username}` : "no username"}</small>
                     </span>
                     {a.mustChangePassword ? <span className="adm-tag">temp password</span> : null}
@@ -501,7 +502,7 @@ function SegmentDrawer({ segment, onClose, onOpenAccount, onShowInTable }: { seg
                 <button type="button" onClick={() => onOpenAccount(a.id)}>
                   <AccountAvatar account={a} size={30} />
                   <span className="adm-person-text">
-                    <strong>{a.displayName ?? a.username ?? "No name yet"}</strong>
+                    <strong>{a.name}</strong>
                     <small>{a.email}</small>
                   </span>
                   <span className="adm-muted">{timeAgo(a.createdAt)}</span>
@@ -630,7 +631,7 @@ function AccountDrawer({ id, onClose, onChanged, onOpenMember }: { id: string; o
             <header className="adm-drawer-head">
               <AccountAvatar account={account} size={64} />
               <div>
-                <h2>{account.displayName ?? account.username ?? "No name yet"}</h2>
+                <h2>{account.name}</h2>
                 <p>{account.username ? `@${account.username}` : "No username yet"}</p>
                 <CopyId id={account.id} />
               </div>

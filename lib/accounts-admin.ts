@@ -9,6 +9,8 @@ import { formatDateOfBirth } from "./dates";
 import { applicationBirthday, getJoinApplication } from "./join-application";
 import { startPasswordReset } from "./password-reset";
 import { ONLINE_WINDOW_MS, revokeAllSessions, sessionsCollection } from "./sessions";
+import { userTimeZone } from "./timezone";
+import { accountName } from "./names";
 
 const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -17,6 +19,8 @@ export type AccountRow = {
   email: string;
   username: string | null;
   displayName: string | null;
+  /** What to call them: display name, else Discord nickname, else Discord username. */
+  name: string;
   emailVerified: boolean;
   discordId: string | null;
   discordName: string | null;
@@ -37,6 +41,7 @@ function toRow(doc: Document): AccountRow {
     email: String(doc.email ?? ""),
     username: doc.username ? String(doc.username) : null,
     displayName: doc.displayName ? String(doc.displayName) : null,
+    name: accountName(doc),
     emailVerified: Boolean(doc.emailVerified),
     discordId: doc.discordId ? String(doc.discordId) : null,
     discordName: doc.discord?.username ? String(doc.discord.username) : null,
@@ -57,13 +62,14 @@ async function withDiscordProfiles(rows: AccountRow[]) {
   const docs = await client
     .db(process.env.MONGODB_DB ?? "website")
     .collection("member_directory")
-    .find({ _id: { $in: ids } } as never, { projection: { username: 1, displayName: 1, avatar: 1 } })
+    .find({ _id: { $in: ids } } as never, { projection: { username: 1, displayName: 1, nick: 1, avatar: 1 } })
     .toArray();
   const byId = new Map(docs.map((d) => [String(d._id), d]));
   for (const row of rows) {
     if (!row.discordId) continue;
     const d = byId.get(row.discordId);
     row.discordName = row.discordName ?? (d ? String(d.displayName ?? d.username ?? "") || null : null);
+    if (!row.displayName && d) row.name = accountName({ username: row.username, email: row.email }, { nick: (d.nick as string | null) ?? null, username: (d.username as string | null) ?? null });
     // Directory avatar when known, otherwise the site's avatar proxy (which falls back to Discord's default)
     row.avatar = (d?.avatar as string | null | undefined) ?? `/api/discord/avatar/${row.discordId}`;
   }
@@ -320,7 +326,7 @@ export async function accountSegmentInsights(segment: AccountSegment) {
     users
       .aggregate([
         { $match: { ...filter, createdAt: { $type: "date", $gte: new Date(Date.now() - 180 * 86_400_000) } } },
-        { $group: { _id: { $dateTrunc: { date: "$createdAt", unit: "week", timezone: "America/Denver" } }, n: { $sum: 1 } } },
+        { $group: { _id: { $dateTrunc: { date: "$createdAt", unit: "week", timezone: userTimeZone() } }, n: { $sum: 1 } } },
         { $sort: { _id: 1 } },
       ])
       .toArray(),
