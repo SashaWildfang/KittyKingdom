@@ -14,15 +14,18 @@ export async function GET(request: Request) {
   try {
     const p = new URL(request.url).searchParams;
     const valid = (v: string | null) => (v && !Number.isNaN(Date.parse(v)) ? v : null);
-    const channel = p.get("channel");
+    const channels = (p.get("channels") ?? "").split(",").filter((c) => /^\d{15,21}$/.test(c)).slice(0, 50);
     const snapshot = await liveSnapshot(panel.discordId, {
       afterTs: valid(p.get("after")),
       since: valid(p.get("since")),
-      channelId: channel && /^\d{15,21}$/.test(channel) ? channel : null,
+      channels,
       limit: Number(p.get("limit") ?? 80),
     });
     // Names for @mentions, #channels and @roles in the messages
-    const texts = [...snapshot.messages, ...snapshot.changed].map((m) => m.content).filter((t) => t.includes("<"));
+    // Everything that can hold mentions: text, replies, forwards and embeds (bot logs)
+    const texts = [...snapshot.messages, ...snapshot.changed]
+      .flatMap((m) => [m.content, m.reply?.content ?? "", m.forwarded?.content ?? "", ...[...m.embeds, ...(m.forwarded?.embeds ?? [])].flatMap((e) => [e.title ?? "", e.description ?? "", e.author?.name ?? "", e.footer?.text ?? "", ...e.fields.flatMap((f) => [f.name, f.value])])])
+      .filter((t) => t.includes("<"));
     const { mentions, userIds } = texts.length ? await resolveMentions(texts) : { mentions: { channels: {}, roles: {} }, userIds: [] as string[] };
     const who = userIds.length ? await people(userIds) : {};
     return NextResponse.json({ ok: true, ...snapshot, mentions, people: who }, { headers: { "Cache-Control": "no-store" } });
