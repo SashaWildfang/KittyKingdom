@@ -1,8 +1,8 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "./auth";
-import { getMemberRoleIds } from "./discord-member";
-import { getStaffCollection } from "./mongodb";
+import { getMemberRoleIds, memberRolesChecked } from "./discord-member";
+import { getMongoClient, getStaffCollection } from "./mongodb";
 
 // Admin or higher see everything in the panel
 export const ADMIN_ROLE_IDS = [
@@ -15,20 +15,47 @@ export const STAFF_TEAM_ROLE_ID = "1358470109965979859";
 export type PanelLevel = "admin" | "staff";
 
 const ROLE_CACHE_MS = 60_000;
+const STALE_OK_MS = 7 * 24 * 3_600_000; // if Discord is unreachable, trust a confirmed answer this old
 const roleCache = new Map<string, { level: PanelLevel | null; at: number }>();
+
+const levelFromRoles = (roles: string[]): PanelLevel | null =>
+  roles.some((id) => ADMIN_ROLE_IDS.includes(id)) ? "admin" : roles.includes(STAFF_TEAM_ROLE_ID) ? "staff" : null;
+
+async function accessCollection() {
+  const client = await getMongoClient();
+  return client.db(process.env.MONGODB_DB ?? "website").collection("panel_access");
+}
+
+/**
+ * When Discord can't be reached (rate limits, outages), use the last confirmed answer instead of
+ * locking staff out: this instance's memory, then the saved answer, then the bot-synced staff list.
+ */
+async function fallbackLevel(discordId: string): Promise<PanelLevel | null> {
+  const mem = roleCache.get(discordId);
+  if (mem && Date.now() - mem.at < STALE_OK_MS) return mem.level;
+  const saved = await accessCollection()
+    .then((c) => c.findOne({ _id: discordId as never }))
+    .catch(() => null);
+  if (saved?.at instanceof Date && Date.now() - saved.at.getTime() < STALE_OK_MS) return (saved.level as PanelLevel | null) ?? null;
+  const staff = await getStaffCollection()
+    .then((c) => c.findOne({ _id: discordId as never }, { projection: { role: 1 } }))
+    .catch(() => null);
+  if (!staff) return null;
+  return /^(owner|admin)$/i.test(String(staff.role ?? "")) ? "admin" : "staff";
+}
 
 /** The member's panel access (checked with Discord, cached for a minute). */
 export async function panelLevel(discordId: string): Promise<PanelLevel | null> {
   const cached = roleCache.get(discordId);
   if (cached && Date.now() - cached.at < ROLE_CACHE_MS) return cached.level;
-  const roles = await getMemberRoleIds(discordId);
-  const level: PanelLevel | null = roles?.some((id) => ADMIN_ROLE_IDS.includes(id))
-    ? "admin"
-    : roles?.includes(STAFF_TEAM_ROLE_ID)
-      ? "staff"
-      : null;
-  // Don't cache a failed lookup as "no access"
-  if (roles) roleCache.set(discordId, { level, at: Date.now() });
+  const { roles, definitive } = await memberRolesChecked(discordId);
+  if (!definitive) return fallbackLevel(discordId);
+  const level = roles ? levelFromRoles(roles) : null;
+  roleCache.set(discordId, { level, at: Date.now() });
+  // Remember the confirmed answer for the times Discord can't be reached
+  await accessCollection()
+    .then((c) => c.updateOne({ _id: discordId as never }, { $set: { level, at: new Date() } }, { upsert: true }))
+    .catch(() => undefined);
   return level;
 }
 
