@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Sparkles } from "lucide-react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { TIER_NAMES, badgeById, type BadgeShowcase } from "../../lib/badges";
 import { BadgeMedal } from "./badge-medal";
 
@@ -21,8 +22,8 @@ export function ProfileBadges({ initial }: { initial: BadgeShowcase | null }) {
   return (
     <div className="acct-badges-showcase">
       {title ? (
-        <p className={`acct-badge-title bm-title--t${showcase!.title!.tier}`} style={{ color: title.hue }}>
-          ✦ {title.name}
+        <p className="st-title-pill acct-badge-title" style={{ "--hue": title.hue } as CSSProperties}>
+          <Sparkles size={12} aria-hidden="true" /> {title.name}
         </p>
       ) : null}
       {pinned.length ? (

@@ -8,7 +8,7 @@
 
 import { Long, type Document } from "mongodb";
 import { people, type Person } from "./admin-people";
-import { getGuildChannelsRaw, getGuildRoles, getMemberProfile } from "./discord-member";
+import { getGuildChannelsRaw, getGuildRoles, getMemberProfile, guildId } from "./discord-member";
 import { inServerIds } from "./member-directory";
 import { getBotCollection } from "./mongodb";
 import { zoneOffsetMinutes } from "./timezone";
@@ -225,6 +225,40 @@ export async function memberStats(discordId: string, timeZone: string) {
   const busiestMonth = Array.from(monthTotals.entries()).sort((x, y) => y[1] - x[1])[0] ?? null;
   const sumMap = (map: unknown) => entries(map).reduce((acc, [, v]) => acc + v, 0);
 
+  // Every counted day, oldest first (dates are UTC)
+  const allDays = [...dayEntries].sort((x, y) => (x[0] < y[0] ? -1 : 1));
+  const monthKeys = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date();
+    d.setUTCDate(1);
+    d.setUTCMonth(d.getUTCMonth() - (11 - i));
+    return d.toISOString().slice(0, 7);
+  });
+  let longestGap = 0;
+  for (let i = 1; i < allDays.length; i++) {
+    const gap = Math.round((Date.parse(`${allDays[i][0]}T00:00:00Z`) - Date.parse(`${allDays[i - 1][0]}T00:00:00Z`)) / 86400000) - 1;
+    longestGap = Math.max(longestGap, gap);
+  }
+  const lastDay = allDays[allDays.length - 1]?.[0] ?? null;
+  // Occasions: chatting on (or through) special days, any year
+  const md = (d: string) => d.slice(5);
+  const onDate = (mmdd: string) => allDays.some(([d]) => md(d) === mmdd);
+  const inMonths = (months: number[]) => allDays.filter(([d]) => months.includes(Number(d.slice(5, 7)))).length;
+  const events = {
+    christmas: onDate("12-25"),
+    halloween: onDate("10-31"),
+    newYear: onDate("01-01"),
+    valentines: onDate("02-14"),
+    stPatricks: onDate("03-17"),
+    aprilFools: onDate("04-01"),
+    leapDay: onDate("02-29"),
+    fridayThe13th: allDays.some(([d]) => d.endsWith("-13") && new Date(`${d}T12:00:00Z`).getUTCDay() === 5),
+    october: inMonths([10]),
+    december: inMonths([12]),
+    june: inMonths([6]),
+    summer: inMonths([6, 7, 8]),
+    spring: inMonths([3, 4, 5]),
+  };
+
   // Hours are stored in UTC (Monday = 0); shift them into the viewer's zone
   const shift = Math.round(zoneOffsetMinutes(timeZone) / 60);
   const toLocal = (map: unknown) => {
@@ -383,6 +417,51 @@ export async function memberStats(discordId: string, timeZone: string) {
         }
       : null,
     trends,
+    activity: (() => {
+      const monthly = new Map<string, number>();
+      for (const [d, n] of allDays) monthly.set(d.slice(0, 7), (monthly.get(d.slice(0, 7)) ?? 0) + n);
+      const partsOf = (from: number, to: number) => hours.slice(from, to).reduce((acc, v) => acc + v, 0);
+      const joined = profile?.joinedAt ? Date.parse(profile.joinedAt) : null;
+      const daysInServer = joined ? Math.max(1, Math.floor((Date.now() - joined) / 86400000)) : null;
+      const activeDays = allDays.length;
+      const quietest = allDays.length ? [...allDays].sort((x, y) => x[1] - y[1])[0] : null;
+      const weekend = weekdays[5] + weekdays[6];
+      const allWeek = weekdays.reduce((acc, v) => acc + v, 0);
+      return {
+        months: monthKeys.map((k) => ({ month: k, n: monthly.get(k) ?? 0 })),
+        parts: { night: partsOf(0, 6), morning: partsOf(6, 12), afternoon: partsOf(12, 18), evening: partsOf(18, 24) },
+        weekendShare: allWeek ? weekend / allWeek : 0,
+        perActiveDay: activeDays ? Math.round((tracked / activeDays) * 10) / 10 : 0,
+        perDayInServer: daysInServer ? Math.round((msgCount / daysInServer) * 10) / 10 : null,
+        daysInServer,
+        activeShare: daysInServer ? Math.min(1, activeDays / Math.min(daysInServer, Math.max(1, (Date.now() - Date.parse(`${allDays[0]?.[0] ?? new Date().toISOString().slice(0, 10)}T00:00:00Z`)) / 86400000 + 1))) : null,
+        longestGap,
+        daysSinceLast: lastDay ? Math.max(0, Math.floor((Date.now() - Date.parse(`${lastDay}T00:00:00Z`)) / 86400000)) : null,
+        quietestDay: quietest ? { date: quietest[0], n: quietest[1] } : null,
+        channelsUsed: entries(a.channels).length,
+        charsPerMessage: tracked ? Math.round(num(a.characters) / tracked) : 0,
+        emojisPerMessage: tracked ? Math.round((num(a.emojiTotal) / tracked) * 100) / 100 : 0,
+        mediaShare: tracked ? num(a.attachments) / tracked : 0,
+        pagesWritten: Math.round(num(a.words) / 300),
+        typingMinutes: Math.round(num(a.characters) / 200),
+        voiceNightShare: (() => {
+          const vh = Array.from({ length: 24 }, (_, h) => toLocal(a.voiceHours).reduce((acc, row) => acc + row[h], 0));
+          const all = vh.reduce((acc, v) => acc + v, 0);
+          return all ? Math.round(((vh.slice(0, 5).reduce((acc, v) => acc + v, 0) + vh[22] + vh[23]) / all) * 100) : 0;
+        })(),
+        witchingShare: (() => {
+          const all = hours.reduce((acc, v) => acc + v, 0);
+          return all >= 50 ? Math.round(((hours[3] + hours[4]) / all) * 1000) / 10 : 0;
+        })(),
+      };
+    })(),
+    events,
+    server: await (async () => {
+      const gid = await guildId().catch(() => null);
+      if (!gid || !/^\d{15,21}$/.test(gid)) return null;
+      const created = new Date(Number((BigInt(gid) >> BigInt(22)) + DISCORD_EPOCH)).toISOString();
+      return { created };
+    })(),
     records: {
       longestMessage: num(a.longestMessage),
       questions: num(a.questions),
@@ -393,6 +472,7 @@ export async function memberStats(discordId: string, timeZone: string) {
       busiestMonth: busiestMonth ? { month: busiestMonth[0], n: busiestMonth[1] } : null,
       commandsUsed: num(a.commandsUsed),
       commands: top(a.commands, 5).map(([name, n]) => ({ name, n })),
+      commandCounts: Object.fromEntries(entries(a.commands)) as Record<string, number>,
     },
     store: {
       topItems: boughtAgg.map((b) => ({ name: itemName.get(String(b._id)) ?? String(b._id), n: num(b.n), spent: num(b.spent) })),

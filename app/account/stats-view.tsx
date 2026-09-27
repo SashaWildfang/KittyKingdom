@@ -38,6 +38,10 @@ import {
   Users,
   X,
   Zap,
+  BarChart3,
+  CalendarRange,
+  Sunrise,
+  Sunset,
   CornerDownRight,
   MessagesSquare,
   Network,
@@ -265,8 +269,8 @@ function LevelHero({ s, pinned, title }: { s: MemberStats; pinned: EarnedBadge[]
             <p className="st-eyebrow" style={level.color?.[0] ? { color: level.color[0] } : undefined}>
               {level.role ?? "Rank"}
               {title ? (
-                <span className="st-hero-title" style={{ color: title.hue }}>
-                  ✦ {title.name}
+                <span className="st-title-pill st-hero-title" style={{ "--hue": title.hue } as CSSProperties}>
+                  <Sparkles size={11} aria-hidden="true" /> {title.name}
                 </span>
               ) : null}
             </p>
@@ -552,9 +556,11 @@ export function StatsView({ onBack }: { onBack: () => void }) {
 
   useEffect(() => {
     let alive = true;
+    let first = true;
     const load = async () => {
       try {
-        const res = await fetch("/api/account/stats", { cache: "no-store" });
+        const res = await fetch(`/api/account/stats${first ? "?open=1" : ""}`, { cache: "no-store" });
+        first = false;
         const body = await res.json();
         if (!alive) return;
         if (res.ok && body.ok) {
@@ -628,6 +634,9 @@ export function StatsView({ onBack }: { onBack: () => void }) {
     ...(favoriteVc ? [{ icon: Headphones, text: <>You spend the most voice time in <b>{favoriteVc.name}</b></>, tab: "voice" as Tab }] : []),
     ...(s.emojis.top[0] ? [{ icon: Smile, text: <>Your favorite emoji is <Emoji e={s.emojis.top[0]} /></>, tab: "social" as Tab }] : []),
     ...(joinedDays !== null ? [{ icon: CalendarDays, text: <>You&apos;ve been in the kingdom for <b>{fmt(joinedDays)} days</b></>, tab: "badges" as Tab }] : []),
+    ...(s.activity.pagesWritten ? [{ icon: MessageCircle, text: <>You&apos;ve written about <b>{fmt(s.activity.pagesWritten)} pages</b> of chat (~{duration(s.activity.typingMinutes * 60)} of typing)</>, tab: "activity" as Tab }] : []),
+    ...(s.social.mutual ? [{ icon: Users, text: <><b>{fmt(s.social.mutual)}</b> mutual friendships, and you started <b>{fmt(s.social.starts)}</b> conversations</>, tab: "social" as Tab }] : []),
+    ...(s.compare && s.voice.totalSeconds ? [{ icon: Headphones, text: <>You&apos;ve spent <b>{(s.voice.totalSeconds / Math.max(1, s.compare.voiceSeconds)).toFixed(1)}×</b> the average member&apos;s time in voice</>, tab: "voice" as Tab }] : []),
   ];
 
   const compareRows = s.compare
@@ -959,6 +968,116 @@ export function StatsView({ onBack }: { onBack: () => void }) {
               <Heatmap heat={s.when.heat} />
             )}
             <p className="st-note">Times are in your time zone.</p>
+          </Card>
+
+          <Card title="Messages by month" icon={<BarChart3 size={17} />} className="st-wide">
+            <Bars
+              values={s.activity.months.map((mo) => mo.n)}
+              labels={s.activity.months.map((mo) => new Date(`${mo.month}-15T12:00:00`).toLocaleDateString([], { month: "short" }))}
+              format={(n) => `${fmt(n)} messages`}
+            />
+          </Card>
+
+          <Card title="Your day" icon={<Sun size={17} />}>
+            {(() => {
+              const parts = [
+                { key: "morning", label: "Morning", sub: "6 AM – noon", icon: Sunrise, color: "#facc15", n: s.activity.parts.morning },
+                { key: "afternoon", label: "Afternoon", sub: "noon – 6 PM", icon: Sun, color: "#f59b2a", n: s.activity.parts.afternoon },
+                { key: "evening", label: "Evening", sub: "6 PM – midnight", icon: Sunset, color: "#ec4899", n: s.activity.parts.evening },
+                { key: "night", label: "Night", sub: "midnight – 6 AM", icon: Moon, color: "#6366f1", n: s.activity.parts.night },
+              ];
+              const total = parts.reduce((acc, p) => acc + p.n, 0) || 1;
+              return (
+                <>
+                  <div className="st-stack" aria-hidden="true">
+                    {parts.map((p) => (
+                      <i key={p.key} style={{ "--w": `${(p.n / total) * 100}%`, background: p.color } as CSSProperties} />
+                    ))}
+                  </div>
+                  <ul className="st-parts">
+                    {parts.map((p) => (
+                      <li key={p.key}>
+                        <span className="st-parts-icon" style={{ color: p.color }}>
+                          <p.icon size={16} />
+                        </span>
+                        <span>
+                          <b>{p.label}</b>
+                          <small>{p.sub}</small>
+                        </span>
+                        <strong>{pct(p.n / total)}</strong>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              );
+            })()}
+          </Card>
+
+          <Card title="Weekdays vs weekends" icon={<CalendarRange size={17} />}>
+            <div className="st-split">
+              <div style={{ "--w": `${(1 - s.activity.weekendShare) * 100}%` } as CSSProperties}>
+                <span>Weekdays</span>
+                <strong>{pct(1 - s.activity.weekendShare)}</strong>
+              </div>
+              <div className="is-weekend" style={{ "--w": `${s.activity.weekendShare * 100}%` } as CSSProperties}>
+                <span>Weekends</span>
+                <strong>{pct(s.activity.weekendShare)}</strong>
+              </div>
+            </div>
+            <p className="st-note">
+              Weekends are 29% of the week, so {s.activity.weekendShare > 0.33 ? "you're more of a weekend chatter" : s.activity.weekendShare < 0.25 ? "you mostly chat on weekdays" : "you chat pretty evenly all week"}.
+            </p>
+            <p className="st-note">What you send</p>
+            {(() => {
+              const mix = [
+                { label: "Images", n: m.images, color: "#14b8a6" },
+                { label: "GIFs", n: m.gifs, color: "#a855f7" },
+                { label: "Videos", n: m.videos, color: "#ef4444" },
+                { label: "Links", n: m.links, color: "#0ea5e9" },
+                { label: "Stickers", n: m.stickers, color: "#fb923c" },
+                { label: "Voice notes", n: m.audio, color: "#22c55e" },
+              ].filter((x) => x.n > 0);
+              const all = mix.reduce((acc, x) => acc + x.n, 0);
+              return all ? (
+                <>
+                  <div className="st-stack" aria-hidden="true">
+                    {mix.map((x) => (
+                      <i key={x.label} style={{ "--w": `${(x.n / all) * 100}%`, background: x.color } as CSSProperties} title={`${x.label}: ${fmt(x.n)}`} />
+                    ))}
+                  </div>
+                  <div className="st-mix-legend">
+                    {mix.map((x) => (
+                      <span key={x.label}>
+                        <i style={{ background: x.color }} /> {x.label} <b>{fmt(x.n)}</b>
+                      </span>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <p className="st-empty">No media yet.</p>
+              );
+            })()}
+          </Card>
+
+          <Card title="By the numbers" icon={<Hash size={17} />} className="st-wide">
+            <dl className="st-dl st-dl--4">
+              <div><dt>Per active day</dt><dd>{s.activity.perActiveDay} <small>msgs</small></dd></div>
+              <div><dt>Per day in the server</dt><dd>{s.activity.perDayInServer ?? "—"} <small>msgs</small></dd></div>
+              <div><dt>Days you show up</dt><dd>{s.activity.activeShare !== null ? pct(s.activity.activeShare) : "—"}</dd></div>
+              <div><dt>Days in the server</dt><dd>{s.activity.daysInServer !== null ? fmt(s.activity.daysInServer) : "—"}</dd></div>
+              <div><dt>Longest break</dt><dd>{fmt(s.activity.longestGap)} <small>days</small></dd></div>
+              <div><dt>Since last message</dt><dd>{s.activity.daysSinceLast === null ? "—" : s.activity.daysSinceLast === 0 ? "today" : `${fmt(s.activity.daysSinceLast)} days`}</dd></div>
+              <div><dt>Busiest day</dt><dd>{m.busiestDay ? `${fmt(m.busiestDay.n)}` : "—"} <small>{m.busiestDay ? dayLabel(m.busiestDay.date, { month: "short", day: "numeric", year: "numeric" }) : ""}</small></dd></div>
+              <div><dt>Quietest active day</dt><dd>{s.activity.quietestDay ? fmt(s.activity.quietestDay.n) : "—"} <small>{s.activity.quietestDay ? dayLabel(s.activity.quietestDay.date, { month: "short", day: "numeric" }) : ""}</small></dd></div>
+              <div><dt>Channels used</dt><dd>{fmt(s.activity.channelsUsed)}</dd></div>
+              <div><dt>Characters / msg</dt><dd>{fmt(s.activity.charsPerMessage)}</dd></div>
+              <div><dt>Emojis / msg</dt><dd>{s.activity.emojisPerMessage}</dd></div>
+              <div><dt>Messages with media</dt><dd>{pct(s.activity.mediaShare)}</dd></div>
+              <div><dt>Pages written</dt><dd>{fmt(s.activity.pagesWritten)} <small>(300 words each)</small></dd></div>
+              <div><dt>Time spent typing</dt><dd>~{duration(s.activity.typingMinutes * 60)}</dd></div>
+              <div><dt>Current streak</dt><dd>{fmt(m.currentStreak)} <small>days</small></dd></div>
+              <div><dt>Longest streak</dt><dd>{fmt(m.longestStreak)} <small>days</small></dd></div>
+            </dl>
           </Card>
 
           <Card title="Activity calendar" icon={<CalendarDays size={17} />} className="st-wide">
