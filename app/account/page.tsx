@@ -25,6 +25,8 @@ import { AccountInventory } from "./account-inventory";
 import { DiscordLinkCode } from "./discord-link-code";
 import { RoleManager } from "./role-manager";
 import { AccountViews, StatsButton } from "./account-views";
+import { ProfileBadges } from "./profile-badges";
+import type { BadgeShowcase } from "../../lib/badges";
 import { accountName } from "../../lib/names";
 
 const statusMessages: Record<string, string> = {
@@ -182,6 +184,7 @@ export default async function AccountPage({
             </div>
             <h2>{shownName}</h2>
             {user.username ? <p className="acct-handle">@{user.username}</p> : null}
+            {discordLinked ? <ProfileBadges initial={(user.badgeShowcase as BadgeShowcase | undefined) ?? null} /> : null}
             <LiveServerStatus initial={roleState} discordLinked={discordLinked} fallbackStaff={roles.isStaff} />
             {SOCIALS.some((s) => socials[s.key]) ? (
               <div className="acct-social-icons">

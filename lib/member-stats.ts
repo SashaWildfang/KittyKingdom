@@ -276,9 +276,50 @@ export async function memberStats(discordId: string, timeZone: string) {
   const topBuddies = top(a.voiceBuddies, 5);
   const reactedBy = top(a.reactedBy, 1);
   const circleIds = Array.from(scores.entries()).sort((x, y) => y[1].score - x[1].score).slice(0, 12).map(([id]) => id);
+
+  // Everyone they interact with, both directions (you → them and them → you)
+  const dir = new Map<string, { out: Record<string, number>; in: Record<string, number>; both: Record<string, number> }>();
+  const put = (map: unknown, side: "out" | "in" | "both", key: string) => {
+    for (const [id, v] of entries(map)) {
+      if (id === discordId) continue;
+      const d = dir.get(id) ?? { out: {}, in: {}, both: {} };
+      d[side][key] = (d[side][key] ?? 0) + v;
+      dir.set(id, d);
+    }
+  };
+  put(a.repliesTo, "out", "replies");
+  put(a.mentionsTo, "out", "mentions");
+  put(a.reactedTo, "out", "reactions");
+  put(a.repliesFrom, "in", "replies");
+  put(a.mentionsFrom, "in", "mentions");
+  put(a.reactedBy, "in", "reactions");
+  put(a.conversations, "both", "conversations");
+  put(a.voiceBuddies, "both", "voiceSeconds");
+  const everyoneIds = Array.from(dir.keys())
+    .sort((x, y) => (scores.get(y)?.score ?? 0) - (scores.get(x)?.score ?? 0))
+    .slice(0, 150);
+  const leader = (map: unknown) => top(map, 1).filter(([id]) => id !== discordId)[0] ?? null;
+  const leaders = {
+    repliesTo: leader(a.repliesTo),
+    repliesFrom: leader(a.repliesFrom),
+    mentionsTo: leader(a.mentionsTo),
+    mentionsFrom: leader(a.mentionsFrom),
+    reactedTo: leader(a.reactedTo),
+    reactedBy: leader(a.reactedBy),
+    conversations: leader(a.conversations),
+    voice: leader(a.voiceBuddies),
+  };
   const giftToId = giftTo[0]?._id ? String(giftTo[0]._id) : null;
   const giftFromId = giftFrom[0]?._id ? String(giftFrom[0]._id) : null;
-  const who = await people([...circleIds, ...topBuddies.map(([id]) => id), ...reactedBy.map(([id]) => id), giftToId, giftFromId]).catch(() => ({} as Record<string, Person>));
+  const who = await people([
+    ...circleIds,
+    ...everyoneIds,
+    ...topBuddies.map(([id]) => id),
+    ...reactedBy.map(([id]) => id),
+    ...Object.values(leaders).map((l) => l?.[0] ?? null),
+    giftToId,
+    giftFromId,
+  ]).catch(() => ({} as Record<string, Person>));
   const person = (id: string) => ({ id, name: who[id]?.name ?? "Unknown member", avatar: who[id]?.avatar ?? null, inServer: who[id]?.inServer ?? false });
   // Prefer people still in the server
   const circle = circleIds
@@ -309,6 +350,7 @@ export async function memberStats(discordId: string, timeZone: string) {
     trackingSince,
     countedSince: backfillDays && trackingSince ? new Date(Date.parse(trackingSince) - backfillDays * 86400000).toISOString() : trackingSince,
     profile: {
+      avatar: `/api/discord/avatar/${discordId}`,
       discordCreated: created,
       joinedServer: profile?.joinedAt ?? null,
       boostingSince: profile?.boostingSince ?? null,
@@ -415,6 +457,47 @@ export async function memberStats(discordId: string, timeZone: string) {
     calendar,
     channels: topChannels,
     circle,
+    social: (() => {
+      const everyone = everyoneIds.map((id) => {
+        const d = dir.get(id)!;
+        const outN = (d.out.replies ?? 0) + (d.out.mentions ?? 0) + (d.out.reactions ?? 0);
+        const inN = (d.in.replies ?? 0) + (d.in.mentions ?? 0) + (d.in.reactions ?? 0);
+        const shared = (d.both.conversations ?? 0) + (d.both.voiceSeconds ?? 0);
+        return {
+          ...person(id),
+          score: Math.round(scores.get(id)?.score ?? 0),
+          conversations: d.both.conversations ?? 0,
+          voiceSeconds: Math.round(d.both.voiceSeconds ?? 0),
+          out: { replies: d.out.replies ?? 0, mentions: d.out.mentions ?? 0, reactions: d.out.reactions ?? 0 },
+          in: { replies: d.in.replies ?? 0, mentions: d.in.mentions ?? 0, reactions: d.in.reactions ?? 0 },
+          // Who reaches out: both ways, mostly you, or mostly them
+          balance: outN && inN ? "mutual" : outN ? "you" : inN ? "them" : shared ? "mutual" : "none",
+        };
+      });
+      const lead = (l: [string, number] | null) => (l ? { ...person(l[0]), n: Math.round(l[1]) } : null);
+      const totalScore = everyone.reduce((acc, p) => acc + p.score, 0);
+      return {
+        everyone,
+        count: dir.size,
+        mutual: everyone.filter((p) => p.balance === "mutual").length,
+        youReach: everyone.filter((p) => p.balance === "you").length,
+        theyReach: everyone.filter((p) => p.balance === "them").length,
+        topThreeShare: totalScore ? everyone.slice(0, 3).reduce((acc, p) => acc + p.score, 0) / totalScore : 0,
+        starts: num(a.conversationStarts),
+        avgReplySeconds: num(a.replyDelayCount) ? Math.round(num(a.replyDelaySum) / num(a.replyDelayCount)) : null,
+        replyRatio: num(a.repliesSent) ? Math.round((num(a.repliesReceived) / num(a.repliesSent)) * 100) / 100 : null,
+        leaders: {
+          repliesTo: lead(leaders.repliesTo),
+          repliesFrom: lead(leaders.repliesFrom),
+          mentionsTo: lead(leaders.mentionsTo),
+          mentionsFrom: lead(leaders.mentionsFrom),
+          reactedTo: lead(leaders.reactedTo),
+          reactedBy: lead(leaders.reactedBy),
+          conversations: lead(leaders.conversations),
+          voice: lead(leaders.voice),
+        },
+      };
+    })(),
     voice: {
       totalSeconds: Math.max(num(user?.vc_time_total), num(a.voiceSeconds)),
       monthSeconds: num(user?.vc_time_monthly),
