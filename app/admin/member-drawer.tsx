@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActionBadge,
   Avatar,
@@ -34,16 +34,18 @@ type Result = {
 
 export function MemberDrawer({
   userId,
+  canEditRoles,
   onClose,
   onOpenMember,
   onOpenTranscript,
 }: {
   userId: string;
+  canEditRoles: boolean;
   onClose: () => void;
   onOpenMember: (id: string) => void;
   onOpenTranscript: (ticketId: number) => void;
 }) {
-  const { data, error, loading } = useLive<Result>(`/api/admin/user/${userId}`, 20_000);
+  const { data, error, loading, reload } = useLive<Result>(`/api/admin/user/${userId}`, 20_000);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -153,20 +155,134 @@ export function MemberDrawer({
               <h3>
                 Roles <small>{data.roles.length}</small>
               </h3>
-              <div className="adm-roles">
-                {data.roles.map((r) => (
-                  <span key={r.id} className="adm-role" style={{ "--c": r.colors[0] ?? "#8b8d98" } as React.CSSProperties}>
-                    {r.name}
-                  </span>
-                ))}
-                {!data.roles.length ? <p className="adm-empty">{data.inServer ? "No roles." : "Not in the server."}</p> : null}
-              </div>
+              <RoleEditor userId={userId} roles={data.roles} inServer={data.inServer} editable={canEditRoles} onChanged={reload} />
             </section>
           </>
         ) : loading ? (
           <div className="adm-skeleton" style={{ height: 240 }} />
         ) : null}
       </aside>
+    </div>
+  );
+}
+
+type Role = { id: string; name: string; colors: string[] };
+
+/** A member's roles; admins can hover a role to remove it or add one from a searchable list. */
+function RoleEditor({ userId, roles, inServer, editable, onChanged }: { userId: string; roles: Role[]; inServer: boolean; editable: boolean; onChanged: () => void }) {
+  const [confirm, setConfirm] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [picking, setPicking] = useState(false);
+  const [available, setAvailable] = useState<Role[] | null>(null);
+  const [filter, setFilter] = useState("");
+  const [message, setMessage] = useState<{ text: string; tone: "ok" | "error" } | null>(null);
+  const [localRoles, setLocalRoles] = useState(roles);
+  const search = useRef<HTMLInputElement>(null);
+
+  useEffect(() => setLocalRoles(roles), [roles]);
+
+  useEffect(() => {
+    if (picking) search.current?.focus();
+  }, [picking]);
+
+  const manageable = new Set((available ?? []).map((r) => r.id));
+
+  async function change(role: Role, add: boolean) {
+    setBusy(role.id);
+    setConfirm(null);
+    setMessage(null);
+    // Show the change straight away; the live refresh confirms it
+    setLocalRoles((list) => (add ? [...list, role] : list.filter((r) => r.id !== role.id)));
+    try {
+      const res = await fetch(`/api/admin/user/${userId}/roles`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roleId: role.id, add }),
+      });
+      const body = await res.json();
+      if (!res.ok || !body.ok) throw new Error(body.error ?? "That didn't work.");
+      setMessage({ text: body.message, tone: "ok" });
+      onChanged();
+    } catch (e) {
+      setLocalRoles(roles);
+      setMessage({ text: e instanceof Error ? e.message : "That didn't work.", tone: "error" });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  // Load the manageable list once so hover-to-remove only shows on roles the admin can manage
+  useEffect(() => {
+    if (!editable || available) return;
+    fetch("/api/admin/roles", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((body) => setAvailable(body.roles ?? []))
+      .catch(() => setAvailable([]));
+  }, [editable, available]);
+
+  const has = new Set(localRoles.map((r) => r.id));
+  const options = (available ?? []).filter((r) => !has.has(r.id) && r.name.toLowerCase().includes(filter.trim().toLowerCase()));
+
+  if (!inServer) return <p className="adm-empty">Not in the server.</p>;
+
+  return (
+    <div className="adm-role-editor">
+      <div className="adm-roles">
+        {localRoles.map((r) => {
+          const canRemove = editable && manageable.has(r.id);
+          const armed = confirm === r.id;
+          return (
+            <span
+              key={r.id}
+              className={`adm-role${canRemove ? " is-editable" : ""}${armed ? " is-armed" : ""}${busy === r.id ? " is-busy" : ""}`}
+              style={{ "--c": r.colors[0] ?? "#8b8d98" } as React.CSSProperties}
+            >
+              <i className="adm-role-dot" aria-hidden="true" />
+              {armed ? `Remove ${r.name}?` : r.name}
+              {canRemove ? (
+                <button
+                  type="button"
+                  className="adm-role-x"
+                  aria-label={armed ? `Confirm removing ${r.name}` : `Remove ${r.name}`}
+                  title={armed ? "Click again to remove" : "Remove role"}
+                  disabled={Boolean(busy)}
+                  onClick={() => (armed ? void change(r, false) : setConfirm(r.id))}
+                  onBlur={() => armed && window.setTimeout(() => setConfirm((c) => (c === r.id ? null : c)), 150)}
+                >
+                  {armed ? "✓" : "×"}
+                </button>
+              ) : null}
+            </span>
+          );
+        })}
+        {!localRoles.length ? <span className="adm-muted">No roles.</span> : null}
+        {editable ? (
+          <button type="button" className="adm-role-add" onClick={() => setPicking((v) => !v)} aria-expanded={picking}>
+            {picking ? "Done" : "+ Add role"}
+          </button>
+        ) : null}
+      </div>
+
+      {picking ? (
+        <div className="adm-role-picker">
+          <input ref={search} type="search" placeholder="Search roles…" value={filter} onChange={(e) => setFilter(e.target.value)} />
+          <ul>
+            {available === null ? <li className="adm-muted">Loading roles…</li> : null}
+            {options.map((r) => (
+              <li key={r.id}>
+                <button type="button" disabled={Boolean(busy)} onClick={() => void change(r, true)} style={{ "--c": r.colors[0] ?? "#8b8d98" } as React.CSSProperties}>
+                  <i className="adm-role-dot" aria-hidden="true" />
+                  {r.name}
+                  <span>{busy === r.id ? "Adding…" : "Add"}</span>
+                </button>
+              </li>
+            ))}
+            {available && !options.length ? <li className="adm-muted">No other roles you can add.</li> : null}
+          </ul>
+        </div>
+      ) : null}
+
+      {message ? <p className={message.tone === "ok" ? "adm-notice" : "adm-error"}>{message.text}</p> : null}
     </div>
   );
 }

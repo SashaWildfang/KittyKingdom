@@ -10,6 +10,7 @@ type DiscordRole = {
   id: string;
   name: string;
   position: number;
+  managed?: boolean;
   color?: number;
   colors?: { primary_color?: number; secondary_color?: number | null; tertiary_color?: number | null };
 };
@@ -117,7 +118,7 @@ async function discordRequest<T>(method: string, path: string, body?: unknown): 
   }
 }
 
-export type GuildRole = { id: string; name: string; colors: string[] };
+export type GuildRole = { id: string; name: string; colors: string[]; position: number; managed: boolean };
 
 /** Current role ids of a member (fresh, not cached), or null if they're not in the server. */
 export async function getMemberRoleIds(discordId: string): Promise<string[] | null> {
@@ -132,7 +133,7 @@ export async function getGuildRoles(): Promise<Map<string, GuildRole>> {
   const guild = await guildId();
   const token = botToken();
   const roles = guild && token ? await discordGet<DiscordRole[]>(`/guilds/${guild}/roles`, token, 300) : null;
-  return new Map((roles ?? []).map((r) => [r.id, { id: r.id, name: r.name, colors: roleColors(r) }]));
+  return new Map((roles ?? []).map((r) => [r.id, { id: r.id, name: r.name, colors: roleColors(r), position: r.position, managed: Boolean(r.managed) }]));
 }
 
 export async function addMemberRole(discordId: string, roleId: string) {
