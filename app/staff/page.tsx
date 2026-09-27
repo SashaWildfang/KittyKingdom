@@ -2,11 +2,11 @@ import type { CSSProperties } from "react";
 import { getCurrentUser } from "../../lib/auth";
 import { getDiscordInviteSummary } from "../../lib/discord";
 import { getStaffDirectory, type StaffMember, type StaffStatus } from "../../lib/staff";
+import { FallingLeaves } from "../fall-effects";
 import { SiteNav } from "../site-nav";
+import { LastOnline } from "./last-online";
 
 export const dynamic = "force-dynamic";
-
-const leaves = Array.from({ length: 18 }, (_, index) => index + 1);
 
 const statusLabels: Record<StaffStatus, string> = {
   online: "Online",
@@ -56,6 +56,7 @@ function StaffCard({ member }: { member: StaffMember }) {
       {member.username && member.username.toLowerCase() !== member.name.toLowerCase() ? (
         <p className="staff-handle">@{member.username}</p>
       ) : null}
+      <LastOnline status={member.status} lastOnline={member.lastOnline} />
       <p className="staff-bio">{member.bio}</p>
       {member.memberSince ? <p className="staff-since">🍂 In the kingdom since {memberSince(member.memberSince)}</p> : null}
     </article>
@@ -71,11 +72,7 @@ export default async function StaffPage() {
 
   return (
     <main className="site-shell staff-shell">
-      <div className="leaf-field" aria-hidden="true">
-        {leaves.map((leaf) => (
-          <span className="falling-leaf" key={leaf} />
-        ))}
-      </div>
+      <FallingLeaves foreground={false} />
 
       <SiteNav signedIn={Boolean(user)} discordOnline={discord.online} />
 

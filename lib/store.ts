@@ -356,6 +356,20 @@ async function ownedRoleId(discordId: string, itemId: string) {
   return roleId;
 }
 
+/** Shop color roles the member owns (for the role manager on My Account). */
+export async function getOwnedColorRoles(discordId: string) {
+  const c = await collections();
+  const docs = await c.userInventory
+    .find({ discordId, role_id: { $ne: null }, item_id: { $nin: RETIRED_ITEM_IDS } }, BIG)
+    .toArray();
+  const byItem = new Map<string, { itemId: string; name: string; roleId: string }>();
+  for (const doc of docs) {
+    const roleId = idString(doc.role_id);
+    if (roleId && !byItem.has(doc.item_id)) byItem.set(doc.item_id, { itemId: doc.item_id, name: String(doc.name ?? doc.item_id), roleId });
+  }
+  return Array.from(byItem.values());
+}
+
 export async function equipRole(discordId: string, itemId: string) {
   const roleId = await ownedRoleId(discordId, itemId);
   const memberRoles = await getMemberRoleIds(discordId);
