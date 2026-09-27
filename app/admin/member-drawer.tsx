@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { Drill } from "./drill-panel";
 import {
   ActionBadge,
   Avatar,
@@ -35,17 +36,24 @@ type Result = {
 export function MemberDrawer({
   userId,
   canEditRoles,
+  onDrill,
   onClose,
   onOpenMember,
   onOpenTranscript,
 }: {
   userId: string;
   canEditRoles: boolean;
+  onDrill: (drill: Drill) => void;
   onClose: () => void;
   onOpenMember: (id: string) => void;
   onOpenTranscript: (ticketId: number) => void;
 }) {
   const { data, error, loading, reload } = useLive<Result>(`/api/admin/user/${userId}`, 20_000);
+  // Anything this member did as staff (punishments they issued)
+  const issued = useLive<{ rows: Punishment[]; total: number; people: People; mentions: Mentions }>(
+    `/api/admin/punishments?issuerId=${userId}&pageSize=10`,
+    20_000,
+  );
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -87,6 +95,38 @@ export function MemberDrawer({
                 </>
               ) : null}
             </div>
+
+            {issued.data && issued.data.total > 0 ? (
+              <section className="adm-drawer-section adm-staff-actions">
+                <h3>
+                  🛡️ Staff actions <small>{issued.data.total}</small>
+                  <button type="button" className="adm-link adm-h3-link" onClick={() => onDrill({ kind: "staff", id: userId })}>
+                    View all →
+                  </button>
+                </h3>
+                <ol className="adm-timeline">
+                  {issued.data.rows.slice(0, 5).map((p) => (
+                    <li key={p.id}>
+                      <div className="adm-timeline-head">
+                        <ActionBadge action={p.action} />
+                        <span className="adm-muted" title={formatDate(p.timestamp)}>
+                          {timeAgo(p.timestamp)}
+                        </span>
+                        <span className="adm-timeline-by">
+                          on <PersonLink id={p.userId} people={issued.data!.people} onOpen={onOpenMember} compact />
+                        </span>
+                      </div>
+                      <p>{p.reason ? <RichText text={p.reason} mentions={issued.data!.mentions} people={issued.data!.people} onOpenMember={onOpenMember} /> : "No reason given."}</p>
+                    </li>
+                  ))}
+                </ol>
+                {issued.data.total > 5 ? (
+                  <button type="button" className="adm-btn adm-btn--ghost adm-btn--small" onClick={() => onDrill({ kind: "staff", id: userId })}>
+                    View all {issued.data.total} actions
+                  </button>
+                ) : null}
+              </section>
+            ) : null}
 
             <section className="adm-drawer-section">
               <h3>

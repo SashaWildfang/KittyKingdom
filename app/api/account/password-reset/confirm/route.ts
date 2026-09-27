@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { hashPassword, setSession } from "../../../../../lib/auth";
 import { getUsersCollection } from "../../../../../lib/mongodb";
 import { findResetUser } from "../../../../../lib/password-reset";
+import { revokeAllSessions } from "../../../../../lib/sessions";
 
 export const maxDuration = 10;
 
@@ -34,6 +35,7 @@ export async function POST(request: Request) {
   );
   if (!updated) return NextResponse.redirect(`${origin}/reset-password?status=expired`, 303);
 
+  await revokeAllSessions(updated._id, "password-reset");
   await setSession(updated._id, typeof updated.sessionVersion === "number" ? updated.sessionVersion : 0);
   return NextResponse.redirect(`${origin}/account?account=password-reset`, 303);
 }

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { AccountsTab } from "./accounts-tab";
 import { MemberSearch, useLive, useStored } from "./admin-shared";
+import { DrillPanel, type Drill } from "./drill-panel";
 import { LogsTab } from "./logs-tab";
 import { MemberDrawer } from "./member-drawer";
 import { OverviewTab } from "./overview-tab";
@@ -38,6 +39,7 @@ export function AdminClient({ adminName, level }: { adminName: string; level: Le
   const [member, setMember] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<number | null>(null);
   const [lookup, setLookup] = useState("");
+  const [drill, setDrill] = useState<Drill | null>(null);
   const [punishmentFilters, setPunishmentFilters] = useStored<PunishmentFilters>("punishment-filters", DEFAULT_PUNISHMENT_FILTERS);
   const { data: meta } = useLive<{ actions: string[]; ticketTypes: string[] }>("/api/admin/meta", 60_000);
 
@@ -110,6 +112,7 @@ export function AdminClient({ adminName, level }: { adminName: string; level: Le
         <OverviewTab
           level={level}
           onOpenMember={openMember}
+          onDrill={setDrill}
           onFilterPunishments={(action) => {
             setPunishmentFilters({ ...DEFAULT_PUNISHMENT_FILTERS, actions: ACTION_GROUPS[action] ?? [action] });
             setTab("punishments");
@@ -126,10 +129,18 @@ export function AdminClient({ adminName, level }: { adminName: string; level: Le
       {/* Overlays render at the page root so they sit above the site's top bar */}
       {member
         ? createPortal(
-            <MemberDrawer userId={member} canEditRoles={isAdmin} onClose={() => setMember(null)} onOpenMember={openMember} onOpenTranscript={openTranscript} />,
+            <MemberDrawer userId={member} canEditRoles={isAdmin} onDrill={setDrill} onClose={() => setMember(null)} onOpenMember={openMember} onOpenTranscript={openTranscript} />,
             document.body,
           )
         : null}
+      {drill ? createPortal(<DrillPanel
+              drill={drill}
+              onClose={() => setDrill(null)}
+              onOpenMember={(id) => {
+                setDrill(null);
+                openMember(id);
+              }}
+            />, document.body) : null}
       {transcript && isAdmin
         ? createPortal(<TranscriptViewer ticketId={transcript} onClose={() => setTranscript(null)} onOpenMember={openMember} />, document.body)
         : null}

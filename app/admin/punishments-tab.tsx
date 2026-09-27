@@ -233,7 +233,7 @@ export function PunishmentsTab({
       {error ? <p className="adm-error">{error}</p> : null}
 
       <div className="adm-table-wrap">
-        <table className={`adm-table${compact ? " is-compact" : ""}`}>
+        <table className={`adm-table adm-table--pun${compact ? " is-compact" : ""}`}>
           <thead>
             <tr>
               <th>
@@ -276,7 +276,9 @@ export function PunishmentsTab({
                       <PersonLink id={row.issuerId} people={people} onOpen={onOpenMember} automodId={row.source === "automod"} compact={compact} />
                     </td>
                     <td className="adm-reason-cell">
-                      {row.reason ? <RichText text={row.reason} mentions={data?.mentions} people={people} onOpenMember={onOpenMember} /> : <span className="adm-muted">No reason</span>}
+                      <span className="adm-clamp">
+                        {row.reason ? <RichText text={row.reason} mentions={data?.mentions} people={people} onOpenMember={onOpenMember} /> : <span className="adm-muted">No reason</span>}
+                      </span>
                     </td>
                     <td>
                       <StatusPill row={row} />

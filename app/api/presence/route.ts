@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCurrentUser } from "../../../lib/auth";
 import { getPresenceCollection } from "../../../lib/mongodb";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +14,9 @@ export async function POST(request: Request) {
     const id = typeof body.id === "string" && /^[A-Za-z0-9-]{16,64}$/.test(body.id) ? body.id : null;
     const presence = await getPresenceCollection();
     const now = new Date();
+
+    // Signed-in visitors: keeps their device's "last active" fresh for the admin online list
+    await getCurrentUser().catch(() => null);
 
     if (id) {
       await presence.updateOne({ _id: id }, { $set: { lastSeen: now } }, { upsert: true });
