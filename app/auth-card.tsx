@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowBigUpDash, Check, Circle, CircleCheck, MailCheck, TriangleAlert } from "lucide-react";
+import { ArrowBigUpDash, Check, Circle, CircleCheck, MailCheck, MessageCircle, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { ResendVerificationLink } from "./resend-verification-link";
@@ -266,9 +266,15 @@ function RegisterForm({ active }: { active: boolean }) {
         </span>
       </label>
 
-      <p className="kk-hint kk-discord-note">
-        Accounts are for members of the Kitty Kingdom Discord. Next, you&apos;ll link yours by typing <code>/link</code> in the server.
-      </p>
+      <div className="kk-discord-note" role="note">
+        <span className="kk-discord-note-icon" aria-hidden="true">
+          <MessageCircle size={16} />
+        </span>
+        <p>
+          <strong>Members only.</strong> Accounts are for verified members of the Kitty Kingdom Discord. Next, you&apos;ll get a code to use with{" "}
+          <code>/link</code> in the server.
+        </p>
+      </div>
       <SubmitButton busy={busy} disabled={!ready}>
         Continue
       </SubmitButton>
@@ -355,7 +361,7 @@ export function AuthCard({
             </p>
           </div>
           <div className="kk-panel" ref={(el) => void (panels.current.register = el)} aria-hidden={mode !== "register"}>
-            <p className="kk-intro">Create your account. We&apos;ll email you a link to confirm it before you log in.</p>
+            <p className="kk-intro">Create your account in three quick steps: your details, link your Discord, then confirm your email.</p>
             <StatusBox status={registerStatus} identifier={identifier} />
             <RegisterForm active={mode === "register"} />
             <p className="kk-switch">

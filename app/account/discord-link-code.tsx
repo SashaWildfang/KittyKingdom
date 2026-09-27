@@ -82,7 +82,8 @@ export function DiscordLinkCode() {
 
   function copy(what: "code" | "command") {
     if (!code) return;
-    void navigator.clipboard?.writeText(what === "code" ? code : `/link ${code}`).then(() => {
+    // Just the code: pasting a whole "/link CODE" into Discord sends it as text instead of running the command
+    void navigator.clipboard?.writeText(code.replace("-", "")).then(() => {
       setCopied(what);
       window.setTimeout(() => setCopied(null), 1400);
     });
@@ -130,15 +131,15 @@ export function DiscordLinkCode() {
             </div>
           </div>
           <div className="link-code-row">
-            <button type="button" className="acct-button" onClick={() => copy("command")}>
-              {copied === "command" ? "Copied!" : `Copy /link ${code}`}
+            <button type="button" className="acct-button" onClick={() => copy("code")}>
+              {copied === "code" ? "Code copied!" : "Copy code"}
             </button>
             <button type="button" className="link-code-regen" onClick={() => void getCode()} disabled={busy}>
               New code
             </button>
           </div>
           <p className="link-code-wait">
-            <i aria-hidden="true" /> Waiting for you to run <code>/link {code}</code> in the Discord…
+            <i aria-hidden="true" /> In the server, type <code>/link</code>, pick the command, then paste your code. This updates by itself.
           </p>
         </>
       )}

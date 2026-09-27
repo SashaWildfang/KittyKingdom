@@ -78,7 +78,7 @@ export async function finishRegistration(user: Document, origin: string) {
     { $set: { "registration.pending": false, "registration.completedAt": new Date(), emailVerificationTokens: [entry], updatedAt: new Date() } },
   );
   if (!claimed.modifiedCount) return { ok: true, discordName, emailSent: false }; // another request finished it first
-  const sent = await sendVerificationEmail(String(user.email), `${origin}/api/account/verify-email?token=${token}`).catch(() => ({ sent: false }));
+  const sent = await sendVerificationEmail(String(user.email), `${origin}/api/account/verify-email?token=${token}`, { discordName, newAccount: true }).catch(() => ({ sent: false }));
   return { ok: true, discordName, emailSent: Boolean(sent.sent) };
 }
 
