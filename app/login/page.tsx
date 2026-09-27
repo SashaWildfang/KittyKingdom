@@ -14,6 +14,7 @@ const statusMessages: Record<string, string> = {
     "Login is temporarily unavailable. Please try again shortly.",
   "database-unreachable":
     "The account database is not reachable right now. Please try again after the database network settings are updated.",
+  "2fa-expired": "That sign-in took too long. Enter your password again to get a new code prompt.",
   "missing-token": "The verification link is missing its token.",
   "invalid-or-expired":
     "That verification link has expired. Use the resend option below to get a fresh one.",

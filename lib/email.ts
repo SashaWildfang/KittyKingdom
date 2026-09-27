@@ -259,3 +259,28 @@ export async function sendPasswordResetEmail(email: string, resetUrl: string, re
   const m = passwordResetEmail(email, resetUrl, requestedByStaff);
   return sendEmail(email, m.subject, m.html, m.text);
 }
+
+/** "Something changed on your account" notice, e.g. two-factor turned on or off. */
+export function securityNoticeEmail(email: string, title: string, message: string) {
+  const html = layout({
+    preheader: message,
+    eyebrow: "Security alert",
+    title,
+    intro: escapeHtml(message),
+    rows: [
+      { label: "Account", value: email },
+      { label: "When", value: stamp() },
+    ],
+    button: { label: "Review account security", url: `${SITE}/account#security` },
+    expiry: "Only you can see this page after logging in.",
+    security: "If you didn't make this change, change your password right away and contact Kitty Kingdom staff on Discord.",
+    reason: "You're receiving this because a security setting changed on your kittykingdom.net account.",
+  });
+  const text = [`Kitty Kingdom: ${title}`, "", message, "", `Review your account security: ${SITE}/account#security`, "", "If you didn't make this change, change your password right away and contact staff."].join("\n");
+  return { subject: `Security alert: ${title}`, html, text };
+}
+
+export async function sendSecurityNoticeEmail(email: string, title: string, message: string) {
+  const m = securityNoticeEmail(email, title, message);
+  return sendEmail(email, m.subject, m.html, m.text);
+}

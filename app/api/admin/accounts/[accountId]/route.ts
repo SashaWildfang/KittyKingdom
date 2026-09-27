@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
-import { accountAction, getAccount, type AccountAction } from "../../../../../lib/accounts-admin";
+import { accountAction, getAccount, type AccountAction, isAccountAction } from "../../../../../lib/accounts-admin";
 import { requireAdmin } from "../../../../../lib/admin";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 15;
 
-const ACTIONS: AccountAction[] = ["send-reset", "temp-password", "sign-out", "verify-email", "delete"];
 
 export async function GET(request: Request, { params }: { params: { accountId: string } }) {
   const admin = await requireAdmin(request);
@@ -20,7 +19,7 @@ export async function POST(request: Request, { params }: { params: { accountId: 
   const admin = await requireAdmin(request);
   if (admin instanceof NextResponse) return admin;
   const body = (await request.json().catch(() => ({}))) as { action?: string; confirm?: unknown };
-  if (!ACTIONS.includes(body.action as AccountAction)) {
+  if (!isAccountAction(body.action)) {
     return NextResponse.json({ ok: false, error: "Unknown action." }, { status: 400 });
   }
   // Deleting needs the typed confirmation too, not just a click

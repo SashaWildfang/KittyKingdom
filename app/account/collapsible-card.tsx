@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import { useEffect, useId, useState, type ReactNode } from "react";
 
 /** An account card that folds away; remembers whether you left it open. */
@@ -47,8 +48,11 @@ export function CollapsibleCard({
           {description ? <p>{description}</p> : null}
         </span>
         {!open && summary ? <span className="acct-collapse-summary">{summary}</span> : null}
-        <span className="acct-collapse-chevron" aria-hidden="true">
-          ▾
+        <span className="acct-collapse-toggle" aria-hidden="true">
+          <span className="acct-collapse-label">{open ? "Hide" : "Show"}</span>
+          <span className="acct-collapse-chevron">
+            <ChevronDown size={20} strokeWidth={2.5} />
+          </span>
         </span>
       </button>
       <div className="acct-collapse-body" id={bodyId}>

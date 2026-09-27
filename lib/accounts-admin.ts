@@ -78,6 +78,10 @@ const SAFE_PROJECTION = {
   emailVerificationTokens: 0,
   passwordReset: 0,
   session: 0,
+  // Two-factor secrets and backup code hashes never leave the server
+  "twoFactor.secret": 0,
+  "twoFactor.backupCodes": 0,
+  "twoFactor.pending": 0,
 };
 
 export async function listAccounts(q: {
@@ -188,6 +192,7 @@ export async function getAccount(id: string) {
     age: birthday.age !== null ? String(birthday.age) : null,
     applicationStatus: application?.status ? String(application.status) : null,
     isStaff: await isStaffDiscordId(doc.discordId),
+    twoFactor: Boolean(doc.twoFactor?.enabled),
     updatedAt: iso(doc.updatedAt),
     passwordChangedAt: iso(doc.passwordChangedAt),
     acceptedPoliciesAt: iso(doc.acceptedPoliciesAt),
@@ -203,13 +208,29 @@ function temporaryPassword() {
   return `${pick()}-${pick()}-${randomInt(1000, 10000)}${symbols[randomInt(symbols.length)]}`;
 }
 
-export type AccountAction = "send-reset" | "temp-password" | "sign-out" | "verify-email" | "delete";
+export type AccountAction = "send-reset" | "temp-password" | "sign-out" | "verify-email" | "unlink-discord" | "reset-2fa" | "delete";
+
+/** Whether a request's action is one the admin panel supports. */
+export function isAccountAction(value: unknown): value is AccountAction {
+  switch (value) {
+    case "send-reset":
+    case "temp-password":
+    case "sign-out":
+    case "verify-email":
+    case "unlink-discord":
+    case "reset-2fa":
+    case "delete":
+      return true;
+    default:
+      return false;
+  }
+}
 
 export async function accountAction(id: string, action: AccountAction, admin: PanelUser, origin: string) {
   if (!ObjectId.isValid(id)) throw new Error("Unknown account.");
   const _id = new ObjectId(id);
   const users = await getUsersCollection();
-  const target = await users.findOne({ _id }, { projection: { email: 1, discordId: 1 } });
+  const target = await users.findOne({ _id }, { projection: { email: 1, discordId: 1, discord: 1, twoFactor: 1 } });
   if (!target) throw new Error("Unknown account.");
 
   let result: { message: string; temporaryPassword?: string };
@@ -234,6 +255,16 @@ export async function accountAction(id: string, action: AccountAction, admin: Pa
     await users.updateOne({ _id }, { $inc: { sessionVersion: 1 } });
     await revokeAllSessions(_id, `admin:${admin.discordId}`);
     result = { message: "Signed out of the website on every device." };
+  } else if (action === "unlink-discord") {
+    if (!target.discordId) throw new Error("Their Discord isn't linked.");
+    const name = String(target.discord?.globalName ?? target.discord?.username ?? target.discordId);
+    await users.updateOne({ _id }, { $set: { discordId: null, discord: null, updatedAt: new Date() } });
+    result = { message: `Unlinked their Discord (${name}). They can link again with a new code from My Account.` };
+  } else if (action === "reset-2fa") {
+    if (!target.twoFactor?.enabled) throw new Error("Two-factor authentication is already off for this account.");
+    await users.updateOne({ _id }, { $set: { twoFactor: { enabled: false }, updatedAt: new Date() }, $inc: { sessionVersion: 1 } });
+    await revokeAllSessions(_id, `admin:${admin.discordId}`);
+    result = { message: "Two-factor authentication turned off and every session signed out. They can log in with just their password and set it up again." };
   } else if (action === "delete") {
     if (id === admin.websiteUserId) throw new Error("You can't delete your own account from here.");
     // Staff accounts are protected, even from the owner

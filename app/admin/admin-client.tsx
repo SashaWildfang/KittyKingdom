@@ -24,10 +24,10 @@ const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean }[] = [
   { key: "overview", label: "Overview", icon: BarChart3 },
   { key: "punishments", label: "Punishments", icon: Gavel },
   { key: "join", label: "Join Apps", icon: ClipboardCheck },
+  { key: "logs", label: "Logs", icon: ScrollText },
   { key: "live", label: "Live Chat", icon: MessagesSquare },
-  { key: "logs", label: "Bot Logs", icon: ScrollText },
-  { key: "tickets", label: "Tickets & Transcripts", icon: Ticket, admin: true },
-  { key: "accounts", label: "Website Accounts", icon: Users, admin: true },
+  { key: "tickets", label: "Tickets", icon: Ticket, admin: true },
+  { key: "accounts", label: "Website", icon: Users, admin: true },
   { key: "news", label: "News", icon: Newspaper, admin: true },
   { key: "traffic", label: "Traffic", icon: Activity, admin: true },
 ];
