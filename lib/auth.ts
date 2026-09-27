@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { ObjectId } from "mongodb";
 import { cookies } from "next/headers";
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "crypto";
@@ -94,10 +95,11 @@ export async function getSessionUserId() {
   return ObjectId.isValid(userId) ? new ObjectId(userId) : null;
 }
 
-export async function getCurrentUser() {
+// Memoized per request, so the page and the nav can both ask without a second database lookup
+export const getCurrentUser = cache(async () => {
   const userId = await getSessionUserId();
   if (!userId) return null;
 
   const users = await getUsersCollection();
   return users.findOne({ _id: userId });
-}
+});

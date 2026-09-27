@@ -11,6 +11,8 @@ import { BrandIcon } from "../brand-icon";
 import { getMemberRoleSummary } from "../../lib/discord-member";
 import { formatPhone, SOCIALS, type SocialLink } from "../../lib/contact";
 import { calculateAge, formatDateOfBirth, parseAge, parseDateOfBirth } from "../../lib/dates";
+import { getRoleState } from "../../lib/member-roles";
+import { RoleManager } from "./role-manager";
 
 const statusMessages: Record<string, string> = {
   "contact-saved": "Contact details and social links saved.",
@@ -146,9 +148,10 @@ export default async function AccountPage({
     searchParams.discord ??
     searchParams.verify ??
     searchParams.login;
-  const [application, roles] = await Promise.all([
+  const [application, roles, roleState] = await Promise.all([
     getJoinApplicationProfile(user.discordId),
     getMemberRoleSummary(user.discordId),
+    user.discordId ? getRoleState(String(user.discordId)).catch(() => null) : Promise.resolve(null),
   ]);
   const socials = (user.socials ?? {}) as Partial<Record<string, SocialLink>>;
   const phone = typeof user.phone === "string" ? user.phone : null;
@@ -210,11 +213,31 @@ export default async function AccountPage({
                 </span>
               </div>
             ) : null}
-            <div className="acct-badges">
-              <span className={`acct-badge ${discordLinked ? "acct-badge--discord" : "acct-badge--muted"}`}>
-                {discordLinked ? "Discord linked" : "Discord not linked"}
-              </span>
-            </div>
+            {roleState?.inServer ? (
+              <div className="acct-server-status" aria-label="Server status">
+                {roleState.level !== null ? (
+                  <span className="acct-level" title="Your level in the Discord server">
+                    ⭐ Level <strong>{roleState.level}</strong>
+                  </span>
+                ) : null}
+                <ul>
+                  {roleState.status
+                    .filter((r) => r.key !== "patreon" || r.has)
+                    .map((r) => (
+                      <li key={r.key} className={r.has ? "is-on" : undefined} title={r.has ? `You have ${r.label}` : `You don't have ${r.label} yet`}>
+                        <span aria-hidden="true">{r.icon}</span> {r.label}
+                        <i aria-hidden="true">{r.has ? "✓" : "–"}</i>
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            ) : (
+              <div className="acct-badges">
+                <span className={`acct-badge ${discordLinked ? "acct-badge--discord" : "acct-badge--muted"}`}>
+                  {discordLinked ? "Discord linked" : "Discord not linked"}
+                </span>
+              </div>
+            )}
             {SOCIALS.some((s) => socials[s.key]) ? (
               <div className="acct-social-icons">
                 {SOCIALS.filter((s) => socials[s.key]).map((s) => (
@@ -236,6 +259,7 @@ export default async function AccountPage({
 
           <nav className="acct-nav" aria-label="Account sections">
             <a href="#overview"><span aria-hidden="true">📋</span> Overview</a>
+            {discordLinked ? <a href="#roles"><span aria-hidden="true">🎭</span> Server roles</a> : null}
             <a href="#profile"><span aria-hidden="true">👤</span> Profile</a>
             <a href="#contact"><span aria-hidden="true">🔗</span> Contact &amp; socials</a>
             <a href="#discord-account"><span aria-hidden="true">💬</span> Discord</a>
@@ -278,6 +302,16 @@ export default async function AccountPage({
               </div>
             </dl>
           </section>
+
+          {discordLinked ? (
+            <section className="acct-card" id="roles">
+              <header className="acct-card-header">
+                <h2>Server roles</h2>
+                <p>Pick your roles here and they update in Discord instantly, just like the role selector.</p>
+              </header>
+              <RoleManager initial={roleState} />
+            </section>
+          ) : null}
 
           <section className="acct-card" id="profile">
             <header className="acct-card-header">

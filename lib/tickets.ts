@@ -1,0 +1,243 @@
+// Tickets from the KK Ticket System (activeTickets + resolvedTickets) and their transcripts,
+// which the ticket bot posts as a zipped web page in the transcript log channel.
+
+import type { Document } from "mongodb";
+import { unzipSync } from "fflate";
+import { getBotCollection, getMongoClient } from "./mongodb";
+import { DISCORD_API, botToken } from "./discord-member";
+
+export const TRANSCRIPT_CHANNEL_ID = "1445923851178610718";
+
+export type Ticket = {
+  ticketId: number;
+  type: string;
+  topic: string;
+  status: string;
+  openedBy: string | null;
+  claimedBy: string | null;
+  resolvedBy: string | null;
+  created: string | null;
+  resolvedAt: string | null;
+  transcriptId: string | null;
+  escalated: boolean;
+};
+
+export type TicketQuery = {
+  search?: string;
+  types?: string[];
+  statuses?: string[];
+  userId?: string;
+  staffId?: string;
+  from?: Date | null;
+  to?: Date | null;
+  hasTranscript?: boolean;
+  sort?: "ticketId" | "created" | "resolvedAt" | "type";
+  order?: "asc" | "desc";
+  page?: number;
+  pageSize?: number;
+};
+
+const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const snowflake = (value: unknown) => (typeof value === "string" && /^\d{15,21}$/.test(value) ? value : null);
+
+function toTicket(doc: Document): Ticket {
+  return {
+    ticketId: Number(doc.ticket_id),
+    type: String(doc.ticket_type ?? "support"),
+    topic: String(doc.topic ?? ""),
+    status: String(doc.status ?? "Unknown"),
+    openedBy: doc.opened_by ? String(doc.opened_by) : null,
+    claimedBy: doc.claimed_by ? String(doc.claimed_by) : null,
+    resolvedBy: doc.resolved_by ? String(doc.resolved_by) : null,
+    created: doc.created instanceof Date ? doc.created.toISOString() : null,
+    resolvedAt: doc.resolved_at instanceof Date ? doc.resolved_at.toISOString() : null,
+    // Only Discord message ids point at a transcript upload
+    transcriptId: snowflake(typeof doc.transcript_id === "string" ? doc.transcript_id : null),
+    escalated: Boolean(doc.is_escalated),
+  };
+}
+
+async function idsMatchingName(search: string): Promise<string[]> {
+  if (search.length < 2) return [];
+  const client = await getMongoClient();
+  const regex = new RegExp(escapeRegex(search), "i");
+  const docs = await client
+    .db(process.env.MONGODB_DB ?? "website")
+    .collection("member_directory")
+    .find({ $or: [{ username: regex }, { displayName: regex }] }, { projection: { _id: 1 } })
+    .limit(200)
+    .toArray();
+  return docs.map((d) => String(d._id));
+}
+
+/** activeTickets and resolvedTickets as one list. */
+async function ticketsPipelineBase(): Promise<{ col: Awaited<ReturnType<typeof getBotCollection>>; union: Document[] }> {
+  const col = await getBotCollection("resolvedTickets");
+  return { col, union: [{ $unionWith: { coll: "activeTickets" } }] };
+}
+
+export async function queryTickets(q: TicketQuery) {
+  const { col, union } = await ticketsPipelineBase();
+  const and: Document[] = [];
+  if (q.types?.length) and.push({ ticket_type: { $in: q.types } });
+  if (q.statuses?.length) and.push({ status: { $in: q.statuses } });
+  if (q.userId) and.push({ opened_by: q.userId });
+  if (q.staffId) and.push({ $or: [{ claimed_by: q.staffId }, { resolved_by: q.staffId }, { escalated_by: q.staffId }] });
+  if (q.from || q.to) and.push({ created: { ...(q.from ? { $gte: q.from } : {}), ...(q.to ? { $lte: q.to } : {}) } });
+  if (q.hasTranscript) and.push({ transcript_id: { $type: "string", $regex: /^\d{15,21}$/ } });
+
+  const search = q.search?.trim().replace(/^#/, "").slice(0, 100);
+  if (search) {
+    const regex = new RegExp(escapeRegex(search), "i");
+    const nameIds = await idsMatchingName(search);
+    const or: Document[] = [
+      { topic: regex },
+      { ticket_type: regex },
+      { opened_by: regex },
+      { claimed_by: regex },
+      { resolved_by: regex },
+    ];
+    if (/^\d{1,7}$/.test(search)) or.push({ ticket_id: Number(search) });
+    if (nameIds.length) or.push({ opened_by: { $in: nameIds } }, { claimed_by: { $in: nameIds } }, { resolved_by: { $in: nameIds } });
+    and.push({ $or: or });
+  }
+
+  const sortField = { ticketId: "ticket_id", created: "created", resolvedAt: "resolved_at", type: "ticket_type" }[q.sort ?? "ticketId"] ?? "ticket_id";
+  const order = q.order === "asc" ? 1 : -1;
+  const pageSize = Math.min(100, Math.max(10, q.pageSize ?? 25));
+  const page = Math.max(1, q.page ?? 1);
+
+  const [result] = await col
+    .aggregate([
+      ...union,
+      ...(and.length ? [{ $match: { $and: and } }] : []),
+      {
+        $facet: {
+          rows: [{ $sort: { [sortField]: order, ticket_id: order } }, { $skip: (page - 1) * pageSize }, { $limit: pageSize }],
+          total: [{ $count: "n" }],
+        },
+      },
+    ])
+    .toArray();
+
+  return {
+    rows: ((result?.rows ?? []) as Document[]).map(toTicket) as Ticket[],
+    total: result?.total?.[0]?.n ?? 0,
+    page,
+    pageSize,
+  };
+}
+
+export async function getTicket(ticketId: number): Promise<Ticket | null> {
+  const { col, union } = await ticketsPipelineBase();
+  const [doc] = await col.aggregate([...union, { $match: { ticket_id: ticketId } }, { $limit: 1 }]).toArray();
+  return doc ? toTicket(doc) : null;
+}
+
+export async function ticketStats(q: { from?: Date | null; to?: Date | null; unit: "day" | "week" | "month" }) {
+  const { col, union } = await ticketsPipelineBase();
+  const match: Document = {};
+  if (q.from || q.to) match.created = { ...(q.from ? { $gte: q.from } : {}), ...(q.to ? { $lte: q.to } : {}) };
+  const [result] = await col
+    .aggregate([
+      ...union,
+      { $match: match },
+      {
+        $facet: {
+          total: [{ $count: "n" }],
+          byType: [{ $group: { _id: "$ticket_type", n: { $sum: 1 } } }, { $sort: { n: -1 } }],
+          byStatus: [{ $group: { _id: "$status", n: { $sum: 1 } } }],
+          timeline: [
+            { $group: { _id: { t: { $dateTrunc: { date: "$created", unit: q.unit, timezone: "America/Denver" } }, a: "$ticket_type" }, n: { $sum: 1 } } },
+            { $sort: { "_id.t": 1 } },
+          ],
+          // The staff member who handled it: whoever claimed it, else whoever closed it
+          topStaff: [
+            { $project: { staff: { $ifNull: ["$claimed_by", "$resolved_by"] } } },
+            { $match: { staff: { $ne: null } } },
+            { $group: { _id: "$staff", n: { $sum: 1 } } },
+            { $sort: { n: -1 } },
+            { $limit: 10 },
+          ],
+          topOpeners: [{ $group: { _id: "$opened_by", n: { $sum: 1 } } }, { $sort: { n: -1 } }, { $limit: 10 }],
+          resolveTime: [
+            { $match: { resolved_at: { $type: "date" }, created: { $type: "date" } } },
+            { $group: { _id: null, avg: { $avg: { $subtract: ["$resolved_at", "$created"] } }, n: { $sum: 1 } } },
+          ],
+          open: [{ $match: { status: "Open" } }, { $count: "n" }],
+        },
+      },
+    ])
+    .toArray();
+
+  return {
+    total: result?.total?.[0]?.n ?? 0,
+    open: result?.open?.[0]?.n ?? 0,
+    byType: (result?.byType ?? []).map((d: Document) => ({ type: String(d._id ?? "unknown"), count: d.n as number })),
+    byStatus: Object.fromEntries((result?.byStatus ?? []).map((d: Document) => [String(d._id), d.n as number])),
+    timeline: (result?.timeline ?? [])
+      .filter((d: Document) => d._id.t)
+      .map((d: Document) => ({ bucket: (d._id.t as Date).toISOString(), action: String(d._id.a ?? "unknown"), count: d.n as number })),
+    topStaff: ((result?.topStaff ?? []) as Document[]).map((d) => ({ id: String(d._id), count: d.n as number })) as { id: string; count: number }[],
+    topOpeners: ((result?.topOpeners ?? []) as Document[]).filter((d) => d._id).map((d) => ({ id: String(d._id), count: d.n as number })) as { id: string; count: number }[],
+    avgResolveMs: (result?.resolveTime?.[0]?.avg as number | undefined) ?? null,
+  };
+}
+
+export async function ticketTypes(): Promise<string[]> {
+  const col = await getBotCollection("resolvedTickets");
+  return ((await col.distinct("ticket_type")) as string[]).filter(Boolean).sort();
+}
+
+// ==========================================
+// Transcripts
+// ==========================================
+type TranscriptMessage = { attachments?: { url: string; filename: string; size: number }[] };
+
+async function transcriptAttachment(messageId: string) {
+  const token = botToken();
+  if (!token || !/^\d{15,21}$/.test(messageId)) return null;
+  const response = await fetch(`${DISCORD_API}/channels/${TRANSCRIPT_CHANNEL_ID}/messages/${messageId}`, {
+    headers: { Authorization: `Bot ${token}` },
+    cache: "no-store",
+  });
+  if (!response.ok) return null;
+  const message = (await response.json()) as TranscriptMessage;
+  return message.attachments?.find((a) => a.filename.toLowerCase().endsWith(".zip")) ?? null;
+}
+
+/** A fresh download link for the transcript zip (Discord's links expire after a while). */
+export async function transcriptDownload(messageId: string) {
+  const attachment = await transcriptAttachment(messageId);
+  return attachment ? { url: attachment.url, filename: attachment.filename, size: attachment.size } : null;
+}
+
+// Unzipped transcripts, kept in memory so the page, its CSS and images only download the zip once
+const MAX_CACHED = 4;
+const zipCache = new Map<string, Record<string, Uint8Array>>();
+const inFlight = new Map<string, Promise<Record<string, Uint8Array> | null>>();
+
+export async function loadTranscript(messageId: string): Promise<Record<string, Uint8Array> | null> {
+  const cached = zipCache.get(messageId);
+  if (cached) {
+    zipCache.delete(messageId);
+    zipCache.set(messageId, cached); // most recently used goes to the end
+    return cached;
+  }
+  const pending = inFlight.get(messageId);
+  if (pending) return pending;
+
+  const job = (async () => {
+    const attachment = await transcriptAttachment(messageId);
+    if (!attachment) return null;
+    const response = await fetch(attachment.url, { cache: "no-store" });
+    if (!response.ok) return null;
+    const files = unzipSync(new Uint8Array(await response.arrayBuffer()));
+    zipCache.set(messageId, files);
+    while (zipCache.size > MAX_CACHED) zipCache.delete(zipCache.keys().next().value as string);
+    return files;
+  })().finally(() => inFlight.delete(messageId));
+
+  inFlight.set(messageId, job);
+  return job;
+}

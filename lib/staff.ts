@@ -13,6 +13,8 @@ export type StaffMember = {
   status: StaffStatus | null;
   bio: string;
   memberSince: Date | null;
+  /** When they were last seen online (kept up to date by the bot's staff sync). */
+  lastOnline: string | null;
 };
 
 export type StaffGroup = {
@@ -114,6 +116,7 @@ export async function getStaffDirectory(): Promise<StaffDirectory> {
           status: toStatus(doc.status),
           bio: bioFor(id, role, doc.bio),
           memberSince: doc.joined_server_at instanceof Date ? doc.joined_server_at : null,
+          lastOnline: doc.last_online_at instanceof Date ? doc.last_online_at.toISOString() : null,
         };
       });
       const synced = docs.map((d) => d.synced_at).filter((d): d is Date => d instanceof Date);
@@ -140,6 +143,7 @@ export async function getStaffDirectory(): Promise<StaffDirectory> {
     status: null,
     bio: bioFor(m.id, m.role, null),
     memberSince: null,
+    lastOnline: null,
   }));
   return { groups: groupMembers(members), total: members.length, online: null, updatedAt: null, live: false };
 }
