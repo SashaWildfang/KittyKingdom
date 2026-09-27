@@ -17234,7 +17234,8 @@ button.live-voice-member {
   position: absolute;
   inset: 0 auto 0 0;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--maple), var(--ember), var(--gold));
+  background: linear-gradient(90deg, #1f8f4e, #3ba55d, #6fdc8c);
+  box-shadow: 0 0 14px rgba(59, 165, 93, 0.45);
   transition: width 1.4s cubic-bezier(0.22, 1, 0.36, 1);
   overflow: hidden;
 }
