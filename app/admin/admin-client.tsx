@@ -1,11 +1,12 @@
 "use client";
 
-import { Activity, BarChart3, Gavel, Newspaper, ScrollText, Ticket, Users, type LucideIcon } from "lucide-react";
+import { Activity, BarChart3, MessagesSquare, Gavel, Newspaper, ScrollText, Ticket, Users, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AccountsTab } from "./accounts-tab";
 import { MemberSearch, useLive, useStored } from "./admin-shared";
 import { DrillPanel, type Drill } from "./drill-panel";
+import { LiveTab } from "./live-tab";
 import { LogsTab } from "./logs-tab";
 import { MemberDrawer } from "./member-drawer";
 import { NewsTab } from "./news-tab";
@@ -15,12 +16,13 @@ import { DEFAULT_PUNISHMENT_FILTERS, PunishmentsTab, type PunishmentFilters } fr
 import { TicketsTab } from "./tickets-tab";
 import { TranscriptViewer } from "./transcript-viewer";
 
-type Tab = "overview" | "punishments" | "logs" | "tickets" | "accounts" | "news" | "traffic";
+type Tab = "overview" | "punishments" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live";
 type Level = "admin" | "staff";
 
 const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean }[] = [
   { key: "overview", label: "Overview", icon: BarChart3 },
   { key: "punishments", label: "Punishments", icon: Gavel },
+  { key: "live", label: "Live Chat", icon: MessagesSquare },
   { key: "logs", label: "Bot Logs", icon: ScrollText },
   { key: "tickets", label: "Tickets & Transcripts", icon: Ticket, admin: true },
   { key: "accounts", label: "Website Accounts", icon: Users, admin: true },
@@ -141,6 +143,7 @@ export function AdminClient({ adminName, level }: { adminName: string; level: Le
       {tab === "punishments" ? (
         <PunishmentsTab filters={punishmentFilters} setFilters={setPunishmentFilters} actionsAvailable={meta?.actions ?? []} onOpenMember={openMember} />
       ) : null}
+      {tab === "live" ? <LiveTab onOpenMember={openMember} /> : null}
       {tab === "logs" ? <LogsTab onOpenMember={openMember} /> : null}
       {isAdmin && tab === "tickets" ? <TicketsTab typesAvailable={meta?.ticketTypes ?? []} onOpenMember={openMember} onOpenTranscript={openTranscript} /> : null}
       {isAdmin && tab === "accounts" ? <AccountsTab onOpenMember={openMember} /> : null}
