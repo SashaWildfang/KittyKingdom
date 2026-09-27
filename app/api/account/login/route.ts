@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { setSession, verifyPassword } from "../../../../lib/auth";
 import { finishRegistration, setRegistrationCookie } from "../../../../lib/registration";
+import { startTwoFactorLogin } from "../../../../lib/two-factor-login";
 import { isDatabaseConnectionError } from "../../../../lib/db-errors";
 import { getUsersCollection } from "../../../../lib/mongodb";
 import { HOUR, MINUTE, allow, clientIp } from "../../../../lib/rate-limit";
@@ -54,6 +55,12 @@ export async function POST(request: Request) {
         `${origin}/login?login=unverified&identifier=${encodeURIComponent(identifier)}`,
         303,
       );
+    }
+
+    // Two-factor on: the password was right, now ask for the code before signing in
+    if (user.twoFactor?.enabled) {
+      await startTwoFactorLogin(user._id);
+      return NextResponse.redirect(`${origin}/login/2fa`, 303);
     }
 
     await users.updateOne({ _id: user._id }, { $set: { lastLoginAt: new Date() } });

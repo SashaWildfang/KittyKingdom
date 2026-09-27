@@ -21,6 +21,11 @@ export type HistoryEntry = {
   otherId: string | null;
   otherName: string | null;
   message: string | null;
+  description: string | null;
+  category: string | null;
+  /** What the item costs in the shop now (null if it's gone) */
+  currentPrice: number | null;
+  stillSold: boolean;
 };
 
 const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -28,7 +33,7 @@ const num = (v: unknown) => (typeof v === "bigint" ? Number(v) : typeof v === "n
 
 export async function purchaseHistory(discordId: string, q: { search?: string; kind?: string; page?: number }) {
   const [sales, catalogCol] = await Promise.all([getBotCollection("store_sales"), getBotCollection("store_inventory")]);
-  const catalogDocs = await catalogCol.find({}, { projection: { item_id: 1, name: 1, type: 1 } }).toArray();
+  const catalogDocs = await catalogCol.find({}, { projection: { item_id: 1, name: 1, type: 1, description: 1, category: 1, price: 1, retired: 1 } }).toArray();
   const catalog = new Map(catalogDocs.map((d) => [String(d.item_id), d]));
 
   const match: Document = {};
@@ -106,6 +111,10 @@ export async function purchaseHistory(discordId: string, q: { search?: string; k
       otherId,
       otherName: otherId ? who[otherId]?.name ?? null : null,
       message: typeof r.message === "string" && r.message ? r.message.slice(0, 300) : null,
+      description: item?.description ? String(item.description) : null,
+      category: item?.category ? String(item.category) : null,
+      currentPrice: item && item.price !== undefined ? num(item.price) : null,
+      stillSold: Boolean(item && item.retired !== true),
     };
   });
   const totals = result?.totals?.[0];

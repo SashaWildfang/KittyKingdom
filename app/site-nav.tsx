@@ -4,6 +4,8 @@ import { OnlineStatus } from "./online-status";
 import { MobileMenu } from "./mobile-menu";
 import { ThemeToggle } from "./theme-toggle";
 
+const PATREON_URL = "https://www.patreon.com/c/thekittykingdom/membership";
+
 type SiteNavProps = {
   signedIn: boolean;
   discordOnline: number | null;
@@ -23,6 +25,7 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
     { href: "/home", label: "Home", icon: "home" as const },
     { href: "/news", label: "News", icon: "news" as const },
     { href: "https://discord.com/invite/M9XKHFdYQV", label: "Discord", icon: "discord" as const, external: true },
+    { href: PATREON_URL, label: "Patreon", icon: "patreon" as const, external: true },
     ...(staffPage ? [{ href: "/staff", label: "Staff", icon: "staff" as const }] : []),
     ...(linked ? [{ href: "/store", label: "Leaf Shop", icon: "store" as const }, { href: "/leaderboards", label: "Leaderboards", icon: "leaderboards" as const }] : []),
     ...(panel ? [{ href: "/admin", label: panel.level === "admin" ? "Admin" : "Staff Panel", icon: "admin" as const }] : []),
@@ -40,6 +43,9 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
         <a href="/home">Home</a>
         <a href="/news">News</a>
         <a href="https://discord.com/invite/M9XKHFdYQV">Discord</a>
+        <a className="nav-patreon-tab" href={PATREON_URL} target="_blank" rel="noopener noreferrer">
+          Patreon
+        </a>
         {staffPage ? <a href="/staff">Staff</a> : null}
         {linked ? <a href="/store">Store</a> : null}
         {linked ? <a href="/leaderboards">Leaderboards</a> : null}

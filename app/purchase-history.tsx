@@ -17,6 +17,43 @@ const KINDS = [
 const when = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString([], { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) : "—";
 
+const fullDate = (iso: string | null) => (iso ? new Date(iso).toLocaleString([], { dateStyle: "full", timeStyle: "medium" }) : "Unknown");
+
+/** Everything about one purchase or gift. */
+function Details({ e }: { e: HistoryEntry }) {
+  const unit = e.price !== null && e.quantity ? Math.round(e.price / e.quantity) : null;
+  const rows: [string, React.ReactNode][] = [
+    [e.kind === "purchase" ? "Order" : "Gift", <code key="id">#{e.id.slice(-8).toUpperCase()}</code>],
+    ["Date", fullDate(e.at)],
+    ["Item", e.name],
+    ["Type", `${e.itemType[0]?.toUpperCase() ?? ""}${e.itemType.slice(1)}${e.category ? ` · ${e.category}` : ""}`],
+    ["Quantity", e.quantity.toLocaleString()],
+  ];
+  if (e.kind === "purchase") {
+    rows.push(["Price each", unit !== null ? <span key="u" className="ph-leaf">{unit.toLocaleString()} <LeafEmote size={13} /></span> : "—"]);
+    rows.push(["Total paid", e.price !== null ? <span key="t" className="ph-leaf"><b>{e.price.toLocaleString()}</b> <LeafEmote size={13} /></span> : "—"]);
+    if (e.currentPrice !== null && unit !== null && e.currentPrice !== unit) rows.push(["Price now", <span key="n" className="ph-leaf">{e.currentPrice.toLocaleString()} <LeafEmote size={13} /></span>]);
+  } else {
+    rows.push([e.kind === "gift-sent" ? "Sent to" : "From", e.otherName ?? "Someone who left the server"]);
+  }
+  rows.push(["Where", e.source === "website" ? "Kitty Kingdom website" : "Discord (bot command)"]);
+  if (!e.stillSold) rows.push(["Status", "No longer sold in the shop"]);
+  return (
+    <div className="ph-details">
+      {e.description ? <p className="ph-desc">{e.description}</p> : null}
+      {e.message ? <p className="ph-note">“{e.message}”</p> : null}
+      <dl>
+        {rows.map(([k, v]) => (
+          <div key={k}>
+            <dt>{k}</dt>
+            <dd>{v}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
 /**
  * Searchable purchase history: Leaf Shop buys (website and Discord) and gifts sent/received.
  * `url` is /api/store/history for yourself or /api/admin/user/<id>/history for a member.
@@ -30,6 +67,7 @@ export function PurchaseHistory({ url, whose = "your", startOpen = false }: { ur
   const [data, setData] = useState<Result | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [openId, setOpenId] = useState<string | null>(null);
 
   useEffect(() => {
     const t = window.setTimeout(() => {
@@ -123,8 +161,11 @@ export function PurchaseHistory({ url, whose = "your", startOpen = false }: { ur
           {data ? (
             data.entries.length ? (
               <ul className={`ph-list${loading ? " is-loading" : ""}`}>
-                {data.entries.map((e) => (
-                  <li key={e.id}>
+                {data.entries.map((e) => {
+                  const open = openId === e.id;
+                  return (
+                  <li key={e.id} className={open ? "is-open" : undefined}>
+                    <button type="button" className="ph-row" onClick={() => setOpenId(open ? null : e.id)} aria-expanded={open}>
                     <span className={`ph-icon ph-icon--${e.kind}`} aria-hidden="true">
                       <StoreItemIcon icon={e.itemType === "role" ? "package" : e.icon} size={17} />
                     </span>
@@ -150,15 +191,18 @@ export function PurchaseHistory({ url, whose = "your", startOpen = false }: { ur
                           {e.source === "website" ? <Globe size={11} aria-hidden="true" /> : <MessageCircle size={11} aria-hidden="true" />} {e.source === "website" ? "Website" : "Discord"}
                         </span>
                       </small>
-                      {e.message ? <em className="ph-message">“{e.message}”</em> : null}
                     </span>
                     {e.price !== null ? (
                       <span className="ph-price">
                         −{e.price.toLocaleString()} <LeafEmote size={14} />
                       </span>
                     ) : null}
+                    <ChevronDown size={16} aria-hidden="true" className="ph-row-chevron" />
+                    </button>
+                    {open ? <Details e={e} /> : null}
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             ) : (
               <p className="ph-empty">{query || kind ? "Nothing matches." : `No purchases yet.`}</p>
