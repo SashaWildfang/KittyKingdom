@@ -16,6 +16,7 @@ export async function GET(request: Request) {
     const result = await queryPunishments({
       actions: listParam(params, "actions"),
       search: params.get("search") ?? undefined,
+      reason: params.get("reason") ?? undefined,
       userId: params.get("userId") ?? undefined,
       issuerId: params.get("issuerId") ?? undefined,
       source: (params.get("source") as PunishmentQuery["source"]) ?? "all",
