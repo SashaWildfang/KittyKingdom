@@ -542,15 +542,18 @@ function AccountDrawer({ id, onClose, onChanged, onOpenMember }: { id: string; o
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  // Deleting takes three steps: Delete… → type CONFIRM → one last click
+  const [deleteText, setDeleteText] = useState("");
   async function run(action: string) {
     setConfirming(null);
+    setDeleteText("");
     setBusy(action);
     setNotice(null);
     try {
       const r = await fetch(`/api/admin/accounts/${id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action, ...(action === "delete" ? { confirm: "CONFIRM" } : {}) }),
       });
       const body = await r.json();
       if (!r.ok || !body.ok) throw new Error(body.error ?? "That didn't work.");
@@ -735,13 +738,48 @@ function AccountDrawer({ id, onClose, onChanged, onOpenMember }: { id: string; o
               ) : confirming === "delete" ? (
                 <div className="adm-danger-confirm">
                   <p>
-                    Permanently delete the website account <strong>{account.email}</strong>? Their login, devices and settings are removed. Their Discord and bot data (leafs, levels, punishments) are not touched.
+                    <strong>Step 2 of 3.</strong> You&apos;re about to permanently delete the website account <strong>{account.email}</strong>. Their login, devices and
+                    settings are removed. Their Discord and bot data (leafs, levels, punishments) are not touched.
+                  </p>
+                  <label className="adm-danger-type">
+                    <span>
+                      Type <b>CONFIRM</b> to continue
+                    </span>
+                    <input value={deleteText} onChange={(e) => setDeleteText(e.target.value)} placeholder="CONFIRM" autoComplete="off" autoFocus />
+                  </label>
+                  <div>
+                    <button type="button" className="adm-btn adm-btn--danger" disabled={deleteText !== "CONFIRM"} onClick={() => setConfirming("delete-final")}>
+                      Continue
+                    </button>
+                    <button
+                      type="button"
+                      className="adm-btn adm-btn--ghost"
+                      onClick={() => {
+                        setConfirming(null);
+                        setDeleteText("");
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : confirming === "delete-final" ? (
+                <div className="adm-danger-confirm is-final">
+                  <p>
+                    <strong>Last step.</strong> Delete <strong>{account.email}</strong> forever? This can&apos;t be undone.
                   </p>
                   <div>
                     <button type="button" className="adm-btn adm-btn--danger" disabled={Boolean(busy)} onClick={() => void run("delete")}>
-                      {busy === "delete" ? "Deleting…" : "Yes, delete this account"}
+                      {busy === "delete" ? "Deleting…" : "Delete account forever"}
                     </button>
-                    <button type="button" className="adm-btn adm-btn--ghost" onClick={() => setConfirming(null)}>
+                    <button
+                      type="button"
+                      className="adm-btn adm-btn--ghost"
+                      onClick={() => {
+                        setConfirming(null);
+                        setDeleteText("");
+                      }}
+                    >
                       Cancel
                     </button>
                   </div>

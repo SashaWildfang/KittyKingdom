@@ -35,8 +35,9 @@ const POLL_MS = 2000;
 const KEEP = 400;
 const PULSE_MS = 2400;
 const GROUP_MS = 5 * 60_000;
-const FADE_MIN = 20; // channels fade over this many quiet minutes…
-const FALLOFF_MIN = 30; // …and leave the list after this many
+const FADE_MIN = 8; // channels fade over this many quiet minutes…
+const FALLOFF_MIN = 12; // …and leave the list after this many
+const FOLLOW_DWELL_MS = 12_000; // auto-follow stays on a channel at least this long before jumping
 
 type Staff = Record<string, { rank: string; color: string | null }>;
 type Ctx = { mentions: Mentions; people: People; staff: Staff; onOpenMember: (id: string) => void };
@@ -195,11 +196,18 @@ function Embed({ e, spoiler, ctx }: { e: LiveEmbed; spoiler: boolean; ctx: Ctx }
   );
 }
 
+/** A message that's only a link to a picture/GIF/video shows the media, not the link (like Discord). */
+function linkOnlyMedia(m: LiveMessage) {
+  const text = m.content.trim().replace(/^<(.+)>$/, "$1");
+  if (!/^https?:\/\/\S+$/.test(text) || isEmojiLink(text)) return false;
+  return m.embeds.some((e) => (e.url === text || e.thumbnail?.url === text || e.video?.url === text) && (e.type === "image" || e.type === "gifv" || e.type === "video" || Boolean(e.image || e.thumbnail || e.video)));
+}
+
 function Body({ m, ctx }: { m: LiveMessage; ctx: Ctx }) {
   const embeds = m.embeds.filter((e) => !(e.type === "image" && isEmojiLink(e.url)));
   return (
     <>
-      {m.content ? (
+      {m.content && !linkOnlyMedia(m) ? (
         <div className="live-text">
           <DiscordText text={m.content} {...ctx} />
         </div>
@@ -284,7 +292,15 @@ function MessageRow({
             </>
           ) : null}
           <span className="live-reply-text">
-            {m.reply.content ? <DiscordText text={m.reply.content} compact {...ctx} /> : m.reply.hasMedia ? <em>Click to see attachment</em> : <em>Original message isn&apos;t in the feed</em>}
+            {m.reply.content && !(m.reply.hasMedia && /^<?https?:\/\/\S+>?$/.test(m.reply.content.trim())) ? (
+              <DiscordText text={m.reply.content} compact {...ctx} />
+            ) : m.reply.hasMedia ? (
+              <em>
+                <ImageIcon size={12} aria-hidden="true" /> Click to see attachment
+              </em>
+            ) : (
+              <em>Original message isn&apos;t in the feed</em>
+            )}
           </span>
         </button>
       ) : null}
@@ -301,7 +317,13 @@ function MessageRow({
         <div className="live-msg-main">
           {!grouped || m.reply ? (
             <div className="live-msg-head">
-              <button type="button" className="live-msg-name" onClick={() => ctx.onOpenMember(m.authorId)} title={`@${m.authorName}`}>
+              <button
+                type="button"
+                className={`live-msg-name${ctx.staff[m.authorId]?.color ? " is-staff" : ""}`}
+                style={ctx.staff[m.authorId]?.color ? ({ "--rank": ctx.staff[m.authorId]!.color } as React.CSSProperties) : undefined}
+                onClick={() => ctx.onOpenMember(m.authorId)}
+                title={`@${m.authorName}`}
+              >
                 {m.displayName}
               </button>
               <StaffTag id={m.authorId} staff={ctx.staff} />
@@ -421,6 +443,178 @@ function ChannelRow({ c, now, focused, pulse, onPick, onHide }: { c: ChannelTile
   );
 }
 
+type StatKey = "unread" | "rate" | "active" | "chatting" | "voice";
+
+/** The dropdown under a header number: what's behind it, with shortcuts to focus a channel or open a member. */
+function StatDetails({
+  which,
+  snap,
+  now,
+  staff,
+  onFocus,
+  onOpenMember,
+  onClearAll,
+  onClose,
+}: {
+  which: StatKey;
+  snap: LiveSnapshot;
+  now: number;
+  staff: Staff;
+  onFocus: (id: string) => void;
+  onOpenMember: (id: string) => void;
+  onClearAll: () => void;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const onClick = (e: MouseEvent) => {
+      const t = e.target as HTMLElement;
+      if (!t.closest(".live-stat-panel") && !t.closest(".live-stat")) onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("mousedown", onClick);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("mousedown", onClick);
+    };
+  }, [onClose]);
+
+  const channels = snap.categories.flatMap((c) => c.channels.map((ch) => ({ ...ch, category: c.name }))).filter((c) => !c.hidden);
+  const text = channels.filter((c) => c.kind === "text");
+  const nameStyle = (id: string) => (staff[id]?.color ? ({ color: staff[id]!.color } as React.CSSProperties) : undefined);
+  const channelRow = (c: (typeof channels)[number], right: React.ReactNode, sub?: React.ReactNode) => (
+    <li key={c.id}>
+      <button type="button" onClick={() => onFocus(c.id)} title="Focus this channel">
+        <Hash size={13} aria-hidden="true" />
+        <span className="live-stat-name">
+          {c.name}
+          <small>{sub ?? c.category}</small>
+        </span>
+        <b>{right}</b>
+      </button>
+    </li>
+  );
+
+  let title = "";
+  let body: React.ReactNode = null;
+  if (which === "unread") {
+    const list = text.filter((c) => c.unread > 0).sort((a, b) => b.unread - a.unread);
+    title = "Unread by channel";
+    body = list.length ? (
+      <>
+        <ul>{list.map((c) => channelRow(c, c.unread))}</ul>
+        <button type="button" className="adm-btn adm-btn--small live-stat-action" onClick={onClearAll}>
+          <CheckCheck size={14} aria-hidden="true" /> Mark all read
+        </button>
+      </>
+    ) : (
+      <p className="live-muted">You&apos;re all caught up.</p>
+    );
+  } else if (which === "rate") {
+    const list = text.filter((c) => c.count5 > 0).sort((a, b) => b.count1 - a.count1 || b.count5 - a.count5);
+    const max = Math.max(1, ...list.map((c) => c.count5));
+    title = "Busiest right now";
+    body = list.length ? (
+      <ul>
+        {list.map((c) =>
+          channelRow(
+            c,
+            `${c.count1}/min`,
+            <span className="live-stat-bar">
+              <i style={{ width: `${(c.count5 / max) * 100}%` }} /> {c.count5} in 5 min
+            </span>,
+          ),
+        )}
+      </ul>
+    ) : (
+      <p className="live-muted">Nothing in the last 5 minutes.</p>
+    );
+  } else if (which === "active") {
+    const list = text.filter((c) => c.count5 > 0).sort((a, b) => (b.lastAt ?? "").localeCompare(a.lastAt ?? ""));
+    title = "Active channels (last 5 min)";
+    body = list.length ? (
+      <ul>
+        {list.map((c) =>
+          channelRow(
+            c,
+            `${ago(c.lastAt, now)} ago`,
+            <span className="live-stat-faces">
+              {c.lastAuthors.map((a) => (
+                <Face key={a.id} src={a.avatar} name={a.name} size={16} />
+              ))}
+              {c.lastAuthors.map((a) => a.name).join(", ")}
+            </span>,
+          ),
+        )}
+      </ul>
+    ) : (
+      <p className="live-muted">No channel has had a message in the last 5 minutes.</p>
+    );
+  } else if (which === "chatting") {
+    title = "Chatting in the last hour";
+    body = snap.topChatters.length ? (
+      <ul>
+        {snap.topChatters.map((p) => (
+          <li key={p.id}>
+            <button type="button" onClick={() => onOpenMember(p.id)} title="Open their profile">
+              <Face src={p.avatar} name={p.name} size={22} />
+              <span className="live-stat-name">
+                <span style={nameStyle(p.id)}>{p.name}</span>
+                {staff[p.id] ? <span className="live-rank" style={staff[p.id]!.color ? ({ "--rank": staff[p.id]!.color } as React.CSSProperties) : undefined}>{staff[p.id]!.rank}</span> : null}
+                <small>
+                  last in #{p.lastChannel} · {ago(p.lastAt, now)} ago
+                </small>
+              </span>
+              <b>{p.count} msg{p.count === 1 ? "" : "s"}</b>
+            </button>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <p className="live-muted">Nobody has chatted in the last hour.</p>
+    );
+  } else {
+    const list = channels.filter((c) => c.kind === "voice" && c.voice.length);
+    title = "In voice";
+    body = list.length ? (
+      <ul>
+        {list.map((c) => (
+          <li key={c.id} className="live-stat-voice">
+            <span className="live-stat-vchan">
+              <Volume2 size={13} aria-hidden="true" /> {c.name} <small>{c.voice.length}</small>
+            </span>
+            <span className="live-voice">
+              {c.voice.map((v) => (
+                <button key={v.id} type="button" className="live-voice-member" onClick={() => onOpenMember(v.id)} title={v.name}>
+                  <Face src={v.avatar} name={v.name} size={18} />
+                  <span style={nameStyle(v.id)}>{v.name}</span>
+                  {v.deafened ? <Headphones size={11} aria-label="Deafened" /> : v.muted ? <MicOff size={11} aria-label="Muted" /> : null}
+                  {v.streaming ? <MonitorUp size={11} aria-label="Streaming" /> : null}
+                  {v.video ? <Video size={11} aria-label="Camera on" /> : null}
+                </button>
+              ))}
+            </span>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <p className="live-muted">Nobody is in voice.</p>
+    );
+  }
+
+  return (
+    <div className="live-stat-panel" role="dialog" aria-label={title}>
+      <header>
+        <strong>{title}</strong>
+        <button type="button" className="live-icon-btn" onClick={onClose} aria-label="Close">
+          <X size={14} />
+        </button>
+      </header>
+      {body}
+    </div>
+  );
+}
+
 /** Admin -> Live Chat: live messages, channel activity and voice, with delete for staff. */
 export function LiveTab({ onOpenMember, onUnread }: { onOpenMember: (id: string) => void; onUnread?: (n: number) => void }) {
   const [focus, setFocus] = useState<string[]>([]);
@@ -436,6 +630,8 @@ export function LiveTab({ onOpenMember, onUnread }: { onOpenMember: (id: string)
   const [quietShown, setQuietShown] = useStored("live-show-quiet", false);
   const [collapsed, setCollapsed] = useStored<string[]>("live-collapsed", []);
   const [managingHidden, setManagingHidden] = useState(false);
+  const [picked, setPicked] = useState<string[]>([]);
+  const [openStat, setOpenStat] = useState<StatKey | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [toast, setToast] = useState<{ text: string; tone: "ok" | "error" } | null>(null);
   const [pulses, setPulses] = useState<Record<string, number>>({});
@@ -448,6 +644,7 @@ export function LiveTab({ onOpenMember, onUnread }: { onOpenMember: (id: string)
   const pausedRef = useRef(paused);
   const lastUnread = useRef<Record<string, number>>({});
   const lastNewest = useRef<string | null>(null);
+  const lastFollow = useRef(0);
   const feed = useRef<HTMLOListElement>(null);
   const busy = useRef(false);
   const focusRef = useRef(focus);
@@ -516,8 +713,11 @@ export function LiveTab({ onOpenMember, onUnread }: { onOpenMember: (id: string)
       let newest: { id: string; at: string } | null = null;
       for (const cat of data.categories)
         for (const c of cat.channels) if (c.kind === "text" && !p.hidden.includes(c.id) && c.lastAt && (!newest || c.lastAt > newest.at)) newest = { id: c.id, at: c.lastAt };
-      if (p.autoFollow && !firstLoad && !pausedRef.current && newest && newest.at !== lastNewest.current) {
-        if (!(focusRef.current.length === 1 && focusRef.current[0] === newest.id)) setFocus([newest.id]);
+      if (p.autoFollow && !firstLoad && !pausedRef.current && newest && newest.at !== lastNewest.current && Date.now() - lastFollow.current >= FOLLOW_DWELL_MS) {
+        if (!(focusRef.current.length === 1 && focusRef.current[0] === newest.id)) {
+          lastFollow.current = Date.now();
+          setFocus([newest.id]);
+        }
       }
       if (newest) lastNewest.current = newest.at;
     } catch (e) {
@@ -689,7 +889,8 @@ export function LiveTab({ onOpenMember, onUnread }: { onOpenMember: (id: string)
   // Text channels drop off the list once they've faded out (quiet for FALLOFF_MIN) and have nothing unread
   const isActive = (c: ChannelTile) =>
     c.kind === "voice" ? c.voice.length > 0 : c.unread > 0 || Boolean(c.lastAt && now - new Date(c.lastAt).getTime() < FALLOFF_MIN * 60_000);
-  const toggleFocus = (id: string) => setFocus((f) => (f.includes(id) ? f.filter((x) => x !== id) : [...f, id]));
+  // One channel at a time: clicking the focused channel again shows everything
+  const toggleFocus = (id: string) => setFocus((f) => (f[0] === id ? [] : [id]));
   const allTiles = snap?.categories.flatMap((c) => c.channels) ?? [];
   const nameOf = (id: string) => allTiles.find((c) => c.id === id)?.name ?? "channel";
   const hidden = prefs?.hidden ?? [];
@@ -709,21 +910,37 @@ export function LiveTab({ onOpenMember, onUnread }: { onOpenMember: (id: string)
           <Radio size={15} aria-hidden="true" />
           {snap ? (snap.bot.online ? "Live" : `Bot feed offline${snap.bot.lastSeen ? ` · last seen ${ago(snap.bot.lastSeen, now)} ago` : ""}`) : "Connecting…"}
         </span>
-        <span className="live-stat">
-          <strong>{stats?.unread ?? "…"}</strong> unread
-        </span>
-        <span className="live-stat">
-          <strong>{stats?.perMinute ?? "…"}</strong> msgs / min
-        </span>
-        <span className="live-stat">
-          <strong>{stats?.activeChannels ?? "…"}</strong> active
-        </span>
-        <span className="live-stat">
-          <strong>{stats?.chatters ?? "…"}</strong> chatting (1h)
-        </span>
-        <span className="live-stat">
-          <strong>{stats?.inVoice ?? "…"}</strong> in voice
-        </span>
+        {(
+          [
+            ["unread", stats?.unread, "unread"],
+            ["rate", stats?.perMinute, "msgs / min"],
+            ["active", stats?.activeChannels, "active"],
+            ["chatting", stats?.chatters, "chatting (1h)"],
+            ["voice", stats?.inVoice, "in voice"],
+          ] as [StatKey, number | undefined, string][]
+        ).map(([k, value, label]) => (
+          <button key={k} type="button" className={`live-stat${openStat === k ? " is-open" : ""}`} onClick={() => setOpenStat(openStat === k ? null : k)} aria-expanded={openStat === k}>
+            <strong>{value ?? "…"}</strong> {label} <ChevronDown size={13} aria-hidden="true" />
+          </button>
+        ))}
+        {openStat && snap ? (
+          <StatDetails
+            which={openStat}
+            snap={snap}
+            now={now}
+            staff={known.staff}
+            onFocus={(id) => {
+              setFocus([id]);
+              setOpenStat(null);
+            }}
+            onOpenMember={onOpenMember}
+            onClearAll={() => {
+              void clearAll();
+              setOpenStat(null);
+            }}
+            onClose={() => setOpenStat(null)}
+          />
+        ) : null}
       </div>
       {snap && !snap.bot.online ? (
         <p className="adm-error">
@@ -785,18 +1002,38 @@ export function LiveTab({ onOpenMember, onUnread }: { onOpenMember: (id: string)
             </button>
             {managingHidden ? (
               hidden.length ? (
-                <ul>
-                  {hidden.map((id) => (
-                    <li key={id}>
-                      <span>
-                        <Hash size={12} aria-hidden="true" /> {nameOf(id)}
-                      </span>
-                      <button type="button" className="adm-btn adm-btn--ghost adm-btn--small" onClick={() => void savePrefs({ hidden: hidden.filter((x) => x !== id) })}>
-                        <Eye size={13} aria-hidden="true" /> Show
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+                <>
+                  <div className="live-hidden-bulk">
+                    <label className="adm-toggle">
+                      <input
+                        type="checkbox"
+                        checked={picked.length === hidden.length}
+                        onChange={(e) => setPicked(e.target.checked ? [...hidden] : [])}
+                        aria-label="Select all hidden channels"
+                      />
+                      <span>Select all</span>
+                    </label>
+                    <button type="button" className="adm-btn adm-btn--small" disabled={!picked.length} onClick={() => void savePrefs({ hidden: hidden.filter((x) => !picked.includes(x)) }).then(() => setPicked([]))}>
+                      <Eye size={13} aria-hidden="true" /> Unhide {picked.length ? picked.length : ""}
+                    </button>
+                    <button type="button" className="adm-btn adm-btn--ghost adm-btn--small" onClick={() => void savePrefs({ hidden: [] }).then(() => setPicked([]))}>
+                      Unhide all
+                    </button>
+                  </div>
+                  <ul>
+                    {hidden.map((id) => (
+                      <li key={id}>
+                        <label className="live-hidden-pick">
+                          <input type="checkbox" checked={picked.includes(id)} onChange={(e) => setPicked((p) => (e.target.checked ? [...p, id] : p.filter((x) => x !== id)))} />
+                          <Hash size={12} aria-hidden="true" /> {nameOf(id)}
+                        </label>
+                        <button type="button" className="adm-btn adm-btn--ghost adm-btn--small" onClick={() => void savePrefs({ hidden: hidden.filter((x) => x !== id) })}>
+                          <Eye size={13} aria-hidden="true" /> Show
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </>
               ) : (
                 <p className="live-muted">Hover a channel and click the eye to hide it. Hidden channels stay hidden on every device.</p>
               )
@@ -810,7 +1047,7 @@ export function LiveTab({ onOpenMember, onUnread }: { onOpenMember: (id: string)
               <Search size={15} aria-hidden="true" />
               <input type="search" placeholder="Filter messages, people, channels…" value={search} onChange={(e) => setSearch(e.target.value)} />
             </label>
-            <button type="button" className={`adm-chip${prefs?.autoFollow ? " is-on" : ""}`} style={{ "--c": "#46a758" } as React.CSSProperties} onClick={() => void savePrefs({ autoFollow: !prefs?.autoFollow })} title="Automatically focus the channel with the newest message">
+            <button type="button" className={`adm-chip${prefs?.autoFollow ? " is-on" : ""}`} style={{ "--c": "#46a758" } as React.CSSProperties} onClick={() => void savePrefs({ autoFollow: !prefs?.autoFollow })} title="Follow the channel with the newest message (stays at least 12 seconds on each channel)">
               <Crosshair size={12} aria-hidden="true" /> Auto-follow
             </button>
             <button type="button" className={`adm-chip${hideBots ? " is-on" : ""}`} style={{ "--c": "#8b8d98" } as React.CSSProperties} onClick={() => setHideBots(!hideBots)}>
@@ -834,11 +1071,6 @@ export function LiveTab({ onOpenMember, onUnread }: { onOpenMember: (id: string)
                   #{nameOf(id)} <X size={12} aria-hidden="true" />
                 </button>
               ))}
-              {focus.length > 1 ? (
-                <button type="button" className="adm-link" onClick={() => setFocus([])}>
-                  Show all
-                </button>
-              ) : null}
             </div>
           ) : null}
 
