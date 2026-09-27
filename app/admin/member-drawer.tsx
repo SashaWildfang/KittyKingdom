@@ -11,6 +11,8 @@ import {
   prettyAction,
   timeAgo,
   useLive,
+  RichText,
+  type Mentions,
   type People,
   type Punishment,
   type Ticket,
@@ -24,8 +26,9 @@ type Result = {
   stats: { level: number; balance: number; messages: number; xp: number } | null;
   punishments: Punishment[];
   punishmentTotal: number;
-  tickets: Ticket[];
-  ticketTotal: number;
+  tickets: Ticket[] | null;
+  ticketTotal: number | null;
+  mentions: Mentions;
   people: People;
 };
 
@@ -109,7 +112,7 @@ export function MemberDrawer({
                           by <PersonLink id={p.issuerId} people={data.people} onOpen={onOpenMember} automodId={p.source === "automod"} compact />
                         </span>
                       </div>
-                      <p>{p.reason || "No reason given."}</p>
+                      <p>{p.reason ? <RichText text={p.reason} mentions={data.mentions} people={data.people} onOpenMember={onOpenMember} /> : "No reason given."}</p>
                     </li>
                   ))}
                 </ol>
@@ -118,6 +121,7 @@ export function MemberDrawer({
               )}
             </section>
 
+            {data.tickets ? (
             <section className="adm-drawer-section">
               <h3>
                 Tickets <small>{data.ticketTotal}</small>
@@ -143,6 +147,7 @@ export function MemberDrawer({
                 <p className="adm-empty">No tickets opened.</p>
               )}
             </section>
+            ) : null}
 
             <section className="adm-drawer-section">
               <h3>

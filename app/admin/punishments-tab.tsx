@@ -5,7 +5,9 @@ import {
   ActionBadge,
   CopyId,
   LiveBadge,
+  MemberSearch,
   Pager,
+  RichText,
   PersonLink,
   RANGES,
   actionColor,
@@ -17,15 +19,18 @@ import {
   toCsv,
   useLive,
   useStored,
+  type Mentions,
   type People,
   type Punishment,
 } from "./admin-shared";
 
-type Result = { rows: Punishment[]; total: number; page: number; pageSize: number; people: People };
+type Result = { rows: Punishment[]; total: number; page: number; pageSize: number; people: People; mentions: Mentions };
 type SortKey = "timestamp" | "action" | "userId" | "issuerId";
 
 export type PunishmentFilters = {
   search: string;
+  /** Picked from the member suggestions: shows only this member's record */
+  member: { id: string; name: string } | null;
   actions: string[];
   source: string;
   status: string;
@@ -37,6 +42,7 @@ export type PunishmentFilters = {
 
 export const DEFAULT_PUNISHMENT_FILTERS: PunishmentFilters = {
   search: "",
+  member: null,
   actions: [],
   source: "all",
   status: "all",
@@ -49,6 +55,7 @@ export const DEFAULT_PUNISHMENT_FILTERS: PunishmentFilters = {
 function buildParams(f: PunishmentFilters, page: number, pageSize = f.pageSize) {
   return new URLSearchParams({
     search: f.search,
+    ...(f.member ? { userId: f.member.id } : {}),
     actions: f.actions.join(","),
     source: f.source,
     status: f.status,
@@ -146,20 +153,22 @@ export function PunishmentsTab({
   }
 
   const people = data?.people ?? {};
-  const activeFilters = filters.actions.length + (filters.source !== "all" ? 1 : 0) + (filters.status !== "all" ? 1 : 0) + (filters.range !== "all" ? 1 : 0) + (filters.search ? 1 : 0);
+  const activeFilters = (filters.member ? 1 : 0) + filters.actions.length + (filters.source !== "all" ? 1 : 0) + (filters.status !== "all" ? 1 : 0) + (filters.range !== "all" ? 1 : 0) + (filters.search ? 1 : 0);
 
   return (
     <div className="adm-panel">
       <div className="adm-filters">
-        <label className="adm-search">
-          <span aria-hidden="true">🔍</span>
-          <input
-            type="search"
-            placeholder="Search user, ID, staff, reason, message…"
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-          />
-        </label>
+        <MemberSearch
+          className="adm-filters-search"
+          value={searchText}
+          onChange={setSearchText}
+          onPick={(m) => {
+            setSearchText("");
+            update({ member: { id: m.id, name: m.name }, search: "" });
+          }}
+          onSubmit={(text) => update({ search: text })}
+          placeholder="Search a member (e.g. Seth), ID, staff, reason, message…"
+        />
         <select className="adm-select" value={filters.range} onChange={(e) => update({ range: e.target.value })} aria-label="Date range">
           {RANGES.map((r) => (
             <option key={r.key} value={r.key}>
@@ -200,6 +209,11 @@ export function PunishmentsTab({
       </div>
 
       <div className="adm-chips" role="group" aria-label="Actions">
+        {filters.member ? (
+          <button type="button" className="adm-chip is-on adm-chip--member" style={{ "--c": "#f59b2a" } as React.CSSProperties} onClick={() => update({ member: null })}>
+            👤 {filters.member.name} ✕
+          </button>
+        ) : null}
         {actionsAvailable.map((action, i) => {
           const on = filters.actions.includes(action);
           return (
@@ -261,7 +275,9 @@ export function PunishmentsTab({
                     <td>
                       <PersonLink id={row.issuerId} people={people} onOpen={onOpenMember} automodId={row.source === "automod"} compact={compact} />
                     </td>
-                    <td className="adm-reason-cell">{row.reason || <span className="adm-muted">No reason</span>}</td>
+                    <td className="adm-reason-cell">
+                      {row.reason ? <RichText text={row.reason} mentions={data?.mentions} people={people} onOpenMember={onOpenMember} /> : <span className="adm-muted">No reason</span>}
+                    </td>
                     <td>
                       <StatusPill row={row} />
                     </td>
@@ -305,16 +321,18 @@ export function PunishmentsTab({
                             </div>
                             <div>
                               <dt>Extra info</dt>
-                              <dd>{row.extraInfo || "—"}</dd>
+                              <dd>{row.extraInfo ? <RichText text={row.extraInfo} mentions={data?.mentions} people={people} /> : "—"}</dd>
                             </div>
                           </dl>
                           <div className="adm-detail-text">
                             <h4>Reason</h4>
-                            <p>{row.reason || "No reason given."}</p>
+                            <p>{row.reason ? <RichText text={row.reason} mentions={data?.mentions} people={people} onOpenMember={onOpenMember} /> : "No reason given."}</p>
                             {row.messageContent ? (
                               <>
                                 <h4>Flagged message</h4>
-                                <blockquote>{row.messageContent}</blockquote>
+                                <blockquote>
+                                  <RichText text={row.messageContent} mentions={data?.mentions} people={people} onOpenMember={onOpenMember} />
+                                </blockquote>
                               </>
                             ) : null}
                           </div>
@@ -325,7 +343,7 @@ export function PunishmentsTab({
                               </button>
                             ) : null}
                             {row.userId ? (
-                              <button type="button" className="adm-btn adm-btn--ghost" onClick={() => { setSearchText(row.userId!); }}>
+                              <button type="button" className="adm-btn adm-btn--ghost" onClick={() => update({ member: { id: row.userId!, name: people[row.userId!]?.name ?? row.userId! }, search: "" })}>
                                 🔎 All for this member
                               </button>
                             ) : null}
