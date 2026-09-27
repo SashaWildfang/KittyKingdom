@@ -55,6 +55,12 @@ export function AdminClient({ adminName, level }: { adminName: string; level: Le
   // Waiting join applications, for the bubble on the Join Apps tab
   const joinCount = useLive<{ pending: number | null }>("/api/admin/join-apps/count", 15_000);
   const pendingApps = joinCount.data?.pending ?? 0;
+  // Unread live messages, for the bubble on the Live Chat tab (the tab itself reports it live while open)
+  const liveUnreadPoll = useLive<{ unread: number | null }>(tab === "live" ? null : "/api/admin/live/unread", 10_000);
+  const [liveUnread, setLiveUnread] = useState<number | null>(null);
+  useEffect(() => {
+    if (typeof liveUnreadPoll.data?.unread === "number") setLiveUnread(liveUnreadPoll.data.unread);
+  }, [liveUnreadPoll.data]);
   const tabsRef = useRef<HTMLElement>(null);
 
   // On narrow screens the tab strip scrolls sideways; keep the open tab in view
@@ -130,6 +136,11 @@ export function AdminClient({ adminName, level }: { adminName: string; level: Le
         {tabs.map((t) => (
           <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} className={tab === t.key ? "is-active" : undefined} onClick={() => setTab(t.key)}>
             <t.icon size={16} aria-hidden="true" /> {t.label}
+            {t.key === "live" && liveUnread ? (
+              <span className="adm-tab-bubble is-live" aria-label={`${liveUnread} unread`}>
+                {liveUnread > 999 ? "999+" : liveUnread}
+              </span>
+            ) : null}
             {t.key === "join" && joinCount.data ? (
               <span className={`adm-tab-bubble${pendingApps > 0 ? " is-hot" : ""}`} aria-label={`${pendingApps} pending`}>
                 {pendingApps}
@@ -154,7 +165,7 @@ export function AdminClient({ adminName, level }: { adminName: string; level: Le
         <PunishmentsTab filters={punishmentFilters} setFilters={setPunishmentFilters} actionsAvailable={meta?.actions ?? []} onOpenMember={openMember} />
       ) : null}
       {tab === "join" ? <JoinAppsTab onOpenMember={openMember} /> : null}
-      {tab === "live" ? <LiveTab onOpenMember={openMember} /> : null}
+      {tab === "live" ? <LiveTab onOpenMember={openMember} onUnread={setLiveUnread} /> : null}
       {tab === "logs" ? <LogsTab onOpenMember={openMember} /> : null}
       {isAdmin && tab === "tickets" ? <TicketsTab typesAvailable={meta?.ticketTypes ?? []} onOpenMember={openMember} onOpenTranscript={openTranscript} /> : null}
       {isAdmin && tab === "accounts" ? <AccountsTab onOpenMember={openMember} /> : null}
