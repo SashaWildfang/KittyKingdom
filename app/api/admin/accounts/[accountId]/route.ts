@@ -19,9 +19,13 @@ export async function GET(request: Request, { params }: { params: { accountId: s
 export async function POST(request: Request, { params }: { params: { accountId: string } }) {
   const admin = await requireAdmin(request);
   if (admin instanceof NextResponse) return admin;
-  const body = (await request.json().catch(() => ({}))) as { action?: string };
+  const body = (await request.json().catch(() => ({}))) as { action?: string; confirm?: unknown };
   if (!ACTIONS.includes(body.action as AccountAction)) {
     return NextResponse.json({ ok: false, error: "Unknown action." }, { status: 400 });
+  }
+  // Deleting needs the typed confirmation too, not just a click
+  if (body.action === "delete" && body.confirm !== "CONFIRM") {
+    return NextResponse.json({ ok: false, error: "Type CONFIRM to delete this account." }, { status: 400 });
   }
   try {
     const result = await accountAction(params.accountId, body.action as AccountAction, admin, new URL(request.url).origin);
