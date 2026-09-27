@@ -29,8 +29,8 @@ const BOOSTER_ROLE = "1360260086500561237";
 const STAFF_TEAM_ROLE = "1358470109965979859";
 const DISCORD_EPOCH = BigInt("1420070400000");
 
-/** XP needed to go from `level` to the next one (the bot's curve: 100 × level^1.2). */
-export const xpForLevel = (level: number) => Math.floor(100 * Math.max(1, level) ** 1.2);
+/** XP needed to go from `level` to the next one (same as xp_required_for in economy/leveling.py). */
+export const xpForLevel = (level: number) => (level <= 1 ? 100 : Math.floor(100 * level ** 1.2));
 
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : typeof v === "bigint" ? Number(v) : v instanceof Long ? v.toNumber() : 0);
 const iso = (v: unknown) => (v instanceof Date && !Number.isNaN(v.getTime()) ? v.toISOString() : null);
@@ -262,6 +262,8 @@ export async function memberStats(discordId: string, timeZone: string) {
       rank: levelRank + 1,
       of: ranked,
       role: roleName(currentRole?.[1]),
+      // The level role's color (two or three stops for gradient roles), for the level badge
+      color: (currentRole && roles.get(currentRole[1])?.colors?.length ? roles.get(currentRole[1]).colors : null) as string[] | null,
       nextRole: nextRole ? { name: roleName(nextRole[1]) ?? `Level ${nextRole[0]} role`, level: nextRole[0] } : null,
     },
     multipliers: { xp: Math.round(xpMultiplier * 100) / 100, leaves: Math.round(leafMultiplier * 100) / 100, patreon: patreon?.name ?? null, booster: isBooster, xpWeekend: weekend > 1, globalBooster: globalBoost > 1, consumable },
@@ -277,8 +279,6 @@ export async function memberStats(discordId: string, timeZone: string) {
       giftsSent,
       giftsReceived,
       items,
-      butterflies: num(user?.butterflies),
-      crabs: num(user?.crabs),
       qotdAnswers: qotdCount,
       gambling: gamble
         ? {
