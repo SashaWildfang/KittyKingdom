@@ -100,27 +100,53 @@ export async function getMemberRoleSummary(discordId: unknown): Promise<MemberRo
 async function discordRequest<T>(method: string, path: string, body?: unknown): Promise<{ ok: boolean; status: number; data: T | null }> {
   const token = botToken();
   if (!token) return { ok: false, status: 0, data: null };
-  try {
-    const response = await fetch(`${DISCORD_API}${path}`, {
-      method,
-      headers: {
-        Authorization: `Bot ${token}`,
-        "Content-Type": "application/json",
-        "X-Audit-Log-Reason": "Kitty Kingdom website store",
-      },
-      body: body === undefined ? undefined : JSON.stringify(body),
-      cache: "no-store",
-    });
-    const data = response.status === 204 ? null : ((await response.json().catch(() => null)) as T | null);
-    return { ok: response.ok, status: response.status, data };
-  } catch {
-    return { ok: false, status: 0, data: null };
+  // Discord rate limits (429) and brief hiccups (5xx / network) get a couple of quick retries
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const response = await fetch(`${DISCORD_API}${path}`, {
+        method,
+        headers: {
+          Authorization: `Bot ${token}`,
+          "Content-Type": "application/json",
+          "X-Audit-Log-Reason": "Kitty Kingdom website store",
+        },
+        body: body === undefined ? undefined : JSON.stringify(body),
+        cache: "no-store",
+      });
+      const data = response.status === 204 ? null : ((await response.json().catch(() => null)) as T | null);
+      if ((response.status === 429 || response.status >= 500) && attempt < 2) {
+        const wait = Number((data as { retry_after?: number } | null)?.retry_after ?? response.headers.get("retry-after") ?? 0.5);
+        await new Promise((r) => setTimeout(r, Math.min(3000, Math.max(250, wait * 1000))));
+        continue;
+      }
+      return { ok: response.ok, status: response.status, data };
+    } catch {
+      if (attempt < 2) {
+        await new Promise((r) => setTimeout(r, 300));
+        continue;
+      }
+      return { ok: false, status: 0, data: null };
+    }
   }
+  return { ok: false, status: 0, data: null };
 }
 
 export type GuildRole = { id: string; name: string; colors: string[]; position: number; managed: boolean };
 
 /** Current role ids of a member (fresh, not cached), or null if they're not in the server. */
+/**
+ * A member's roles, and whether Discord actually answered: `definitive` is true for a real answer
+ * (roles, or "not in the server"), false when Discord couldn't be reached.
+ */
+export async function memberRolesChecked(discordId: string): Promise<{ roles: string[] | null; definitive: boolean }> {
+  const guild = await guildId();
+  if (!guild) return { roles: null, definitive: false };
+  const res = await discordRequest<{ roles?: string[]; code?: number }>("GET", `/guilds/${guild}/members/${discordId}`);
+  if (res.ok && res.data?.roles) return { roles: res.data.roles, definitive: true };
+  if (res.status === 404) return { roles: null, definitive: true };
+  return { roles: null, definitive: false };
+}
+
 export async function getMemberRoleIds(discordId: string): Promise<string[] | null> {
   const guild = await guildId();
   if (!guild) return null;
