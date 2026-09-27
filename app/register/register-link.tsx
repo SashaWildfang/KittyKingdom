@@ -77,7 +77,7 @@ export function RegisterLink() {
   }
 
   function copy(what: "code" | "command", code: string) {
-    void navigator.clipboard?.writeText(what === "code" ? code : `/link ${code}`).then(() => {
+    void navigator.clipboard?.writeText(code.replace("-", "")).then(() => {
       setCopied(what);
       window.setTimeout(() => setCopied(null), 1400);
     });
@@ -134,8 +134,8 @@ export function RegisterLink() {
           return (
             <div className="reg-card">
               <p className="reg-lead">
-                Only members of the Kitty Kingdom Discord can make an account. Run this command <b>in the server</b> to prove it&apos;s you, and this page will
-                move on by itself.
+                Only members of the Kitty Kingdom Discord can make an account. Use your code with <code>/link</code> <b>in the server</b> to prove it&apos;s you,
+                and this page will move on by itself.
               </p>
 
               {data.state === "not-member" ? (
@@ -148,21 +148,28 @@ export function RegisterLink() {
               {live ? (
                 <>
                   <div className="reg-code">
-                    <button type="button" className="reg-code-value" onClick={() => copy("code", data.code!)} title="Copy code">
+                    <button type="button" className="reg-code-value" onClick={() => copy("code", data.code!)} title="Click to copy the code">
                       {data.code}
                     </button>
                     <span className={`reg-timer${left < 60_000 ? " is-low" : ""}`}>{mmss(left)}</span>
                   </div>
                   <div className="reg-actions">
-                    <button type="button" className="reg-btn reg-btn--primary" onClick={() => copy("command", data.code!)}>
-                      <Copy size={15} aria-hidden="true" /> {copied === "command" ? "Copied!" : `Copy /link ${data.code}`}
+                    <button type="button" className="reg-btn reg-btn--primary" onClick={() => copy("code", data.code!)}>
+                      {copied === "code" ? <Check size={15} aria-hidden="true" /> : <Copy size={15} aria-hidden="true" />} {copied === "code" ? "Code copied!" : "Copy code"}
                     </button>
                     <a className="reg-btn" href={DISCORD_INVITE} target="_blank" rel="noreferrer">
                       <ExternalLink size={15} aria-hidden="true" /> Open Discord
                     </a>
                   </div>
+                  <ol className="reg-how">
+                    <li>
+                      In the server, type <code>/link</code> and choose the command when it pops up.
+                    </li>
+                    <li>Paste your code into the <b>code</b> box and press Enter.</li>
+                  </ol>
                   <p className="reg-wait" aria-live="polite">
-                    <i aria-hidden="true" /> Waiting for <code>/link {data.code}</code> in the server…
+                    <i aria-hidden="true" />
+                    <span>Waiting for you to link… this page updates by itself.</span>
                   </p>
                 </>
               ) : (
