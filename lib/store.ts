@@ -64,7 +64,7 @@ const toLong = (id: string) => Long.fromString(id);
 /** Bot user docs store discordId as an integer (older ones as a string) - match either. */
 const discordIdFilter = (discordId: string) => ({ discordId: { $in: [toLong(discordId), discordId] } });
 
-function iconFor(item: Document) {
+export function iconFor(item: Document) {
   if (ITEM_ICONS[item.item_id]) return ITEM_ICONS[item.item_id];
   const id = String(item.item_id ?? "").toLowerCase();
   for (const [pattern, key] of ICON_BY_NAME) if (pattern.test(id)) return key;

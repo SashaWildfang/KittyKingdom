@@ -266,8 +266,11 @@ function RegisterForm({ active }: { active: boolean }) {
         </span>
       </label>
 
+      <p className="kk-hint kk-discord-note">
+        Accounts are for members of the Kitty Kingdom Discord. Next, you&apos;ll link yours by typing <code>/link</code> in the server.
+      </p>
       <SubmitButton busy={busy} disabled={!ready}>
-        Create account
+        Continue
       </SubmitButton>
       {!ready && (email || password) ? (
         <p className="kk-hint kk-hint--center">

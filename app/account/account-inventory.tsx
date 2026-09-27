@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { StoreState } from "../../lib/store";
+import { PurchaseHistory } from "../purchase-history";
 import { StoreClient } from "../store/store-client";
 
 /** Your inventory on My Account: equip roles, use boosters and send gifts without leaving the page. */
@@ -21,5 +22,10 @@ export function AccountInventory() {
 
   if (error) return <p className="roles-muted">{error}</p>;
   if (!state) return <div className="adm-skeleton adm-skeleton--short" aria-label="Loading inventory" />;
-  return <StoreClient initialState={state} inventoryOnly />;
+  return (
+    <>
+      <StoreClient initialState={state} inventoryOnly />
+      <PurchaseHistory url="/api/store/history" />
+    </>
+  );
 }

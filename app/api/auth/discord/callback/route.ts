@@ -6,6 +6,10 @@ import {
   getUsersCollection,
 } from "../../../../../lib/mongodb";
 
+// Verified member (accepted join application) vs still waiting in verification
+const MEMBER_ROLE_ID = "1358469854725931038";
+const UNVERIFIED_ROLE_ID = "1358469817191104716";
+
 export const maxDuration = 10;
 
 function getCanonicalOrigin(request: Request) {
@@ -211,6 +215,11 @@ export async function GET(request: Request) {
       }
 
       guildMember = await memberResponse.json();
+      // Only verified members (accepted join application) can link, same as /link in the server
+      const roles: string[] = Array.isArray(guildMember?.roles) ? guildMember.roles : [];
+      if (!roles.includes(MEMBER_ROLE_ID) || roles.includes(UNVERIFIED_ROLE_ID)) {
+        return NextResponse.redirect(`${origin}/account?discord=verify-required#discord-account`, 303);
+      }
     }
 
     const joinApplications = await getJoinApplicationsCollection();
