@@ -1,4 +1,4 @@
-import { Backpack, Gift, ShieldCheck, Check, CircleAlert, ClipboardList, KeyRound, Link2, Lock, MessageCircle, Sparkles, TriangleAlert, UserRound } from "lucide-react";
+import { Backpack, ChevronDown, Gift, ShieldCheck, Check, CircleAlert, ClipboardList, KeyRound, Link2, Lock, MessageCircle, Sparkles, TriangleAlert, UserRound } from "lucide-react";
 import { LeafEmote } from "../ui-icons";
 import { redirect } from "next/navigation";
 import { isStaffDiscordId } from "../../lib/admin";
@@ -15,6 +15,8 @@ import { applicationBirthday, getJoinApplication } from "../../lib/join-applicat
 import { getRoleState } from "../../lib/member-roles";
 import { CollapsibleCard } from "./collapsible-card";
 import { LiveServerStatus } from "./live-server-status";
+import { TwoFactorSettings } from "./two-factor-settings";
+import { twoFactorStatus } from "../../lib/two-factor-account";
 import { DailyCard } from "./daily-card";
 import { getDailyStatus } from "../../lib/daily";
 import { AccountInventory } from "./account-inventory";
@@ -52,6 +54,7 @@ const statusMessages: Record<string, string> = {
     "Discord linking could not be verified. Please start from the Link Discord button again.",
   "not-configured": "Discord linking is not configured yet. Please contact staff.",
   "verify-required": "Only verified members can link. Finish the join application in the Discord (wait for staff to accept it), then try again.",
+  "backup-used": "You signed in with a backup code. That code can't be used again. Check how many you have left below, and make new ones if you're running low.",
   "delete-staff-blocked": "Staff accounts can't be deleted. If you're leaving the team, ask an admin to remove your staff role first.",
   "staff-verify-required": "Verify your email to see the Staff page. Check your inbox for the link, or send a new one below.",
   "staff-link-required": "Link your Discord account to see the Staff page. Grab a code below and run /link in the server.",
@@ -123,6 +126,7 @@ export default async function AccountPage({
   const heading = displayName ? `Welcome back, ${displayName}` : "My Account";
   const shownName = displayName ?? user.username ?? user.email.split("@")[0];
   const discordLinked = Boolean(user.discordId);
+  const twoFactor = twoFactorStatus(user);
   const discordName = discordLinked ? String(user.discord?.username ?? user.discordId) : null;
   const memberSince = user.createdAt instanceof Date ? formatMonthYear(user.createdAt) : null;
   const statusText = status ? statusMessages[status] ?? `Status: ${status}` : null;
@@ -201,7 +205,7 @@ export default async function AccountPage({
             <a href="#profile"><UserRound size={16} aria-hidden="true" /> Profile</a>
             <a href="#contact"><Link2 size={16} aria-hidden="true" /> Contact &amp; socials</a>
             <a href="#discord-account"><MessageCircle size={16} aria-hidden="true" /> Discord</a>
-            <a href="#security"><Lock size={16} aria-hidden="true" /> Security</a>
+            <a href="#security"><Lock size={16} aria-hidden="true" /> Security{twoFactor.enabled ? null : <span className="acct-nav-dot" title="Two-factor is off" />}</a>
             <a className="acct-nav-danger" href="#delete-account"><TriangleAlert size={16} aria-hidden="true" /> Delete account</a>
           </nav>
         </aside>
@@ -370,7 +374,8 @@ export default async function AccountPage({
             )}
           </section>
 
-          <CollapsibleCard id="security" title={"Security"} description={"Change your password. You'll need your current one."}>
+          <CollapsibleCard id="security" title={"Security"} description={"Your password and two-factor authentication."} summary={twoFactor.enabled ? "Two-factor on" : "Two-factor off"}>
+            <h3 className="acct-subhead">Password</h3>
             <form className="acct-form" action="/api/account/password" method="post" autoComplete="off">
               <div className="acct-fields-row">
                 <label>
@@ -385,6 +390,8 @@ export default async function AccountPage({
               <p className="form-note">8+ characters with at least one number and one symbol.</p>
               <button className="acct-button" type="submit">Update password</button>
             </form>
+            <div className="acct-divider" />
+            <TwoFactorSettings initial={twoFactor} />
           </CollapsibleCard>
 
           <details className="acct-card acct-danger" id="delete-account">
@@ -393,7 +400,9 @@ export default async function AccountPage({
                 <span className="acct-danger-title">Delete account</span>
                 <span className="acct-danger-sub">Permanently remove your website account</span>
               </span>
-              <span className="acct-danger-chevron" aria-hidden="true">▾</span>
+              <span className="acct-collapse-chevron acct-danger-chevron" aria-hidden="true">
+                <ChevronDown size={20} strokeWidth={2.5} />
+              </span>
             </summary>
             {staffAccount ? (
               <p className="acct-protected">

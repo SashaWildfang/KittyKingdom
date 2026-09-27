@@ -1,13 +1,13 @@
 "use client";
 
-import { Home, LogIn, LogOut, Menu, MessageCircle, Newspaper, Shield, ShoppingBag, Trophy, UserPlus, UserRound, Users, X } from "lucide-react";
+import { Heart, Home, LogIn, LogOut, Menu, MessageCircle, Newspaper, Shield, ShoppingBag, Trophy, UserPlus, UserRound, Users, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ThemeToggle } from "./theme-toggle";
 
-type NavLink = { href: string; label: string; icon: "home" | "news" | "discord" | "staff" | "store" | "leaderboards" | "admin"; external?: boolean };
+type NavLink = { href: string; label: string; icon: "home" | "news" | "discord" | "patreon" | "staff" | "store" | "leaderboards" | "admin"; external?: boolean };
 
-const ICONS = { home: Home, news: Newspaper, discord: MessageCircle, staff: Users, store: ShoppingBag, leaderboards: Trophy, admin: Shield };
+const ICONS = { home: Home, news: Newspaper, discord: MessageCircle, patreon: Heart, staff: Users, store: ShoppingBag, leaderboards: Trophy, admin: Shield };
 
 /** Phone navigation: a slim bar with the theme switch and a menu that opens a sheet of big, tappable links. */
 export function MobileMenu({ links, signedIn }: { links: NavLink[]; signedIn: boolean }) {
@@ -45,7 +45,7 @@ export function MobileMenu({ links, signedIn }: { links: NavLink[]; signedIn: bo
           {links.map((link) => {
             const Icon = ICONS[link.icon];
             return (
-              <a key={link.href} href={link.href} className={isActive(link.href) ? "is-active" : undefined} tabIndex={open ? 0 : -1} {...(link.external ? { rel: "noopener" } : {})}>
+              <a key={link.href} href={link.href} className={isActive(link.href) ? "is-active" : undefined} tabIndex={open ? 0 : -1} {...(link.external ? { rel: "noopener noreferrer", target: link.icon === "patreon" ? "_blank" : undefined } : {})}>
                 <span className="mobile-sheet-icon">
                   <Icon size={19} aria-hidden="true" />
                 </span>

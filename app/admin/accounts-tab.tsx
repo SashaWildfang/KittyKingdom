@@ -1,6 +1,6 @@
 "use client";
 
-import { BadgeCheck, ShieldCheck, KeyRound, Trash2, TriangleAlert, Laptop, LogOut, Mail, MailCheck, MessageCircle, Search, Smartphone, Tablet, X, type LucideIcon } from "lucide-react";
+import { BadgeCheck, ShieldCheck, ShieldOff, Unlink, KeyRound, Trash2, TriangleAlert, Laptop, LogOut, Mail, MailCheck, MessageCircle, Search, Smartphone, Tablet, X, type LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { StackedBars } from "./admin-charts";
@@ -52,6 +52,7 @@ type Account = AccountRow & {
   acceptedPoliciesAt: string | null;
   applicationStatus: string | null;
   isStaff?: boolean;
+  twoFactor?: boolean;
   audit: { at: string | null; action: string; adminName: string; adminDiscordId: string }[];
 };
 
@@ -588,6 +589,32 @@ function AccountDrawer({ id, onClose, onChanged, onOpenMember }: { id: string; o
     ...(account && !account.emailVerified
       ? [{ key: "verify-email", label: "Mark email verified", icon: MailCheck, help: "Lets them log in without clicking the verification email.", confirm: "Mark this email as verified?", button: "Mark verified" }]
       : []),
+    ...(account?.discordId
+      ? [
+          {
+            key: "unlink-discord",
+            label: "Unlink Discord",
+            icon: Unlink,
+            help: "Disconnects their Discord account from this website account. They lose Store, Leaderboards and roles on the site until they link again.",
+            confirm: "Unlink their Discord account? They'll need a new code to link again.",
+            button: "Unlink",
+            danger: true,
+          },
+        ]
+      : []),
+    ...(account?.twoFactor
+      ? [
+          {
+            key: "reset-2fa",
+            label: "Turn off two-factor",
+            icon: ShieldOff,
+            help: "For members locked out of their authenticator app and backup codes. Also signs them out everywhere.",
+            confirm: "Turn off two-factor authentication for this account? Only do this after confirming it's really them.",
+            button: "Turn off 2FA",
+            danger: true,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -611,6 +638,7 @@ function AccountDrawer({ id, onClose, onChanged, onOpenMember }: { id: string; o
 
             <div className="adm-drawer-flags">
               {account.emailVerified ? <span className="adm-status adm-status--active"><BadgeCheck size={13} aria-hidden="true" /> Email verified</span> : <span className="adm-tag">Email not verified</span>}
+              {account.twoFactor ? <span className="adm-status adm-status--active"><ShieldCheck size={13} aria-hidden="true" /> 2FA on</span> : <span className="adm-tag">2FA off</span>}
               {account.discordId ? <span className="adm-tag"><MessageCircle size={12} aria-hidden="true" /> Discord linked</span> : <span className="adm-tag">Discord not linked</span>}
               {account.mustChangePassword ? <span className="adm-tag"><KeyRound size={12} aria-hidden="true" /> Temporary password</span> : null}
             </div>
