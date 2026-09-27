@@ -22,6 +22,9 @@ export type MemberRank = {
 };
 
 export type MemberRoleSummary = {
+  /** Server nickname and Discord username (for the display-name fallback). */
+  nick?: string | null;
+  username?: string | null;
   rank: MemberRank | null;
   isStaff: boolean;
 };
@@ -69,7 +72,7 @@ function roleColors(role: DiscordRole): string[] {
 
 /** The member's highest colored role (what Discord uses for their name color) and whether they're staff. */
 export async function getMemberRoleSummary(discordId: unknown): Promise<MemberRoleSummary> {
-  const empty = { rank: null, isStaff: false };
+  const empty: MemberRoleSummary = { rank: null, isStaff: false };
   const token = botToken();
   if (!discordId || !token) return empty;
 
@@ -77,7 +80,7 @@ export async function getMemberRoleSummary(discordId: unknown): Promise<MemberRo
   if (!guild) return empty;
 
   const [member, roles] = await Promise.all([
-    discordGet<{ roles?: string[] }>(`/guilds/${guild}/members/${String(discordId)}`, token, 120),
+    discordGet<{ roles?: string[]; nick?: string | null; user?: { username?: string } }>(`/guilds/${guild}/members/${String(discordId)}`, token, 120),
     discordGet<DiscordRole[]>(`/guilds/${guild}/roles`, token, 300),
   ]);
   if (!member?.roles || !roles) return empty;
@@ -91,6 +94,8 @@ export async function getMemberRoleSummary(discordId: unknown): Promise<MemberRo
   return {
     rank: top ? { name: top.name, colors: roleColors(top) } : null,
     isStaff: memberRoleIds.has(STAFF_TEAM_ROLE_ID),
+    nick: member.nick ?? null,
+    username: member.user?.username ?? null,
   };
 }
 
@@ -320,4 +325,36 @@ export async function isInServer(discordId: string): Promise<boolean | null> {
   const inServer = res.ok ? true : res.status === 404 && (res.data?.code === 10007 || res.data?.code === undefined) ? false : null;
   if (inServer !== null) membershipCache.set(discordId, { inServer, at: Date.now() });
   return inServer;
+}
+
+export type MemberProfile = {
+  nick: string | null;
+  username: string;
+  globalName: string | null;
+  joinedAt: string | null;
+  boostingSince: string | null;
+  roles: string[];
+};
+
+/** A member's server profile (join date, roles, nickname), cached for two minutes. */
+export async function getMemberProfile(discordId: string): Promise<MemberProfile | null> {
+  const guild = await guildId();
+  const token = botToken();
+  if (!guild || !token || !/^\d{15,21}$/.test(discordId)) return null;
+  const m = await discordGet<{
+    nick?: string | null;
+    joined_at?: string | null;
+    premium_since?: string | null;
+    roles?: string[];
+    user?: { username: string; global_name?: string | null };
+  }>(`/guilds/${guild}/members/${discordId}`, token, 120);
+  if (!m?.user) return null;
+  return {
+    nick: m.nick ?? null,
+    username: m.user.username,
+    globalName: m.user.global_name ?? null,
+    joinedAt: m.joined_at ?? null,
+    boostingSince: m.premium_since ?? null,
+    roles: m.roles ?? [],
+  };
 }

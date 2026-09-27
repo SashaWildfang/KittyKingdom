@@ -1,8 +1,9 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "./auth";
-import { getMemberRoleIds, memberRolesChecked } from "./discord-member";
+import { getMemberRoleIds, getMemberRoleSummary, memberRolesChecked } from "./discord-member";
 import { getMongoClient, getStaffCollection } from "./mongodb";
+import { accountName } from "./names";
 
 // Admin or higher see everything in the panel
 export const ADMIN_ROLE_IDS = [
@@ -70,7 +71,7 @@ export async function getPanelUser(): Promise<PanelUser | null> {
   if (!user || !discordId) return null;
   const level = await panelLevel(discordId);
   if (!level) return null;
-  const name = String(user.displayName ?? user.username ?? user.discord?.username ?? "Staff");
+  const name = accountName(user, await getMemberRoleSummary(discordId).catch(() => null));
   return { discordId, name, level, websiteUserId: String(user._id) };
 }
 
