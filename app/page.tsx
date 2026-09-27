@@ -1,8 +1,10 @@
+import type { CSSProperties } from "react";
 import { Bot, Coffee, Heart, HeartHandshake, Mic, Palette, Shield, ShoppingBag, Star, Trophy, type LucideIcon } from "lucide-react";
 import { LeafEmote } from "./ui-icons";
 import { getCurrentUser } from "../lib/auth";
 import { getDiscordInviteSummary } from "../lib/discord";
 import { publishedNews } from "../lib/news";
+import { newsExcerpt } from "../lib/news-format";
 import { LEAVE_REVIEW_URL, REVIEWS_URL, getReviews, type Review } from "../lib/reviews";
 import { BrandIcon } from "./brand-icon";
 import { Embers, FallEffects, FallingLeaves, LeafSvg, TiltCard } from "./fall-effects";
@@ -182,7 +184,10 @@ export const dynamic = "force-dynamic";
 export default async function Home({ searchParams }: { searchParams?: { register?: string; account?: string } }) {
   const [reviews, discord, user, latestNews] = await Promise.all([getReviews(), getDiscordInviteSummary(), getCurrentUser(), publishedNews({ limit: 3 })]);
   // Newest three posts written by admins in the Admin tab
-  const news = latestNews.map((p) => ({ id: p.id, tag: p.tag, title: p.title, text: p.body.replace(/\*\*|\*|\[([^\]]+)\]\([^)]+\)/g, "$1").slice(0, 180) }));
+  const news = latestNews.map((p) => {
+    const { text, cut } = newsExcerpt(p.body, 150);
+    return { id: p.id, tag: p.tag, tagColor: p.tagColor, title: p.title, text, cut };
+  });
   const status = searchParams?.register ?? searchParams?.account;
   const signedIn = Boolean(user);
 
@@ -303,9 +308,14 @@ export default async function Home({ searchParams }: { searchParams?: { register
           {news.map((item, index) => (
             <a className="home-news-card" data-spotlight key={item.id} href={`/news#${item.id}`}>
               <span className="home-news-num">0{index + 1}</span>
-              <span className="home-news-tag">{item.tag}</span>
+              <span className="home-news-tag" style={{ "--tag": item.tagColor } as CSSProperties}>
+                {item.tag}
+              </span>
               <h3>{item.title}</h3>
-              <p>{item.text}</p>
+              <p>
+                {item.text}
+                {item.cut ? <span className="home-news-more"> Click to see more <span aria-hidden="true">→</span></span> : null}
+              </p>
               <LeafSvg shape={(["maple", "oak", "birch"] as const)[index % 3]} color="rgba(245,155,42,0.16)" size={120} />
             </a>
           ))}

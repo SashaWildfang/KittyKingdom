@@ -1,8 +1,9 @@
 import { Megaphone, Pin } from "lucide-react";
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import { getCurrentUser } from "../../lib/auth";
 import { getDiscordInviteSummary } from "../../lib/discord";
-import { NEWS_TAGS, publishedNews } from "../../lib/news";
+import { newsTags, publishedNews } from "../../lib/news";
 import { FallingLeaves } from "../fall-effects";
 import { NewsBody } from "../news-body";
 import { SiteNav } from "../site-nav";
@@ -15,9 +16,10 @@ function formatDate(iso: string) {
 }
 
 export default async function NewsPage({ searchParams }: { searchParams: { tag?: string } }) {
-  const tag = searchParams.tag && (NEWS_TAGS as readonly string[]).includes(searchParams.tag) ? searchParams.tag : undefined;
+  const tags = await newsTags().catch(() => []);
+  const tag = searchParams.tag && tags.some((t) => t.name === searchParams.tag) ? searchParams.tag : undefined;
   const [user, discord, posts, all] = await Promise.all([getCurrentUser(), getDiscordInviteSummary(), publishedNews({ tag }), publishedNews()]);
-  const usedTags = NEWS_TAGS.filter((t) => all.some((p) => p.tag === t));
+  const usedTags = tags.filter((t) => all.some((p) => p.tag === t.name));
 
   return (
     <main className="site-shell news-shell">
@@ -37,8 +39,8 @@ export default async function NewsPage({ searchParams }: { searchParams: { tag?:
               All
             </Link>
             {usedTags.map((t) => (
-              <Link key={t} href={`/news?tag=${encodeURIComponent(t)}`} className={tag === t ? "is-active" : undefined}>
-                {t}
+              <Link key={t.id} href={`/news?tag=${encodeURIComponent(t.name)}`} className={tag === t.name ? "is-active" : undefined} style={{ "--tag": t.color } as CSSProperties}>
+                <i aria-hidden="true" /> {t.name}
               </Link>
             ))}
           </nav>
@@ -48,7 +50,9 @@ export default async function NewsPage({ searchParams }: { searchParams: { tag?:
           {posts.map((post, i) => (
             <article key={post.id} id={post.id} className={`news-card${post.pinned ? " is-pinned" : ""}${i === 0 && !tag ? " is-featured" : ""}`}>
               <div className="news-card-meta">
-                <span className="news-tag">{post.tag}</span>
+                <span className="news-tag" style={{ "--tag": post.tagColor } as CSSProperties}>
+                  {post.tag}
+                </span>
                 {post.pinned ? (
                   <span className="news-pinned">
                     <Pin size={13} aria-hidden="true" /> Pinned

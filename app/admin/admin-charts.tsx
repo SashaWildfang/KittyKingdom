@@ -226,3 +226,81 @@ export function BarList({
     </ul>
   );
 }
+
+/** Lines over time (e.g. page views and visitors). Hovering shows that point's numbers. */
+export function LineChart({
+  points,
+  series,
+  unit,
+  height = 220,
+}: {
+  points: { bucket: string; values: Record<string, number> }[];
+  series: Series[];
+  unit: "hour" | "day" | "week";
+  height?: number;
+}) {
+  const [hover, setHover] = useState<number | null>(null);
+  if (!points.length) return <p className="adm-empty">No visits in this range yet.</p>;
+  const max = Math.max(1, ...points.flatMap((p) => series.map((s) => p.values[s.key] ?? 0)));
+  const W = 1000;
+  const H = 300;
+  const x = (i: number) => (points.length === 1 ? W / 2 : (i / (points.length - 1)) * W);
+  const y = (v: number) => H - (v / max) * (H - 16) - 4;
+  const label = (iso: string) =>
+    unit === "hour"
+      ? new Date(iso).toLocaleTimeString(undefined, { hour: "numeric" })
+      : new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const tickEvery = Math.max(1, Math.ceil(points.length / 8));
+  const hovered = hover !== null ? points[hover] : null;
+
+  return (
+    <div className="adm-chart adm-line-chart">
+      <div className="adm-line-wrap" style={{ height }} onMouseLeave={() => setHover(null)}>
+        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
+          {[0.25, 0.5, 0.75].map((f) => (
+            <line key={f} x1="0" x2={W} y1={H * f} y2={H * f} className="adm-line-grid" />
+          ))}
+          {series.map((s) => {
+            const line = points.map((p, i) => `${x(i)},${y(p.values[s.key] ?? 0)}`).join(" ");
+            return (
+              <g key={s.key}>
+                <polygon points={`0,${H} ${line} ${W},${H}`} fill={s.color} opacity="0.12" />
+                <polyline points={line} fill="none" stroke={s.color} strokeWidth="3" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
+              </g>
+            );
+          })}
+          {hover !== null ? <line x1={x(hover)} x2={x(hover)} y1="0" y2={H} className="adm-line-cursor" /> : null}
+        </svg>
+        <div className="adm-line-hit">
+          {points.map((p, i) => (
+            <span key={p.bucket} onMouseEnter={() => setHover(i)} onFocus={() => setHover(i)} tabIndex={-1} />
+          ))}
+        </div>
+        {hovered ? (
+          <div className="adm-line-tip" style={{ left: `${(x(hover!) / W) * 100}%` }}>
+            <strong>{unit === "hour" ? `${new Date(hovered.bucket).toLocaleDateString(undefined, { month: "short", day: "numeric" })} ${label(hovered.bucket)}` : label(hovered.bucket)}</strong>
+            {series.map((s) => (
+              <span key={s.key}>
+                <i style={{ background: s.color }} /> {s.label} <b>{(hovered.values[s.key] ?? 0).toLocaleString()}</b>
+              </span>
+            ))}
+          </div>
+        ) : null}
+      </div>
+      <div className="adm-line-axis">
+        {points.map((p, i) => (
+          <small key={p.bucket} style={{ left: `${(x(i) / W) * 100}%` }}>
+            {i % tickEvery === 0 ? label(p.bucket) : ""}
+          </small>
+        ))}
+      </div>
+      <div className="adm-line-legend">
+        {series.map((s) => (
+          <span key={s.key}>
+            <i style={{ background: s.color }} /> {s.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}

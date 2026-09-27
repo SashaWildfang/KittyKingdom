@@ -3,9 +3,10 @@
 import { Check, Lock, Palette, Plus, ShieldAlert, ShoppingBag, Tags, TriangleAlert } from "lucide-react";
 import { LeafEmote } from "../ui-icons";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ROLE_STATE_EVENT } from "./live-server-status";
 import type { RoleState } from "../../lib/member-roles";
 
-const POLL_MS = 20_000;
+const POLL_MS = 10_000;
 
 /** "Select this if you identify as male." -> "Identify as male" */
 function shortDescription(text: string) {
@@ -24,7 +25,15 @@ function swatch(colors: string[]) {
 }
 
 export function RoleManager({ initial }: { initial: RoleState | null }) {
-  const [state, setState] = useState<RoleState | null>(initial);
+  const [state, setStateRaw] = useState<RoleState | null>(initial);
+  // Every fresh copy of the roles also updates the profile card (LiveServerStatus)
+  const setState = useCallback((next: RoleState | null | ((s: RoleState | null) => RoleState | null)) => {
+    setStateRaw((prev) => {
+      const value = typeof next === "function" ? next(prev) : next;
+      if (value) window.setTimeout(() => window.dispatchEvent(new CustomEvent(ROLE_STATE_EVENT, { detail: value })), 0);
+      return value;
+    });
+  }, []);
   const [active, setActive] = useState<string>(initial?.categories[0]?.key ?? "");
   const [pending, setPending] = useState<Set<string>>(new Set());
   const [colorView, setColorView] = useState<"all" | "owned" | "shop">("all");

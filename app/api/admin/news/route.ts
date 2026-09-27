@@ -19,7 +19,7 @@ export async function POST(request: Request) {
   if (admin instanceof NextResponse) return admin;
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body || typeof body !== "object" || hasOperatorKeys(body)) return NextResponse.json({ ok: false, error: "Invalid post." }, { status: 400 });
-  const input = cleanNewsInput(body);
+  const input = await cleanNewsInput(body);
   if (typeof input === "string") return NextResponse.json({ ok: false, error: input }, { status: 400 });
   const id = await createNews(input, { name: admin.name, discordId: admin.discordId });
   const client = await getMongoClient();

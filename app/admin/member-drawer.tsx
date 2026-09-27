@@ -26,7 +26,7 @@ type Result = {
   inServer: boolean;
   banned: boolean | null;
   roles: { id: string; name: string; colors: string[] }[];
-  stats: { level: number; balance: number; messages: number; xp: number } | null;
+  stats: { level: number; balance: number | null; messages: number; xp: number } | null;
   punishments: Punishment[];
   punishmentTotal: number;
   tickets: Ticket[] | null;
@@ -92,7 +92,7 @@ export function MemberDrawer({
               {data.stats ? (
                 <>
                   <span className="adm-tag"><Star size={12} aria-hidden="true" /> Level {data.stats.level}</span>
-                  <span className="adm-tag"><LeafEmote size={13} /> {data.stats.balance.toLocaleString()}</span>
+                  {data.stats.balance !== null ? <span className="adm-tag"><LeafEmote size={13} /> {data.stats.balance.toLocaleString()}</span> : null}
                   <span className="adm-tag"><MessageCircle size={12} aria-hidden="true" /> {data.stats.messages.toLocaleString()} msgs</span>
                 </>
               ) : null}
