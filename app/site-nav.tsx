@@ -1,5 +1,5 @@
 import { getPanelUser } from "../lib/admin";
-import { getCurrentUser } from "../lib/auth";
+import { canViewStaffPage, getCurrentUser } from "../lib/auth";
 import { OnlineStatus } from "./online-status";
 import { MobileMenu } from "./mobile-menu";
 import { ThemeToggle } from "./theme-toggle";
@@ -14,13 +14,16 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
   // Staff Team see a Staff Panel tab, Admin / Owner see "Admin" (checked with Discord, cached for a minute)
   const panel = signedIn ? await getPanelUser().catch(() => null) : null;
   // The Store and Leaderboards need a linked Discord account
-  const linked = signedIn ? Boolean((await getCurrentUser().catch(() => null))?.discordId) : false;
+  const user = signedIn ? await getCurrentUser().catch(() => null) : null;
+  const linked = Boolean(user?.discordId);
+  // The Staff page needs a verified email and a linked Discord account too
+  const staffPage = canViewStaffPage(user);
   // Same links for the phone menu
   const mobileLinks = [
     { href: "/home", label: "Home", icon: "home" as const },
     { href: "/news", label: "News", icon: "news" as const },
     { href: "https://discord.com/invite/M9XKHFdYQV", label: "Discord", icon: "discord" as const, external: true },
-    { href: "/staff", label: "Staff", icon: "staff" as const },
+    ...(staffPage ? [{ href: "/staff", label: "Staff", icon: "staff" as const }] : []),
     ...(linked ? [{ href: "/store", label: "Leaf Shop", icon: "store" as const }, { href: "/leaderboards", label: "Leaderboards", icon: "leaderboards" as const }] : []),
     ...(panel ? [{ href: "/admin", label: panel.level === "admin" ? "Admin" : "Staff Panel", icon: "admin" as const }] : []),
   ];
@@ -37,7 +40,7 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
         <a href="/home">Home</a>
         <a href="/news">News</a>
         <a href="https://discord.com/invite/M9XKHFdYQV">Discord</a>
-        <a href="/staff">Staff</a>
+        {staffPage ? <a href="/staff">Staff</a> : null}
         {linked ? <a href="/store">Store</a> : null}
         {linked ? <a href="/leaderboards">Leaderboards</a> : null}
         {panel ? (

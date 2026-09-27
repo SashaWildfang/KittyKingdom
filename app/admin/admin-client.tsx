@@ -1,11 +1,12 @@
 "use client";
 
-import { Activity, BarChart3, MessagesSquare, Gavel, Newspaper, ScrollText, Ticket, Users, type LucideIcon } from "lucide-react";
+import { Activity, BarChart3, ClipboardCheck, MessagesSquare, Gavel, Newspaper, ScrollText, Ticket, Users, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AccountsTab } from "./accounts-tab";
 import { MemberSearch, useLive, useStored } from "./admin-shared";
 import { DrillPanel, type Drill } from "./drill-panel";
+import { JoinAppsTab } from "./join-apps";
 import { LiveTab } from "./live-tab";
 import { LogsTab } from "./logs-tab";
 import { MemberDrawer } from "./member-drawer";
@@ -16,12 +17,13 @@ import { DEFAULT_PUNISHMENT_FILTERS, PunishmentsTab, type PunishmentFilters } fr
 import { TicketsTab } from "./tickets-tab";
 import { TranscriptViewer } from "./transcript-viewer";
 
-type Tab = "overview" | "punishments" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live";
+type Tab = "overview" | "punishments" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live" | "join";
 type Level = "admin" | "staff";
 
 const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean }[] = [
   { key: "overview", label: "Overview", icon: BarChart3 },
   { key: "punishments", label: "Punishments", icon: Gavel },
+  { key: "join", label: "Join Apps", icon: ClipboardCheck },
   { key: "live", label: "Live Chat", icon: MessagesSquare },
   { key: "logs", label: "Bot Logs", icon: ScrollText },
   { key: "tickets", label: "Tickets & Transcripts", icon: Ticket, admin: true },
@@ -50,6 +52,9 @@ export function AdminClient({ adminName, level }: { adminName: string; level: Le
   const [punishmentFilters, setPunishmentFilters] = useStored<PunishmentFilters>("punishment-filters", DEFAULT_PUNISHMENT_FILTERS);
   const { data: meta } = useLive<{ actions: string[]; ticketTypes: string[] }>("/api/admin/meta", 60_000);
   const [urlRead, setUrlRead] = useState(false);
+  // Waiting join applications, for the bubble on the Join Apps tab
+  const joinCount = useLive<{ pending: number | null }>("/api/admin/join-apps/count", 15_000);
+  const pendingApps = joinCount.data?.pending ?? 0;
   const tabsRef = useRef<HTMLElement>(null);
 
   // On narrow screens the tab strip scrolls sideways; keep the open tab in view
@@ -125,6 +130,11 @@ export function AdminClient({ adminName, level }: { adminName: string; level: Le
         {tabs.map((t) => (
           <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} className={tab === t.key ? "is-active" : undefined} onClick={() => setTab(t.key)}>
             <t.icon size={16} aria-hidden="true" /> {t.label}
+            {t.key === "join" && joinCount.data ? (
+              <span className={`adm-tab-bubble${pendingApps > 0 ? " is-hot" : ""}`} aria-label={`${pendingApps} pending`}>
+                {pendingApps}
+              </span>
+            ) : null}
           </button>
         ))}
       </nav>
@@ -143,6 +153,7 @@ export function AdminClient({ adminName, level }: { adminName: string; level: Le
       {tab === "punishments" ? (
         <PunishmentsTab filters={punishmentFilters} setFilters={setPunishmentFilters} actionsAvailable={meta?.actions ?? []} onOpenMember={openMember} />
       ) : null}
+      {tab === "join" ? <JoinAppsTab onOpenMember={openMember} /> : null}
       {tab === "live" ? <LiveTab onOpenMember={openMember} /> : null}
       {tab === "logs" ? <LogsTab onOpenMember={openMember} /> : null}
       {isAdmin && tab === "tickets" ? <TicketsTab typesAvailable={meta?.ticketTypes ?? []} onOpenMember={openMember} onOpenTranscript={openTranscript} /> : null}
