@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, Gavel, Newspaper, ScrollText, Ticket, Users, type LucideIcon } from "lucide-react";
+import { Activity, BarChart3, Gavel, Newspaper, ScrollText, Ticket, Users, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AccountsTab } from "./accounts-tab";
@@ -9,12 +9,13 @@ import { DrillPanel, type Drill } from "./drill-panel";
 import { LogsTab } from "./logs-tab";
 import { MemberDrawer } from "./member-drawer";
 import { NewsTab } from "./news-tab";
+import { TrafficTab } from "./traffic-tab";
 import { OverviewTab } from "./overview-tab";
 import { DEFAULT_PUNISHMENT_FILTERS, PunishmentsTab, type PunishmentFilters } from "./punishments-tab";
 import { TicketsTab } from "./tickets-tab";
 import { TranscriptViewer } from "./transcript-viewer";
 
-type Tab = "overview" | "punishments" | "logs" | "tickets" | "accounts" | "news";
+type Tab = "overview" | "punishments" | "logs" | "tickets" | "accounts" | "news" | "traffic";
 type Level = "admin" | "staff";
 
 const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean }[] = [
@@ -24,6 +25,7 @@ const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean }[] = [
   { key: "tickets", label: "Tickets & Transcripts", icon: Ticket, admin: true },
   { key: "accounts", label: "Website Accounts", icon: Users, admin: true },
   { key: "news", label: "News", icon: Newspaper, admin: true },
+  { key: "traffic", label: "Traffic", icon: Activity, admin: true },
 ];
 
 // Clicking a headline number opens the punishments list filtered to that kind
@@ -143,6 +145,7 @@ export function AdminClient({ adminName, level }: { adminName: string; level: Le
       {isAdmin && tab === "tickets" ? <TicketsTab typesAvailable={meta?.ticketTypes ?? []} onOpenMember={openMember} onOpenTranscript={openTranscript} /> : null}
       {isAdmin && tab === "accounts" ? <AccountsTab onOpenMember={openMember} /> : null}
       {isAdmin && tab === "news" ? <NewsTab /> : null}
+      {isAdmin && tab === "traffic" ? <TrafficTab /> : null}
 
       {/* Overlays render at the page root so they sit above the site's top bar */}
       {member

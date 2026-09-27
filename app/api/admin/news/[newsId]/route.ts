@@ -16,7 +16,7 @@ export async function PATCH(request: Request, { params }: { params: { newsId: st
   if (admin instanceof NextResponse) return admin;
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body || typeof body !== "object" || hasOperatorKeys(body)) return NextResponse.json({ ok: false, error: "Invalid post." }, { status: 400 });
-  const input = cleanNewsInput(body);
+  const input = await cleanNewsInput(body);
   if (typeof input === "string") return NextResponse.json({ ok: false, error: input }, { status: 400 });
   if (!(await updateNews(params.newsId, input))) return NextResponse.json({ ok: false, error: "Post not found." }, { status: 404 });
   await audit("news-edit", params.newsId, admin, input.title);

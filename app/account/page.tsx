@@ -1,11 +1,9 @@
-import { Backpack, BadgeCheck, Gift, Check, CircleAlert, ClipboardList, Gem, Image as ImageIcon, KeyRound, Link2, Lock, MessageCircle, Mic, Minus, ShieldCheck, Sparkles, Star, TriangleAlert, UserRound, type LucideIcon } from "lucide-react";
+import { Backpack, Gift, Check, CircleAlert, ClipboardList, KeyRound, Link2, Lock, MessageCircle, Sparkles, TriangleAlert, UserRound } from "lucide-react";
 import { LeafEmote } from "../ui-icons";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "../../lib/auth";
 import { DiscordUnlinkForm } from "../discord-unlink-form";
 import { getDiscordInviteSummary } from "../../lib/discord";
-import type { CSSProperties } from "react";
 import { SiteNav } from "../site-nav";
 import { VerifyEmailBanner } from "../verify-email-banner";
 import { BrandIcon } from "../brand-icon";
@@ -15,6 +13,7 @@ import { formatDateOfBirth } from "../../lib/dates";
 import { applicationBirthday, getJoinApplication } from "../../lib/join-application";
 import { getRoleState } from "../../lib/member-roles";
 import { CollapsibleCard } from "./collapsible-card";
+import { LiveServerStatus } from "./live-server-status";
 import { DailyCard } from "./daily-card";
 import { getDailyStatus } from "../../lib/daily";
 import { AccountInventory } from "./account-inventory";
@@ -68,21 +67,8 @@ function socialInputValue(link: SocialLink | undefined) {
   return link.handle === "Steam profile" || link.handle === "YouTube channel" ? link.url : link.handle;
 }
 
-function rankStyle(colors: string[]): CSSProperties {
-  // One color for normal roles; Discord's gradient roles have two (or three for holographic)
-  const stops = colors.length === 1 ? [colors[0], colors[0]] : colors;
-  return { "--rank-gradient": `linear-gradient(90deg, ${stops.join(", ")})` } as CSSProperties;
-}
-
 function formatMonthYear(date: Date) {
   return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC" }).format(date);
-}
-
-// Icons for the server status list on the profile card
-const STATUS_ICONS: Record<string, LucideIcon> = { adult: ShieldCheck, member: BadgeCheck, media: ImageIcon, vc: Mic, patreon: Gem };
-function StatusIcon({ name }: { name: string }) {
-  const Icon = STATUS_ICONS[name] ?? BadgeCheck;
-  return <Icon className="acct-status-icon" size={14} aria-hidden="true" />;
 }
 
 function DiscordIcon() {
@@ -181,41 +167,7 @@ export default async function AccountPage({
             </div>
             <h2>{shownName}</h2>
             {user.username ? <p className="acct-handle">@{user.username}</p> : null}
-            {roles.isStaff ? <p className="acct-staff-line">Staff Member</p> : null}
-            {roles.rank ? (
-              <div className="acct-rank-row">
-                <span className="acct-rank" style={rankStyle(roles.rank.colors)} title="Your highest Discord role">
-                  <i aria-hidden="true" />
-                  <span>{roles.rank.name}</span>
-                </span>
-              </div>
-            ) : null}
-            {roleState?.inServer ? (
-              <div className="acct-server-status" aria-label="Server status">
-                {roleState.level !== null ? (
-                  <span className="acct-level" title="Your level in the Discord server">
-                    <Star size={14} aria-hidden="true" /> Level <strong>{roleState.level}</strong>
-                  </span>
-                ) : null}
-                <ul>
-                  {roleState.status
-                    .filter((r) => r.key !== "patreon" || r.has)
-                    .map((r) => (
-                      <li key={r.key} className={r.has ? "is-on" : undefined} title={r.has ? `You have ${r.label}` : `You don't have ${r.label} yet`}>
-                        <StatusIcon name={r.key} />
-                        <span className="acct-status-label">{r.label}</span>
-                        <i aria-hidden="true">{r.has ? <Check size={14} strokeWidth={3} /> : <Minus size={14} />}</i>
-                      </li>
-                    ))}
-                </ul>
-              </div>
-            ) : (
-              <div className="acct-badges">
-                <span className={`acct-badge ${discordLinked ? "acct-badge--discord" : "acct-badge--muted"}`}>
-                  {discordLinked ? "Discord linked" : "Discord not linked"}
-                </span>
-              </div>
-            )}
+            <LiveServerStatus initial={roleState} discordLinked={discordLinked} fallbackRank={roles.rank} fallbackStaff={roles.isStaff} />
             {SOCIALS.some((s) => socials[s.key]) ? (
               <div className="acct-social-icons">
                 {SOCIALS.filter((s) => socials[s.key]).map((s) => (
@@ -396,7 +348,7 @@ export default async function AccountPage({
               <p>
                 {discordLinked ? (
                   <>
-                    Linked as <strong>{discordName}</strong>. Relink to refresh your member details.
+                    Linked as <strong>{discordName}</strong>. Your roles, level and store stay in sync automatically.
                   </>
                 ) : (
                   "Link Discord to unlock the Store, Leaderboards and your server roles. Just grab a code and use /link in the server."
@@ -405,10 +357,6 @@ export default async function AccountPage({
             </div>
             {discordLinked ? (
               <div className="acct-discord-actions">
-                <Link className="discord-link-button" href="/api/auth/discord">
-                  <DiscordIcon />
-                  Relink
-                </Link>
                 <DiscordUnlinkForm />
               </div>
             ) : (

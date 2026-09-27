@@ -262,7 +262,12 @@ async function syncChannel(channel: (typeof LOG_CHANNELS)[number]) {
 
 const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+/** Store and inventory activity (purchases, gifts, items given or taken): admins only. */
+export const ADMIN_ONLY_LOG_TYPES = /gift|store|shop|purchase|bought|inventory|items? (added|removed|given|taken)|redeem/i;
+
 export async function queryLogs(q: {
+  /** Leave out store and inventory logs (for staff who aren't admins) */
+  hideAdminOnly?: boolean;
   types?: string[];
   categories?: string[];
   channels?: string[];
@@ -284,6 +289,7 @@ export async function queryLogs(q: {
     if (q.categories?.length) or.push({ category: { $in: q.categories } });
     match.$or = or;
   }
+  if (q.hideAdminOnly) match.type = { $not: ADMIN_ONLY_LOG_TYPES };
   if (q.userId) match.userIds = q.userId;
   if (q.channels?.length) match.channel = { $in: q.channels };
   if (q.search?.trim()) match.text = { $regex: escapeRegex(q.search.trim().toLowerCase().slice(0, 100)) };
