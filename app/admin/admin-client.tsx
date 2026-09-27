@@ -4,18 +4,20 @@ import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { AccountsTab } from "./accounts-tab";
 import { MemberSearch, useLive, useStored } from "./admin-shared";
+import { LogsTab } from "./logs-tab";
 import { MemberDrawer } from "./member-drawer";
 import { OverviewTab } from "./overview-tab";
 import { DEFAULT_PUNISHMENT_FILTERS, PunishmentsTab, type PunishmentFilters } from "./punishments-tab";
 import { TicketsTab } from "./tickets-tab";
 import { TranscriptViewer } from "./transcript-viewer";
 
-type Tab = "overview" | "punishments" | "tickets" | "accounts";
+type Tab = "overview" | "punishments" | "logs" | "tickets" | "accounts";
 type Level = "admin" | "staff";
 
 const TABS: { key: Tab; label: string; icon: string; admin?: boolean }[] = [
   { key: "overview", label: "Overview", icon: "📊" },
   { key: "punishments", label: "Punishments", icon: "🔨" },
+  { key: "logs", label: "Bot Logs", icon: "📜" },
   { key: "tickets", label: "Tickets & Transcripts", icon: "🎫", admin: true },
   { key: "accounts", label: "Website Accounts", icon: "👥", admin: true },
 ];
@@ -117,6 +119,7 @@ export function AdminClient({ adminName, level }: { adminName: string; level: Le
       {tab === "punishments" ? (
         <PunishmentsTab filters={punishmentFilters} setFilters={setPunishmentFilters} actionsAvailable={meta?.actions ?? []} onOpenMember={openMember} />
       ) : null}
+      {tab === "logs" ? <LogsTab onOpenMember={openMember} /> : null}
       {isAdmin && tab === "tickets" ? <TicketsTab typesAvailable={meta?.ticketTypes ?? []} onOpenMember={openMember} onOpenTranscript={openTranscript} /> : null}
       {isAdmin && tab === "accounts" ? <AccountsTab onOpenMember={openMember} /> : null}
 

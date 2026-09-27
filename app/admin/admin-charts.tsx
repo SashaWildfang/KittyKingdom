@@ -156,19 +156,41 @@ export function HourStrip({ hours }: { hours: number[] }) {
   );
 }
 
-/** Horizontal bars for a ranked list. */
-export function BarList({ items, color = "var(--ember)" }: { items: { key: string; label: React.ReactNode; value: number; color?: string }[]; color?: string }) {
+/** Horizontal bars for a ranked list. Rows with onClick open a drill-down. */
+export function BarList({
+  items,
+  color = "var(--ember)",
+}: {
+  items: { key: string; label: React.ReactNode; value: number; color?: string; onClick?: () => void; hint?: string }[];
+  color?: string;
+}) {
   const max = Math.max(1, ...items.map((i) => i.value));
   if (!items.length) return <p className="adm-empty">Nothing here yet.</p>;
   return (
     <ul className="adm-barlist">
-      {items.map((item) => (
-        <li key={item.key}>
-          <span className="adm-barlist-fill" style={{ width: `${(item.value / max) * 100}%`, background: item.color ?? color }} />
-          <span className="adm-barlist-label">{item.label}</span>
-          <strong>{item.value.toLocaleString()}</strong>
-        </li>
-      ))}
+      {items.map((item) => {
+        const inner = (
+          <>
+            <span className="adm-barlist-fill" style={{ width: `${(item.value / max) * 100}%`, background: item.color ?? color }} />
+            <span className="adm-barlist-label">{item.label}</span>
+            <strong>{item.value.toLocaleString()}</strong>
+          </>
+        );
+        return (
+          <li key={item.key}>
+            {item.onClick ? (
+              <button type="button" className="adm-barlist-row" onClick={item.onClick} title={item.hint}>
+                {inner}
+                <span className="adm-barlist-go" aria-hidden="true">
+                  ›
+                </span>
+              </button>
+            ) : (
+              <div className="adm-barlist-row">{inner}</div>
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }

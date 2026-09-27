@@ -1,10 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
+import { DrillPanel, type Drill } from "./drill-panel";
 import { BarList, Donut, HourStrip, StackedBars } from "./admin-charts";
 import {
+  ActionBadge,
   LiveBadge,
   PersonLink,
+  PersonTag,
   RichText,
   RANGES,
   TICKET_COLORS,
@@ -12,9 +16,12 @@ import {
   formatMs,
   prettyAction,
   useLive,
+  timeAgo,
+  formatDate,
   useStored,
   type Mentions,
   type People,
+  type Punishment,
 } from "./admin-shared";
 
 type Stats = {
@@ -45,6 +52,7 @@ type Stats = {
 
 const WIDGETS = [
   { key: "kpis", label: "Headline numbers" },
+  { key: "recent", label: "Latest punishments" },
   { key: "timeline", label: "Punishments over time" },
   { key: "breakdown", label: "Punishment breakdown" },
   { key: "offenders", label: "Most punished members" },
@@ -73,9 +81,12 @@ export function OverviewTab({
   const [hiddenActions, setHiddenActions] = useStored<string[]>("overview-hidden-actions", []);
   const [hiddenWidgets, setHiddenWidgets] = useStored<string[]>("overview-hidden-widgets", []);
   const [customizing, setCustomizing] = useState(false);
+  const [drill, setDrill] = useState<Drill | null>(null);
 
   const params = new URLSearchParams({ unit, source, ...(range !== "all" ? { range } : {}) });
   const { data, error, loading, updatedAt } = useLive<Stats>(`/api/admin/stats?${params}`, 15_000);
+  // The five newest punishments, always live and not tied to the range
+  const recent = useLive<{ rows: Punishment[]; people: People; mentions: Mentions }>(`/api/admin/punishments?pageSize=10&source=${source}`, 8_000);
   const isAdmin = level === "admin";
   const widgets = WIDGETS.filter((w) => isAdmin || !w.admin);
   const show = (key: string) => !hiddenWidgets.includes(key) && widgets.some((w) => w.key === key);
@@ -172,6 +183,37 @@ export function OverviewTab({
       ) : null}
 
       <div className="adm-grid">
+        {show("recent") ? (
+          <Card title="Latest punishments" span={3}>
+            {recent.data ? (
+              recent.data.rows.length ? (
+                <ol className="adm-recent">
+                  {recent.data.rows.slice(0, 5).map((r) => (
+                    <li key={r.id}>
+                      <button type="button" onClick={() => r.userId && setDrill({ kind: "member", id: r.userId })}>
+                        <span className="adm-recent-time" title={formatDate(r.timestamp)}>
+                          {timeAgo(r.timestamp)}
+                        </span>
+                        <ActionBadge action={r.action} />
+                        <PersonTag id={r.userId} people={recent.data!.people} />
+                        <span className="adm-recent-reason">
+                          {r.reason ? <RichText text={r.reason} mentions={recent.data!.mentions} people={recent.data!.people} /> : <span className="adm-muted">No reason</span>}
+                        </span>
+                        <span className="adm-recent-by">
+                          by <PersonTag id={r.issuerId} people={recent.data!.people} automod={r.source === "automod"} />
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="adm-empty">No punishments yet.</p>
+              )
+            ) : (
+              <Skeleton short />
+            )}
+          </Card>
+        ) : null}
         {show("timeline") ? (
           <Card title="Punishments over time" span={2}>
             {p ? <StackedBars points={p.timeline} series={series} unit={unit} /> : <Skeleton />}
@@ -196,7 +238,13 @@ export function OverviewTab({
             {p ? (
               <BarList
                 color="rgba(229, 72, 77, 0.28)"
-                items={p.topUsers.map((u) => ({ key: u.id, value: u.count, label: <PersonLink id={u.id} people={people} onOpen={onOpenMember} compact /> }))}
+                items={p.topUsers.map((u) => ({
+                  key: u.id,
+                  value: u.count,
+                  label: <PersonTag id={u.id} people={people} />,
+                  hint: "See their record",
+                  onClick: () => setDrill({ kind: "member", id: u.id }),
+                }))}
               />
             ) : (
               <Skeleton />
@@ -208,7 +256,13 @@ export function OverviewTab({
             {p ? (
               <BarList
                 color="rgba(62, 99, 221, 0.3)"
-                items={p.topIssuers.map((u) => ({ key: u.id, value: u.count, label: <PersonLink id={u.id} people={people} onOpen={onOpenMember} automodId={u.automod} compact /> }))}
+                items={p.topIssuers.map((u) => ({
+                  key: u.id,
+                  value: u.count,
+                  label: <PersonTag id={u.id} people={people} automod={u.automod} />,
+                  hint: "See what they worked on",
+                  onClick: () => setDrill({ kind: "staff", id: u.id, automod: u.automod }),
+                }))}
               />
             ) : (
               <Skeleton />
@@ -225,9 +279,11 @@ export function OverviewTab({
                   value: r.count,
                   label: (
                     <span className="adm-reason">
-                      <RichText text={r.reason} mentions={data?.mentions} people={people} onOpenMember={onOpenMember} />
+                      <RichText text={r.reason} mentions={data?.mentions} people={people} />
                     </span>
                   ),
+                  hint: "See who got this",
+                  onClick: () => setDrill({ kind: "reason", reason: r.reason }),
                 }))}
               />
             ) : (
@@ -312,6 +368,13 @@ export function OverviewTab({
           </Card>
         ) : null}
       </div>
+
+      {drill
+        ? createPortal(
+            <DrillPanel drill={drill} range={range} source={source} onClose={() => setDrill(null)} onOpenMember={onOpenMember} />,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
