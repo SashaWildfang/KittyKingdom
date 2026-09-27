@@ -27,6 +27,8 @@ export type Punishment = {
 export type PunishmentQuery = {
   actions?: string[];
   search?: string;
+  /** Exact reason (ignoring case and surrounding spaces), for the "top reasons" drill-down */
+  reason?: string;
   userId?: string;
   issuerId?: string;
   source?: PunishmentSource | "all";
@@ -169,6 +171,7 @@ export async function queryPunishments(q: PunishmentQuery) {
   if (q.actions?.length) match.n_action = { $in: q.actions.map((a) => a.toLowerCase()) };
   if (q.userId) match.n_user = q.userId;
   if (q.issuerId) match.n_issuer = q.issuerId;
+  if (q.reason?.trim()) match.reason = new RegExp(`^\\s*${escapeRegex(q.reason.trim().slice(0, 500))}\\s*$`, "i");
   if (q.source && q.source !== "all") match.n_source = q.source;
   if (q.from || q.to) match.timestamp = { ...(q.from ? { $gte: q.from } : {}), ...(q.to ? { $lte: q.to } : {}) };
 
