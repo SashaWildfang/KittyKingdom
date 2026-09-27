@@ -1,6 +1,7 @@
-import { Backpack, Gift, Check, CircleAlert, ClipboardList, KeyRound, Link2, Lock, MessageCircle, Sparkles, TriangleAlert, UserRound } from "lucide-react";
+import { Backpack, Gift, ShieldCheck, Check, CircleAlert, ClipboardList, KeyRound, Link2, Lock, MessageCircle, Sparkles, TriangleAlert, UserRound } from "lucide-react";
 import { LeafEmote } from "../ui-icons";
 import { redirect } from "next/navigation";
+import { isStaffDiscordId } from "../../lib/admin";
 import { getCurrentUser } from "../../lib/auth";
 import { DiscordUnlinkForm } from "../discord-unlink-form";
 import { getDiscordInviteSummary } from "../../lib/discord";
@@ -50,6 +51,9 @@ const statusMessages: Record<string, string> = {
   invalid:
     "Discord linking could not be verified. Please start from the Link Discord button again.",
   "not-configured": "Discord linking is not configured yet. Please contact staff.",
+  "delete-staff-blocked": "Staff accounts can't be deleted. If you're leaving the team, ask an admin to remove your staff role first.",
+  "staff-verify-required": "Verify your email to see the Staff page. Check your inbox for the link, or send a new one below.",
+  "staff-link-required": "Link your Discord account to see the Staff page. Grab a code below and run /link in the server.",
   "link-required": "Link your Discord account to use the Store and Leaderboards. Grab a code below and run /link in the server.",
   "token-failed":
     "Discord rejected the login callback. Please try linking Discord again.",
@@ -100,12 +104,13 @@ export default async function AccountPage({
     searchParams.discord ??
     searchParams.verify ??
     searchParams.login;
-  const [application, roles, roleState, dailyStatus, serverId] = await Promise.all([
+  const [application, roles, roleState, dailyStatus, serverId, staffAccount] = await Promise.all([
     getJoinApplication(user.discordId),
     getMemberRoleSummary(user.discordId),
     user.discordId ? getRoleState(String(user.discordId)).catch(() => null) : Promise.resolve(null),
     user.discordId ? getDailyStatus(String(user.discordId)).catch(() => null) : Promise.resolve(null),
     user.discordId ? guildId().catch(() => null) : Promise.resolve(null),
+    isStaffDiscordId(user.discordId).catch(() => false),
   ]);
   const socials = (user.socials ?? {}) as Partial<Record<string, SocialLink>>;
   const phone = typeof user.phone === "string" ? user.phone : null;
@@ -389,6 +394,12 @@ export default async function AccountPage({
               </span>
               <span className="acct-danger-chevron" aria-hidden="true">▾</span>
             </summary>
+            {staffAccount ? (
+              <p className="acct-protected">
+                <ShieldCheck size={16} aria-hidden="true" /> Staff accounts can&apos;t be deleted. If you&apos;re leaving the team, ask an admin to remove your staff role
+                first.
+              </p>
+            ) : (
             <form className="acct-form" action="/api/account/delete" method="post" autoComplete="off">
               <p>
                 This permanently deletes your website account and can&apos;t be undone. Type{" "}
@@ -406,6 +417,7 @@ export default async function AccountPage({
               </div>
               <button className="acct-button acct-button--danger" type="submit">Delete my account</button>
             </form>
+            )}
           </details>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { Bot, Coffee, Heart, HeartHandshake, Mic, Palette, Shield, ShoppingBag, Star, Trophy, type LucideIcon } from "lucide-react";
 import { LeafEmote } from "./ui-icons";
-import { getCurrentUser } from "../lib/auth";
+import { getCurrentUser, canViewStaffPage } from "../lib/auth";
 import { getDiscordInviteSummary } from "../lib/discord";
 import { publishedNews } from "../lib/news";
 import { newsExcerpt } from "../lib/news-format";
@@ -182,10 +182,14 @@ function Hills() {
 export const dynamic = "force-dynamic";
 
 export default async function Home({ searchParams }: { searchParams?: { register?: string; account?: string } }) {
-  const [reviews, discord, user, latestNews] = await Promise.all([getReviews(), getDiscordInviteSummary(), getCurrentUser(), publishedNews({ limit: 3 })]);
+  const [reviews, discord, user, latestNews] = await Promise.all([getReviews(), getDiscordInviteSummary(), getCurrentUser(), publishedNews({ limit: 4 })]);
   // Newest three posts written by admins in the Admin tab
-  const news = latestNews.map((p) => {
-    const { text, cut } = newsExcerpt(p.body, 150);
+  // Show up to three; "All news" only when there's more than that to see
+  const moreNews = latestNews.length > 3;
+  const shownNews = latestNews.slice(0, 3);
+  const news = shownNews.map((p) => {
+    // A lone post gets the whole row, so it can show more of its text
+    const { text, cut } = newsExcerpt(p.body, shownNews.length === 1 ? 420 : shownNews.length === 2 ? 240 : 150);
     return { id: p.id, tag: p.tag, tagColor: p.tagColor, title: p.title, text, cut };
   });
   const status = searchParams?.register ?? searchParams?.account;
@@ -294,17 +298,20 @@ export default async function Home({ searchParams }: { searchParams?: { register
       </div>
 
       {/* News */}
+      {news.length ? (
       <section className="home-section" id="news" data-reveal>
         <div className="home-section-head">
           <div>
             <p className="home-eyebrow">News</p>
             <h2>What&apos;s happening in the kingdom</h2>
           </div>
-          <a className="home-link" href="/news">
-            All news →
-          </a>
+          {moreNews ? (
+            <a className="home-link" href="/news">
+              All news →
+            </a>
+          ) : null}
         </div>
-        <div className="home-news">
+        <div className={`home-news home-news--${news.length}`}>
           {news.map((item, index) => (
             <a className="home-news-card" data-spotlight key={item.id} href={`/news#${item.id}`}>
               <span className="home-news-num">0{index + 1}</span>
@@ -321,6 +328,7 @@ export default async function Home({ searchParams }: { searchParams?: { register
           ))}
         </div>
       </section>
+      ) : null}
 
       {/* Why join / features */}
       <section className="home-section" data-reveal>
@@ -463,7 +471,7 @@ export default async function Home({ searchParams }: { searchParams?: { register
           <div>
             <h3>Community</h3>
             <a href={DISCORD_INVITE}>Discord</a>
-            <a href="/staff">Staff</a>
+            {canViewStaffPage(user) ? <a href="/staff">Staff</a> : null}
             <a href={REVIEWS_URL}>Reviews</a>
           </div>
           <div>

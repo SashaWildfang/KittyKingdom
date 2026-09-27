@@ -1,9 +1,10 @@
 "use client";
 
-import { Backpack, Ban, Check, Minus, Plus, Trash2, FileText, MessageCircle, Shield, Star, X } from "lucide-react";
+import { Backpack, Ban, Check, ClipboardCheck, Minus, Plus, Trash2, FileText, MessageCircle, Shield, Star, X } from "lucide-react";
 import { LeafEmote, StoreItemIcon } from "../ui-icons";
 import { useEffect, useRef, useState } from "react";
 import type { Drill } from "./drill-panel";
+import { MemberJoinApp } from "./join-apps";
 import {
   ActionBadge,
   Avatar,
@@ -129,6 +130,13 @@ export function MemberDrawer({
                 ) : null}
               </section>
             ) : null}
+
+            <section className="adm-drawer-section">
+              <h3>
+                <ClipboardCheck size={16} aria-hidden="true" /> Join application
+              </h3>
+              <MemberJoinApp discordId={userId} onOpenMember={onOpenMember} />
+            </section>
 
             <section className="adm-drawer-section">
               <h3>

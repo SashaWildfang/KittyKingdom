@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { clearSession, getSessionUserId, verifyPassword } from "../../../../lib/auth";
+import { isStaffDiscordId } from "../../../../lib/admin";
 import { getUsersCollection } from "../../../../lib/mongodb";
 import { sessionsCollection } from "../../../../lib/sessions";
 
@@ -35,6 +36,11 @@ export async function POST(request: Request) {
         `${origin}/account?account=delete-password-invalid`,
         303,
       );
+    }
+
+    // Staff accounts can't be deleted (not even by their owner)
+    if (await isStaffDiscordId(user.discordId)) {
+      return NextResponse.redirect(`${origin}/account?account=delete-staff-blocked`, 303);
     }
 
     await users.deleteOne({ _id: userId });

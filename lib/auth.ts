@@ -169,3 +169,8 @@ export async function getSessionUserId() {
 
 // Memoized per request, so the page and the nav can both ask without a second database lookup
 export const getCurrentUser = getSessionUser;
+
+/** The Staff page is only for signed-in members with a verified email and a linked Discord account. */
+export function canViewStaffPage(user: Record<string, unknown> | null | undefined) {
+  return Boolean(user && user.emailVerified !== false && user.discordId);
+}
