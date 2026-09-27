@@ -29,7 +29,8 @@ const statusMessages: Record<string, string> = {
     "Username must be 3–20 characters using letters, numbers, or underscores.",
   "name-saved": "Name saved successfully.",
   "invalid-name": "Name must be 3–12 characters and use letters, numbers, or spaces only.",
-  "password-saved": "Password updated successfully.",
+  "password-saved": "Password updated. Other devices have been signed out.",
+  "password-reset": "Your new password is saved and you're signed in. Other devices have been signed out.",
   "password-invalid": "Current password was not correct.",
   "password-requirements":
     "New password must be 8+ characters with at least one number and one symbol.",
@@ -51,7 +52,7 @@ const statusMessages: Record<string, string> = {
   unlinked: "Discord account unlinked. Discord-only features are disabled until you link again.",
 };
 
-const successStatuses = new Set(["username-saved", "name-saved", "password-saved", "success", "linked", "unlinked", "contact-saved"]);
+const successStatuses = new Set(["password-reset", "username-saved", "name-saved", "password-saved", "success", "linked", "unlinked", "contact-saved"]);
 
 // What to show in a social link's input box: the short handle/ID when there is one, else the full link
 function socialInputValue(link: SocialLink | undefined) {
@@ -188,6 +189,14 @@ export default async function AccountPage({
         <div className={`acct-status acct-status--${statusTone}`} role="status">
           <span aria-hidden="true">{statusTone === "success" ? "✓" : "!"}</span>
           {statusText}
+        </div>
+      ) : null}
+
+      {user.mustChangePassword ? (
+        <div className="acct-temp-password" role="alert">
+          <strong>🔑 You&apos;re using a temporary password from staff.</strong>
+          <span>Please choose your own password now.</span>
+          <a href="#security">Change password →</a>
         </div>
       ) : null}
 
