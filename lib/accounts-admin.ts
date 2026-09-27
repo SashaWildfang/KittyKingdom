@@ -8,7 +8,7 @@ import { getMongoClient, getUsersCollection } from "./mongodb";
 import { formatDateOfBirth } from "./dates";
 import { applicationBirthday, getJoinApplication } from "./join-application";
 import { startPasswordReset } from "./password-reset";
-import { revokeAllSessions } from "./sessions";
+import { revokeAllSessions, sessionsCollection } from "./sessions";
 
 const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -182,7 +182,7 @@ function temporaryPassword() {
   return `${pick()}-${pick()}-${randomInt(1000, 10000)}${symbols[randomInt(symbols.length)]}`;
 }
 
-export type AccountAction = "send-reset" | "temp-password" | "sign-out" | "verify-email";
+export type AccountAction = "send-reset" | "temp-password" | "sign-out" | "verify-email" | "delete";
 
 export async function accountAction(id: string, action: AccountAction, admin: PanelUser, origin: string) {
   if (!ObjectId.isValid(id)) throw new Error("Unknown account.");
@@ -213,6 +213,16 @@ export async function accountAction(id: string, action: AccountAction, admin: Pa
     await users.updateOne({ _id }, { $inc: { sessionVersion: 1 } });
     await revokeAllSessions(_id, `admin:${admin.discordId}`);
     result = { message: "Signed out of the website on every device." };
+  } else if (action === "delete") {
+    if (id === admin.websiteUserId) throw new Error("You can't delete your own account from here.");
+    const client = await getMongoClient();
+    const website = client.db(process.env.MONGODB_DB ?? "website");
+    await users.deleteOne({ _id });
+    await Promise.all([
+      (await sessionsCollection()).deleteMany({ userId: _id }),
+      website.collection("link_codes").deleteMany({ userId: _id }),
+    ]);
+    result = { message: `Deleted the website account for ${target.email}. Their Discord and bot data are untouched.` };
   } else if (action === "verify-email") {
     await users.updateOne({ _id }, { $set: { emailVerified: true, updatedAt: new Date() }, $unset: { emailVerificationTokens: "", emailVerificationTokenHash: "" } });
     result = { message: "Email marked as verified." };
@@ -231,4 +241,44 @@ export async function accountAction(id: string, action: AccountAction, admin: Pa
     ref: randomBytes(4).toString("hex"),
   });
   return result;
+}
+
+export type AccountSegment = "all" | "verified" | "linked" | "unverified";
+
+const SEGMENT_FILTERS: Record<AccountSegment, Document> = {
+  all: {},
+  verified: { emailVerified: true },
+  linked: { discordId: { $nin: [null, ""] } },
+  unverified: { emailVerified: { $ne: true } },
+};
+
+/** The story behind one of the account totals: sign-ups over time, growth and the newest accounts. */
+export async function accountSegmentInsights(segment: AccountSegment) {
+  const users = await getUsersCollection();
+  const filter = SEGMENT_FILTERS[segment] ?? {};
+  const weekAgo = new Date(Date.now() - 7 * 86_400_000);
+  const monthAgo = new Date(Date.now() - 30 * 86_400_000);
+  const [total, all, week, month, timeline, newest] = await Promise.all([
+    users.countDocuments(filter),
+    users.countDocuments({}),
+    users.countDocuments({ ...filter, createdAt: { $gte: weekAgo } }),
+    users.countDocuments({ ...filter, createdAt: { $gte: monthAgo } }),
+    users
+      .aggregate([
+        { $match: { ...filter, createdAt: { $type: "date", $gte: new Date(Date.now() - 180 * 86_400_000) } } },
+        { $group: { _id: { $dateTrunc: { date: "$createdAt", unit: "week", timezone: "America/Denver" } }, n: { $sum: 1 } } },
+        { $sort: { _id: 1 } },
+      ])
+      .toArray(),
+    users.find(filter, { projection: SAFE_PROJECTION }).sort({ createdAt: -1 }).limit(25).toArray(),
+  ]);
+  return {
+    segment,
+    total,
+    percent: all ? Math.round((total / all) * 100) : 0,
+    week,
+    month,
+    timeline: timeline.map((t) => ({ bucket: (t._id as Date).toISOString(), action: segment, count: t.n as number })),
+    newest: await withDiscordProfiles(newest.map(toRow)),
+  };
 }

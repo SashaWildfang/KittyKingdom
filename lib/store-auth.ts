@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "./auth";
 import { StoreError, getStoreState } from "./store";
+import { hasOperatorKeys } from "./validate";
 
 /** The signed-in user with a linked Discord account, or a StoreError (401 / 403). */
 export async function requireStoreUser(request: Request) {
@@ -17,7 +18,10 @@ export async function requireStoreUser(request: Request) {
 }
 
 export async function readJson(request: Request) {
-  return ((await request.json().catch(() => ({}))) ?? {}) as Record<string, unknown>;
+  const body = (await request.json().catch(() => ({}))) as unknown;
+  // Only plain objects, and never Mongo operator keys like "$ne"
+  if (!body || typeof body !== "object" || Array.isArray(body) || hasOperatorKeys(body)) return {} as Record<string, unknown>;
+  return body as Record<string, unknown>;
 }
 
 /** Runs a store action and responds with its message plus the fresh store state. */

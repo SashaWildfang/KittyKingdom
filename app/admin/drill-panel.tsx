@@ -1,5 +1,6 @@
 "use client";
 
+import { FileText, User, X } from "lucide-react";
 import { useEffect } from "react";
 import {
   ActionBadge,
@@ -75,10 +76,10 @@ export function DrillPanel({
     <div className="adm-drawer-backdrop" onClick={onClose}>
       <aside className="adm-drawer adm-drill" onClick={(e) => e.stopPropagation()} aria-label={kicker}>
         <button type="button" className="adm-drawer-close" onClick={onClose} aria-label="Close">
-          ✕
+          <X size={16} />
         </button>
         <header className="adm-drawer-head">
-          {drill.kind !== "reason" ? <Avatar person={person} id={drill.id} size={56} /> : <span className="adm-drill-icon">📝</span>}
+          {drill.kind !== "reason" ? <Avatar person={person} id={drill.id} size={56} /> : <span className="adm-drill-icon"><FileText size={26} /></span>}
           <div>
             <p className="adm-drill-kicker">{kicker}</p>
             <h2>{title}</h2>
@@ -92,7 +93,7 @@ export function DrillPanel({
 
         {drill.kind !== "reason" && !(drill.kind === "staff" && drill.automod) ? (
           <button type="button" className="adm-btn adm-btn--ghost adm-btn--small adm-drill-profile" onClick={() => onOpenMember(drill.id)}>
-            👤 Open full profile
+            <User size={14} aria-hidden="true" /> Open full profile
           </button>
         ) : null}
 

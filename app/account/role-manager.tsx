@@ -1,5 +1,6 @@
 "use client";
 
+import { Check, Lock, Palette, Plus, ShieldAlert, Tags, TriangleAlert } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RoleState } from "../../lib/member-roles";
 
@@ -147,7 +148,7 @@ export function RoleManager({ initial }: { initial: RoleState | null }) {
         </div>
         <div className="roles-group roles-group--nsfw">
           <span className="roles-group-label">
-            🔞 NSFW roles {!state.isAdult ? <em>· unlock with 18+ verification</em> : null}
+            <ShieldAlert size={13} aria-hidden="true" /> NSFW roles {!state.isAdult ? <em>· unlock with 18+ verification</em> : null}
           </span>
           <div className="roles-nav" role="tablist" aria-label="NSFW role categories">
             {adult.map((c) => (
@@ -160,7 +161,7 @@ export function RoleManager({ initial }: { initial: RoleState | null }) {
                 style={{ "--cat": c.color } as React.CSSProperties}
                 onClick={() => setActive(c.key)}
               >
-                {c.locked ? "🔒 " : ""}
+                {c.locked ? <Lock size={12} aria-hidden="true" /> : null}
                 {c.title}
                 {selectedCount(c.key) ? <span>{selectedCount(c.key)}</span> : null}
               </button>
@@ -174,7 +175,7 @@ export function RoleManager({ initial }: { initial: RoleState | null }) {
           <div className="roles-panel-head">
             <div>
               <h3>
-                {category.adult ? "🔞 " : ""}
+                {category.adult ? <ShieldAlert size={16} aria-hidden="true" /> : null}
                 {category.title}
               </h3>
               <p>{category.description}</p>
@@ -193,7 +194,7 @@ export function RoleManager({ initial }: { initial: RoleState | null }) {
 
           {category.locked ? (
             <div className="roles-locked">
-              <span aria-hidden="true">🔒</span>
+              <span aria-hidden="true"><Lock size={22} /></span>
               <div>
                 <strong>18+ roles are available once you&apos;re ID verified in the Discord server.</strong>
                 <p>Open a verification ticket in Discord. Once you have the 18+ Verified role, these unlock here automatically.</p>
@@ -222,7 +223,7 @@ export function RoleManager({ initial }: { initial: RoleState | null }) {
                     <small>{shortDescription(role.description)}</small>
                   </span>
                   <span className="role-tile-check" aria-hidden="true">
-                    {isPending ? <i className="role-spinner" /> : role.has ? "✓" : "+"}
+                    {isPending ? <i className="role-spinner" /> : role.has ? <Check size={14} strokeWidth={3} /> : <Plus size={14} />}
                   </span>
                 </button>
               );
@@ -235,7 +236,7 @@ export function RoleManager({ initial }: { initial: RoleState | null }) {
       <div className="roles-section">
         <div className="roles-section-head">
           <h3>
-            🎨 Color roles{" "}
+            <Palette size={17} aria-hidden="true" /> Color roles{" "}
             <span className="roles-unlocked">
               {state.colorRoles.length}/{state.colorRoleTotal} unlocked
             </span>
@@ -247,7 +248,7 @@ export function RoleManager({ initial }: { initial: RoleState | null }) {
             <span style={{ width: `${Math.min(100, (state.colorRoles.length / state.colorRoleTotal) * 100)}%` }} />
             <small>
               {state.colorRoles.length === state.colorRoleTotal
-                ? "🏆 You've collected every color role!"
+                ? "You've collected every color role!"
                 : `${Math.round((state.colorRoles.length / state.colorRoleTotal) * 100)}% collected · ${state.colorRoleTotal - state.colorRoles.length} to go`}
             </small>
           </div>
@@ -267,7 +268,7 @@ export function RoleManager({ initial }: { initial: RoleState | null }) {
                 >
                   <span className="color-swatch" style={{ background: swatch(c.colors) }} aria-hidden="true" />
                   <strong>{c.name}</strong>
-                  <small>{isPending ? "Updating…" : c.equipped ? "✓ Wearing" : "Tap to wear"}</small>
+                  <small>{isPending ? "Updating…" : c.equipped ? "Wearing" : "Tap to wear"}</small>
                 </button>
               );
             })}
@@ -282,7 +283,7 @@ export function RoleManager({ initial }: { initial: RoleState | null }) {
       {state.levelRoles.length || state.otherRoles.length ? (
         <div className="roles-section">
           <div className="roles-section-head">
-            <h3>🏷️ Your other roles</h3>
+            <h3><Tags size={17} aria-hidden="true" /> Your other roles</h3>
             <span className="roles-muted">Earned or given by staff</span>
           </div>
           <div className="roles-chips">
@@ -298,7 +299,7 @@ export function RoleManager({ initial }: { initial: RoleState | null }) {
 
       {toast ? (
         <div className={`roles-toast roles-toast--${toast.tone}`} role="status">
-          {toast.tone === "ok" ? "✓ " : "⚠️ "}
+          {toast.tone === "ok" ? <Check size={15} aria-hidden="true" /> : <TriangleAlert size={15} aria-hidden="true" />}{" "}
           {toast.text}
         </div>
       ) : null}

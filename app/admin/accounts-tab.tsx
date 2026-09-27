@@ -1,7 +1,9 @@
 "use client";
 
+import { BadgeCheck, KeyRound, Trash2, TriangleAlert, Laptop, LogOut, Mail, MailCheck, MessageCircle, Search, Smartphone, Tablet, X, type LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { StackedBars } from "./admin-charts";
 import { CopyId, LiveBadge, Pager, formatDate, timeAgo, useLive, useStored } from "./admin-shared";
 
 type AccountRow = {
@@ -80,7 +82,12 @@ type DeviceSession = {
   userAgent: string | null;
 };
 
-const DEVICE_ICONS: Record<string, string> = { mobile: "📱", tablet: "📲", desktop: "💻" };
+const DEVICE_ICONS: Record<string, LucideIcon> = { mobile: Smartphone, tablet: Tablet, desktop: Laptop };
+
+function DeviceIcon({ type, size = 16 }: { type: string; size?: number }) {
+  const Icon = DEVICE_ICONS[type] ?? Laptop;
+  return <Icon size={size} aria-hidden="true" />;
+}
 
 /** "🇺🇸" from "US" */
 function flag(country: string | null) {
@@ -113,7 +120,12 @@ function OnlineNow({ onOpen }: { onOpen: (id: string) => void }) {
             <span className="adm-person-text">
               <strong>{u.name}</strong>
               <small>
-                {u.devices.map((d) => DEVICE_ICONS[d.type] ?? "💻").join(" ")} · {timeAgo(u.lastSeenAt)}
+                <span className="adm-device-icons">
+                  {u.devices.map((d, i) => (
+                    <DeviceIcon key={i} type={d.type} size={12} />
+                  ))}
+                </span>{" "}
+                · {timeAgo(u.lastSeenAt)}
               </small>
             </span>
           </button>
@@ -160,7 +172,7 @@ function Devices({ accountId }: { accountId: string }) {
     return (
       <li key={s.id} className={`adm-device${s.revokedAt ? " is-ended" : ""}`}>
         <span className="adm-device-icon" aria-hidden="true">
-          {DEVICE_ICONS[s.device.type] ?? "💻"}
+          <DeviceIcon type={s.device.type} size={22} />
         </span>
         <div className="adm-device-main">
           <strong>
@@ -228,6 +240,7 @@ function Devices({ accountId }: { accountId: string }) {
 
 const ACTION_LABELS: Record<string, string> = {
   "disconnect-device": "Disconnected a device",
+  delete: "Deleted the account",
   "send-reset": "Sent a password reset link",
   "temp-password": "Set a temporary password",
   "sign-out": "Signed out everywhere",
@@ -242,6 +255,7 @@ export function AccountsTab({ onOpenMember }: { onOpenMember: (id: string) => vo
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [open, setOpen] = useState<string | null>(null);
+  const [segment, setSegment] = useState<Segment | null>(null);
 
   useEffect(() => {
     const t = window.setTimeout(() => {
@@ -266,31 +280,25 @@ export function AccountsTab({ onOpenMember }: { onOpenMember: (id: string) => vo
     <div className="adm-panel">
       <OnlineNow onOpen={setOpen} />
       <div className="adm-kpis adm-kpis--4">
-        <div className="adm-kpi">
-          <small>Accounts</small>
-          <strong>{t ? t.all.toLocaleString() : "…"}</strong>
-          <span>{t ? `${t.newThisWeek} new this week` : ""}</span>
-        </div>
-        <div className="adm-kpi adm-kpi--green">
-          <small>Email verified</small>
-          <strong>{t ? t.verified.toLocaleString() : "…"}</strong>
-          <span>{t && t.all ? `${Math.round((t.verified / t.all) * 100)}%` : ""}</span>
-        </div>
-        <div className="adm-kpi adm-kpi--blue">
-          <small>Discord linked</small>
-          <strong>{t ? t.linked.toLocaleString() : "…"}</strong>
-          <span>{t && t.all ? `${Math.round((t.linked / t.all) * 100)}%` : ""}</span>
-        </div>
-        <div className="adm-kpi adm-kpi--yellow">
-          <small>Not verified</small>
-          <strong>{t ? (t.all - t.verified).toLocaleString() : "…"}</strong>
-          <span>can&apos;t log in yet</span>
-        </div>
+        {(
+          [
+            { key: "all", label: "Accounts", tone: "", value: t?.all, hint: t ? `${t.newThisWeek} new this week` : "" },
+            { key: "verified", label: "Email verified", tone: "green", value: t?.verified, hint: t && t.all ? `${Math.round((t.verified / t.all) * 100)}%` : "" },
+            { key: "linked", label: "Discord linked", tone: "blue", value: t?.linked, hint: t && t.all ? `${Math.round((t.linked / t.all) * 100)}%` : "" },
+            { key: "unverified", label: "Not verified", tone: "yellow", value: t ? t.all - t.verified : undefined, hint: "can't log in yet" },
+          ] as const
+        ).map((k) => (
+          <button key={k.key} type="button" className={`adm-kpi is-link${k.tone ? ` adm-kpi--${k.tone}` : ""}`} onClick={() => setSegment(k.key)}>
+            <small>{k.label}</small>
+            <strong>{k.value === undefined ? "…" : k.value.toLocaleString()}</strong>
+            <span>{k.hint}</span>
+          </button>
+        ))}
       </div>
 
       <div className="adm-filters">
         <label className="adm-search">
-          <span aria-hidden="true">🔍</span>
+          <Search size={16} aria-hidden="true" />
           <input type="search" placeholder="Search email, username, name, Discord…" value={search} onChange={(e) => setSearch(e.target.value)} />
         </label>
         <LiveBadge updatedAt={updatedAt} loading={loading} />
@@ -348,7 +356,7 @@ export function AccountsTab({ onOpenMember }: { onOpenMember: (id: string) => vo
                 </td>
                 <td>
                   <span className="adm-email">{a.email}</span>
-                  {a.emailVerified ? <span className="adm-status adm-status--active"> ✓</span> : <span className="adm-tag">unverified</span>}
+                  {a.emailVerified ? <BadgeCheck className="adm-verified" size={15} aria-label="Verified" /> : <span className="adm-tag">unverified</span>}
                 </td>
                 <td>
                   {a.discordId ? (
@@ -382,7 +390,103 @@ export function AccountsTab({ onOpenMember }: { onOpenMember: (id: string) => vo
       </div>
       {data ? <Pager page={page} total={data.total} pageSize={data.pageSize} onPage={setPage} /> : null}
 
+      {segment
+        ? createPortal(
+            <SegmentDrawer
+              segment={segment}
+              onClose={() => setSegment(null)}
+              onOpenAccount={(id) => {
+                setSegment(null);
+                setOpen(id);
+              }}
+              onShowInTable={() => {
+                setFilter(segment === "linked" ? "linked" : segment === "verified" ? "verified" : segment === "unverified" ? "unverified" : "all");
+                setPage(1);
+                setSegment(null);
+              }}
+            />,
+            document.body,
+          )
+        : null}
       {open ? createPortal(<AccountDrawer id={open} onClose={() => setOpen(null)} onChanged={reload} onOpenMember={onOpenMember} />, document.body) : null}
+    </div>
+  );
+}
+
+type Segment = "all" | "verified" | "linked" | "unverified";
+const SEGMENT_INFO: Record<Segment, { title: string; blurb: string; color: string }> = {
+  all: { title: "All accounts", blurb: "Every website account.", color: "#f59b2a" },
+  verified: { title: "Email verified", blurb: "Accounts that confirmed their email and can log in.", color: "#46a758" },
+  linked: { title: "Discord linked", blurb: "Accounts connected to a Discord member (Store, Leaderboards and roles unlocked).", color: "#3e63dd" },
+  unverified: { title: "Not verified", blurb: "Accounts that haven't confirmed their email yet, so they can't log in.", color: "#e2b203" },
+};
+
+function SegmentDrawer({ segment, onClose, onOpenAccount, onShowInTable }: { segment: Segment; onClose: () => void; onOpenAccount: (id: string) => void; onShowInTable: () => void }) {
+  const { data } = useLive<{ total: number; percent: number; week: number; month: number; timeline: { bucket: string; action: string; count: number }[]; newest: AccountRow[] }>(
+    `/api/admin/accounts/insights?segment=${segment}`,
+    30_000,
+  );
+  const info = SEGMENT_INFO[segment];
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div className="adm-drawer-backdrop" onClick={onClose}>
+      <aside className="adm-drawer" onClick={(e) => e.stopPropagation()} aria-label={info.title}>
+        <button type="button" className="adm-drawer-close" onClick={onClose} aria-label="Close">
+          <X size={16} />
+        </button>
+        <header className="adm-drawer-head adm-segment-head" style={{ "--c": info.color } as React.CSSProperties}>
+          <div>
+            <p className="adm-drill-kicker">Website accounts</p>
+            <h2>{info.title}</h2>
+            <p>{info.blurb}</p>
+          </div>
+        </header>
+        <div className="adm-segment-stats">
+          <div>
+            <strong>{data ? data.total.toLocaleString() : "…"}</strong>
+            <small>{segment === "all" ? "accounts" : `${data?.percent ?? "…"}% of all accounts`}</small>
+          </div>
+          <div>
+            <strong>+{data?.week ?? "…"}</strong>
+            <small>this week</small>
+          </div>
+          <div>
+            <strong>+{data?.month ?? "…"}</strong>
+            <small>last 30 days</small>
+          </div>
+        </div>
+        <section className="adm-drawer-section">
+          <h3>New accounts per week</h3>
+          {data ? <StackedBars points={data.timeline} unit="week" series={[{ key: segment, label: info.title, color: info.color }]} height={150} /> : <div className="adm-skeleton" />}
+        </section>
+        <section className="adm-drawer-section">
+          <h3>
+            Newest <small>{data?.newest.length ?? 0}</small>
+            <button type="button" className="adm-link adm-h3-link" onClick={onShowInTable}>
+              Show all in the table →
+            </button>
+          </h3>
+          <ul className="adm-segment-list">
+            {data?.newest.map((a) => (
+              <li key={a.id}>
+                <button type="button" onClick={() => onOpenAccount(a.id)}>
+                  <AccountAvatar account={a} size={30} />
+                  <span className="adm-person-text">
+                    <strong>{a.displayName ?? a.username ?? "No name yet"}</strong>
+                    <small>{a.email}</small>
+                  </span>
+                  <span className="adm-muted">{timeAgo(a.createdAt)}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </aside>
     </div>
   );
 }
@@ -427,6 +531,11 @@ function AccountDrawer({ id, onClose, onChanged, onOpenMember }: { id: string; o
       });
       const body = await r.json();
       if (!r.ok || !body.ok) throw new Error(body.error ?? "That didn't work.");
+      if (body.deleted) {
+        onChanged();
+        onClose();
+        return;
+      }
       setAccount(body.account);
       setNotice({ text: body.message, tone: "ok" });
       if (body.temporaryPassword) setTempPassword(body.temporaryPassword);
@@ -439,17 +548,18 @@ function AccountDrawer({ id, onClose, onChanged, onOpenMember }: { id: string; o
   }
 
   const actions = [
-    { key: "send-reset", label: "📧 Email a reset link", help: "They get a one-time link (1 hour) to choose a new password. Safest option.", confirm: "Email a password reset link to this member?" },
+    { key: "send-reset", label: "Email a reset link", icon: Mail, help: "They get a one-time link (1 hour) to choose a new password. Safest option.", confirm: "Email a password reset link to this member?" },
     {
       key: "temp-password",
-      label: "🔑 Set a temporary password",
+      label: "Set a temporary password",
+      icon: KeyRound,
       help: "Replaces their password with one you give them, signs them out everywhere and asks them to change it.",
       confirm: "Replace their password with a temporary one? Their current password stops working immediately.",
       danger: true,
     },
-    { key: "sign-out", label: "🚪 Sign out everywhere", help: "Ends every website session on every device.", confirm: "Sign this account out on every device?" },
+    { key: "sign-out", label: "Sign out everywhere", icon: LogOut, help: "Ends every website session on every device.", confirm: "Sign this account out on every device?" },
     ...(account && !account.emailVerified
-      ? [{ key: "verify-email", label: "✅ Mark email verified", help: "Lets them log in without clicking the verification email.", confirm: "Mark this email as verified?" }]
+      ? [{ key: "verify-email", label: "Mark email verified", icon: MailCheck, help: "Lets them log in without clicking the verification email.", confirm: "Mark this email as verified?" }]
       : []),
   ];
 
@@ -457,7 +567,7 @@ function AccountDrawer({ id, onClose, onChanged, onOpenMember }: { id: string; o
     <div className="adm-drawer-backdrop" onClick={onClose}>
       <aside className="adm-drawer" onClick={(e) => e.stopPropagation()} aria-label="Website account">
         <button type="button" className="adm-drawer-close" onClick={onClose} aria-label="Close">
-          ✕
+          <X size={16} />
         </button>
         {error ? <p className="adm-error">{error}</p> : null}
         {!account && !error ? <div className="adm-skeleton" style={{ height: 260 }} /> : null}
@@ -473,9 +583,9 @@ function AccountDrawer({ id, onClose, onChanged, onOpenMember }: { id: string; o
             </header>
 
             <div className="adm-drawer-flags">
-              {account.emailVerified ? <span className="adm-status adm-status--active">✓ Email verified</span> : <span className="adm-tag">Email not verified</span>}
-              {account.discordId ? <span className="adm-tag">💬 Discord linked</span> : <span className="adm-tag">Discord not linked</span>}
-              {account.mustChangePassword ? <span className="adm-tag">🔑 Temporary password</span> : null}
+              {account.emailVerified ? <span className="adm-status adm-status--active"><BadgeCheck size={13} aria-hidden="true" /> Email verified</span> : <span className="adm-tag">Email not verified</span>}
+              {account.discordId ? <span className="adm-tag"><MessageCircle size={12} aria-hidden="true" /> Discord linked</span> : <span className="adm-tag">Discord not linked</span>}
+              {account.mustChangePassword ? <span className="adm-tag"><KeyRound size={12} aria-hidden="true" /> Temporary password</span> : null}
             </div>
 
             <section className="adm-drawer-section">
@@ -560,7 +670,9 @@ function AccountDrawer({ id, onClose, onChanged, onOpenMember }: { id: string; o
                 {actions.map((a) => (
                   <div key={a.key} className={`adm-action-row${a.danger ? " is-danger" : ""}`}>
                     <div>
-                      <strong>{a.label}</strong>
+                      <strong className="adm-inline-icon">
+                        <a.icon size={15} aria-hidden="true" /> {a.label}
+                      </strong>
                       <small>{a.help}</small>
                     </div>
                     {confirming === a.key ? (
@@ -581,6 +693,39 @@ function AccountDrawer({ id, onClose, onChanged, onOpenMember }: { id: string; o
                   </div>
                 ))}
               </div>
+            </section>
+
+            <section className="adm-drawer-section adm-danger">
+              <h3>
+                <TriangleAlert size={16} aria-hidden="true" /> Danger zone
+              </h3>
+              {confirming === "delete" ? (
+                <div className="adm-danger-confirm">
+                  <p>
+                    Permanently delete the website account <strong>{account.email}</strong>? Their login, devices and settings are removed. Their Discord and bot data (leafs, levels, punishments) are not touched.
+                  </p>
+                  <div>
+                    <button type="button" className="adm-btn adm-btn--danger" disabled={Boolean(busy)} onClick={() => void run("delete")}>
+                      {busy === "delete" ? "Deleting…" : "Yes, delete this account"}
+                    </button>
+                    <button type="button" className="adm-btn adm-btn--ghost" onClick={() => setConfirming(null)}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="adm-action-row is-danger">
+                  <div>
+                    <strong className="adm-inline-icon">
+                      <Trash2 size={15} aria-hidden="true" /> Delete account
+                    </strong>
+                    <small>Removes the website account for good. Can&apos;t be undone.</small>
+                  </div>
+                  <button type="button" className="adm-btn adm-btn--danger adm-btn--small" onClick={() => setConfirming("delete")}>
+                    Delete…
+                  </button>
+                </div>
+              )}
             </section>
 
             <section className="adm-drawer-section">

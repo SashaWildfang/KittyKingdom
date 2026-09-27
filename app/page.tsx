@@ -1,3 +1,5 @@
+import { Bot, Coffee, Heart, HeartHandshake, Mic, Palette, Shield, ShoppingBag, Star, Trophy, type LucideIcon } from "lucide-react";
+import { LeafEmote } from "./ui-icons";
 import { getCurrentUser } from "../lib/auth";
 import { getDiscordInviteSummary } from "../lib/discord";
 import { LEAVE_REVIEW_URL, REVIEWS_URL, getReviews, type Review } from "../lib/reviews";
@@ -26,17 +28,17 @@ const news = [
   },
 ];
 
-const tickerItems = [
-  "🍂 Dating profiles",
-  "🍁 Leaf economy",
-  "🤖 Custom bot",
-  "🏆 Leaderboards",
-  "🛍️ Leaf Shop",
-  "🎙️ Voice chats",
-  "🛡️ AutoMod protection",
-  "💞 Matchmaking",
-  "🎨 Art & media",
-  "☕ Cozy vibes",
+const tickerItems: { label: string; icon: LucideIcon | "leaf" }[] = [
+  { label: "Dating profiles", icon: HeartHandshake },
+  { label: "Leaf economy", icon: "leaf" },
+  { label: "Custom bot", icon: Bot },
+  { label: "Leaderboards", icon: Trophy },
+  { label: "Leaf Shop", icon: ShoppingBag },
+  { label: "Voice chats", icon: Mic },
+  { label: "AutoMod protection", icon: Shield },
+  { label: "Matchmaking", icon: Heart },
+  { label: "Art & media", icon: Palette },
+  { label: "Cozy vibes", icon: Coffee },
 ];
 
 const iconPaths: Record<string, string> = {
@@ -141,8 +143,9 @@ function timeAgo(iso: string) {
 function Stars({ value }: { value: number }) {
   return (
     <span className="home-stars" aria-label={`${value} out of 5 stars`}>
-      {"★★★★★".slice(0, Math.round(value))}
-      <span className="home-stars-empty">{"★★★★★".slice(Math.round(value))}</span>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Star key={n} size={15} className={n <= Math.round(value) ? "home-star-on" : "home-stars-empty"} fill="currentColor" strokeWidth={0} aria-hidden="true" />
+      ))}
     </span>
   );
 }
@@ -266,7 +269,7 @@ export default async function Home({ searchParams }: { searchParams?: { register
             ) : null}
             <li>
               <strong>
-                {reviews.average.toFixed(1)} <span className="home-star">★</span>
+                {reviews.average.toFixed(1)} <Star className="home-star" size={18} fill="currentColor" strokeWidth={0} aria-hidden="true" />
               </strong>
               <span>on DISBOARD</span>
             </li>
@@ -279,7 +282,7 @@ export default async function Home({ searchParams }: { searchParams?: { register
             <span className="home-art-glare" aria-hidden="true" />
           </div>
           <img className="home-art-logo" src="/logo.png" alt="Kitty Kingdom logo" />
-          <span className="home-art-chip home-art-chip--top">🍁 Fall all year</span>
+          <span className="home-art-chip home-art-chip--top"><LeafEmote size={16} /> Fall all year</span>
           <span className="home-art-chip home-art-chip--bottom">
             <i className="home-dot" aria-hidden="true" /> {discord.online !== null ? `${discord.online.toLocaleString()} online` : "Live now"}
           </span>
@@ -292,7 +295,9 @@ export default async function Home({ searchParams }: { searchParams?: { register
       <div className="home-ticker" aria-hidden="true">
         <div className="home-ticker-track">
           {[...tickerItems, ...tickerItems].map((item, i) => (
-            <span key={i}>{item}</span>
+            <span key={i}>
+              {item.icon === "leaf" ? <LeafEmote size={17} /> : <item.icon size={16} aria-hidden="true" />} {item.label}
+            </span>
           ))}
         </div>
       </div>

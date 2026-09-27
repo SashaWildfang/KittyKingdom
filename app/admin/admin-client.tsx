@@ -1,5 +1,6 @@
 "use client";
 
+import { BarChart3, Gavel, ScrollText, Ticket, Users, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { AccountsTab } from "./accounts-tab";
@@ -15,12 +16,12 @@ import { TranscriptViewer } from "./transcript-viewer";
 type Tab = "overview" | "punishments" | "logs" | "tickets" | "accounts";
 type Level = "admin" | "staff";
 
-const TABS: { key: Tab; label: string; icon: string; admin?: boolean }[] = [
-  { key: "overview", label: "Overview", icon: "📊" },
-  { key: "punishments", label: "Punishments", icon: "🔨" },
-  { key: "logs", label: "Bot Logs", icon: "📜" },
-  { key: "tickets", label: "Tickets & Transcripts", icon: "🎫", admin: true },
-  { key: "accounts", label: "Website Accounts", icon: "👥", admin: true },
+const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean }[] = [
+  { key: "overview", label: "Overview", icon: BarChart3 },
+  { key: "punishments", label: "Punishments", icon: Gavel },
+  { key: "logs", label: "Bot Logs", icon: ScrollText },
+  { key: "tickets", label: "Tickets & Transcripts", icon: Ticket, admin: true },
+  { key: "accounts", label: "Website Accounts", icon: Users, admin: true },
 ];
 
 // Clicking a headline number opens the punishments list filtered to that kind
@@ -103,7 +104,7 @@ export function AdminClient({ adminName, level }: { adminName: string; level: Le
       <nav className="adm-tabs" role="tablist">
         {tabs.map((t) => (
           <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} className={tab === t.key ? "is-active" : undefined} onClick={() => setTab(t.key)}>
-            <span aria-hidden="true">{t.icon}</span> {t.label}
+            <t.icon size={16} aria-hidden="true" /> {t.label}
           </button>
         ))}
       </nav>

@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowRight, Bot, Gem, MessageCircle, Mic, Package, Paperclip, ScanSearch, ScrollText, Search, Shield, Ticket, TrendingUp, User, UserRound, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { LiveBadge, MemberSearch, PersonLink, RANGES, RichText, formatDate, timeAgo, useStored, type Mentions, type People } from "./admin-shared";
 
@@ -15,6 +16,8 @@ type LogEntry = {
   authorIcon: string | null;
   fields: { name: string; value: string; inline: boolean }[];
   footer: string | null;
+  thumbnail?: string | null;
+  image?: string | null;
   subjectId: string | null;
   userIds: string[];
   attachments: { id: string; filename: string; size: number; image: boolean; kind?: string }[];
@@ -24,21 +27,21 @@ type LogEntry = {
 };
 
 const SOURCES = [
-  { key: "all", label: "All logs" },
-  { key: "bot", label: "🤖 Bot logs" },
-  { key: "vc", label: "🎙️ VC logs" },
+  { key: "all", label: "All logs", icon: ScrollText },
+  { key: "bot", label: "Bot logs", icon: Bot },
+  { key: "vc", label: "VC logs", icon: Mic },
 ];
 
 const CATEGORIES = [
-  { key: "voice", label: "Voice", icon: "🎙️" },
-  { key: "messages", label: "Messages", icon: "💬" },
-  { key: "members", label: "Member updates", icon: "👤" },
-  { key: "moderation", label: "Moderation", icon: "🛡️" },
-  { key: "tickets", label: "Tickets", icon: "🎫" },
-  { key: "economy", label: "Levels & economy", icon: "📈" },
-  { key: "boosts", label: "Boosts & bumps", icon: "💎" },
-  { key: "system", label: "Scans & system", icon: "🔍" },
-  { key: "other", label: "Other", icon: "📦" },
+  { key: "voice", label: "Voice", icon: Mic },
+  { key: "messages", label: "Messages", icon: MessageCircle },
+  { key: "members", label: "Member updates", icon: UserRound },
+  { key: "moderation", label: "Moderation", icon: Shield },
+  { key: "tickets", label: "Tickets", icon: Ticket },
+  { key: "economy", label: "Levels & economy", icon: TrendingUp },
+  { key: "boosts", label: "Boosts & bumps", icon: Gem },
+  { key: "system", label: "Scans & system", icon: ScanSearch },
+  { key: "other", label: "Other", icon: Package },
 ];
 
 function attachmentKind(a: { kind?: string; image: boolean; filename: string }) {
@@ -230,8 +233,8 @@ export function LogsTab({ onOpenMember }: { onOpenMember: (id: string) => void }
                 <div className="adm-logs-cat-head">
                   <label className={catOn ? "is-on" : undefined} title={`Show every ${c.label.toLowerCase()} log`}>
                     <input type="checkbox" checked={catOn} onChange={() => toggleCategory(c.key)} />
-                    <span>
-                      {c.icon} {c.label}
+                    <span className="adm-logs-cat-label">
+                      <c.icon size={15} aria-hidden="true" /> {c.label}
                     </span>
                     <small>{c.total.toLocaleString()}</small>
                   </label>
@@ -283,7 +286,7 @@ export function LogsTab({ onOpenMember }: { onOpenMember: (id: string) => void }
         </div>
         <p className="adm-logs-sync">
           {meta?.sync.backfillDone
-            ? "✓ Every log is loaded."
+            ? "Every log is loaded."
             : meta?.sync.oldest
               ? `Loaded back to ${new Date(meta.sync.oldest).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })} · loading older logs…`
               : "Loading logs…"}
@@ -301,7 +304,7 @@ export function LogsTab({ onOpenMember }: { onOpenMember: (id: string) => void }
               className={(filters.source ?? "all") === src.key ? "is-active" : undefined}
               onClick={() => setFilters((f) => ({ ...f, source: src.key, types: [], categories: [] }))}
             >
-              {src.label}
+              <src.icon size={15} aria-hidden="true" /> {src.label}
             </button>
           ))}
         </div>
@@ -324,7 +327,7 @@ export function LogsTab({ onOpenMember }: { onOpenMember: (id: string) => void }
             placeholder="Filter by member (name or ID)…"
           />
           <label className="adm-search">
-            <span aria-hidden="true">🔎</span>
+            <Search size={16} aria-hidden="true" />
             <input type="search" placeholder="Search log text…" value={searchText} onChange={(e) => setSearchText(e.target.value)} />
           </label>
           <select className="adm-select" value={filters.range} onChange={(e) => setFilters((f) => ({ ...f, range: e.target.value }))} aria-label="Date range">
@@ -346,7 +349,7 @@ export function LogsTab({ onOpenMember }: { onOpenMember: (id: string) => void }
                 setFilters(DEFAULTS);
               }}
             >
-              ✕ Clear ({activeCount})
+              <X size={14} aria-hidden="true" /> Clear ({activeCount})
             </button>
           ) : null}
           <LiveBadge updatedAt={updatedAt} loading={loading} />
@@ -355,7 +358,7 @@ export function LogsTab({ onOpenMember }: { onOpenMember: (id: string) => void }
         {filters.member ? (
           <div className="adm-chips">
             <button type="button" className="adm-chip is-on adm-chip--member" style={{ "--c": "#f59b2a" } as React.CSSProperties} onClick={() => setFilters((f) => ({ ...f, member: null }))}>
-              👤 {people[filters.member.id]?.name ?? filters.member.name} ✕
+              <User size={13} aria-hidden="true" /> {people[filters.member.id]?.name ?? filters.member.name} <X size={13} aria-hidden="true" />
             </button>
           </div>
         ) : null}
@@ -404,13 +407,17 @@ function LogCard({
   onType: (type: string) => void;
 }) {
   const extra = extraFooter(log.footer);
+  // Avatar changes: show the old and new pictures instead of a bare link
+  const oldAvatar = log.type === "Avatar Changed" ? log.fields.find((f) => /old avatar/i.test(f.name))?.value.match(/\((https?:\/\/[^)\s]+)\)/)?.[1] ?? null : null;
+  const avatarSwap = log.type === "Avatar Changed" && log.thumbnail ? { before: oldAvatar, after: log.thumbnail } : null;
+  const fields = avatarSwap ? log.fields.filter((f) => !/old avatar/i.test(f.name)) : log.fields;
   const rich = (text: string) => <RichText text={text} mentions={mentions} people={people} onOpenMember={onOpenMember} />;
 
   return (
     <li className={`adm-log${fresh ? " is-fresh" : ""}`} style={{ "--c": log.color ?? "#8b8d98" } as React.CSSProperties}>
       <div className="adm-log-head">
         <button type="button" className="adm-log-type" onClick={() => onType(log.type)} title="Show only this type">
-          {log.channel === "vc" ? "🎙️ " : ""}
+          {log.channel === "vc" ? <Mic size={12} aria-hidden="true" /> : null}
           {log.type}
         </button>
         {log.subjectId ? <PersonLink id={log.subjectId} people={people} onOpen={onOpenMember} compact /> : null}
@@ -421,9 +428,37 @@ function LogCard({
       {log.title && log.title.replace(/^\W+/, "") !== log.type ? <h4 className="adm-log-title">{rich(log.title)}</h4> : null}
       {log.content ? <p className="adm-log-text">{rich(log.content)}</p> : null}
       {log.description ? <p className="adm-log-text">{rich(log.description)}</p> : null}
-      {log.fields.length ? (
+      {avatarSwap ? (
+        <div className="adm-avatar-swap">
+          {avatarSwap.before ? (
+            <figure>
+              <img src={avatarSwap.before} alt="Old avatar" loading="lazy" onError={(e) => ((e.currentTarget.parentElement as HTMLElement).dataset.gone = "1")} />
+              <figcaption>Before</figcaption>
+            </figure>
+          ) : null}
+          {avatarSwap.before ? <ArrowRight size={20} className="adm-avatar-swap-arrow" aria-hidden="true" /> : null}
+          <figure>
+            <img src={avatarSwap.after} alt="New avatar" loading="lazy" />
+            <figcaption>New avatar</figcaption>
+          </figure>
+        </div>
+      ) : log.thumbnail || log.image ? (
+        <div className="adm-log-media">
+          {log.thumbnail ? (
+            <a className="adm-log-thumb adm-log-thumb--small" href={log.thumbnail} target="_blank" rel="noopener noreferrer">
+              <img src={log.thumbnail} alt="" loading="lazy" />
+            </a>
+          ) : null}
+          {log.image ? (
+            <a className="adm-log-thumb" href={log.image} target="_blank" rel="noopener noreferrer">
+              <img src={log.image} alt="" loading="lazy" />
+            </a>
+          ) : null}
+        </div>
+      ) : null}
+      {fields.length ? (
         <dl className="adm-log-fields">
-          {log.fields.map((f, i) => (
+          {fields.map((f, i) => (
             <div key={i} className={f.inline ? "is-inline" : undefined}>
               <dt>{rich(f.name)}</dt>
               <dd>{rich(f.value)}</dd>
@@ -453,7 +488,7 @@ function LogCard({
             if (kind === "audio") return <audio key={a.id} src={src} controls preload="none" />;
             return (
               <a key={a.id} className="adm-log-file" href={src} target="_blank" rel="noopener noreferrer">
-                📎 {a.filename} <small>{(a.size / 1024).toFixed(0)} KB</small>
+                <Paperclip size={13} aria-hidden="true" /> {a.filename} <small>{(a.size / 1024).toFixed(0)} KB</small>
               </a>
             );
           })}

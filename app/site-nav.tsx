@@ -1,4 +1,5 @@
 import { getPanelUser } from "../lib/admin";
+import { getCurrentUser } from "../lib/auth";
 import { OnlineStatus } from "./online-status";
 import { ThemeToggle } from "./theme-toggle";
 
@@ -11,6 +12,8 @@ type SiteNavProps = {
 export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
   // Staff Team see a Staff Panel tab, Admin / Owner see "Admin" (checked with Discord, cached for a minute)
   const panel = signedIn ? await getPanelUser().catch(() => null) : null;
+  // The Store and Leaderboards need a linked Discord account
+  const linked = signedIn ? Boolean((await getCurrentUser().catch(() => null))?.discordId) : false;
   return (
     <nav className="topbar" aria-label="Main navigation">
       <a className="brand" href="/home" aria-label="Kitty Kingdom home">
@@ -25,8 +28,8 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
         <a href="/news">News</a>
         <a href="https://discord.com/invite/M9XKHFdYQV">Discord</a>
         <a href="/staff">Staff</a>
-        <a href="/store">Store</a>
-        {signedIn ? <a href="/leaderboards">Leaderboards</a> : null}
+        {linked ? <a href="/store">Store</a> : null}
+        {linked ? <a href="/leaderboards">Leaderboards</a> : null}
         {panel ? (
           <a className="nav-admin-tab" href="/admin">
             {panel.level === "admin" ? "Admin" : "Staff Panel"}

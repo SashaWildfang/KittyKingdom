@@ -13,9 +13,11 @@ export function ResendVerificationLink({ identifier }: ResendVerificationLinkPro
     if (!identifier || sending) return;
     setSending(true);
     try {
-      const response = await fetch(
-        `/api/account/resend-verification?ajax=1&identifier=${encodeURIComponent(identifier)}`,
-      );
+      const response = await fetch("/api/account/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier: identifier }),
+      });
       const data = (await response.json()) as { message?: string };
       window.alert(data.message ?? "Verification email resent. Check your inbox.");
     } catch {
