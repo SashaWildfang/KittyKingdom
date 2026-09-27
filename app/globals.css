@@ -19411,7 +19411,6 @@ button.st-emoji-chip.is-on {
 .bm--shield .bm-face { inset: 11%; }
 .bm--star .bm-rim, .bm--star .bm-face { clip-path: polygon(50% 0, 61% 34%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 34%); }
 .bm--star .bm-face { inset: 16%; }
-.bm--star .bm-face svg { width: 38%; height: 38%; }
 .bm-shine {
   position: absolute;
   inset: 0;
