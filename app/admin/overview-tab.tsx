@@ -178,7 +178,7 @@ export function OverviewTab({
             hint={p?.total ? `${Math.round(((p.bySource.automod ?? 0) / p.total) * 100)}% of all` : undefined}
           />
           {isAdmin ? (
-            <Kpi label="Tickets" value={t?.total} tone="blue" hint={t ? `${t.open} open · avg ${formatMs(t.avgResolveMs)}` : undefined} />
+            <Kpi label="Tickets" value={t?.total} tone="blue" hint={t ? `${t.open ? `${t.open} open now` : "none open now"} · avg ${formatMs(t.avgResolveMs)} to close` : undefined} />
           ) : (
             <Kpi label="Unbans" value={p ? count("unban") : undefined} tone="green" onClick={() => onFilterPunishments("unban")} />
           )}
@@ -226,6 +226,7 @@ export function OverviewTab({
           <Card title="Breakdown">
             {p ? (
               <Donut
+                onSelect={(action) => setDrill({ kind: "action", action })}
                 label="total"
                 parts={actions
                   .filter((a) => !hiddenActions.includes(a.action))

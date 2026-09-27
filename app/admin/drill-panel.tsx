@@ -1,11 +1,13 @@
 "use client";
 
-import { FileText, User, X } from "lucide-react";
+import { Bot, FileText, PieChart, Shield, User, X } from "lucide-react";
+import { BarList } from "./admin-charts";
 import { useEffect } from "react";
 import {
   ActionBadge,
   Avatar,
   PersonLink,
+  PersonTag,
   RichText,
   formatDate,
   prettyAction,
@@ -20,9 +22,15 @@ export type Drill = (
   | { kind: "reason"; reason: string }
   | { kind: "staff"; id: string; automod?: boolean }
   | { kind: "member"; id: string }
+  | { kind: "action"; action: string }
 ) & { range?: string; source?: string };
 
-type Result = { rows: Punishment[]; total: number; people: People; mentions: Mentions };
+type Summary = {
+  reasons: { reason: string; count: number }[];
+  issuers: { id: string; count: number; automod: boolean }[];
+  sources: Record<string, number>;
+};
+type Result = { rows: Punishment[]; total: number; people: People; mentions: Mentions; summary: Summary | null };
 
 /**
  * The story behind an overview number: everyone who got a reason, everything a staff member
@@ -32,10 +40,12 @@ export function DrillPanel({
   drill,
   onClose,
   onOpenMember,
+  onDrill,
 }: {
   drill: Drill;
   onClose: () => void;
   onOpenMember: (id: string) => void;
+  onDrill?: (drill: Drill) => void;
 }) {
   const range = drill.range ?? "all";
   const source = drill.source ?? "all";
@@ -43,6 +53,10 @@ export function DrillPanel({
   if (drill.kind === "reason") params.set("reason", drill.reason);
   if (drill.kind === "staff") params.set("issuerId", drill.id);
   if (drill.kind === "member") params.set("userId", drill.id);
+  if (drill.kind === "action") {
+    params.set("actions", drill.action);
+    params.set("summary", "1");
+  }
   const { data, error, loading } = useLive<Result>(`/api/admin/punishments?${params}`, 15_000);
 
   useEffect(() => {
@@ -61,16 +75,20 @@ export function DrillPanel({
   if (drill.kind !== "member") for (const r of rows) if (r.userId) byMember.set(r.userId, (byMember.get(r.userId) ?? 0) + 1);
   const members = Array.from(byMember).sort((a, b) => b[1] - a[1]);
 
-  const person = drill.kind !== "reason" ? people[drill.id] : undefined;
+  const person = drill.kind === "staff" || drill.kind === "member" ? people[drill.id] : undefined;
+  const summary = data?.summary ?? null;
+  const drillTo = (d: Drill) => onDrill?.({ ...d, range: drill.range, source: drill.source } as Drill);
   const title =
-    drill.kind === "reason" ? (
+    drill.kind === "action" ? (
+      prettyAction(drill.action)
+    ) : drill.kind === "reason" ? (
       <RichText text={drill.reason} mentions={data?.mentions} people={people} onOpenMember={onOpenMember} />
     ) : drill.kind === "staff" && drill.automod ? (
       "AutoMod"
     ) : (
       person?.name ?? "Loading…"
     );
-  const kicker = drill.kind === "reason" ? "Reason" : drill.kind === "staff" ? "Staff activity" : "Member record";
+  const kicker = drill.kind === "action" ? "Breakdown" : drill.kind === "reason" ? "Reason" : drill.kind === "staff" ? "Staff activity" : "Member record";
 
   return (
     <div className="adm-drawer-backdrop" onClick={onClose}>
@@ -79,7 +97,11 @@ export function DrillPanel({
           <X size={16} />
         </button>
         <header className="adm-drawer-head">
-          {drill.kind !== "reason" ? <Avatar person={person} id={drill.id} size={56} /> : <span className="adm-drill-icon"><FileText size={26} /></span>}
+          {drill.kind === "staff" || drill.kind === "member" ? (
+            <Avatar person={person} id={drill.id} size={56} />
+          ) : (
+            <span className="adm-drill-icon">{drill.kind === "action" ? <PieChart size={26} /> : <FileText size={26} />}</span>
+          )}
           <div>
             <p className="adm-drill-kicker">{kicker}</p>
             <h2>{title}</h2>
@@ -91,7 +113,7 @@ export function DrillPanel({
           </div>
         </header>
 
-        {drill.kind !== "reason" && !(drill.kind === "staff" && drill.automod) ? (
+        {(drill.kind === "member" || drill.kind === "staff") && !(drill.kind === "staff" && drill.automod) ? (
           <button type="button" className="adm-btn adm-btn--ghost adm-btn--small adm-drill-profile" onClick={() => onOpenMember(drill.id)}>
             <User size={14} aria-hidden="true" /> Open full profile
           </button>
@@ -99,7 +121,56 @@ export function DrillPanel({
 
         {error ? <p className="adm-error">{error}</p> : null}
 
-        {byAction.size ? (
+        {drill.kind === "action" && summary ? (
+          <>
+            <div className="adm-drill-split">
+              <span>
+                <Shield size={14} aria-hidden="true" /> Staff <strong>{(summary.sources.manual ?? 0).toLocaleString()}</strong>
+              </span>
+              <span>
+                <Bot size={14} aria-hidden="true" /> AutoMod <strong>{(summary.sources.automod ?? 0).toLocaleString()}</strong>
+              </span>
+            </div>
+            <section className="adm-drawer-section">
+              <h3>
+                Causes <small>{summary.reasons.length}</small>
+              </h3>
+              <BarList
+                color="rgba(245, 155, 42, 0.3)"
+                items={summary.reasons.map((r) => ({
+                  key: r.reason || "(none)",
+                  value: r.count,
+                  label: r.reason ? (
+                    <span className="adm-reason">
+                      <RichText text={r.reason} mentions={data?.mentions} people={people} />
+                    </span>
+                  ) : (
+                    <span className="adm-muted">No reason given</span>
+                  ),
+                  hint: r.reason ? "See everyone who got this" : undefined,
+                  onClick: r.reason && onDrill ? () => drillTo({ kind: "reason", reason: r.reason }) : undefined,
+                }))}
+              />
+            </section>
+            {summary.issuers.length ? (
+              <section className="adm-drawer-section">
+                <h3>Given out by</h3>
+                <BarList
+                  color="rgba(62, 99, 221, 0.3)"
+                  items={summary.issuers.map((i) => ({
+                    key: i.id,
+                    value: i.count,
+                    label: <PersonTag id={i.id} people={people} automod={i.automod} />,
+                    hint: "See what they worked on",
+                    onClick: onDrill ? () => drillTo({ kind: "staff", id: i.id, automod: i.automod }) : undefined,
+                  }))}
+                />
+              </section>
+            ) : null}
+          </>
+        ) : null}
+
+        {byAction.size && drill.kind !== "action" ? (
           <div className="adm-drawer-counts">
             {Array.from(byAction)
               .sort((a, b) => b[1] - a[1])
@@ -114,7 +185,7 @@ export function DrillPanel({
         {members.length ? (
           <section className="adm-drawer-section">
             <h3>
-              {drill.kind === "reason" ? "Members with this reason" : "Members they punished"} <small>{members.length}</small>
+              {drill.kind === "reason" ? "Members with this reason" : drill.kind === "action" ? "Members who got this" : "Members they punished"} <small>{members.length}</small>
             </h3>
             <ul className="adm-drill-people">
               {members.map(([id, n]) => (
