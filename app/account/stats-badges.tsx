@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Pencil, Pin, PinOff, Sparkles, Type, X } from "lucide-react";
+import { Check, Pencil, Pin, Sparkles, Type, X } from "lucide-react";
 import { useMemo, useState, type CSSProperties } from "react";
 import { MAX_SHOWCASE, TIER_NAMES, type BadgeCategory, type BadgeShowcase, type EarnedBadge } from "../../lib/badges";
 import { BadgeMedal } from "./badge-medal";
@@ -13,6 +13,8 @@ const CATEGORIES: { key: BadgeCategory | "all"; label: string }[] = [
   { key: "voice", label: "Voice" },
   { key: "economy", label: "Leaves" },
   { key: "loyalty", label: "Loyalty" },
+  { key: "events", label: "Events" },
+  { key: "website", label: "Website" },
   { key: "special", label: "Special" },
 ];
 
@@ -83,7 +85,10 @@ export function BadgeCollection({ badges, showcase, onSaved }: { badges: EarnedB
   const [hideLocked, setHideLocked] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
-  const [pinned, setPinned] = useState<string[]>(showcase.pinned.map((p) => p.id));
+  const fromShowcase = () => Array.from({ length: MAX_SHOWCASE }, (_, i) => showcase.pinned[i]?.id ?? null);
+  const [pinned, setPinned] = useState<(string | null)[]>(fromShowcase);
+  // Which slot the next tapped badge goes into (a pin slot, the title, or none)
+  const [slot, setSlot] = useState<number | "title" | null>(null);
   const [title, setTitle] = useState<string | null>(showcase.title?.id ?? null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -97,20 +102,46 @@ export function BadgeCollection({ badges, showcase, onSaved }: { badges: EarnedB
   const detail = open ? byId.get(open) ?? null : null;
   const counts = [1, 2, 3, 4].map((t) => badges.filter((b) => b.tiers.length > 1 && b.tier === t).length);
 
-  const togglePin = (id: string) => {
-    setPinned((p) => (p.includes(id) ? p.filter((x) => x !== id) : p.length >= MAX_SHOWCASE ? p : [...p, id]));
+  const place = (id: string) => {
+    if (slot === "title") {
+      setTitle(id);
+      setSlot(null);
+      return;
+    }
+    const next = [...pinned];
+    const target = typeof slot === "number" ? slot : next.includes(id) ? -1 : next.indexOf(null);
+    if (target === -1) {
+      // No slot picked and it's already pinned (or every slot is full): tapping it again unpins it
+      const at = next.indexOf(id);
+      if (at >= 0) next[at] = null;
+      setPinned(next);
+      return;
+    }
+    const existing = next.indexOf(id);
+    if (existing >= 0) next[existing] = next[target];
+    next[target] = id;
+    setPinned(next);
+    // Carry on to the next empty slot, if any
+    const empty = next.indexOf(null);
+    setSlot(typeof slot === "number" && empty >= 0 ? empty : null);
   };
   const save = async () => {
     setBusy(true);
     setError(null);
-    const res = await fetch("/api/account/badges", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pinned, title }) });
+    const res = await fetch("/api/account/badges", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pinned: pinned.filter(Boolean), title }),
+    });
     const body = await res.json().catch(() => ({}));
     setBusy(false);
     if (!body.ok) return setError(body.error ?? "Couldn't save your badges.");
     onSaved(body.showcase);
     window.dispatchEvent(new CustomEvent(BADGES_EVENT, { detail: body.showcase }));
     setEditing(false);
+    setSlot(null);
   };
+  const titleBadge = title ? byId.get(title) ?? null : null;
 
   return (
     <div className="st-bcol">
@@ -125,35 +156,54 @@ export function BadgeCollection({ badges, showcase, onSaved }: { badges: EarnedB
           </p>
         </div>
         <div className="st-bshow-slots">
-          {Array.from({ length: MAX_SHOWCASE }, (_, i) => {
-            const b = pinned[i] ? byId.get(pinned[i]) : null;
-            return b ? (
-              <button key={i} type="button" className="st-bslot is-full" onClick={() => (editing ? togglePin(b.id) : setOpen(b.id))} title={editing ? "Unpin" : b.name}>
-                <BadgeMedal icon={b.icon} shape={b.shape} hue={b.hue} tier={b.tier} size={58} />
-                <small>{b.name}</small>
-              </button>
-            ) : (
-              <span key={i} className="st-bslot">
-                <Pin size={16} aria-hidden="true" />
-                <small>{editing ? "Tap a badge" : "Empty"}</small>
-              </span>
+          {pinned.map((id, i) => {
+            const b = id ? byId.get(id) : null;
+            const active = editing && slot === i;
+            return (
+              <div key={i} className={`st-bslot${b ? " is-full" : ""}${active ? " is-active" : ""}${editing ? " is-editing" : ""}`}>
+                <button
+                  type="button"
+                  className="st-bslot-hit"
+                  onClick={() => (editing ? setSlot(active ? null : i) : b ? setOpen(b.id) : setEditing(true))}
+                  aria-label={b ? `${b.name}${editing ? ", pick a badge to replace it" : ""}` : `Empty slot ${i + 1}`}
+                >
+                  {b ? <BadgeMedal icon={b.icon} shape={b.shape} hue={b.hue} tier={b.tier} size={58} /> : <Pin size={16} aria-hidden="true" />}
+                  <small>{b ? b.name : active ? "Tap a badge" : `Slot ${i + 1}`}</small>
+                </button>
+                {editing && b ? (
+                  <button
+                    type="button"
+                    className="st-bslot-clear"
+                    aria-label={`Remove ${b.name}`}
+                    onClick={() => setPinned((p) => p.map((x, j) => (j === i ? null : x)))}
+                  >
+                    <X size={12} />
+                  </button>
+                ) : null}
+              </div>
             );
           })}
+          <div className={`st-bslot st-bslot--title${titleBadge ? " is-full" : ""}${editing && slot === "title" ? " is-active" : ""}${editing ? " is-editing" : ""}`}>
+            <button type="button" className="st-bslot-hit" onClick={() => (editing ? setSlot(slot === "title" ? null : "title") : setEditing(true))} aria-label="Badge title">
+              {titleBadge ? (
+                <span className="st-title-pill" style={{ "--hue": titleBadge.hue } as CSSProperties}>
+                  <Sparkles size={12} aria-hidden="true" /> {titleBadge.name}
+                </span>
+              ) : (
+                <Type size={16} aria-hidden="true" />
+              )}
+              <small>{editing && slot === "title" ? "Tap a badge" : "Title"}</small>
+            </button>
+            {editing && titleBadge ? (
+              <button type="button" className="st-bslot-clear" aria-label="Remove title" onClick={() => setTitle(null)}>
+                <X size={12} />
+              </button>
+            ) : null}
+          </div>
         </div>
         <div className="st-bshow-actions">
           {editing ? (
             <>
-              <label className="st-btitle">
-                <Type size={14} aria-hidden="true" />
-                <select value={title ?? ""} onChange={(e) => setTitle(e.target.value || null)} aria-label="Badge title">
-                  <option value="">No title</option>
-                  {earned.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
               <button type="button" className="acct-button acct-button--small" onClick={() => void save()} disabled={busy}>
                 <Check size={15} aria-hidden="true" /> {busy ? "Saving…" : "Save"}
               </button>
@@ -162,7 +212,8 @@ export function BadgeCollection({ badges, showcase, onSaved }: { badges: EarnedB
                 className="acct-button acct-button--small acct-button--ghost"
                 onClick={() => {
                   setEditing(false);
-                  setPinned(showcase.pinned.map((p) => p.id));
+                  setSlot(null);
+                  setPinned(fromShowcase());
                   setTitle(showcase.title?.id ?? null);
                 }}
               >
@@ -175,7 +226,11 @@ export function BadgeCollection({ badges, showcase, onSaved }: { badges: EarnedB
             </button>
           )}
         </div>
-        {editing ? <p className="st-bshow-hint">Tap earned badges to pin up to {MAX_SHOWCASE}. They and your title show on your profile card.</p> : null}
+        {editing ? (
+          <p className="st-bshow-hint">
+            {slot === null ? "Pick a slot (or the title), then tap an earned badge to put it there." : slot === "title" ? "Tap an earned badge to use its name as your title." : `Tap an earned badge for slot ${slot + 1}.`}
+          </p>
+        ) : null}
         {error ? <p className="tfa-error">{error}</p> : null}
       </div>
 
@@ -217,9 +272,13 @@ export function BadgeCollection({ badges, showcase, onSaved }: { badges: EarnedB
               type="button"
               className={`st-badge2${b.tier ? "" : " is-locked"}${open === b.id ? " is-open" : ""}${isPinned ? " is-pinned" : ""}${editing && !b.tier ? " is-disabled" : ""}`}
               style={{ "--hue": b.hue, "--d": `${Math.min(i, 24) * 30}ms` } as CSSProperties}
-              onClick={() => (editing ? canPin && togglePin(b.id) : setOpen(open === b.id ? null : b.id))}
+              onClick={() => (editing ? canPin && place(b.id) : setOpen(open === b.id ? null : b.id))}
             >
-              {editing && b.tier ? <span className="st-pin">{isPinned ? <PinOff size={13} /> : <Pin size={13} />}</span> : null}
+              {isPinned ? (
+                <span className="st-pin">
+                  <Pin size={11} /> {pinned.indexOf(b.id) + 1}
+                </span>
+              ) : null}
               {title === b.id ? (
                 <span className="st-title-tag">
                   <Sparkles size={11} /> Title
