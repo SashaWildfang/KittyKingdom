@@ -194,3 +194,86 @@ export async function getGuildMember(discordId: string): Promise<MemberSearchRes
     bot: Boolean(m.user.bot),
   };
 }
+
+// ==========================================
+// Channels and permissions (Live Chat)
+// ==========================================
+export type RawOverwrite = { id: string; type: 0 | 1; allow: string; deny: string };
+export type RawChannel = { id: string; name: string; type: number; parent_id: string | null; position: number; nsfw?: boolean; permission_overwrites?: RawOverwrite[] };
+type RawRole = { id: string; permissions: string };
+
+/** Every channel in the server with its permission overwrites (cached a minute). */
+export async function getGuildChannelsRaw(): Promise<RawChannel[]> {
+  const guild = await guildId();
+  const token = botToken();
+  if (!guild || !token) return [];
+  return (await discordGet<RawChannel[]>(`/guilds/${guild}/channels`, token, 60)) ?? [];
+}
+
+const VIEW_CHANNEL = BigInt(1 << 10);
+const ADMINISTRATOR = BigInt(1 << 3);
+
+/**
+ * Ids of the channels this member can see in Discord, worked out the same way Discord does:
+ * @everyone + their roles, then the channel's @everyone, role and member overwrites.
+ */
+export async function viewableChannelIds(discordId: string): Promise<Set<string>> {
+  const guild = await guildId();
+  const token = botToken();
+  if (!guild || !token) return new Set();
+  const [channels, roles, info, memberRoles] = await Promise.all([
+    getGuildChannelsRaw(),
+    discordGet<RawRole[]>(`/guilds/${guild}/roles`, token, 60),
+    discordGet<{ owner_id?: string }>(`/guilds/${guild}`, token, 300),
+    getMemberRoleIds(discordId),
+  ]);
+  if (!memberRoles || !roles) return new Set();
+  const perms = new Map(roles.map((r) => [r.id, BigInt(r.permissions)]));
+  const mine = new Set([guild, ...memberRoles]);
+  let base = BigInt(0);
+  mine.forEach((id) => {
+    base |= perms.get(id) ?? BigInt(0);
+  });
+  const all = info?.owner_id === discordId || (base & ADMINISTRATOR) === ADMINISTRATOR;
+
+  const visible = new Set<string>();
+  for (const channel of channels) {
+    if (all) {
+      visible.add(channel.id);
+      continue;
+    }
+    let p = base;
+    const overwrites = channel.permission_overwrites ?? [];
+    const everyone = overwrites.find((o) => o.id === guild);
+    if (everyone) p = (p & ~BigInt(everyone.deny)) | BigInt(everyone.allow);
+    let allow = BigInt(0);
+    let deny = BigInt(0);
+    for (const o of overwrites) {
+      if (o.type === 0 && o.id !== guild && mine.has(o.id)) {
+        allow |= BigInt(o.allow);
+        deny |= BigInt(o.deny);
+      }
+    }
+    p = (p & ~deny) | allow;
+    const member = overwrites.find((o) => o.type === 1 && o.id === discordId);
+    if (member) p = (p & ~BigInt(member.deny)) | BigInt(member.allow);
+    if ((p & VIEW_CHANNEL) === VIEW_CHANNEL) visible.add(channel.id);
+  }
+  return visible;
+}
+
+/** Deletes a message as the bot, with a note in Discord's audit log. */
+export async function deleteChannelMessage(channelId: string, messageId: string, reason: string) {
+  const token = botToken();
+  if (!token) return { ok: false, status: 0 };
+  try {
+    const response = await fetch(`${DISCORD_API}/channels/${channelId}/messages/${messageId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bot ${token}`, "X-Audit-Log-Reason": encodeURIComponent(reason.slice(0, 400)) },
+      cache: "no-store",
+    });
+    return { ok: response.ok || response.status === 404, status: response.status };
+  } catch {
+    return { ok: false, status: 0 };
+  }
+}
