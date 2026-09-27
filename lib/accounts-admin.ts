@@ -5,6 +5,8 @@ import { ObjectId, type Document } from "mongodb";
 import type { PanelUser } from "./admin";
 import { hashPassword } from "./auth";
 import { getMongoClient, getUsersCollection } from "./mongodb";
+import { formatDateOfBirth } from "./dates";
+import { applicationBirthday, getJoinApplication } from "./join-application";
 import { startPasswordReset } from "./password-reset";
 import { revokeAllSessions } from "./sessions";
 
@@ -21,6 +23,8 @@ export type AccountRow = {
   createdAt: string | null;
   lastLoginAt: string | null;
   mustChangePassword: boolean;
+  /** Their Discord profile picture when Discord is linked */
+  avatar: string | null;
 };
 
 const iso = (v: unknown) => (v instanceof Date ? v.toISOString() : null);
@@ -37,7 +41,29 @@ function toRow(doc: Document): AccountRow {
     createdAt: iso(doc.createdAt),
     lastLoginAt: iso(doc.lastLoginAt),
     mustChangePassword: Boolean(doc.mustChangePassword),
+    avatar: null,
   };
+}
+
+/** Fills in Discord names and profile pictures from the member directory. */
+async function withDiscordProfiles(rows: AccountRow[]) {
+  const ids = rows.map((r) => r.discordId).filter((x): x is string => Boolean(x));
+  if (!ids.length) return rows;
+  const client = await getMongoClient();
+  const docs = await client
+    .db(process.env.MONGODB_DB ?? "website")
+    .collection("member_directory")
+    .find({ _id: { $in: ids } } as never, { projection: { username: 1, displayName: 1, avatar: 1 } })
+    .toArray();
+  const byId = new Map(docs.map((d) => [String(d._id), d]));
+  for (const row of rows) {
+    if (!row.discordId) continue;
+    const d = byId.get(row.discordId);
+    row.discordName = row.discordName ?? (d ? String(d.displayName ?? d.username ?? "") || null : null);
+    // Directory avatar when known, otherwise the site's avatar proxy (which falls back to Discord's default)
+    row.avatar = (d?.avatar as string | null | undefined) ?? `/api/discord/avatar/${row.discordId}`;
+  }
+  return rows;
 }
 
 // Never send these to the browser
@@ -107,19 +133,7 @@ export async function listAccounts(q: {
       .toArray(),
   ]);
   const t = totals[0] ?? { all: 0, verified: 0, linked: 0, week: 0 };
-  // Show Discord names from the member directory when the account didn't store one
-  const rows = docs.map(toRow);
-  const missing = rows.filter((r) => r.discordId && !r.discordName).map((r) => r.discordId!);
-  if (missing.length) {
-    const client = await getMongoClient();
-    const names = await client
-      .db(process.env.MONGODB_DB ?? "website")
-      .collection("member_directory")
-      .find({ _id: { $in: missing } } as never, { projection: { username: 1, displayName: 1 } })
-      .toArray();
-    const byId = new Map(names.map((n) => [String(n._id), String(n.displayName ?? n.username ?? "")]));
-    for (const row of rows) if (row.discordId && !row.discordName) row.discordName = byId.get(row.discordId) || null;
-  }
+  const rows = await withDiscordProfiles(docs.map(toRow));
   return {
     rows,
     total,
@@ -139,13 +153,20 @@ export async function getAccount(id: string) {
   const users = await getUsersCollection();
   const doc = await users.findOne({ _id: new ObjectId(id) }, { projection: SAFE_PROJECTION });
   if (!doc) return null;
-  const audit = await (await auditCollection()).find({ targetUserId: id }).sort({ at: -1 }).limit(20).toArray();
+  const [audit, application] = await Promise.all([
+    (await auditCollection()).find({ targetUserId: id }).sort({ at: -1 }).limit(20).toArray(),
+    getJoinApplication(doc.discordId),
+  ]);
+  // Birthday and age come from their Discord join application (the account itself rarely has them)
+  const birthday = applicationBirthday(application, { dateOfBirth: doc.dateOfBirth, age: doc.age });
+  const [row] = await withDiscordProfiles([toRow(doc)]);
   return {
-    ...toRow(doc),
+    ...row,
     phone: typeof doc.phone === "string" ? doc.phone : null,
     socials: (doc.socials ?? {}) as Record<string, { handle: string; url: string }>,
-    dateOfBirth: doc.dateOfBirth ? String(doc.dateOfBirth) : null,
-    age: doc.age ? String(doc.age) : null,
+    dateOfBirth: birthday.birthDate ? formatDateOfBirth(birthday.birthDate) : null,
+    age: birthday.age !== null ? String(birthday.age) : null,
+    applicationStatus: application?.status ? String(application.status) : null,
     updatedAt: iso(doc.updatedAt),
     passwordChangedAt: iso(doc.passwordChangedAt),
     acceptedPoliciesAt: iso(doc.acceptedPoliciesAt),

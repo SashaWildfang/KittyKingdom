@@ -20,9 +20,17 @@ type LogEntry = {
   attachments: { id: string; filename: string; size: number; image: boolean; kind?: string }[];
   postedBy: string;
   category?: string;
+  channel?: string;
 };
 
+const SOURCES = [
+  { key: "all", label: "All logs" },
+  { key: "bot", label: "🤖 Bot logs" },
+  { key: "vc", label: "🎙️ VC logs" },
+];
+
 const CATEGORIES = [
+  { key: "voice", label: "Voice", icon: "🎙️" },
   { key: "messages", label: "Messages", icon: "💬" },
   { key: "members", label: "Member updates", icon: "👤" },
   { key: "moderation", label: "Moderation", icon: "🛡️" },
@@ -51,7 +59,7 @@ type Result = {
   mentions: Mentions;
 };
 
-type Filters = { types: string[]; categories: string[]; member: { id: string; name: string } | null; search: string; range: string; order: "desc" | "asc" };
+type Filters = { source?: string; types: string[]; categories: string[]; member: { id: string; name: string } | null; search: string; range: string; order: "desc" | "asc" };
 const DEFAULTS: Filters = { types: [], categories: [], member: null, search: "", range: "all", order: "desc" };
 const POLL_MS = 8_000;
 
@@ -59,6 +67,7 @@ function buildParams(f: Filters, extra: Record<string, string> = {}) {
   return new URLSearchParams({
     types: f.types.join(","),
     categories: (f.categories ?? []).join(","),
+    ...(f.source && f.source !== "all" ? { channels: f.source } : {}),
     search: f.search,
     order: f.order,
     limit: "40",
@@ -282,6 +291,20 @@ export function LogsTab({ onOpenMember }: { onOpenMember: (id: string) => void }
       </aside>
 
       <div className="adm-logs-main">
+        <div className="adm-seg adm-logs-sources" role="tablist" aria-label="Which logs">
+          {SOURCES.map((src) => (
+            <button
+              key={src.key}
+              type="button"
+              role="tab"
+              aria-selected={(filters.source ?? "all") === src.key}
+              className={(filters.source ?? "all") === src.key ? "is-active" : undefined}
+              onClick={() => setFilters((f) => ({ ...f, source: src.key, types: [], categories: [] }))}
+            >
+              {src.label}
+            </button>
+          ))}
+        </div>
         <div className="adm-filters">
           <MemberSearch
             className="adm-filters-search"
@@ -387,6 +410,7 @@ function LogCard({
     <li className={`adm-log${fresh ? " is-fresh" : ""}`} style={{ "--c": log.color ?? "#8b8d98" } as React.CSSProperties}>
       <div className="adm-log-head">
         <button type="button" className="adm-log-type" onClick={() => onType(log.type)} title="Show only this type">
+          {log.channel === "vc" ? "🎙️ " : ""}
           {log.type}
         </button>
         {log.subjectId ? <PersonLink id={log.subjectId} people={people} onOpen={onOpenMember} compact /> : null}

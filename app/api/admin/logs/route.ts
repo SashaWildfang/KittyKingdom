@@ -18,6 +18,7 @@ export async function GET(request: Request) {
     const result = await queryLogs({
       types: listParam(params, "types"),
       categories: listParam(params, "categories"),
+      channels: listParam(params, "channels"),
       userId: params.get("userId") ?? undefined,
       search: params.get("search") ?? undefined,
       from,
