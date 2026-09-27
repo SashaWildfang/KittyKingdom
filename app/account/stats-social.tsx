@@ -34,26 +34,93 @@ function Face({ p, size }: { p: { name: string; avatar: string | null }; size: n
   );
 }
 
-// ---------- Friendship map: you in the middle, your closest people around you ----------
-export function FriendshipMap({ me, people, color, onPick, picked }: { me: { name: string; avatar: string }; people: SocialPerson[]; color: string; onPick: (id: string) => void; picked: string | null }) {
-  const shown = people.slice(0, 14);
-  const W = 560;
-  const H = 400;
+// ---------- Friendship map: you in the middle, closer friends nearer to you ----------
+const RINGS = [
+  { at: 0.25, label: "Besties" },
+  { at: 0.5, label: "Close friends" },
+  { at: 0.75, label: "Friends" },
+  { at: 1, label: "Acquaintances" },
+];
+
+type MapNode = { p: SocialPerson; i: number; x: number; y: number; r: number; closeness: number };
+
+/** Places people by closeness (score), spread around the center, then nudges overlaps apart. */
+function layout(people: SocialPerson[], W: number, H: number): MapNode[] {
   const cx = W / 2;
   const cy = H / 2;
-  const max = Math.max(1, ...shown.map((p) => p.score));
-  const [hover, setHover] = useState<string | null>(null);
-  const nodes = shown.map((p, i) => {
-    const inner = i < 5;
-    const ringIndex = inner ? i : i - 5;
-    const ringCount = inner ? Math.min(5, shown.length) : Math.max(1, shown.length - 5);
-    const angle = (ringIndex / ringCount) * Math.PI * 2 + (inner ? -Math.PI / 2 : -Math.PI / 2 + Math.PI / ringCount);
-    const r = inner ? 105 : 170;
-    return { p, i, x: cx + Math.cos(angle) * r * 1.25, y: cy + Math.sin(angle) * r * 0.95, size: inner ? 46 : 36 };
+  const maxR = Math.min(W, H) / 2 - 46;
+  const minR = 78;
+  const top = Math.max(1, people[0]?.score ?? 1);
+  const golden = Math.PI * (3 - Math.sqrt(5));
+  const nodes: MapNode[] = people.map((p, i) => {
+    const closeness = Math.sqrt(Math.max(0, p.score) / top);
+    const dist = minR + (1 - closeness) * (maxR - minR);
+    const angle = i * golden - Math.PI / 2;
+    const r = 14 + closeness * 12;
+    return { p, i, closeness, r, x: cx + Math.cos(angle) * dist * (W / H > 1 ? 1.35 : 1), y: cy + Math.sin(angle) * dist };
   });
+  // Push apart anything overlapping (a few passes is plenty for 30 nodes)
+  for (let pass = 0; pass < 60; pass++) {
+    for (let a = 0; a < nodes.length; a++) {
+      for (let b = a + 1; b < nodes.length; b++) {
+        const A = nodes[a];
+        const B = nodes[b];
+        const dx = B.x - A.x;
+        const dy = B.y - A.y;
+        const d = Math.hypot(dx, dy) || 0.01;
+        const need = A.r + B.r + 20;
+        if (d < need) {
+          const push = (need - d) / 2;
+          A.x -= (dx / d) * push;
+          A.y -= (dy / d) * push;
+          B.x += (dx / d) * push;
+          B.y += (dy / d) * push;
+        }
+      }
+    }
+    for (const n of nodes) {
+      // Keep clear of the center and inside the frame (room for the name underneath)
+      const dx = n.x - cx;
+      const dy = n.y - cy;
+      const d = Math.hypot(dx, dy) || 0.01;
+      if (d < minR) {
+        n.x = cx + (dx / d) * minR;
+        n.y = cy + (dy / d) * minR;
+      }
+      n.x = Math.min(W - n.r - 44, Math.max(n.r + 44, n.x));
+      n.y = Math.min(H - n.r - 22, Math.max(n.r + 6, n.y));
+    }
+  }
+  return nodes;
+}
+
+export function FriendshipMap({ me, people, color, onPick, picked }: { me: { name: string; avatar: string }; people: SocialPerson[]; color: string; onPick: (id: string) => void; picked: string | null }) {
+  const [count, setCount] = useState(20);
+  const [hover, setHover] = useState<string | null>(null);
+  // Only people still in the server (no deleted or departed accounts)
+  const members = useMemo(() => people.filter((p) => p.inServer && p.score > 0), [people]);
+  const shown = members.slice(0, count);
+  const W = 760;
+  const H = 520;
+  const cx = W / 2;
+  const cy = H / 2;
+  const nodes = useMemo(() => layout(shown, W, H), [shown]);
+  const maxR = Math.min(W, H) / 2 - 46;
   const active = hover ?? picked;
+  const activeNode = nodes.find((n) => n.p.id === active) ?? null;
+  const top = shown[0]?.score ?? 1;
   return (
     <div className="st-map">
+      <div className="st-map-controls">
+        <div className="st-seg st-seg--small" role="tablist" aria-label="How many people">
+          {[12, 20, 30].map((n) => (
+            <button key={n} type="button" role="tab" aria-selected={count === n} className={count === n ? "is-on" : undefined} onClick={() => setCount(n)} disabled={n === 20 ? members.length <= 12 : n === 30 ? members.length <= 20 : false}>
+              Top {n}
+            </button>
+          ))}
+        </div>
+        <span className="adm-muted">{fmt(members.length)} people still in the server</span>
+      </div>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Your friendship map">
         <defs>
           <radialGradient id="st-map-glow">
@@ -61,20 +128,29 @@ export function FriendshipMap({ me, people, color, onPick, picked }: { me: { nam
             <stop offset="100%" stopColor={color} stopOpacity="0" />
           </radialGradient>
           <clipPath id="st-map-clip-me">
-            <circle cx={cx} cy={cy} r={34} />
+            <circle cx={cx} cy={cy} r={32} />
           </clipPath>
           {nodes.map((n) => (
             <clipPath key={n.p.id} id={`st-map-clip-${n.p.id}`}>
-              <circle cx={n.x} cy={n.y} r={n.size / 2} />
+              <circle cx={n.x} cy={n.y} r={n.r} />
             </clipPath>
           ))}
         </defs>
-        <circle cx={cx} cy={cy} r={180} fill="url(#st-map-glow)" className="st-map-pulse" />
-        <ellipse cx={cx} cy={cy} rx={131} ry={100} className="st-map-orbit" />
-        <ellipse cx={cx} cy={cy} rx={212} ry={161} className="st-map-orbit" />
+        <circle cx={cx} cy={cy} r={maxR} fill="url(#st-map-glow)" className="st-map-pulse" />
+        {RINGS.map((ring) => {
+          const rr = 78 + ring.at * (maxR - 78);
+          return (
+            <g key={ring.label}>
+              <ellipse cx={cx} cy={cy} rx={rr * 1.35} ry={rr} className="st-map-orbit" />
+              <text x={cx} y={cy - rr - 5} textAnchor="middle" className="st-map-ring-label">
+                {ring.label}
+              </text>
+            </g>
+          );
+        })}
         {nodes.map((n) => {
           const b = BALANCE[n.p.balance] ?? BALANCE.none;
-          const w = 1.5 + (n.p.score / max) * 6;
+          const w = 1 + n.closeness * 6;
           return (
             <line
               key={`l-${n.p.id}`}
@@ -85,57 +161,68 @@ export function FriendshipMap({ me, people, color, onPick, picked }: { me: { nam
               stroke={b.color}
               strokeWidth={w}
               className={`st-map-link${active === n.p.id ? " is-on" : active ? " is-dim" : ""}`}
-              style={{ "--d": `${n.i * 70}ms` } as CSSProperties}
+              style={{ "--d": `${n.i * 45}ms` } as CSSProperties}
             />
           );
         })}
         <g className="st-map-me">
-          <circle cx={cx} cy={cy} r={38} fill={color} className="st-map-me-ring" />
-          <image href={me.avatar} x={cx - 34} y={cy - 34} width={68} height={68} clipPath="url(#st-map-clip-me)" preserveAspectRatio="xMidYMid slice" />
+          <circle cx={cx} cy={cy} r={36} fill={color} className="st-map-me-ring" />
+          <image href={me.avatar} x={cx - 32} y={cy - 32} width={64} height={64} clipPath="url(#st-map-clip-me)" preserveAspectRatio="xMidYMid slice" />
         </g>
         {nodes.map((n) => {
           const b = BALANCE[n.p.balance] ?? BALANCE.none;
           const on = active === n.p.id;
+          const label = n.p.name.length > 16 ? `${n.p.name.slice(0, 15)}…` : n.p.name;
           return (
             <g
               key={n.p.id}
               className={`st-map-node${on ? " is-on" : active ? " is-dim" : ""}`}
-              style={{ "--d": `${200 + n.i * 70}ms`, "--f": `${(n.i % 5) * 0.6}s`, transformOrigin: `${n.x}px ${n.y}px` } as CSSProperties}
+              style={{ "--d": `${150 + n.i * 45}ms`, "--f": `${(n.i % 6) * 0.5}s`, transformOrigin: `${n.x}px ${n.y}px` } as CSSProperties}
               onMouseEnter={() => setHover(n.p.id)}
               onMouseLeave={() => setHover(null)}
               onClick={() => onPick(n.p.id)}
               role="button"
               tabIndex={0}
-              aria-label={`${n.p.name}, friendship score ${fmt(n.p.score)}`}
+              aria-label={`${n.p.name}, ${Math.round(n.closeness * 100)}% close`}
               onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onPick(n.p.id)}
             >
-              <circle cx={n.x} cy={n.y} r={n.size / 2 + 3} fill={b.color} />
+              <title>{n.p.name}</title>
+              <circle cx={n.x} cy={n.y} r={n.r + 3} fill={b.color} />
               {n.p.avatar ? (
-                <image href={n.p.avatar} x={n.x - n.size / 2} y={n.y - n.size / 2} width={n.size} height={n.size} clipPath={`url(#st-map-clip-${n.p.id})`} preserveAspectRatio="xMidYMid slice" />
+                <image href={n.p.avatar} x={n.x - n.r} y={n.y - n.r} width={n.r * 2} height={n.r * 2} clipPath={`url(#st-map-clip-${n.p.id})`} preserveAspectRatio="xMidYMid slice" />
               ) : (
                 <>
-                  <circle cx={n.x} cy={n.y} r={n.size / 2} className="st-map-letter-bg" />
+                  <circle cx={n.x} cy={n.y} r={n.r} className="st-map-letter-bg" />
                   <text x={n.x} y={n.y + 5} textAnchor="middle" className="st-map-letter">
                     {n.p.name.charAt(0).toUpperCase()}
                   </text>
                 </>
               )}
-              {on || n.i < 5 ? (
-                <text x={n.x} y={n.y + n.size / 2 + 16} textAnchor="middle" className="st-map-name">
-                  {n.p.name.length > 14 ? `${n.p.name.slice(0, 13)}…` : n.p.name}
-                </text>
-              ) : null}
+              <text x={n.x} y={n.y + n.r + 15} textAnchor="middle" className={`st-map-name${n.i < 10 || on ? "" : " is-soft"}`}>
+                {label}
+              </text>
             </g>
           );
         })}
       </svg>
+      <p className="st-map-readout">
+        {activeNode ? (
+          <>
+            <b>{activeNode.p.name}</b> · <span style={{ color: (BALANCE[activeNode.p.balance] ?? BALANCE.none).color }}>{(BALANCE[activeNode.p.balance] ?? BALANCE.none).label}</span> ·{" "}
+            <b>{Math.round((activeNode.p.score / top) * 100)}%</b> as close as your bestie · {fmt(activeNode.p.conversations)} back-and-forths
+            {activeNode.p.voiceSeconds ? ` · ${duration(activeNode.p.voiceSeconds)} in VC` : ""}
+          </>
+        ) : (
+          "Hover or tap someone to see how close you are."
+        )}
+      </p>
       <div className="st-map-legend">
         {(["mutual", "you", "them"] as const).map((k) => (
           <span key={k}>
             <i style={{ background: BALANCE[k].color }} /> {BALANCE[k].label}
           </span>
         ))}
-        <span className="adm-muted">Thicker line = closer friend · tap anyone for details</span>
+        <span className="adm-muted">Closer to the middle and bigger = closer friend</span>
       </div>
     </div>
   );

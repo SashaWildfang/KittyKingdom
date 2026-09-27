@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser, getViewAs } from "../../../../lib/auth";
 import { computeBadges, type BadgeShowcase } from "../../../../lib/badges";
+import { siteContext } from "../../../../lib/badge-site";
 import { getUsersCollection } from "../../../../lib/mongodb";
 import { memberStats } from "../../../../lib/member-stats";
 import { requestTimeZone } from "../../../../lib/timezone";
@@ -14,8 +15,14 @@ export async function GET(request: Request) {
   if (!user) return NextResponse.json({ ok: false, error: "Sign in to see your stats." }, { status: 401 });
   if (!user.discordId) return NextResponse.json({ ok: false, error: "Link your Discord account to see your stats." }, { status: 403 });
   try {
+    const viewing = Boolean(await getViewAs());
+    // Counts toward the Stat Nerd badge (the page refreshes itself, so only fresh opens count)
+    if (!viewing && new URL(request.url).searchParams.get("open") === "1") {
+      await (await getUsersCollection()).updateOne({ _id: user._id }, { $inc: { statsViews: 1 } }).catch(() => undefined);
+      user.statsViews = (typeof user.statsViews === "number" ? user.statsViews : 0) + 1;
+    }
     const stats = await memberStats(String(user.discordId), requestTimeZone(request));
-    const badges = computeBadges(stats);
+    const badges = computeBadges(stats, await siteContext(user));
 
     // Keep the saved showcase's tiers current (and drop anything no longer earned)
     const tiers = new Map(badges.map((b) => [b.id, b.tier]));
@@ -24,7 +31,7 @@ export async function GET(request: Request) {
       pinned: (saved.pinned ?? []).filter((p) => (tiers.get(p.id) ?? 0) > 0).map((p) => ({ id: p.id, tier: tiers.get(p.id)! })),
       title: saved.title && (tiers.get(saved.title.id) ?? 0) > 0 ? { id: saved.title.id, tier: tiers.get(saved.title.id)! } : null,
     };
-    if (JSON.stringify(showcase) !== JSON.stringify({ pinned: saved.pinned ?? [], title: saved.title ?? null }) && !(await getViewAs())) {
+    if (JSON.stringify(showcase) !== JSON.stringify({ pinned: saved.pinned ?? [], title: saved.title ?? null }) && !viewing) {
       await (await getUsersCollection()).updateOne({ _id: user._id }, { $set: { badgeShowcase: showcase } }).catch(() => undefined);
     }
     return NextResponse.json({ ok: true, stats, badges, showcase }, { headers: { "Cache-Control": "no-store" } });
