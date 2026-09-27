@@ -35,7 +35,7 @@ const statusMessages: Record<string, string> = {
   "invalid-username":
     "Username must be 3–20 characters using letters, numbers, or underscores.",
   "name-saved": "Name saved successfully.",
-  "invalid-name": "Name must be 3–12 characters and use letters, numbers, or spaces only.",
+  "invalid-name": "Name must be 3–18 characters and use letters, numbers, or spaces only.",
   "password-saved": "Password updated. Other devices have been signed out.",
   "password-reset": "Your new password is saved and you're signed in. Other devices have been signed out.",
   "password-invalid": "Current password was not correct.",
@@ -275,12 +275,12 @@ export default async function AccountPage({
                     defaultValue={displayName ?? ""}
                     placeholder="Your name"
                     minLength={3}
-                    maxLength={12}
-                    pattern="[A-Za-z0-9 ]{3,12}"
+                    maxLength={18}
+                    pattern="[A-Za-z0-9 ]{3,18}"
                     required
                   />
                 </label>
-                <p className="form-note">3–12 characters. Letters, numbers, and spaces only.</p>
+                <p className="form-note">3–18 characters. Letters, numbers, and spaces only.</p>
                 <button className="acct-button" type="submit">Save name</button>
               </form>
 

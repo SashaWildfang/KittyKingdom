@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       .trim()
       .replace(/\s+/g, " ");
 
-    if (!/^[A-Za-z0-9 ]{3,12}$/.test(displayName)) {
+    if (!/^[A-Za-z0-9 ]{3,18}$/.test(displayName)) {
       return NextResponse.redirect(`${origin}/account?account=invalid-name`, 303);
     }
 
