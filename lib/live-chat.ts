@@ -254,6 +254,7 @@ export type ChannelTile = {
   nsfw: boolean;
   spoiler: boolean;
   hidden: boolean;
+  count1: number;
   count5: number;
   count60: number;
   unread: number;
@@ -268,6 +269,8 @@ export type LiveSnapshot = {
   changed: LiveMessage[];
   categories: { id: string | null; name: string; channels: ChannelTile[] }[];
   stats: { perMinute: number; activeChannels: number; chatters: number; inVoice: number; unread: number };
+  /** Who talked most in the last hour (for the "chatting" dropdown) */
+  topChatters: { id: string; name: string; avatar: string | null; count: number; lastAt: string; lastChannel: string }[];
   staff: Record<string, { rank: string; color: string | null }>;
   prefs: LivePrefs;
   guildId: string | null;
@@ -342,8 +345,10 @@ export async function liveSnapshot(viewerId: string, q: { afterTs?: string | nul
   const since = q.since ? new Date(q.since) : null;
   const hourAgo = new Date(Date.now() - 3_600_000);
   const fiveAgo = new Date(Date.now() - 300_000);
+  const minuteAgo = new Date(Date.now() - 60_000);
+  const notHidden = prefs.hidden.length ? [{ $match: { $expr: { $not: { $in: [{ $ifNull: ["$parentId", "$channelId"] }, prefs.hidden] } } } }] : [];
 
-  const [newDocs, changedDocs, activity, unread, perMinute] = await Promise.all([
+  const [newDocs, changedDocs, activity, unread, perMinute, chatters] = await Promise.all([
     after
       ? col.find({ ...scope, ts: { $gte: after } }).sort({ ts: 1 }).limit(limit).toArray()
       : col.find(scope).sort({ ts: -1 }).limit(limit).toArray().then((r) => r.reverse()),
@@ -357,15 +362,26 @@ export async function liveSnapshot(viewerId: string, q: { afterTs?: string | nul
             _id: { $ifNull: ["$parentId", "$channelId"] },
             count60: { $sum: 1 },
             count5: { $sum: { $cond: [{ $gte: ["$ts", fiveAgo] }, 1, 0] } },
+            count1: { $sum: { $cond: [{ $gte: ["$ts", minuteAgo] }, 1, 0] } },
             lastAt: { $first: "$ts" },
             authors: { $push: { id: "$authorId", name: "$displayName", avatar: "$avatar", bot: "$bot" } },
           },
         },
-        { $project: { count60: 1, count5: 1, lastAt: 1, authors: { $slice: ["$authors", 25] } } },
+        { $project: { count60: 1, count5: 1, count1: 1, lastAt: 1, authors: { $slice: ["$authors", 25] } } },
       ])
       .toArray(),
     unreadCounts(filter, prefs),
-    col.countDocuments({ ...filter, ts: { $gte: new Date(Date.now() - 60_000) } }),
+    col.countDocuments({ ...filter, ts: { $gte: minuteAgo } }),
+    col
+      .aggregate([
+        { $match: { ...filter, ts: { $gte: hourAgo }, bot: { $ne: true } } },
+        ...notHidden,
+        { $sort: { ts: -1 } },
+        { $group: { _id: "$authorId", count: { $sum: 1 }, name: { $first: "$displayName" }, avatar: { $first: "$avatar" }, lastAt: { $first: "$ts" }, lastChannel: { $first: "$channelName" } } },
+        { $sort: { count: -1, lastAt: -1 } },
+        { $limit: 30 },
+      ])
+      .toArray(),
   ]);
   await fillReplies([...newDocs, ...changedDocs]);
 
@@ -388,6 +404,7 @@ export async function liveSnapshot(viewerId: string, q: { afterTs?: string | nul
         nsfw: Boolean(c.nsfw),
         spoiler: Boolean(g.id && SPOILER_CATEGORY_IDS.has(g.id)),
         hidden: hidden.has(c.id),
+        count1: a?.count1 ?? 0,
         count5: a?.count5 ?? 0,
         count60: a?.count60 ?? 0,
         unread: unread[c.id] ?? 0,
@@ -410,7 +427,8 @@ export async function liveSnapshot(viewerId: string, q: { afterTs?: string | nul
   for (const a of activity) if (!hidden.has(String(a._id))) for (const x of a.authors as Document[]) if (!x.bot) recentAuthors.add(String(x.id));
   const messages = newDocs.map(toMessage);
   const changed = changedDocs.map(toMessage);
-  const authorIds = Array.from(new Set([...messages, ...changed].flatMap((m) => [m.authorId, m.reply?.authorId ?? ""]).filter(Boolean)));
+  const topChatters = chatters.map((c) => ({ id: String(c._id), name: String(c.name ?? "Unknown"), avatar: c.avatar ? String(c.avatar) : null, count: c.count as number, lastAt: iso(c.lastAt), lastChannel: String(c.lastChannel ?? "") }));
+  const authorIds = Array.from(new Set([...messages, ...changed].flatMap((m) => [m.authorId, m.reply?.authorId ?? ""]).concat(topChatters.map((c) => c.id)).filter(Boolean)));
   const lastSeen = meta?.at instanceof Date ? meta.at : null;
   return {
     bot: { online: Boolean(lastSeen && Date.now() - lastSeen.getTime() < BOT_OFFLINE_AFTER_MS), lastSeen: lastSeen?.toISOString() ?? null },
@@ -424,6 +442,7 @@ export async function liveSnapshot(viewerId: string, q: { afterTs?: string | nul
       inVoice: categories.reduce((n, c) => n + c.channels.reduce((m, ch) => m + ch.voice.length, 0), 0),
       unread: Object.values(unread).reduce((a, b) => a + b, 0),
     },
+    topChatters,
     staff: await staffRanks(authorIds),
     prefs,
     guildId: await guildId().catch(() => null),
