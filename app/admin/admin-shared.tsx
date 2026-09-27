@@ -1,5 +1,6 @@
 "use client";
 
+import { Check, Search } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export type Person = { name: string; username: string | null; avatar: string | null; inServer: boolean };
@@ -250,7 +251,13 @@ export function CopyId({ id }: { id: string }) {
       }}
       title="Copy ID"
     >
-      {copied ? "Copied ✓" : id}
+      {copied ? (
+        <>
+          <Check size={12} aria-hidden="true" /> Copied
+        </>
+      ) : (
+        id
+      )}
     </button>
   );
 }
@@ -485,7 +492,7 @@ export function MemberSearch({
   return (
     <div className={`adm-msearch${className ? ` ${className}` : ""}`} ref={boxRef}>
       <span className="adm-msearch-icon" aria-hidden="true">
-        🔍
+        <Search size={16} />
       </span>
       <input
         type="search"

@@ -1,5 +1,7 @@
 "use client";
 
+import { Ban, Check, FileText, MessageCircle, Shield, Star, X } from "lucide-react";
+import { LeafEmote } from "../ui-icons";
 import { useEffect, useRef, useState } from "react";
 import type { Drill } from "./drill-panel";
 import {
@@ -69,7 +71,7 @@ export function MemberDrawer({
     <div className="adm-drawer-backdrop" onClick={onClose}>
       <aside className="adm-drawer" onClick={(e) => e.stopPropagation()} aria-label="Member profile">
         <button type="button" className="adm-drawer-close" onClick={onClose} aria-label="Close">
-          ✕
+          <X size={16} />
         </button>
         <header className="adm-drawer-head">
           <Avatar person={person} id={userId} size={64} />
@@ -85,13 +87,13 @@ export function MemberDrawer({
         {data ? (
           <>
             <div className="adm-drawer-flags">
-              {data.banned ? <span className="adm-status adm-status--banned">⛔ Banned</span> : null}
+              {data.banned ? <span className="adm-status adm-status--banned"><Ban size={13} aria-hidden="true" /> Banned</span> : null}
               {data.inServer ? <span className="adm-status adm-status--active">● In server</span> : <span className="adm-status">Not in server</span>}
               {data.stats ? (
                 <>
-                  <span className="adm-tag">⭐ Level {data.stats.level}</span>
-                  <span className="adm-tag">🍃 {data.stats.balance.toLocaleString()}</span>
-                  <span className="adm-tag">💬 {data.stats.messages.toLocaleString()} msgs</span>
+                  <span className="adm-tag"><Star size={12} aria-hidden="true" /> Level {data.stats.level}</span>
+                  <span className="adm-tag"><LeafEmote size={13} /> {data.stats.balance.toLocaleString()}</span>
+                  <span className="adm-tag"><MessageCircle size={12} aria-hidden="true" /> {data.stats.messages.toLocaleString()} msgs</span>
                 </>
               ) : null}
             </div>
@@ -99,7 +101,7 @@ export function MemberDrawer({
             {issued.data && issued.data.total > 0 ? (
               <section className="adm-drawer-section adm-staff-actions">
                 <h3>
-                  🛡️ Staff actions <small>{issued.data.total}</small>
+                  <Shield size={16} aria-hidden="true" /> Staff actions <small>{issued.data.total}</small>
                   <button type="button" className="adm-link adm-h3-link" onClick={() => onDrill({ kind: "staff", id: userId })}>
                     View all →
                   </button>
@@ -179,7 +181,7 @@ export function MemberDrawer({
                       <span className="adm-muted">{timeAgo(t.created)}</span>
                       {t.transcriptId ? (
                         <button type="button" className="adm-btn adm-btn--small" onClick={() => onOpenTranscript(t.ticketId)}>
-                          📄 View
+                          <FileText size={14} aria-hidden="true" /> View
                         </button>
                       ) : null}
                     </li>
@@ -289,7 +291,7 @@ function RoleEditor({ userId, roles, inServer, editable, onChanged }: { userId: 
                   onClick={() => (armed ? void change(r, false) : setConfirm(r.id))}
                   onBlur={() => armed && window.setTimeout(() => setConfirm((c) => (c === r.id ? null : c)), 150)}
                 >
-                  {armed ? "✓" : "×"}
+                  {armed ? <Check size={11} /> : <X size={11} />}
                 </button>
               ) : null}
             </span>

@@ -1,3 +1,4 @@
+import { Star } from "lucide-react";
 import Link from "next/link";
 import { LEAVE_REVIEW_URL, REVIEWS_URL, getReviews } from "../../lib/reviews";
 
@@ -22,7 +23,9 @@ export default async function ReviewsPage() {
             <article className="review-card" key={`${review.author}-${review.text}`}>
               <div className="rating-row">
                 <span className="review-stars" aria-label={`${review.rating} out of 5 stars`}>
-                  {"★".repeat(review.rating)}
+                  {Array.from({ length: review.rating }, (_, i) => (
+                    <Star key={i} size={15} fill="currentColor" strokeWidth={0} />
+                  ))}
                 </span>
                 <strong>{review.rating}/5</strong>
               </div>

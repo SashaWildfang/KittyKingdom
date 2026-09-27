@@ -19,6 +19,7 @@ function DiscordIcon() {
 export default async function StorePage() {
   const [user, discord] = await Promise.all([getCurrentUser(), getDiscordInviteSummary()]);
   if (!user) redirect("/login?account=login-required");
+  if (!user.discordId) redirect("/account?account=link-required#discord-account");
 
   const discordId = user.discordId ? String(user.discordId) : null;
   let state: StoreState | null = null;

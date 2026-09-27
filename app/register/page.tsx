@@ -8,6 +8,8 @@ const statusMessages: Record<string, string> = {
   "password-requirements":
     "Password must be 8+ characters and include at least one number and one symbol.",
   "email-exists": "An account already exists for that email.",
+  "email-required": "Enter a valid email address.",
+  "too-many": "Too many sign-ups from your network. Please try again in an hour.",
   "email-provider-needed":
     "The account was created, but the confirmation email could not be sent. Check the email provider settings.",
   "service-unavailable":

@@ -13,6 +13,7 @@ export default async function LeaderboardsPage() {
   ]);
 
   if (!user) redirect("/login?account=login-required");
+  if (!user.discordId) redirect("/account?account=link-required#discord-account");
 
   return (
     <main className="site-shell leaderboard-shell">
