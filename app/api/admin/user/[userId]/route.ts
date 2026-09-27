@@ -5,11 +5,17 @@ import { people } from "../../../../../lib/admin-people";
 import { getGuildRoles, getMemberRoleIds } from "../../../../../lib/discord-member";
 import { resolveMentions } from "../../../../../lib/discord-mentions";
 import { getCurrentBans, queryPunishments } from "../../../../../lib/moderation";
-import { getBotCollection } from "../../../../../lib/mongodb";
+import { getBotCollection, getUsersCollection } from "../../../../../lib/mongodb";
+import { viewAsEligible } from "../../../../../lib/auth";
 import { queryTickets } from "../../../../../lib/tickets";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 15;
+
+async function canViewAs(discordId: string) {
+  const account = await (await getUsersCollection()).findOne({ discordId }, { projection: { discordId: 1, emailVerified: 1 } }).catch(() => null);
+  return viewAsEligible(account);
+}
 
 /** Everything about one member for the admin panel's member drawer. */
 export async function GET(request: Request, { params }: { params: { userId: string } }) {
@@ -62,6 +68,8 @@ export async function GET(request: Request, { params }: { params: { userId: stri
       punishments: punishments.rows,
       punishmentTotal: punishments.total,
       tickets: isAdmin ? tickets.rows : null,
+      // Admins can view the site as members who linked Discord and verified their email
+      canViewAs: isAdmin ? await canViewAs(userId) : false,
       ticketTotal: isAdmin ? tickets.total : null,
       people: who,
       mentions,

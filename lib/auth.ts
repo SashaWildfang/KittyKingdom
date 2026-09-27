@@ -100,6 +100,7 @@ export async function clearSession() {
     path: "/",
     maxAge: 0,
   });
+  cookieStore.set("kk_view_as", "", { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 0 });
 }
 
 function safeEqual(a: string, b: string) {
@@ -138,7 +139,7 @@ async function readSessionCookie(): Promise<{ userId: ObjectId; version: number;
 }
 
 /** The signed-in user's document, or null if the session is missing, forged or signed out. */
-const getSessionUser = cache(async () => {
+export const getRealUser = cache(async () => {
   const session = await readSessionCookie();
   if (!session) return null;
   const [users, sessions] = await Promise.all([getUsersCollection(), sessionsCollection()]);
@@ -162,13 +163,59 @@ export async function getCurrentSessionId() {
   return (await readSessionCookie())?.sessionId ?? null;
 }
 
+/**
+ * The signed-in user's id, for account changes. Null while an admin is viewing the site as
+ * someone else, so nothing can be changed on either account in that mode.
+ */
 export async function getSessionUserId() {
-  const user = await getSessionUser();
+  if (await getViewAs()) return null;
+  const user = await getRealUser();
   return user ? (user._id as ObjectId) : null;
 }
 
-// Memoized per request, so the page and the nav can both ask without a second database lookup
-export const getCurrentUser = getSessionUser;
+// ==========================================
+// Admin "view as": an admin sees the site exactly as one member does (read only)
+// ==========================================
+export const VIEW_AS_COOKIE = "kk_view_as";
+export const VIEW_AS_MS = 60 * 60 * 1000;
+
+/** Only members who linked Discord and verified their email can be viewed as. */
+export function viewAsEligible(user: Record<string, unknown> | null | undefined) {
+  return Boolean(user && user.discordId && user.emailVerified === true);
+}
+
+/** Cookie value for viewing as `targetId`, tied to this admin and expiring after an hour. */
+export function viewAsCookieValue(adminId: string, targetId: string) {
+  return signPayload(`${adminId}:${targetId}:${Date.now() + VIEW_AS_MS}`);
+}
+
+/**
+ * The member an admin is viewing the site as, or null. Checked on every request: the cookie must
+ * be signed for this admin, not expired, the admin must still be an admin, and the member eligible.
+ */
+export const getViewAs = cache(async () => {
+  let raw: string | undefined;
+  try {
+    raw = (await cookies()).get(VIEW_AS_COOKIE)?.value;
+  } catch {
+    return null;
+  }
+  const value = readSignedPayload(raw);
+  if (!value) return null;
+  const [adminId, targetId, exp] = value.split(":");
+  if (!ObjectId.isValid(targetId) || !(Number(exp) > Date.now())) return null;
+  const real = await getRealUser();
+  if (!real || String(real._id) !== adminId || !real.discordId || adminId === targetId) return null;
+  const { panelLevel } = await import("./admin");
+  if ((await panelLevel(String(real.discordId)).catch(() => null)) !== "admin") return null;
+  const target = await (await getUsersCollection()).findOne({ _id: new ObjectId(targetId) });
+  if (!target || !viewAsEligible(target)) return null;
+  return { admin: real, target, expiresAt: Number(exp) };
+});
+
+// Memoized per request, so the page and the nav can both ask without a second database lookup.
+// While an admin is viewing as a member, this is that member.
+export const getCurrentUser = cache(async () => (await getViewAs())?.target ?? (await getRealUser()));
 
 /** The Staff page is only for signed-in members with a verified email and a linked Discord account. */
 export function canViewStaffPage(user: Record<string, unknown> | null | undefined) {
