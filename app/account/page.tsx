@@ -12,6 +12,7 @@ import { getMemberRoleSummary } from "../../lib/discord-member";
 import { formatPhone, SOCIALS, type SocialLink } from "../../lib/contact";
 import { calculateAge, formatDateOfBirth, parseAge, parseDateOfBirth } from "../../lib/dates";
 import { getRoleState } from "../../lib/member-roles";
+import { CollapsibleCard } from "./collapsible-card";
 import { RoleManager } from "./role-manager";
 
 const statusMessages: Record<string, string> = {
@@ -313,13 +314,18 @@ export default async function AccountPage({
           </section>
 
           {discordLinked ? (
-            <section className="acct-card" id="roles">
-              <header className="acct-card-header">
-                <h2>Server roles</h2>
-                <p>Pick your roles here and they update in Discord instantly, just like the role selector.</p>
-              </header>
+            <CollapsibleCard
+              id="roles"
+              title="Server roles"
+              description="Pick your roles here and they update in Discord instantly, just like the role selector."
+              summary={
+                roleState
+                  ? `${roleState.categories.reduce((n, c) => n + c.roles.filter((r) => r.has).length, 0)} picked · ${roleState.colorRoles.length}/${roleState.colorRoleTotal} colors`
+                  : undefined
+              }
+            >
               <RoleManager initial={roleState} />
-            </section>
+            </CollapsibleCard>
           ) : null}
 
           <section className="acct-card" id="profile">

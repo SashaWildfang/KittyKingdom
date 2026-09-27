@@ -123,7 +123,7 @@ export function AdminClient({ adminName, level }: { adminName: string; level: Le
       {/* Overlays render at the page root so they sit above the site's top bar */}
       {member
         ? createPortal(
-            <MemberDrawer userId={member} onClose={() => setMember(null)} onOpenMember={openMember} onOpenTranscript={openTranscript} />,
+            <MemberDrawer userId={member} canEditRoles={isAdmin} onClose={() => setMember(null)} onOpenMember={openMember} onOpenTranscript={openTranscript} />,
             document.body,
           )
         : null}

@@ -356,6 +356,12 @@ async function ownedRoleId(discordId: string, itemId: string) {
   return roleId;
 }
 
+/** How many color roles the shop has in total (for "3/57 unlocked"). */
+export async function countShopColorRoles() {
+  const c = await collections();
+  return c.storeInventory.countDocuments({ role_id: { $ne: null }, item_id: { $nin: RETIRED_ITEM_IDS }, retired: { $ne: true } });
+}
+
 /** Shop color roles the member owns (for the role manager on My Account). */
 export async function getOwnedColorRoles(discordId: string) {
   const c = await collections();
