@@ -51,6 +51,7 @@ const statusMessages: Record<string, string> = {
   invalid:
     "Discord linking could not be verified. Please start from the Link Discord button again.",
   "not-configured": "Discord linking is not configured yet. Please contact staff.",
+  "verify-required": "Only verified members can link. Finish the join application in the Discord (wait for staff to accept it), then try again.",
   "delete-staff-blocked": "Staff accounts can't be deleted. If you're leaving the team, ask an admin to remove your staff role first.",
   "staff-verify-required": "Verify your email to see the Staff page. Check your inbox for the link, or send a new one below.",
   "staff-link-required": "Link your Discord account to see the Staff page. Grab a code below and run /link in the server.",

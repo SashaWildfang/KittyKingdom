@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { createVerificationTokenEntry, hashPassword } from "../../../../lib/auth";
+import { hashPassword } from "../../../../lib/auth";
 import { isDatabaseConnectionError } from "../../../../lib/db-errors";
-import { sendVerificationEmail } from "../../../../lib/email";
+import { createLinkCode } from "../../../../lib/link-codes";
 import { getUsersCollection } from "../../../../lib/mongodb";
 import { HOUR, allow, clientIp } from "../../../../lib/rate-limit";
+import { removeAbandonedRegistrations, setRegistrationCookie } from "../../../../lib/registration";
 import { cleanEmail, cleanPassword, isFormPost } from "../../../../lib/validate";
 
 export const maxDuration = 10;
@@ -44,8 +45,12 @@ export async function POST(request: Request) {
     }
 
     const users = await getUsersCollection();
+    await removeAbandonedRegistrations().catch(() => undefined);
     const existing = await users.findOne({ email });
-    if (existing) {
+    if (existing?.registration?.pending && !existing.discordId) {
+      // An earlier sign-up with this email was never finished: start over
+      await users.deleteOne({ _id: existing._id });
+    } else if (existing) {
       return NextResponse.redirect(
         `${origin}/register?register=email-exists`,
         303,
@@ -53,26 +58,26 @@ export async function POST(request: Request) {
     }
 
     const { salt, hash } = hashPassword(password);
-    const { token, entry } = createVerificationTokenEntry();
-    const verifyUrl = `${origin}/api/account/verify-email?token=${token}`;
-
-    await users.insertOne({
+    const now = new Date();
+    // The account stays unfinished until a verified server member links it with /link;
+    // the email-verification link is sent after that (lib/registration.ts)
+    const { insertedId } = await users.insertOne({
       email,
       // No username field until one is chosen: the unique username index skips missing
       // fields but not nulls, so storing null here blocked every signup after the first.
       passwordSalt: salt,
       passwordHash: hash,
       emailVerified: false,
-      emailVerificationTokens: [entry],
-      acceptedPoliciesAt: new Date(),
+      emailVerificationTokens: [],
+      acceptedPoliciesAt: now,
       discord: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      registration: { pending: true, startedAt: now },
+      createdAt: now,
+      updatedAt: now,
     });
-
-    const emailResult = await sendVerificationEmail(email, verifyUrl);
-    const status = emailResult.sent ? "check-email" : "email-provider-needed";
-    return NextResponse.redirect(`${origin}/home?register=${status}`, 303);
+    await createLinkCode(insertedId);
+    await setRegistrationCookie(insertedId);
+    return NextResponse.redirect(`${origin}/register?step=link`, 303);
   } catch (error) {
     console.error("Registration failed", error);
     // Two signups with the same email at the same moment: the unique index catches the second

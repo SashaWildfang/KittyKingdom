@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { setSession, verifyPassword } from "../../../../lib/auth";
+import { finishRegistration, setRegistrationCookie } from "../../../../lib/registration";
 import { isDatabaseConnectionError } from "../../../../lib/db-errors";
 import { getUsersCollection } from "../../../../lib/mongodb";
 import { HOUR, MINUTE, allow, clientIp } from "../../../../lib/rate-limit";
@@ -36,6 +37,16 @@ export async function POST(request: Request) {
         `${origin}/login?login=invalid&identifier=${encodeURIComponent(identifier)}`,
         303,
       );
+    }
+
+    // Sign-up not finished: back to linking Discord (or, if it's linked, finish it now)
+    if (user.registration?.pending) {
+      if (user.discordId) {
+        const done = await finishRegistration(user, origin);
+        if (done.ok) return NextResponse.redirect(`${origin}/login?login=unverified&identifier=${encodeURIComponent(identifier)}`, 303);
+      }
+      await setRegistrationCookie(user._id);
+      return NextResponse.redirect(`${origin}/register?step=link`, 303);
     }
 
     if (!user.emailVerified) {
