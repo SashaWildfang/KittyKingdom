@@ -11087,3 +11087,36 @@ button.adm-barlist-row:hover .adm-barlist-go {
   color: var(--ember);
   font-weight: 800;
 }
+
+/* Ranked lists: name on the left, count lined up on the right */
+.adm-barlist-row {
+  justify-content: flex-start;
+}
+
+.adm-barlist-row .adm-barlist-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.adm-barlist-row > strong {
+  flex: none;
+  min-width: 2.2rem;
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.adm-barlist-go {
+  flex: none;
+  width: 0.8rem;
+  text-align: center;
+}
+
+div.adm-barlist-row > strong {
+  margin-right: 0.8rem;
+}
+
+.adm-logs-sources {
+  justify-self: start;
+}
