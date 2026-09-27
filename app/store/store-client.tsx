@@ -68,9 +68,9 @@ function ItemVisual({ icon, roleColors, isRole, large = false }: { icon: string 
 // ==========================================
 // MAIN
 // ==========================================
-export function StoreClient({ initialState }: { initialState: StoreState }) {
+export function StoreClient({ initialState, inventoryOnly = false }: { initialState: StoreState; inventoryOnly?: boolean }) {
   const [state, setState] = useState(initialState);
-  const [tab, setTab] = useState<"shop" | "inventory">("shop");
+  const [tab, setTab] = useState<"shop" | "inventory">(inventoryOnly ? "inventory" : "shop");
   const [category, setCategory] = useState("All");
   const [modal, setModal] = useState<Modal>(null);
   const [busy, setBusy] = useState(false);
@@ -136,6 +136,18 @@ export function StoreClient({ initialState }: { initialState: StoreState }) {
     }
   }
 
+  // Links like /store?item=sunbeam (from My Account's color roles) open that item straight away
+  useEffect(() => {
+    if (inventoryOnly) return;
+    const wanted = new URLSearchParams(window.location.search).get("item");
+    const item = wanted ? state.items.find((i) => i.itemId === wanted) : null;
+    if (!item) return;
+    setTab("shop");
+    setModal({ kind: "buy", item });
+    window.history.replaceState(null, "", "/store");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const categories = useMemo(() => ["All", ...Array.from(new Set(state.items.map((i) => i.category))).sort()], [state.items]);
   const visible = state.items.filter((i) => category === "All" || i.category === category);
   const sections: { key: StoreItem["rotation"]; title: string; ends: string | null }[] = [
@@ -146,8 +158,19 @@ export function StoreClient({ initialState }: { initialState: StoreState }) {
   const inventoryCount = state.inventory.reduce((n, e) => n + e.count, 0);
 
   return (
-    <div className="store-app">
+    <div className={`store-app${inventoryOnly ? " store-app--embedded" : ""}`}>
       {/* ---------- Header ---------- */}
+      {inventoryOnly ? (
+        <div className="store-embedded-head">
+          <span className="store-wallet-amount">
+            <Leaf size={22} />
+            {state.balance.toLocaleString()}
+          </span>
+          <a className="store-ghost-button" href="/store">
+            <ShoppingBag size={15} aria-hidden="true" /> Open the Leaf Shop
+          </a>
+        </div>
+      ) : (
       <header className="store-header">
         <div>
           <p className="eyebrow">Kitty Kingdom Store</p>
@@ -165,8 +188,10 @@ export function StoreClient({ initialState }: { initialState: StoreState }) {
           ) : null}
         </div>
       </header>
+      )}
 
       {/* ---------- Tabs ---------- */}
+      {!inventoryOnly ? (
       <div className="store-tabs" role="tablist">
         <button role="tab" aria-selected={tab === "shop"} className={tab === "shop" ? "active" : ""} onClick={() => setTab("shop")}>
           <ShoppingBag size={16} aria-hidden="true" /> Shop
@@ -175,6 +200,7 @@ export function StoreClient({ initialState }: { initialState: StoreState }) {
           <Backpack size={16} aria-hidden="true" /> Inventory {inventoryCount ? <span className="store-tab-count">{inventoryCount}</span> : null}
         </button>
       </div>
+      ) : null}
 
       {tab === "shop" ? (
         <>

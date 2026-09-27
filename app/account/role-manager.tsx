@@ -1,6 +1,7 @@
 "use client";
 
-import { Check, Lock, Palette, Plus, ShieldAlert, Tags, TriangleAlert } from "lucide-react";
+import { Check, Lock, Palette, Plus, ShieldAlert, ShoppingBag, Tags, TriangleAlert } from "lucide-react";
+import { LeafEmote } from "../ui-icons";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RoleState } from "../../lib/member-roles";
 
@@ -26,6 +27,7 @@ export function RoleManager({ initial }: { initial: RoleState | null }) {
   const [state, setState] = useState<RoleState | null>(initial);
   const [active, setActive] = useState<string>(initial?.categories[0]?.key ?? "");
   const [pending, setPending] = useState<Set<string>>(new Set());
+  const [colorView, setColorView] = useState<"all" | "owned" | "shop">("all");
   const [toast, setToast] = useState<{ text: string; tone: "ok" | "error" } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const toastTimer = useRef<number>();
@@ -253,9 +255,23 @@ export function RoleManager({ initial }: { initial: RoleState | null }) {
             </small>
           </div>
         ) : null}
-        {state.colorRoles.length ? (
-          <div className="roles-colors">
-            {state.colorRoles.map((c) => {
+        <div className="roles-color-filter" role="tablist" aria-label="Which color roles">
+          {(
+            [
+              ["all", "All"],
+              ["owned", `Unlocked (${state.colorRoles.length})`],
+              ["shop", `In the shop now (${(state.colorCatalog ?? []).filter((c) => c.inShop && !c.owned).length})`],
+            ] as const
+          ).map(([key, label]) => (
+            <button key={key} type="button" role="tab" aria-selected={colorView === key} className={colorView === key ? "is-active" : undefined} onClick={() => setColorView(key)}>
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="roles-colors">
+          {state.colorRoles
+            .filter(() => colorView !== "shop")
+            .map((c) => {
               const isPending = pending.has(`color:${c.itemId}`);
               return (
                 <button
@@ -272,10 +288,29 @@ export function RoleManager({ initial }: { initial: RoleState | null }) {
                 </button>
               );
             })}
-          </div>
-        ) : (
-          <p className="roles-muted">You don&apos;t own any color roles yet. Pick one up in the Leaf Shop!</p>
-        )}
+          {(state.colorCatalog ?? [])
+            .filter((c) => !c.owned && (colorView === "all" || (colorView === "shop" && c.inShop)))
+            .map((c) =>
+              c.inShop ? (
+                <a key={c.itemId} className="color-tile is-locked is-buyable" href={`/store?item=${encodeURIComponent(c.itemId)}`} title="Open it in the Leaf Shop">
+                  <span className="color-swatch" style={{ background: swatch(c.colors) }} aria-hidden="true" />
+                  <strong>{c.name}</strong>
+                  <small className="color-tile-shop">
+                    <ShoppingBag size={12} aria-hidden="true" /> <span className="color-tile-shop-label">In the shop ·</span> {c.price.toLocaleString()} <LeafEmote size={13} />
+                  </small>
+                </a>
+              ) : (
+                <div key={c.itemId} className="color-tile is-locked" title="Not in the shop right now">
+                  <span className="color-swatch" style={{ background: swatch(c.colors) }} aria-hidden="true">
+                    <Lock size={14} />
+                  </span>
+                  <strong>{c.name}</strong>
+                  <small>{c.rotation === "permanent" ? "Locked" : `Returns in the ${c.rotation} rotation`}</small>
+                </div>
+              ),
+            )}
+        </div>
+        {!state.colorRoles.length && colorView === "owned" ? <p className="roles-muted">You don&apos;t own any color roles yet. Pick one up in the Leaf Shop!</p> : null}
         <p className="roles-hint">You can wear one color role at a time.</p>
       </div>
 
