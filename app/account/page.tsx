@@ -3,14 +3,14 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "../../lib/auth";
 import { DiscordUnlinkForm } from "../discord-unlink-form";
 import { getDiscordInviteSummary } from "../../lib/discord";
-import { getJoinApplicationsCollection } from "../../lib/mongodb";
 import type { CSSProperties } from "react";
 import { SiteNav } from "../site-nav";
 import { VerifyEmailBanner } from "../verify-email-banner";
 import { BrandIcon } from "../brand-icon";
 import { getMemberRoleSummary } from "../../lib/discord-member";
 import { formatPhone, SOCIALS, type SocialLink } from "../../lib/contact";
-import { calculateAge, formatDateOfBirth, parseAge, parseDateOfBirth } from "../../lib/dates";
+import { formatDateOfBirth } from "../../lib/dates";
+import { applicationBirthday, getJoinApplication } from "../../lib/join-application";
 import { getRoleState } from "../../lib/member-roles";
 import { CollapsibleCard } from "./collapsible-card";
 import { RoleManager } from "./role-manager";
@@ -71,56 +71,6 @@ function formatMonthYear(date: Date) {
   return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC" }).format(date);
 }
 
-function getAge(dobSource: unknown, ageSource: unknown) {
-  // The birth date is the most reliable source; otherwise use a stated age ("36" or "36 years old")
-  const birthDate = parseDateOfBirth(dobSource);
-  if (birthDate) return calculateAge(birthDate);
-  return parseAge(ageSource) ?? parseAge(dobSource);
-}
-
-function formatDob(dobSource: unknown) {
-  const birthDate = parseDateOfBirth(dobSource);
-  return birthDate ? formatDateOfBirth(birthDate) : "Not available";
-}
-
-async function getJoinApplicationProfile(discordId: unknown) {
-  if (!discordId) return null;
-  try {
-    const joinApplications = await getJoinApplicationsCollection();
-    return (await joinApplications.findOne({
-      $or: [
-        { discordId: String(discordId) },
-        { discord_id: String(discordId) },
-        { userId: String(discordId) },
-        { user_id: String(discordId) },
-        { id: String(discordId) },
-      ],
-    })) as Record<string, unknown> | null;
-  } catch {
-    return null;
-  }
-}
-
-function getApplicationAgeAndDob(application: Record<string, unknown> | null) {
-  if (!application) return { ageSource: null, dobSource: null };
-  const ageAndDob =
-    application.ageAndDob ??
-    application.age_and_dob ??
-    application.ageDOB ??
-    application.ageDob ??
-    null;
-  const dobSource =
-    application.dateOfBirth ??
-    application.date_of_birth ??
-    application.dob ??
-    application.DoB ??
-    application.DOB ??
-    application.birthdate ??
-    ageAndDob;
-  const ageSource = application.age ?? application.Age;
-  return { ageSource, dobSource };
-}
-
 function DiscordIcon() {
   return (
     <svg viewBox="0 0 127.14 96.36" role="img" aria-hidden="true">
@@ -151,15 +101,16 @@ export default async function AccountPage({
     searchParams.verify ??
     searchParams.login;
   const [application, roles, roleState] = await Promise.all([
-    getJoinApplicationProfile(user.discordId),
+    getJoinApplication(user.discordId),
     getMemberRoleSummary(user.discordId),
     user.discordId ? getRoleState(String(user.discordId)).catch(() => null) : Promise.resolve(null),
   ]);
   const socials = (user.socials ?? {}) as Partial<Record<string, SocialLink>>;
   const phone = typeof user.phone === "string" ? user.phone : null;
-  const { ageSource, dobSource } = getApplicationAgeAndDob(application);
-  const age = getAge(dobSource ?? user.dateOfBirth, ageSource ?? user.age);
-  const dob = formatDob(dobSource ?? user.dateOfBirth);
+  // Birthday and age come from the Discord join application
+  const birthday = applicationBirthday(application, { dateOfBirth: user.dateOfBirth, age: user.age });
+  const age = birthday.age;
+  const dob = birthday.birthDate ? formatDateOfBirth(birthday.birthDate) : "Not available";
   const displayName = typeof user.displayName === "string" ? user.displayName : null;
   const heading = displayName ? `Welcome back, ${displayName}` : "My Account";
   const shownName = displayName ?? user.username ?? user.email.split("@")[0];

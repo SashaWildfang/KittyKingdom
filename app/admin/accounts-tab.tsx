@@ -15,7 +15,22 @@ type AccountRow = {
   createdAt: string | null;
   lastLoginAt: string | null;
   mustChangePassword: boolean;
+  avatar: string | null;
 };
+
+/** Discord profile picture when linked, otherwise their initial. */
+function AccountAvatar({ account, size }: { account: { avatar: string | null; displayName: string | null; username: string | null; email: string }; size: number }) {
+  const [failed, setFailed] = useState(false);
+  const letter = (account.displayName ?? account.username ?? account.email).charAt(0).toUpperCase();
+  if (account.avatar && !failed) {
+    return <img className="adm-avatar" src={account.avatar} alt="" width={size} height={size} loading="lazy" onError={() => setFailed(true)} />;
+  }
+  return (
+    <span className="adm-avatar adm-avatar--letter" style={{ width: size, height: size, fontSize: size > 40 ? "1.6rem" : undefined }} aria-hidden="true">
+      {letter}
+    </span>
+  );
+}
 
 type Account = AccountRow & {
   phone: string | null;
@@ -25,6 +40,7 @@ type Account = AccountRow & {
   updatedAt: string | null;
   passwordChangedAt: string | null;
   acceptedPoliciesAt: string | null;
+  applicationStatus: string | null;
   audit: { at: string | null; action: string; adminName: string; adminDiscordId: string }[];
 };
 
@@ -322,9 +338,7 @@ export function AccountsTab({ onOpenMember }: { onOpenMember: (id: string) => vo
               <tr key={a.id} onClick={() => setOpen(a.id)}>
                 <td>
                   <span className="adm-account">
-                    <span className="adm-avatar adm-avatar--letter" style={{ width: 30, height: 30 }} aria-hidden="true">
-                      {(a.displayName ?? a.username ?? a.email).charAt(0).toUpperCase()}
-                    </span>
+                    <AccountAvatar account={a} size={30} />
                     <span className="adm-person-text">
                       <strong>{a.displayName ?? a.username ?? "No name yet"}</strong>
                       <small>{a.username ? `@${a.username}` : "no username"}</small>
@@ -450,9 +464,7 @@ function AccountDrawer({ id, onClose, onChanged, onOpenMember }: { id: string; o
         {account ? (
           <>
             <header className="adm-drawer-head">
-              <span className="adm-avatar adm-avatar--letter" style={{ width: 64, height: 64, fontSize: "1.6rem" }} aria-hidden="true">
-                {(account.displayName ?? account.username ?? account.email).charAt(0).toUpperCase()}
-              </span>
+              <AccountAvatar account={account} size={64} />
               <div>
                 <h2>{account.displayName ?? account.username ?? "No name yet"}</h2>
                 <p>{account.username ? `@${account.username}` : "No username yet"}</p>
@@ -491,7 +503,14 @@ function AccountDrawer({ id, onClose, onChanged, onOpenMember }: { id: string; o
                 </div>
                 <div>
                   <dt>Birthday / age</dt>
-                  <dd>{[account.dateOfBirth, account.age ? `${account.age} y/o` : null].filter(Boolean).join(" · ") || "—"}</dd>
+                  <dd>
+                    {[account.dateOfBirth, account.age ? `${account.age} years old` : null].filter(Boolean).join(" · ") ||
+                      (account.discordId ? "Not on their join application" : "Link Discord to see it")}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Join application</dt>
+                  <dd>{account.applicationStatus ? account.applicationStatus.charAt(0).toUpperCase() + account.applicationStatus.slice(1) : "—"}</dd>
                 </div>
                 <div>
                   <dt>Joined</dt>
