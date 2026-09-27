@@ -16884,3 +16884,128 @@ button.live-voice-member {
     font-size: 0.92rem;
   }
 }
+
+/* Smaller account buttons (Update password, two-factor) */
+.acct-button.acct-button--small {
+  gap: 0.35rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.88rem;
+}
+
+.acct-button.acct-button--small svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* Change password: the sign-up form's fields, following the page theme */
+.acct-pw {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 34rem;
+}
+
+.acct-pw .kk-label {
+  color: var(--text);
+}
+
+.acct-pw .kk-input {
+  border-color: var(--line);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.acct-pw .kk-input:focus-within {
+  border-color: var(--ember);
+}
+
+.acct-pw .kk-input input {
+  color: var(--text);
+}
+
+.acct-pw .kk-input input::placeholder,
+.acct-pw .kk-input-icon {
+  color: var(--muted);
+}
+
+.acct-pw .kk-reveal {
+  color: var(--muted);
+}
+
+.acct-pw .kk-strength span,
+.acct-pw .kk-checks li {
+  color: var(--muted);
+}
+
+.acct-pw .kk-strength-bar i {
+  background: color-mix(in srgb, var(--text) 14%, transparent);
+}
+
+.acct-pw .kk-checks li {
+  border-color: var(--line);
+}
+
+.acct-pw .kk-checks li.is-ok {
+  color: #2f9e5b;
+}
+
+:root:not([data-theme="light"]) .acct-pw .kk-checks li.is-ok {
+  color: #b7f5d0;
+}
+
+:root[data-theme="light"] .acct-pw .kk-input {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.acct-pw-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin: -0.3rem 0 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.acct-pw-hint.is-ok {
+  color: #3ddc84;
+}
+
+.acct-pw-hint.is-bad {
+  color: #ff8f8f;
+}
+
+:root[data-theme="light"] .acct-pw-hint.is-ok {
+  color: #2f9e5b;
+}
+
+:root[data-theme="light"] .acct-pw-hint.is-bad {
+  color: #c62828;
+}
+
+.acct-pw .acct-button {
+  justify-self: start;
+  margin-top: 0.2rem;
+}
+
+/* Purchase history totals: number and label centered together */
+.ph-totals span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  line-height: 1;
+  padding: 0.4rem 0.75rem;
+}
+
+.ph-totals b {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.ph-totals b .leaf-emote {
+  display: block;
+}
+
+.ph-totals em {
+  font-style: normal;
+}
