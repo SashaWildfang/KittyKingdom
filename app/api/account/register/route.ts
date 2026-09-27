@@ -53,7 +53,8 @@ export async function POST(request: Request) {
 
     await users.insertOne({
       email,
-      username: null,
+      // No username field until one is chosen: the unique username index skips missing
+      // fields but not nulls, so storing null here blocked every signup after the first.
       passwordSalt: salt,
       passwordHash: hash,
       emailVerified: false,
@@ -69,6 +70,10 @@ export async function POST(request: Request) {
     return NextResponse.redirect(`${origin}/home?register=${status}`, 303);
   } catch (error) {
     console.error("Registration failed", error);
+    // Two signups with the same email at the same moment: the unique index catches the second
+    if ((error as { code?: number })?.code === 11000 && JSON.stringify((error as { keyPattern?: unknown }).keyPattern ?? {}).includes("email")) {
+      return NextResponse.redirect(`${origin}/register?register=email-exists`, 303);
+    }
     const status = isDatabaseConnectionError(error)
       ? "database-unreachable"
       : "service-unavailable";
