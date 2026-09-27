@@ -49,7 +49,7 @@ export function parseDateOfBirth(value: unknown): Date | null {
     candidates.push(a > 12 ? utcDate(year, b - 1, a) : utcDate(year, a - 1, b));
   }
   // Feb 8th, 1990 / February 8 1990
-  for (const m of Array.from(text.matchAll(new RegExp(`\\b${MONTH}\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?,?\\s+(\\d{4})\\b`, "g")))) {
+  for (const m of Array.from(text.matchAll(new RegExp(`\\b${MONTH}\\.?\\s*(\\d{1,2})(?:st|nd|rd|th)?\\s*,?\\s*(\\d{4})\\b`, "g")))) {
     candidates.push(utcDate(Number(m[3]), monthNames[m[1]], Number(m[2])));
   }
   // 8 February 1990 / 8th of Feb, 1990

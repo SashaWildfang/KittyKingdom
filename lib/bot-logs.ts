@@ -8,6 +8,13 @@ import { getMongoClient } from "./mongodb";
 
 export const LOG_CHANNEL_ID = "1360344042705256660";
 
+// Channels mirrored into the Bot Logs tab
+export const LOG_CHANNELS = [
+  { key: "bot", id: LOG_CHANNEL_ID, label: "Bot logs", meta: "sync" },
+  { key: "vc", id: "1503203701580365974", label: "VC logs", meta: "sync:vc" },
+] as const;
+export type LogChannelKey = (typeof LOG_CHANNELS)[number]["key"];
+
 const SYNC_EVERY_MS = 5_000;
 const NEW_PAGES_PER_SYNC = 5;
 const BACKFILL_PAGES_PER_SYNC = 4;
@@ -62,6 +69,8 @@ const LEADING_SYMBOLS = new RegExp("^[^\\p{L}\\p{N}]+", "u");
 
 // Titles that carry a name or detail get folded into one clean type
 const TYPE_RULES: [RegExp, string | ((m: RegExpMatchArray) => string)][] = [
+  // "🎙️ VC Event: Joined VC" -> "Joined VC"
+  [/^vc event:\s*(.+)$/i, (m) => m[1].trim()],
   [/^avatar changed/i, "Avatar Changed"],
   [/^gift sent/i, "Gift Sent"],
   [/^ticket action:?\s*(\w+)/i, (m) => `Ticket ${({ OPEN: "Opened", CLAIM: "Claimed", CLOSE: "Closed", DELETE: "Deleted", REOPEN: "Reopened" } as Record<string, string>)[m[1].toUpperCase()] ?? m[1].toLowerCase()}`],
@@ -86,6 +95,7 @@ export function logType(title: string | null | undefined, content: string | null
 }
 
 export const LOG_CATEGORIES = [
+  { key: "voice", label: "Voice", icon: "🎙️" },
   { key: "messages", label: "Messages", icon: "💬" },
   { key: "members", label: "Member updates", icon: "👤" },
   { key: "moderation", label: "Moderation", icon: "🛡️" },
@@ -98,6 +108,7 @@ export const LOG_CATEGORIES = [
 
 export function logCategory(type: string) {
   const t = type.toLowerCase();
+  if (/\bvc\b|afk|voice/.test(t)) return "voice";
   if (/^message /.test(t)) return "messages";
   if (/avatar|nickname|username|roles updated|display name/.test(t)) return "members";
   if (/^ticket/.test(t)) return "tickets";
@@ -108,20 +119,22 @@ export function logCategory(type: string) {
   return "other";
 }
 
-const TYPE_VERSION = 2;
+const TYPE_VERSION = 3;
 
-function toEntry(m: DiscordMessage) {
+function toEntry(m: DiscordMessage, channel: LogChannelKey) {
   const embed = m.embeds[0];
   const allText = [m.content, ...m.embeds.flatMap((e) => [e.title, e.description, e.footer?.text, ...(e.fields ?? []).flatMap((f) => [f.name, f.value])])]
     .filter(Boolean)
     .join("\n");
   // The updater puts the member's id in the footer ("User ID: 123 • 9/26/2026 ...")
-  const footerId = embed?.footer?.text?.match(/User ID:\s*(\d{15,21})/)?.[1] ?? null;
+  // The member's id: updater.py puts it in the footer, the VC logs in the author line ("name (123)")
+  const footerId = embed?.footer?.text?.match(/User ID:\s*(\d{15,21})/)?.[1] ?? embed?.author?.name?.match(/\((\d{15,21})\)/)?.[1] ?? null;
   const mentioned = Array.from(allText.matchAll(/<@!?(\d{15,21})>/g), (x) => x[1]);
   const codeIds = Array.from(allText.matchAll(/`(\d{17,21})`/g), (x) => x[1]);
   const userIds = Array.from(new Set([footerId, ...mentioned, ...codeIds].filter((x): x is string => Boolean(x))));
   return {
     _id: m.id,
+    channel,
     ts: new Date(m.timestamp),
     type: logType(embed?.title, m.content),
     category: logCategory(logType(embed?.title, m.content)),
@@ -148,10 +161,10 @@ function toEntry(m: DiscordMessage) {
   };
 }
 
-async function fetchPage(params: string): Promise<DiscordMessage[] | null> {
+async function fetchPage(channelId: string, params: string): Promise<DiscordMessage[] | null> {
   const token = botToken();
   if (!token) return null;
-  const response = await fetch(`${DISCORD_API}/channels/${LOG_CHANNEL_ID}/messages?limit=100${params}`, {
+  const response = await fetch(`${DISCORD_API}/channels/${channelId}/messages?limit=100${params}`, {
     headers: { Authorization: `Bot ${token}` },
     cache: "no-store",
   });
@@ -164,14 +177,18 @@ const minId = (ids: string[]) => ids.reduce((a, b) => (BigInt(b) < BigInt(a) ? b
 
 /** Pulls anything new (and a bit more history). Only one request does this at a time. */
 export async function syncLogs() {
+  for (const channel of LOG_CHANNELS) await syncChannel(channel);
+}
+
+async function syncChannel(channel: (typeof LOG_CHANNELS)[number]) {
   const d = await db();
   const logs = d.collection("bot_logs");
   const meta = d.collection<{ _id: string; newestId?: string; oldestId?: string; backfillDone?: boolean; syncedAt?: Date; lockedUntil?: Date }>("bot_logs_meta");
   const now = new Date();
-  await meta.updateOne({ _id: "sync" }, { $setOnInsert: { syncedAt: new Date(0) } }, { upsert: true });
+  await meta.updateOne({ _id: channel.meta }, { $setOnInsert: { syncedAt: new Date(0) } }, { upsert: true });
   const state = await meta.findOneAndUpdate(
     {
-      _id: "sync",
+      _id: channel.meta,
       syncedAt: { $lt: new Date(now.getTime() - SYNC_EVERY_MS) },
       $or: [{ lockedUntil: { $lt: now } }, { lockedUntil: { $exists: false } }],
     },
@@ -180,7 +197,9 @@ export async function syncLogs() {
   if (!state) return;
 
   // Older copies were typed with the first version of the rules: re-type them once
-  if (((state as { typeVersion?: number }).typeVersion ?? 1) < TYPE_VERSION) {
+  if (channel.key === "bot" && ((state as { typeVersion?: number }).typeVersion ?? 1) < TYPE_VERSION) {
+    // Logs mirrored before channels were tracked all came from the bot log channel
+    await logs.updateMany({ channel: { $exists: false } }, { $set: { channel: "bot" } });
     const old = await logs.find({}, { projection: { title: 1, content: 1 } }).toArray();
     if (old.length) {
       await logs.bulkWrite(
@@ -191,7 +210,7 @@ export async function syncLogs() {
         { ordered: false },
       );
     }
-    await meta.updateOne({ _id: "sync" }, { $set: { typeVersion: TYPE_VERSION } });
+    await meta.updateOne({ _id: channel.meta }, { $set: { typeVersion: TYPE_VERSION } });
   }
 
   let newestId = state.newestId;
@@ -200,7 +219,7 @@ export async function syncLogs() {
   const save = async (messages: DiscordMessage[]) => {
     if (!messages.length) return;
     await logs.bulkWrite(
-      messages.map((m) => ({ replaceOne: { filter: { _id: m.id } as never, replacement: toEntry(m) as never, upsert: true } })),
+      messages.map((m) => ({ replaceOne: { filter: { _id: m.id } as never, replacement: toEntry(m, channel.key) as never, upsert: true } })),
       { ordered: false },
     );
     const ids = messages.map((m) => m.id);
@@ -211,20 +230,20 @@ export async function syncLogs() {
   try {
     // New messages since last time
     for (let i = 0; i < NEW_PAGES_PER_SYNC; i += 1) {
-      const page = await fetchPage(newestId ? `&after=${newestId}` : "");
+      const page = await fetchPage(channel.id, newestId ? `&after=${newestId}` : "");
       if (!page) break;
       await save(page);
       if (page.length < 100 || !newestId) break;
     }
     // Older history, a few pages per sync until the start of the channel
     for (let i = 0; i < BACKFILL_PAGES_PER_SYNC && !backfillDone && oldestId; i += 1) {
-      const page = await fetchPage(`&before=${oldestId}`);
+      const page = await fetchPage(channel.id, `&before=${oldestId}`);
       if (!page) break;
       await save(page);
       if (page.length < 100) backfillDone = true;
     }
   } finally {
-    await meta.updateOne({ _id: "sync" }, { $set: { newestId, oldestId, backfillDone, syncedAt: new Date() }, $unset: { lockedUntil: "" } });
+    await meta.updateOne({ _id: channel.meta }, { $set: { newestId, oldestId, backfillDone, syncedAt: new Date() }, $unset: { lockedUntil: "" } });
   }
 }
 
@@ -233,6 +252,7 @@ const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$
 export async function queryLogs(q: {
   types?: string[];
   categories?: string[];
+  channels?: string[];
   userId?: string;
   search?: string;
   from?: Date | null;
@@ -252,6 +272,7 @@ export async function queryLogs(q: {
     match.$or = or;
   }
   if (q.userId) match.userIds = q.userId;
+  if (q.channels?.length) match.channel = { $in: q.channels };
   if (q.search?.trim()) match.text = { $regex: escapeRegex(q.search.trim().toLowerCase().slice(0, 100)) };
   if (q.from || q.to) match.ts = { ...(q.from ? { $gte: q.from } : {}), ...(q.to ? { $lte: q.to } : {}) };
 
@@ -269,7 +290,7 @@ export async function queryLogs(q: {
     logs.find(page, { projection: { text: 0 } }).sort({ ts: order, _id: order }).limit(limit).toArray(),
     logs.countDocuments(match),
     logs.aggregate([{ $match: withoutType }, { $group: { _id: { type: "$type", category: "$category" }, n: { $sum: 1 } } }, { $sort: { n: -1 } }]).toArray(),
-    d.collection("bot_logs_meta").findOne({ _id: "sync" as never }),
+    d.collection("bot_logs_meta").find({ _id: { $in: LOG_CHANNELS.map((c) => c.meta) } as never }).toArray(),
     logs.find({}, { projection: { ts: 1 } }).sort({ ts: 1 }).limit(1).toArray(),
   ]);
 
@@ -278,7 +299,7 @@ export async function queryLogs(q: {
     total,
     types: types.map((t) => ({ type: String(t._id.type), category: String(t._id.category ?? logCategory(String(t._id.type))), count: t.n as number })),
     sync: {
-      backfillDone: Boolean(meta?.backfillDone),
+      backfillDone: meta.length === LOG_CHANNELS.length && meta.every((m) => Boolean(m.backfillDone)),
       oldest: oldest[0]?.ts ? (oldest[0].ts as Date).toISOString() : null,
     },
   };
@@ -296,13 +317,14 @@ export async function freshAttachmentUrl(messageId: string, attachmentId: string
   if (!/^\d{15,21}$/.test(messageId)) return null;
   const d = await db();
   const logs = d.collection("bot_logs");
-  const doc = await logs.findOne({ _id: messageId as never }, { projection: { attachments: 1 } });
+  const doc = await logs.findOne({ _id: messageId as never }, { projection: { attachments: 1, channel: 1 } });
+  const channelId = LOG_CHANNELS.find((c) => c.key === doc?.channel)?.id ?? LOG_CHANNEL_ID;
   const saved = (doc?.attachments as { id: string; url?: string }[] | undefined)?.find((a) => a.id === attachmentId);
   if (saved?.url && linkStillValid(saved.url)) return saved.url;
 
   const token = botToken();
   if (!token) return null;
-  const response = await fetch(`${DISCORD_API}/channels/${LOG_CHANNEL_ID}/messages/${messageId}`, { headers: { Authorization: `Bot ${token}` }, cache: "no-store" });
+  const response = await fetch(`${DISCORD_API}/channels/${channelId}/messages/${messageId}`, { headers: { Authorization: `Bot ${token}` }, cache: "no-store" });
   if (!response.ok) return null;
   const message = (await response.json()) as { attachments: { id: string; url: string }[] };
   // Save every fresh link on the message so its other files don't need another lookup
