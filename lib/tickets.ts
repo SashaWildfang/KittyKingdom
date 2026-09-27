@@ -301,3 +301,91 @@ export async function loadTranscript(messageId: string): Promise<Record<string, 
   inFlight.set(messageId, job);
   return job;
 }
+
+// Media that didn't fit in the transcript zip is uploaded next to it as numbered pieces, listed in
+// the zip's manifest.json: { files: { "attachments/a/1_clip.mp4": { size, chunks: [{ c, m, f }] } } }
+type ManifestChunk = { c: string; m: string; f: string };
+type Manifest = { files?: Record<string, { size?: number; chunks?: ManifestChunk[] }> };
+
+const MAX_PIECE_CACHE_BYTES = 256 * 1024 * 1024;
+const pieceCache = new Map<string, Uint8Array>();
+const pieceInFlight = new Map<string, Promise<Uint8Array | null>>();
+
+async function pieceUrls(channelId: string, messageId: string) {
+  const token = botToken();
+  if (!token) return null;
+  const response = await fetch(`${DISCORD_API}/channels/${channelId}/messages/${messageId}`, {
+    headers: { Authorization: `Bot ${token}` },
+    cache: "no-store",
+  });
+  if (!response.ok) return null;
+  const message = (await response.json()) as TranscriptMessage;
+  return new Map((message.attachments ?? []).map((a) => [a.filename, a.url]));
+}
+
+async function assemble(entry: { size?: number; chunks?: ManifestChunk[] }) {
+  const chunks = entry.chunks ?? [];
+  // Only pieces the bot posted in the transcript channel
+  if (!chunks.length || chunks.some((c) => c.c !== TRANSCRIPT_CHANNEL_ID || !/^\d{15,21}$/.test(c.m))) return null;
+  const urlsByMessage = new Map<string, Map<string, string> | null>();
+  const parts: Uint8Array[] = [];
+  for (const chunk of chunks) {
+    if (!urlsByMessage.has(chunk.m)) urlsByMessage.set(chunk.m, await pieceUrls(chunk.c, chunk.m));
+    const url = urlsByMessage.get(chunk.m)?.get(chunk.f);
+    if (!url) return null;
+    const response = await fetch(url, { cache: "no-store" });
+    if (!response.ok) return null;
+    parts.push(new Uint8Array(await response.arrayBuffer()));
+  }
+  const total = parts.reduce((n, p) => n + p.length, 0);
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const p of parts) {
+    out.set(p, offset);
+    offset += p.length;
+  }
+  return out;
+}
+
+/** One file from a transcript: from the zip, or put back together from its uploaded pieces. */
+export async function transcriptFile(messageId: string, name: string): Promise<Uint8Array | null> {
+  const files = await loadTranscript(messageId);
+  if (!files) return null;
+  if (files[name]) return files[name];
+
+  let manifest: Manifest = {};
+  try {
+    manifest = files["manifest.json"] ? (JSON.parse(new TextDecoder().decode(files["manifest.json"])) as Manifest) : {};
+  } catch {
+    return null;
+  }
+  const entry = manifest.files?.[name];
+  if (!entry) return null;
+
+  const key = `${messageId}/${name}`;
+  const cached = pieceCache.get(key);
+  if (cached) {
+    pieceCache.delete(key);
+    pieceCache.set(key, cached);
+    return cached;
+  }
+  const pending = pieceInFlight.get(key);
+  if (pending) return pending;
+  const job = assemble(entry)
+    .then((data) => {
+      if (data) {
+        pieceCache.set(key, data);
+        let total = 0;
+        for (const v of Array.from(pieceCache.values())) total += v.length;
+        while (total > MAX_PIECE_CACHE_BYTES && pieceCache.size > 1) {
+          const oldest = pieceCache.keys().next().value as string;
+          total -= pieceCache.get(oldest)?.length ?? 0;
+          pieceCache.delete(oldest);
+        }
+      }
+      return data;
+    })
+    .finally(() => pieceInFlight.delete(key));
+  pieceInFlight.set(key, job);
+  return job;
+}
