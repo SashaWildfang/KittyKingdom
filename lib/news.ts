@@ -2,13 +2,30 @@
 import { ObjectId, type Document } from "mongodb";
 import { getMongoClient } from "./mongodb";
 
-export const NEWS_TAGS = ["Update", "Announcement", "Event", "Website", "Economy", "Community"] as const;
+// The tags the site started with; copied into website.news_tags once so admins can manage them
+const STARTER_TAGS = [
+  { name: "Update", color: "#f59b2a" },
+  { name: "Announcement", color: "#e5484d" },
+  { name: "Event", color: "#8e4ec6" },
+  { name: "Website", color: "#3e63dd" },
+  { name: "Economy", color: "#46a758" },
+  { name: "Community", color: "#d6409f" },
+];
+
+export type NewsTag = { id: string; name: string; color: string; count: number };
+
+export class NewsError extends Error {
+  constructor(message: string, public status = 400) {
+    super(message);
+  }
+}
 
 export type NewsPost = {
   id: string;
   title: string;
   body: string;
   tag: string;
+  tagColor: string;
   pinned: boolean;
   published: boolean;
   publishedAt: string;
@@ -49,12 +66,90 @@ async function collection() {
   return col;
 }
 
-function toPost(d: Document): NewsPost {
+async function tagsCollection() {
+  const client = await getMongoClient();
+  const db = client.db(process.env.MONGODB_DB ?? "website");
+  const col = db.collection("news_tags");
+  if ((await col.estimatedDocumentCount()) === 0) {
+    const claimed = await db.collection("site_meta").updateOne({ _id: "news-tags-seeded" as never }, { $setOnInsert: { at: new Date() } }, { upsert: true });
+    if (claimed.upsertedCount) await col.insertMany(STARTER_TAGS.map((t, i) => ({ ...t, key: t.name.toLowerCase(), order: i, createdAt: new Date() })));
+  }
+  return col;
+}
+
+/** Every tag, in order, with how many posts use it. */
+export async function newsTags(): Promise<NewsTag[]> {
+  const [tagCol, postCol] = await Promise.all([tagsCollection(), collection()]);
+  const [tags, counts] = await Promise.all([
+    tagCol.find({}).sort({ order: 1, createdAt: 1 }).toArray(),
+    postCol.aggregate([{ $group: { _id: "$tag", n: { $sum: 1 } } }]).toArray(),
+  ]);
+  const byName = new Map(counts.map((c) => [String(c._id), c.n as number]));
+  return tags.map((t) => ({ id: String(t._id), name: String(t.name), color: String(t.color ?? "#f59b2a"), count: byName.get(String(t.name)) ?? 0 }));
+}
+
+const HEX = /^#[0-9a-f]{6}$/i;
+const TAG_NAME = new RegExp("^[\\p{L}\\p{N} &'!?+-]+$", "u");
+
+function cleanTag(raw: Record<string, unknown>) {
+  const name = typeof raw.name === "string" ? raw.name.trim().replace(/\s+/g, " ") : "";
+  const color = typeof raw.color === "string" && HEX.test(raw.color) ? raw.color.toLowerCase() : "#f59b2a";
+  if (!name || name.length > 24) throw new NewsError("Give the tag a name (up to 24 characters).");
+  if (!TAG_NAME.test(name)) throw new NewsError("Tag names can use letters, numbers, spaces and & ' ! ? + -");
+  return { name, color, key: name.toLowerCase() };
+}
+
+export async function createTag(raw: Record<string, unknown>) {
+  const tag = cleanTag(raw);
+  const col = await tagsCollection();
+  if (await col.findOne({ key: tag.key })) throw new NewsError("There's already a tag with that name.");
+  const last = await col.find({}).sort({ order: -1 }).limit(1).toArray();
+  await col.insertOne({ ...tag, order: (Number(last[0]?.order) || 0) + 1, createdAt: new Date() });
+  return tag.name;
+}
+
+/** Renames or recolors a tag; renaming also updates every post that uses it. */
+export async function updateTag(id: string, raw: Record<string, unknown>) {
+  if (!ObjectId.isValid(id)) throw new NewsError("Tag not found.", 404);
+  const tag = cleanTag(raw);
+  const col = await tagsCollection();
+  const existing = await col.findOne({ _id: new ObjectId(id) });
+  if (!existing) throw new NewsError("Tag not found.", 404);
+  if (await col.findOne({ key: tag.key, _id: { $ne: existing._id } })) throw new NewsError("There's already a tag with that name.");
+  await col.updateOne({ _id: existing._id }, { $set: { ...tag, updatedAt: new Date() } });
+  if (existing.name !== tag.name) await (await collection()).updateMany({ tag: existing.name }, { $set: { tag: tag.name } });
+  return { before: String(existing.name), after: tag.name };
+}
+
+/** Deletes a tag. Posts using it move to `moveTo` (required when any post uses the tag). */
+export async function deleteTag(id: string, moveTo?: string) {
+  if (!ObjectId.isValid(id)) throw new NewsError("Tag not found.", 404);
+  const [col, posts] = await Promise.all([tagsCollection(), collection()]);
+  const existing = await col.findOne({ _id: new ObjectId(id) });
+  if (!existing) throw new NewsError("Tag not found.", 404);
+  if ((await col.countDocuments()) <= 1) throw new NewsError("Keep at least one tag.");
+  const used = await posts.countDocuments({ tag: existing.name });
+  let target: Document | null = null;
+  if (used) {
+    target = moveTo && ObjectId.isValid(moveTo) ? await col.findOne({ _id: new ObjectId(moveTo) }) : null;
+    if (!target || String(target._id) === id) throw new NewsError(`${used} post${used === 1 ? " uses" : "s use"} this tag. Pick a tag to move ${used === 1 ? "it" : "them"} to.`);
+    await posts.updateMany({ tag: existing.name }, { $set: { tag: target.name } });
+  }
+  await col.deleteOne({ _id: existing._id });
+  return { name: String(existing.name), moved: used, movedTo: target ? String(target.name) : null };
+}
+
+async function tagColors() {
+  return new Map((await newsTags()).map((t) => [t.name, t.color]));
+}
+
+function toPost(d: Document, colors: Map<string, string>): NewsPost {
   return {
     id: String(d._id),
     title: String(d.title ?? ""),
     body: String(d.body ?? ""),
     tag: String(d.tag ?? "Update"),
+    tagColor: colors.get(String(d.tag)) ?? "#8b8d98",
     pinned: Boolean(d.pinned),
     published: d.published !== false,
     publishedAt: (d.publishedAt instanceof Date ? d.publishedAt : new Date()).toISOString(),
@@ -66,11 +161,11 @@ function toPost(d: Document): NewsPost {
 /** Published posts for the public site: pinned first, then newest. */
 export async function publishedNews(opts: { limit?: number; tag?: string } = {}) {
   try {
-    const col = await collection();
+    const [col, colors] = await Promise.all([collection(), tagColors()]);
     const filter: Document = { published: { $ne: false }, publishedAt: { $lte: new Date() } };
-    if (opts.tag && (NEWS_TAGS as readonly string[]).includes(opts.tag)) filter.tag = opts.tag;
+    if (opts.tag && colors.has(opts.tag)) filter.tag = opts.tag;
     const docs = await col.find(filter).sort({ pinned: -1, publishedAt: -1 }).limit(opts.limit ?? 100).toArray();
-    return docs.map(toPost);
+    return docs.map((d) => toPost(d, colors));
   } catch (error) {
     console.error("News lookup failed", error);
     return [];
@@ -80,12 +175,12 @@ export async function publishedNews(opts: { limit?: number; tag?: string } = {})
 const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export async function adminNews(q: { sort?: string; status?: string; search?: string; tag?: string }) {
-  const col = await collection();
+  const [col, colors] = await Promise.all([collection(), tagColors()]);
   const filter: Document = {};
   if (q.status === "published") filter.published = { $ne: false };
   if (q.status === "draft") filter.published = false;
   if (q.status === "pinned") filter.pinned = true;
-  if (q.tag && (NEWS_TAGS as readonly string[]).includes(q.tag)) filter.tag = q.tag;
+  if (q.tag && colors.has(q.tag)) filter.tag = q.tag;
   if (q.search?.trim()) {
     const regex = new RegExp(escapeRegex(q.search.trim().slice(0, 100)), "i");
     filter.$or = [{ title: regex }, { body: regex }];
@@ -93,16 +188,18 @@ export async function adminNews(q: { sort?: string; status?: string; search?: st
   const sort: Record<string, 1 | -1> =
     q.sort === "oldest" ? { publishedAt: 1 } : q.sort === "title" ? { title: 1 } : q.sort === "updated" ? { updatedAt: -1, publishedAt: -1 } : { pinned: -1, publishedAt: -1 };
   const docs = await col.find(filter).sort(sort).limit(300).toArray();
-  return docs.map(toPost);
+  return docs.map((d) => toPost(d, colors));
 }
 
 export type NewsInput = { title: string; body: string; tag: string; pinned: boolean; published: boolean; publishedAt: Date };
 
 /** Checks and cleans an admin's post form. */
-export function cleanNewsInput(raw: Record<string, unknown>): NewsInput | string {
+export async function cleanNewsInput(raw: Record<string, unknown>): Promise<NewsInput | string> {
   const title = typeof raw.title === "string" ? raw.title.trim() : "";
   const body = typeof raw.body === "string" ? raw.body.trim() : "";
-  const tag = typeof raw.tag === "string" && (NEWS_TAGS as readonly string[]).includes(raw.tag) ? raw.tag : "Update";
+  const tags = await newsTags();
+  const tag = tags.find((t) => t.name === raw.tag)?.name;
+  if (!tag) return "Pick a tag for the post.";
   if (!title || title.length > 120) return "Give the post a title (up to 120 characters).";
   if (!body || body.length > 8000) return "Write the post (up to 8,000 characters).";
   const date = typeof raw.publishedAt === "string" && raw.publishedAt ? new Date(raw.publishedAt) : new Date();

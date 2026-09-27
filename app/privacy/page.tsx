@@ -17,7 +17,7 @@ export default function PrivacyPage() {
         </Link>
         <h1>Privacy Policy</h1>
         <p>
-          <strong>Last updated:</strong> July 2026
+          <strong>Last updated:</strong> September 2026
         </p>
         <p>
           This Privacy Policy explains how Kitty Kingdom collects and uses
@@ -50,6 +50,19 @@ export default function PrivacyPage() {
           We use secure session cookies to keep users logged in and protect
           account routes. You can clear cookies in your browser to end a
           session.
+        </p>
+        <h2>Site statistics</h2>
+        <p>
+          To understand how the website is used, we count page views with our
+          own first-party statistics (no third-party analytics or ad trackers).
+          For each page view we record the page, time, time spent, referring
+          website, approximate country and region, device type, browser and
+          operating system, and whether the visitor was signed in. Visitors are
+          identified only by a random ID stored in your browser, which is hashed
+          before it is saved. We do not store IP addresses for statistics.
+          Records are deleted automatically after about 13 months. If your
+          browser sends Do Not Track or Global Privacy Control, no statistics
+          are recorded for you.
         </p>
         <h2>Data sharing</h2>
         <p>

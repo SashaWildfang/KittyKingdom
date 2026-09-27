@@ -11,8 +11,10 @@ import { getMemberRoleIds } from "./discord-member";
 import { getBotCollection } from "./mongodb";
 import { StoreError } from "./store";
 
+// 🍂 Golden Leaf (Nitro), given to server boosters
 export const NITRO_ROLE_ID = "1360260086500561237";
-export const NITRO_INFO_CHANNEL_ID = "1358485327030784071";
+// #✨nitro-perks
+export const NITRO_INFO_CHANNEL_ID = "1358485493020496004";
 export const DAILY_BASE = 250;
 export const STREAK_STEP = 100;
 export const CYCLE_DAYS = 7;

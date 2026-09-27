@@ -16,6 +16,7 @@ export async function GET(request: Request) {
     const params = new URL(request.url).searchParams;
     const { from, to } = dateRange(params);
     const result = await queryLogs({
+      hideAdminOnly: panel.level !== "admin",
       types: listParam(params, "types"),
       categories: listParam(params, "categories"),
       channels: listParam(params, "channels"),

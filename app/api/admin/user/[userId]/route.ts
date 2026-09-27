@@ -51,7 +51,13 @@ export async function GET(request: Request, { params }: { params: { userId: stri
       banned: bans ? bans.has(userId) : null,
       roles,
       stats: stats
-        ? { level: num(stats.level), balance: num(stats.balance), messages: num(stats.msgCount), xp: num(stats.totalXp ?? stats.xp) }
+        ? {
+            level: num(stats.level),
+            // Leaf balance is economy/inventory detail: admins only
+            balance: isAdmin ? num(stats.balance) : null,
+            messages: num(stats.msgCount),
+            xp: num(stats.totalXp ?? stats.xp),
+          }
         : null,
       punishments: punishments.rows,
       punishmentTotal: punishments.total,
