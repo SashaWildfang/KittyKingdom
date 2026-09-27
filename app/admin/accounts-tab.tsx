@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { StackedBars } from "./admin-charts";
 import { CopyId, LiveBadge, Pager, formatDate, timeAgo, useLive, useStored } from "./admin-shared";
+import { ViewAsButton } from "./view-as-button";
 
 type AccountRow = {
   id: string;
@@ -643,6 +644,7 @@ function AccountDrawer({ id, onClose, onChanged, onOpenMember }: { id: string; o
               {account.discordId ? <span className="adm-tag"><MessageCircle size={12} aria-hidden="true" /> Discord linked</span> : <span className="adm-tag">Discord not linked</span>}
               {account.mustChangePassword ? <span className="adm-tag"><KeyRound size={12} aria-hidden="true" /> Temporary password</span> : null}
             </div>
+            {account.discordId && account.emailVerified ? <ViewAsButton accountId={account.id} /> : null}
 
             <section className="adm-drawer-section">
               <h3>Details</h3>

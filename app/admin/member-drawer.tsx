@@ -22,6 +22,7 @@ import {
   type Punishment,
   type Ticket,
 } from "./admin-shared";
+import { ViewAsButton } from "./view-as-button";
 
 type Result = {
   userId: string;
@@ -33,6 +34,7 @@ type Result = {
   punishmentTotal: number;
   tickets: Ticket[] | null;
   ticketTotal: number | null;
+  canViewAs?: boolean;
   mentions: Mentions;
   people: People;
 };
@@ -88,6 +90,7 @@ export function MemberDrawer({
 
         {data ? (
           <>
+            {data.canViewAs ? <ViewAsButton discordId={userId} /> : null}
             <div className="adm-drawer-flags">
               {data.banned ? <span className="adm-status adm-status--banned"><Ban size={13} aria-hidden="true" /> Banned</span> : null}
               {data.inServer ? <span className="adm-status adm-status--active">● In server</span> : <span className="adm-status">Not in server</span>}
