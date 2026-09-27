@@ -6,6 +6,7 @@ import type { PanelUser } from "./admin";
 import { hashPassword } from "./auth";
 import { getMongoClient, getUsersCollection } from "./mongodb";
 import { startPasswordReset } from "./password-reset";
+import { revokeAllSessions } from "./sessions";
 
 const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -185,9 +186,11 @@ export async function accountAction(id: string, action: AccountAction, admin: Pa
         $inc: { sessionVersion: 1 },
       },
     );
+    await revokeAllSessions(_id, `admin:${admin.discordId}`);
     result = { message: "Temporary password set and all their sessions signed out. They'll be asked to change it.", temporaryPassword: password };
   } else if (action === "sign-out") {
     await users.updateOne({ _id }, { $inc: { sessionVersion: 1 } });
+    await revokeAllSessions(_id, `admin:${admin.discordId}`);
     result = { message: "Signed out of the website on every device." };
   } else if (action === "verify-email") {
     await users.updateOne({ _id }, { $set: { emailVerified: true, updatedAt: new Date() }, $unset: { emailVerificationTokens: "", emailVerificationTokenHash: "" } });

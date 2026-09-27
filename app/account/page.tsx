@@ -280,11 +280,7 @@ export default async function AccountPage({
 
         {/* ---------- Main column ---------- */}
         <div className="acct-main">
-          <section className="acct-card" id="overview">
-            <header className="acct-card-header">
-              <h2>Overview</h2>
-              <p>Your account details. Age and birthday come from your Discord join application.</p>
-            </header>
+          <CollapsibleCard id="overview" title={"Overview"} description={"Your account details. Age and birthday come from your Discord join application."}>
             <dl className="acct-info-grid">
               <div>
                 <dt>Email</dt>
@@ -311,7 +307,7 @@ export default async function AccountPage({
                 <dd>{memberSince ?? <span className="acct-muted">—</span>}</dd>
               </div>
             </dl>
-          </section>
+          </CollapsibleCard>
 
           {discordLinked ? (
             <CollapsibleCard
@@ -328,11 +324,7 @@ export default async function AccountPage({
             </CollapsibleCard>
           ) : null}
 
-          <section className="acct-card" id="profile">
-            <header className="acct-card-header">
-              <h2>Profile</h2>
-              <p>How you appear around the site.</p>
-            </header>
+          <CollapsibleCard id="profile" title={"Profile"} description={"How you appear around the site."}>
             <div className="acct-form-grid">
               <form className="acct-form" action="/api/account/name" method="post" autoComplete="off">
                 <label>
@@ -382,13 +374,9 @@ export default async function AccountPage({
                 )}
               </form>
             </div>
-          </section>
+          </CollapsibleCard>
 
-          <section className="acct-card" id="contact">
-            <header className="acct-card-header">
-              <h2>Contact &amp; socials</h2>
-              <p>All optional. Paste a link or type your @handle — leave a box empty to remove it.</p>
-            </header>
+          <CollapsibleCard id="contact" title={"Contact & socials"} description={"All optional. Paste a link or type your @handle — leave a box empty to remove it."}>
             <form className="acct-form" action="/api/account/contact" method="post" autoComplete="off">
               <label>
                 Phone number
@@ -415,7 +403,7 @@ export default async function AccountPage({
               </div>
               <button className="acct-button" type="submit">Save contact details</button>
             </form>
-          </section>
+          </CollapsibleCard>
 
           <section className="acct-card acct-discord" id="discord-account">
             <span className="acct-discord-icon">
@@ -442,11 +430,7 @@ export default async function AccountPage({
             </div>
           </section>
 
-          <section className="acct-card" id="security">
-            <header className="acct-card-header">
-              <h2>Security</h2>
-              <p>Change your password. You&apos;ll need your current one.</p>
-            </header>
+          <CollapsibleCard id="security" title={"Security"} description={"Change your password. You'll need your current one."}>
             <form className="acct-form" action="/api/account/password" method="post" autoComplete="off">
               <div className="acct-fields-row">
                 <label>
@@ -461,7 +445,7 @@ export default async function AccountPage({
               <p className="form-note">8+ characters with at least one number and one symbol.</p>
               <button className="acct-button" type="submit">Update password</button>
             </form>
-          </section>
+          </CollapsibleCard>
 
           <details className="acct-card acct-danger" id="delete-account">
             <summary>

@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import { cookies } from "next/headers";
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { getUsersCollection } from "./mongodb";
+import { createSessionRecord, sessionsCollection, touchSession, revokeSession } from "./sessions";
 
 const sessionCookie = "kk_session";
 const sessionMaxAge = 60 * 60 * 8;
@@ -62,7 +63,9 @@ function sign(value: string) {
 }
 
 /**
- * Sessions are "<userId>.<version>.<signature>". Bumping a user's sessionVersion (password reset,
+ * Sessions are "<userId>.<version>.<sessionId>.<signature>". The sessionId points at a record of
+ * the device (see sessions.ts) so one device can be disconnected on its own.
+ * Cookies from before devices were tracked are "<userId>.<version>.<signature>". Bumping a user's sessionVersion (password reset,
  * "sign out everywhere") makes every older session stop working. Sessions from before versions
  * existed ("<userId>.<signature>") count as version 0.
  */
@@ -74,8 +77,9 @@ export async function setSession(userId: ObjectId | string, version?: number) {
     const user = await users.findOne({ _id: new ObjectId(id) }, { projection: { sessionVersion: 1 } });
     v = typeof user?.sessionVersion === "number" ? user.sessionVersion : 0;
   }
+  const sid = await createSessionRecord(new ObjectId(id));
   const cookieStore = await cookies();
-  cookieStore.set(sessionCookie, `${id}.${v}.${sign(`${id}:${v}`)}`, {
+  cookieStore.set(sessionCookie, `${id}.${v}.${sid}.${sign(`${id}:${v}:${sid}`)}`, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
@@ -85,6 +89,9 @@ export async function setSession(userId: ObjectId | string, version?: number) {
 }
 
 export async function clearSession() {
+  // Logging out ends this device's session record too
+  const session = await readSessionCookie().catch(() => null);
+  if (session?.sessionId) await revokeSession(session.sessionId, "logout").catch(() => undefined);
   const cookieStore = await cookies();
   cookieStore.set(sessionCookie, "", {
     httpOnly: true,
@@ -102,7 +109,7 @@ function safeEqual(a: string, b: string) {
 }
 
 /** The signed session cookie's user id and version, without checking the database. */
-async function readSessionCookie(): Promise<{ userId: ObjectId; version: number } | null> {
+async function readSessionCookie(): Promise<{ userId: ObjectId; version: number; sessionId: string | null } | null> {
   const cookieStore = await cookies();
   const session = cookieStore.get(sessionCookie)?.value;
   if (!session) return null;
@@ -110,7 +117,13 @@ async function readSessionCookie(): Promise<{ userId: ObjectId; version: number 
   const parts = session.split(".");
   let id: string;
   let version: number;
-  if (parts.length === 3) {
+  let sessionId: string | null = null;
+  if (parts.length === 4) {
+    [id] = parts;
+    version = Number(parts[1]);
+    sessionId = parts[2];
+    if (!Number.isInteger(version) || !/^[a-f0-9]{24}$/.test(sessionId) || !safeEqual(sign(`${id}:${version}:${sessionId}`), parts[3])) return null;
+  } else if (parts.length === 3) {
     [id] = parts;
     version = Number(parts[1]);
     if (!Number.isInteger(version) || !safeEqual(sign(`${id}:${version}`), parts[2])) return null;
@@ -121,19 +134,33 @@ async function readSessionCookie(): Promise<{ userId: ObjectId; version: number 
   } else {
     return null;
   }
-  return ObjectId.isValid(id) ? { userId: new ObjectId(id), version } : null;
+  return ObjectId.isValid(id) ? { userId: new ObjectId(id), version, sessionId } : null;
 }
 
 /** The signed-in user's document, or null if the session is missing, forged or signed out. */
 const getSessionUser = cache(async () => {
   const session = await readSessionCookie();
   if (!session) return null;
-  const users = await getUsersCollection();
-  const user = await users.findOne({ _id: session.userId });
+  const [users, sessions] = await Promise.all([getUsersCollection(), sessionsCollection()]);
+  const [user, record] = await Promise.all([
+    users.findOne({ _id: session.userId }),
+    session.sessionId ? sessions.findOne({ _id: session.sessionId }) : Promise.resolve(null),
+  ]);
   if (!user) return null;
   const current = typeof user.sessionVersion === "number" ? user.sessionVersion : 0;
-  return current === session.version ? user : null;
+  if (current !== session.version) return null;
+  if (session.sessionId) {
+    // A disconnected device (or a record from another account) no longer counts as signed in
+    if (!record || record.revokedAt || !record.userId.equals(session.userId)) return null;
+    await touchSession(record).catch(() => undefined);
+  }
+  return user;
 });
+
+/** The id of the device session this request is using (null for older cookies). */
+export async function getCurrentSessionId() {
+  return (await readSessionCookie())?.sessionId ?? null;
+}
 
 export async function getSessionUserId() {
   const user = await getSessionUser();
