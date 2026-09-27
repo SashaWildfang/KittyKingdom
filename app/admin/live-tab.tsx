@@ -35,6 +35,8 @@ const POLL_MS = 2000;
 const KEEP = 400;
 const PULSE_MS = 2400;
 const GROUP_MS = 5 * 60_000;
+const FADE_MIN = 20; // channels fade over this many quiet minutes…
+const FALLOFF_MIN = 30; // …and leave the list after this many
 
 type Staff = Record<string, { rank: string; color: string | null }>;
 type Ctx = { mentions: Mentions; people: People; staff: Staff; onOpenMember: (id: string) => void };
@@ -366,9 +368,9 @@ function MessageRow({
 
 function ChannelRow({ c, now, focused, pulse, onPick, onHide }: { c: ChannelTile; now: number; focused: boolean; pulse: boolean; onPick: () => void; onHide: () => void }) {
   const level = c.kind === "voice" ? (c.voice.length ? "live" : "idle") : heat(c.count5);
-  // Fades as the channel goes quiet: full strength for 2 minutes, dimmest after 30
+  // Fades as the channel goes quiet: full strength for 2 minutes, dimmest after FADE_MIN
   const age = c.lastAt ? (now - new Date(c.lastAt).getTime()) / 60_000 : Infinity;
-  const fade = c.kind === "voice" ? (c.voice.length ? 1 : 0.5) : c.unread > 0 ? 1 : age <= 2 ? 1 : age >= 30 ? 0.45 : 1 - ((age - 2) / 28) * 0.55;
+  const fade = c.kind === "voice" ? (c.voice.length ? 1 : 0.5) : c.unread > 0 ? 1 : age <= 2 ? 1 : age >= FADE_MIN ? 0.35 : 1 - ((age - 2) / (FADE_MIN - 2)) * 0.65;
   return (
     <div className={`live-ch live-ch--${level}${focused ? " is-focused" : ""}${pulse ? " is-pulse" : ""}`} style={{ "--fade": fade } as React.CSSProperties}>
       <button type="button" className="live-ch-main" onClick={onPick} disabled={c.kind === "voice"} aria-pressed={focused} title={c.kind === "voice" ? `${c.voice.length} in voice` : focused ? "Click to unfocus" : "Click to focus"}>
@@ -684,6 +686,9 @@ export function LiveTab({ onOpenMember, onUnread }: { onOpenMember: (id: string)
     el.classList.add("is-flash");
   }
 
+  // Text channels drop off the list once they've faded out (quiet for FALLOFF_MIN) and have nothing unread
+  const isActive = (c: ChannelTile) =>
+    c.kind === "voice" ? c.voice.length > 0 : c.unread > 0 || Boolean(c.lastAt && now - new Date(c.lastAt).getTime() < FALLOFF_MIN * 60_000);
   const toggleFocus = (id: string) => setFocus((f) => (f.includes(id) ? f.filter((x) => x !== id) : [...f, id]));
   const allTiles = snap?.categories.flatMap((c) => c.channels) ?? [];
   const nameOf = (id: string) => allTiles.find((c) => c.id === id)?.name ?? "channel";
@@ -742,7 +747,7 @@ export function LiveTab({ onOpenMember, onUnread }: { onOpenMember: (id: string)
             <span className="is-hot">very busy</span>
           </div>
           {(snap?.categories ?? []).map((cat) => {
-            const rows = cat.channels.filter((c) => !c.hidden && (quietShown || c.count60 > 0 || c.unread > 0 || c.voice.length > 0 || focus.includes(c.id)));
+            const rows = cat.channels.filter((c) => !c.hidden && (quietShown || isActive(c) || focus.includes(c.id)));
             if (!rows.length) return null;
             const catKey = cat.id ?? "none";
             const closed = collapsed.includes(catKey);
@@ -771,8 +776,8 @@ export function LiveTab({ onOpenMember, onUnread }: { onOpenMember: (id: string)
               </section>
             );
           })}
-          {snap && !snap.categories.some((c) => c.channels.some((t) => !t.hidden && (quietShown || t.count60 > 0 || t.unread > 0 || t.voice.length > 0))) ? (
-            <p className="adm-empty">No activity in the last hour. Tick “Show quiet” to see every channel.</p>
+          {snap && !snap.categories.some((c) => c.channels.some((t) => !t.hidden && (quietShown || isActive(t) || focus.includes(t.id)))) ? (
+            <p className="adm-empty">No activity right now. Channels appear here when someone talks, and drop off once they&apos;ve been quiet for {FALLOFF_MIN} minutes. Tick “Show quiet” to see every channel.</p>
           ) : null}
           <div className="live-hidden">
             <button type="button" className="adm-btn adm-btn--ghost adm-btn--small" onClick={() => setManagingHidden((v) => !v)} aria-expanded={managingHidden}>

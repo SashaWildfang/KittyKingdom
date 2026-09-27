@@ -34,7 +34,7 @@ type Filters = {
 };
 
 const DEFAULTS: Filters = { search: "", types: [], statuses: [], range: "all", transcriptsOnly: false, sort: "ticketId", order: "desc", pageSize: 25 };
-const STATUSES = ["Open", "Closed", "Deleted"];
+const STATUSES = ["Open", "Closed", "Finalized"];
 
 export function TicketsTab({
   typesAvailable,

@@ -15359,3 +15359,82 @@ p.acct-inline-icon > svg:first-child {
   width: 4rem;
   height: 4rem;
 }
+
+/* Ticket type drill-down */
+.adm-ticket-list {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.adm-ticket-list > li {
+  border: 1px solid var(--line);
+  border-radius: 0.8rem;
+  background: var(--panel);
+  padding: 0.5rem 0.7rem;
+}
+
+.adm-ticket-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.adm-ticket-head .adm-btn {
+  margin-left: auto;
+}
+
+.adm-ticket-topic {
+  margin: 0.25rem 0 0;
+  font-size: 0.86rem;
+  overflow-wrap: anywhere;
+}
+
+.adm-ticket-people {
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+}
+
+.ja-member {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.ja-member-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.86rem;
+}
+
+.ja-member-toggle {
+  margin-left: auto;
+}
+
+.ja-member-toggle svg {
+  transition: transform 0.2s ease;
+}
+
+.ja-member-toggle svg.is-open {
+  transform: rotate(180deg);
+}
+
+/* Admin tabs: every tab visible on wide screens (wraps to a second row instead of running off the edge) */
+@media (min-width: 761px) {
+  .adm-tabs {
+    flex-wrap: wrap;
+    overflow: visible;
+    border-radius: 1.3rem;
+  }
+
+  .adm-tabs button {
+    flex: 1 1 auto;
+    justify-content: center;
+    padding: 0.55rem 0.85rem;
+    font-size: 0.92rem;
+  }
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Ban, Cake, Check, Clock, Compass, Heart, Loader2, Search, ShieldAlert, UserRound, X } from "lucide-react";
+import { AlertTriangle, Ban, Cake, ChevronDown, Check, Clock, Compass, Heart, Loader2, Search, ShieldAlert, UserRound, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { JoinApp } from "../../lib/join-apps";
 import { Avatar, Pager, timeAgo, formatDate, useLive, type People } from "./admin-shared";
@@ -106,26 +106,21 @@ function Decide({ app, name, queueOnline, onDone }: { app: JoinApp; name: string
     );
   }
 
-  const pending = app.status === "pending";
+  // Only applications still waiting for a decision get buttons
+  if (app.status !== "pending") return null;
   return (
     <div className="ja-decide">
       {mode === "idle" ? (
         <div className="ja-buttons">
-          {pending ? (
-            <>
-              <button type="button" className="ja-btn ja-btn--accept" onClick={() => setMode("accept")}>
-                <Check size={15} aria-hidden="true" /> Accept
-              </button>
-              <button type="button" className="ja-btn ja-btn--deny" onClick={() => setMode("deny")}>
-                <X size={15} aria-hidden="true" /> Deny
-              </button>
-            </>
-          ) : null}
-          {app.status !== "banned" ? (
-            <button type="button" className="ja-btn ja-btn--ban" onClick={() => setMode("ban")}>
-              <Ban size={15} aria-hidden="true" /> Ban
-            </button>
-          ) : null}
+          <button type="button" className="ja-btn ja-btn--accept" onClick={() => setMode("accept")}>
+            <Check size={15} aria-hidden="true" /> Accept
+          </button>
+          <button type="button" className="ja-btn ja-btn--deny" onClick={() => setMode("deny")}>
+            <X size={15} aria-hidden="true" /> Deny
+          </button>
+          <button type="button" className="ja-btn ja-btn--ban" onClick={() => setMode("ban")}>
+            <Ban size={15} aria-hidden="true" /> Ban
+          </button>
         </div>
       ) : mode === "accept" ? (
         <div className="ja-confirm">
@@ -388,17 +383,26 @@ export function JoinAppsTab({ onOpenMember }: { onOpenMember: (id: string) => vo
   );
 }
 
-/** A member's application inside their full profile. */
+/** A member's application inside their full profile: a one-line summary that opens into the full application. */
 export function MemberJoinApp({ discordId, onOpenMember }: { discordId: string; onOpenMember?: (id: string) => void }) {
+  const [open, setOpen] = useState(false);
   const { data, reload } = useLive<{ app: JoinApp | null; people: People; queueOnline: boolean }>(`/api/admin/join-apps/${discordId}`, 15_000);
   if (!data) return <div className="adm-skeleton adm-skeleton--short" />;
   if (!data.app) return <p className="adm-empty">No join application on file.</p>;
+  const app = data.app;
   return (
-    <div className="ja-member">
-      <p className="ja-member-status">
-        <StatusBadge status={data.app.status} />
-      </p>
-      <JoinAppCard app={data.app} people={data.people} queueOnline={data.queueOnline} onDone={() => void reload()} onOpenMember={onOpenMember} compact />
+    <div className={`ja-member${open ? " is-open" : ""}`}>
+      <div className="ja-member-summary">
+        <StatusBadge status={app.status} />
+        <span className="adm-muted">
+          {app.submittedAt ? `Applied ${timeAgo(app.submittedAt)}` : "Applied"}
+          {app.age !== null ? ` · ${app.age} years old` : ""}
+        </span>
+        <button type="button" className="adm-btn adm-btn--ghost adm-btn--small ja-member-toggle" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
+          <ChevronDown size={14} aria-hidden="true" className={open ? "is-open" : undefined} /> {open ? "Hide application" : "View application"}
+        </button>
+      </div>
+      {open ? <JoinAppCard app={app} people={data.people} queueOnline={data.queueOnline} onDone={() => void reload()} onOpenMember={onOpenMember} compact /> : null}
     </div>
   );
 }
