@@ -70,10 +70,30 @@ async function idsMatchingName(search: string): Promise<string[]> {
   return docs.map((d) => String(d._id));
 }
 
-/** activeTickets and resolvedTickets as one list. */
+/**
+ * activeTickets and resolvedTickets as one list. Only tickets in activeTickets are open: a few old
+ * tickets were moved to resolvedTickets without their status changing, so those read as closed.
+ */
 async function ticketsPipelineBase(): Promise<{ col: Awaited<ReturnType<typeof getBotCollection>>; union: Document[] }> {
   const col = await getBotCollection("resolvedTickets");
-  return { col, union: [{ $unionWith: { coll: "activeTickets" } }] };
+  return {
+    col,
+    union: [
+      { $unionWith: { coll: "activeTickets", pipeline: [{ $addFields: { _active: true } }] } },
+      {
+        $addFields: {
+          status: {
+            $cond: [{ $eq: ["$_active", true] }, { $ifNull: ["$status", "Open"] }, { $cond: [{ $eq: ["$status", "Open"] }, "Closed", "$status"] }],
+          },
+        },
+      },
+    ],
+  };
+}
+
+/** Tickets open right now (whatever the date range). */
+export async function openTicketCount() {
+  return (await getBotCollection("activeTickets")).countDocuments();
 }
 
 export async function queryTickets(q: TicketQuery) {
@@ -164,7 +184,6 @@ export async function ticketStats(q: { from?: Date | null; to?: Date | null; uni
             { $match: { resolved_at: { $type: "date" }, created: { $type: "date" } } },
             { $group: { _id: null, avg: { $avg: { $subtract: ["$resolved_at", "$created"] } }, n: { $sum: 1 } } },
           ],
-          open: [{ $match: { status: "Open" } }, { $count: "n" }],
         },
       },
     ])
@@ -172,7 +191,7 @@ export async function ticketStats(q: { from?: Date | null; to?: Date | null; uni
 
   return {
     total: result?.total?.[0]?.n ?? 0,
-    open: result?.open?.[0]?.n ?? 0,
+    open: await openTicketCount(),
     byType: (result?.byType ?? []).map((d: Document) => ({ type: String(d._id ?? "unknown"), count: d.n as number })),
     byStatus: Object.fromEntries((result?.byStatus ?? []).map((d: Document) => [String(d._id), d.n as number])),
     timeline: (result?.timeline ?? [])

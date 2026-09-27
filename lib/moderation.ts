@@ -39,6 +39,8 @@ export type PunishmentQuery = {
   order?: "asc" | "desc";
   page?: number;
   pageSize?: number;
+  /** Also count reasons, issuers and sources across every match (not just this page) */
+  summary?: boolean;
 };
 
 const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -224,6 +226,18 @@ export async function queryPunishments(q: PunishmentQuery) {
           $facet: {
             rows: [{ $sort: { [sortField]: order, _id: order } }, { $skip: (page - 1) * pageSize }, { $limit: pageSize }],
             total: [{ $count: "n" }],
+            ...(q.summary
+              ? {
+                  // Grouped ignoring case, shown with the original wording
+                  reasons: [
+                    { $group: { _id: { $toLower: { $trim: { input: { $toString: { $ifNull: ["$reason", ""] } } } } }, n: { $sum: 1 }, text: { $first: "$reason" } } },
+                    { $sort: { n: -1 } },
+                    { $limit: 40 },
+                  ],
+                  issuers: [{ $match: { n_issuer: { $ne: null } } }, { $group: { _id: "$n_issuer", n: { $sum: 1 } } }, { $sort: { n: -1 } }, { $limit: 8 }],
+                  sources: [{ $group: { _id: "$n_source", n: { $sum: 1 } } }],
+                }
+              : {}),
           },
         },
       ],
@@ -235,6 +249,13 @@ export async function queryPunishments(q: PunishmentQuery) {
     total: result?.total?.[0]?.n ?? 0,
     page,
     pageSize,
+    summary: q.summary
+      ? {
+          reasons: ((result?.reasons ?? []) as Document[]).map((d) => ({ reason: d._id ? String(d.text ?? d._id).trim() : "", count: d.n as number })),
+          issuers: ((result?.issuers ?? []) as Document[]).map((d) => ({ id: String(d._id), count: d.n as number, automod: String(d._id) === botId })),
+          sources: Object.fromEntries(((result?.sources ?? []) as Document[]).map((d) => [String(d._id), d.n as number])) as Record<string, number>,
+        }
+      : null,
   };
 }
 

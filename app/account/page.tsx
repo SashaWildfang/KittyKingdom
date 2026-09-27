@@ -1,4 +1,4 @@
-import { Backpack, BadgeCheck, Check, CircleAlert, ClipboardList, Gem, Image as ImageIcon, KeyRound, Link2, Lock, MessageCircle, Mic, Minus, ShieldCheck, Sparkles, Star, TriangleAlert, UserRound, type LucideIcon } from "lucide-react";
+import { Backpack, BadgeCheck, Gift, Check, CircleAlert, ClipboardList, Gem, Image as ImageIcon, KeyRound, Link2, Lock, MessageCircle, Mic, Minus, ShieldCheck, Sparkles, Star, TriangleAlert, UserRound, type LucideIcon } from "lucide-react";
 import { LeafEmote } from "../ui-icons";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -9,12 +9,14 @@ import type { CSSProperties } from "react";
 import { SiteNav } from "../site-nav";
 import { VerifyEmailBanner } from "../verify-email-banner";
 import { BrandIcon } from "../brand-icon";
-import { getMemberRoleSummary } from "../../lib/discord-member";
+import { getMemberRoleSummary, guildId } from "../../lib/discord-member";
 import { formatPhone, SOCIALS, type SocialLink } from "../../lib/contact";
 import { formatDateOfBirth } from "../../lib/dates";
 import { applicationBirthday, getJoinApplication } from "../../lib/join-application";
 import { getRoleState } from "../../lib/member-roles";
 import { CollapsibleCard } from "./collapsible-card";
+import { DailyCard } from "./daily-card";
+import { getDailyStatus } from "../../lib/daily";
 import { AccountInventory } from "./account-inventory";
 import { DiscordLinkCode } from "./discord-link-code";
 import { RoleManager } from "./role-manager";
@@ -112,10 +114,12 @@ export default async function AccountPage({
     searchParams.discord ??
     searchParams.verify ??
     searchParams.login;
-  const [application, roles, roleState] = await Promise.all([
+  const [application, roles, roleState, dailyStatus, serverId] = await Promise.all([
     getJoinApplication(user.discordId),
     getMemberRoleSummary(user.discordId),
     user.discordId ? getRoleState(String(user.discordId)).catch(() => null) : Promise.resolve(null),
+    user.discordId ? getDailyStatus(String(user.discordId)).catch(() => null) : Promise.resolve(null),
+    user.discordId ? guildId().catch(() => null) : Promise.resolve(null),
   ]);
   const socials = (user.socials ?? {}) as Partial<Record<string, SocialLink>>;
   const phone = typeof user.phone === "string" ? user.phone : null;
@@ -234,6 +238,7 @@ export default async function AccountPage({
           <nav className="acct-nav" aria-label="Account sections">
             <a href="#overview"><ClipboardList size={16} aria-hidden="true" /> Overview</a>
             {discordLinked ? <a href="#roles"><Sparkles size={16} aria-hidden="true" /> Server roles</a> : null}
+            {discordLinked ? <a href="#daily"><Gift size={16} aria-hidden="true" /> Daily leaves</a> : null}
             {discordLinked ? <a href="#inventory"><Backpack size={16} aria-hidden="true" /> Inventory</a> : null}
             <a href="#profile"><UserRound size={16} aria-hidden="true" /> Profile</a>
             <a href="#contact"><Link2 size={16} aria-hidden="true" /> Contact &amp; socials</a>
@@ -286,6 +291,12 @@ export default async function AccountPage({
               }
             >
               <RoleManager initial={roleState} />
+            </CollapsibleCard>
+          ) : null}
+
+          {discordLinked ? (
+            <CollapsibleCard id="daily" title="Daily leaves" description="Claim free leaves once a day. Claim every day to build your streak.">
+              <DailyCard initial={dailyStatus} guildId={serverId} />
             </CollapsibleCard>
           ) : null}
 

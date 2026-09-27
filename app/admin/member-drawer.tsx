@@ -217,7 +217,9 @@ export function MemberDrawer({
   );
 }
 
-type Role = { id: string; name: string; colors: string[] };
+type Role = { id: string; name: string; colors: string[]; position?: number };
+
+const byRank = (list: Role[]) => [...list].sort((a, b) => (b.position ?? 0) - (a.position ?? 0));
 
 /** A member's roles; admins can hover a role to remove it or add one from a searchable list. */
 function RoleEditor({ userId, roles, inServer, editable, onChanged }: { userId: string; roles: Role[]; inServer: boolean; editable: boolean; onChanged: () => void }) {
@@ -243,7 +245,7 @@ function RoleEditor({ userId, roles, inServer, editable, onChanged }: { userId: 
     setConfirm(null);
     setMessage(null);
     // Show the change straight away; the live refresh confirms it
-    setLocalRoles((list) => (add ? [...list, role] : list.filter((r) => r.id !== role.id)));
+    setLocalRoles((list) => (add ? byRank([...list, role]) : list.filter((r) => r.id !== role.id)));
     try {
       const res = await fetch(`/api/admin/user/${userId}/roles`, {
         method: "POST",
