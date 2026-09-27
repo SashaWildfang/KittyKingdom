@@ -1,4 +1,8 @@
 import { AuthCard, type AuthStatus } from "../auth-card";
+import { pendingRegistration } from "../../lib/registration";
+import { RegisterLink } from "./register-link";
+
+export const dynamic = "force-dynamic";
 
 const statusMessages: Record<string, string> = {
   "check-email":
@@ -8,6 +12,7 @@ const statusMessages: Record<string, string> = {
   "password-requirements":
     "Password must be 8+ characters and include at least one number and one symbol.",
   "email-exists": "An account already exists for that email.",
+  "discord-required": "Accounts are for members of the Kitty Kingdom Discord. You'll link yours with /link in the next step.",
   "email-required": "Enter a valid email address.",
   "too-many": "Too many sign-ups from your network. Please try again in an hour.",
   "email-provider-needed":
@@ -18,11 +23,20 @@ const statusMessages: Record<string, string> = {
     "The account database is not reachable right now. Please try again after the database network settings are updated.",
 };
 
-export default function RegisterPage({
+export default async function RegisterPage({
   searchParams,
 }: {
-  searchParams: { register?: string };
+  searchParams: { register?: string; step?: string };
 }) {
+  // Step 2: link Discord with /link (only verified server members can finish signing up)
+  if (searchParams.step === "link" && (await pendingRegistration().catch(() => null))) {
+    return (
+      <main className="auth-screen">
+        <div className="auth-backdrop" />
+        <RegisterLink />
+      </main>
+    );
+  }
   const status = searchParams.register;
 
   const registerStatus: AuthStatus =

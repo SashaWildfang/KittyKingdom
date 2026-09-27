@@ -174,3 +174,19 @@ export const getCurrentUser = getSessionUser;
 export function canViewStaffPage(user: Record<string, unknown> | null | undefined) {
   return Boolean(user && user.emailVerified !== false && user.discordId);
 }
+
+/** "<value>.<signature>" so a cookie's value can be trusted when it comes back. */
+export function signPayload(value: string) {
+  return `${value}.${sign(value)}`;
+}
+
+/** The value from signPayload(), or null if it was tampered with. */
+export function readSignedPayload(raw: string | undefined | null) {
+  if (!raw) return null;
+  const dot = raw.lastIndexOf(".");
+  if (dot <= 0) return null;
+  const value = raw.slice(0, dot);
+  const given = Buffer.from(raw.slice(dot + 1), "hex");
+  const expected = Buffer.from(sign(value), "hex");
+  return given.length === expected.length && timingSafeEqual(given, expected) ? value : null;
+}

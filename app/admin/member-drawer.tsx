@@ -4,6 +4,7 @@ import { Backpack, Ban, Check, ClipboardCheck, Minus, Plus, Trash2, FileText, Me
 import { LeafEmote, StoreItemIcon } from "../ui-icons";
 import { useEffect, useRef, useState } from "react";
 import type { Drill } from "./drill-panel";
+import { PurchaseHistory } from "../purchase-history";
 import { MemberJoinApp } from "./join-apps";
 import {
   ActionBadge,
@@ -186,6 +187,7 @@ export function MemberDrawer({
                   <Backpack size={16} aria-hidden="true" /> Inventory
                 </h3>
                 <InventoryEditor userId={userId} />
+                <PurchaseHistory url={`/api/admin/user/${userId}/history`} whose="their" />
               </section>
             ) : null}
 

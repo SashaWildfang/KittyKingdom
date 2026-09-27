@@ -1,0 +1,185 @@
+"use client";
+
+import { ArrowDownLeft, ArrowUpRight, ChevronDown, Globe, MessageCircle, Search, ShoppingBag } from "lucide-react";
+import { useEffect, useState } from "react";
+import type { HistoryEntry } from "../lib/purchase-history";
+import { LeafEmote, StoreItemIcon } from "./ui-icons";
+
+type Result = { entries: HistoryEntry[]; total: number; page: number; pageSize: number; totals: { spent: number; purchases: number; sent: number; received: number } };
+
+const KINDS = [
+  { key: "", label: "All" },
+  { key: "purchase", label: "Purchases" },
+  { key: "gift-sent", label: "Gifts sent" },
+  { key: "gift-received", label: "Gifts received" },
+];
+
+const when = (iso: string | null) =>
+  iso ? new Date(iso).toLocaleString([], { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) : "—";
+
+/**
+ * Searchable purchase history: Leaf Shop buys (website and Discord) and gifts sent/received.
+ * `url` is /api/store/history for yourself or /api/admin/user/<id>/history for a member.
+ */
+export function PurchaseHistory({ url, whose = "your", startOpen = false }: { url: string; whose?: string; startOpen?: boolean }) {
+  const [open, setOpen] = useState(startOpen);
+  const [search, setSearch] = useState("");
+  const [query, setQuery] = useState("");
+  const [kind, setKind] = useState("");
+  const [page, setPage] = useState(1);
+  const [data, setData] = useState<Result | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      setQuery(search.trim());
+      setPage(1);
+    }, 250);
+    return () => window.clearTimeout(t);
+  }, [search]);
+
+  useEffect(() => {
+    if (!open) return;
+    let stop = false;
+    setLoading(true);
+    const params = new URLSearchParams({ search: query, kind, page: String(page) });
+    fetch(`${url}?${params}`, { cache: "no-store" })
+      .then(async (r) => {
+        const body = await r.json();
+        if (!r.ok || !body.ok) throw new Error(body.error ?? "Couldn't load the purchase history.");
+        if (!stop) {
+          setData(body);
+          setError(null);
+        }
+      })
+      .catch((e) => !stop && setError(e instanceof Error ? e.message : "Couldn't load the purchase history."))
+      .finally(() => !stop && setLoading(false));
+    return () => {
+      stop = true;
+    };
+  }, [url, query, kind, page, open]);
+
+  const pages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;
+
+  return (
+    <section className={`ph${open ? " is-open" : ""}`}>
+      <button type="button" className="ph-toggle" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
+        <ShoppingBag size={16} aria-hidden="true" />
+        <span>Purchase history</span>
+        {data ? <small>{data.totals.purchases} purchases</small> : null}
+        <ChevronDown size={16} aria-hidden="true" className="ph-chevron" />
+      </button>
+
+      {open ? (
+        <div className="ph-body">
+          {data ? (
+            <div className="ph-totals">
+              <span>
+                <b>
+                  <LeafEmote size={15} /> {data.totals.spent.toLocaleString()}
+                </b>{" "}
+                spent
+              </span>
+              <span>
+                <b>{data.totals.purchases.toLocaleString()}</b> purchases
+              </span>
+              <span>
+                <b>{data.totals.sent.toLocaleString()}</b> gifts sent
+              </span>
+              <span>
+                <b>{data.totals.received.toLocaleString()}</b> gifts received
+              </span>
+            </div>
+          ) : null}
+
+          <div className="ph-filters">
+            <label className="ph-search">
+              <Search size={15} aria-hidden="true" />
+              <input type="search" placeholder="Search items…" value={search} onChange={(e) => setSearch(e.target.value)} aria-label={`Search ${whose} purchase history`} />
+            </label>
+            <div className="ph-kinds" role="tablist">
+              {KINDS.map((k) => (
+                <button
+                  key={k.key || "all"}
+                  type="button"
+                  role="tab"
+                  aria-selected={kind === k.key}
+                  className={kind === k.key ? "is-active" : undefined}
+                  onClick={() => {
+                    setKind(k.key);
+                    setPage(1);
+                  }}
+                >
+                  {k.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {error ? <p className="ph-error">{error}</p> : null}
+          {!data && loading ? <div className="adm-skeleton adm-skeleton--short" /> : null}
+
+          {data ? (
+            data.entries.length ? (
+              <ul className={`ph-list${loading ? " is-loading" : ""}`}>
+                {data.entries.map((e) => (
+                  <li key={e.id}>
+                    <span className={`ph-icon ph-icon--${e.kind}`} aria-hidden="true">
+                      <StoreItemIcon icon={e.itemType === "role" ? "package" : e.icon} size={17} />
+                    </span>
+                    <span className="ph-main">
+                      <strong>
+                        {e.quantity > 1 ? `${e.quantity}× ` : ""}
+                        {e.name}
+                      </strong>
+                      <small>
+                        {e.kind === "purchase" ? (
+                          <span className="ph-kind">Bought</span>
+                        ) : e.kind === "gift-sent" ? (
+                          <span className="ph-kind ph-kind--sent">
+                            <ArrowUpRight size={12} aria-hidden="true" /> Gift to {e.otherName ?? "someone"}
+                          </span>
+                        ) : (
+                          <span className="ph-kind ph-kind--got">
+                            <ArrowDownLeft size={12} aria-hidden="true" /> Gift from {e.otherName ?? "someone"}
+                          </span>
+                        )}
+                        <span>{when(e.at)}</span>
+                        <span className="ph-source" title={e.source === "website" ? "Bought on the website" : "Done in Discord"}>
+                          {e.source === "website" ? <Globe size={11} aria-hidden="true" /> : <MessageCircle size={11} aria-hidden="true" />} {e.source === "website" ? "Website" : "Discord"}
+                        </span>
+                      </small>
+                      {e.message ? <em className="ph-message">“{e.message}”</em> : null}
+                    </span>
+                    {e.price !== null ? (
+                      <span className="ph-price">
+                        −{e.price.toLocaleString()} <LeafEmote size={14} />
+                      </span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="ph-empty">{query || kind ? "Nothing matches." : `No purchases yet.`}</p>
+            )
+          ) : null}
+
+          {data && pages > 1 ? (
+            <div className="ph-pager">
+              <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}>
+                ← Newer
+              </button>
+              <span>
+                Page {page} of {pages}
+              </span>
+              <button type="button" onClick={() => setPage((p) => Math.min(pages, p + 1))} disabled={page >= pages}>
+                Older →
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+    </section>
+  );
+}
