@@ -303,3 +303,204 @@ export function downloadText(filename: string, text: string) {
   a.click();
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+// ==========================================
+// Discord-flavoured text: <#channel>, <@user>, <@&role>, <:emoji:id>
+// ==========================================
+export type Mentions = {
+  channels: Record<string, string>;
+  roles: Record<string, { name: string; color: string | null }>;
+};
+
+const TOKEN = /<(a?):(\w{2,32}):(\d{15,21})>|<#(\d{15,21})>|<@&(\d{15,21})>|<@!?(\d{15,21})>/g;
+
+/** Shows a reason the way Discord would: channel and role names, member names, custom emojis. */
+export function RichText({ text, mentions, people, onOpenMember }: { text: string; mentions?: Mentions; people?: People; onOpenMember?: (id: string) => void }) {
+  const parts: React.ReactNode[] = [];
+  let last = 0;
+  let key = 0;
+  for (const match of Array.from(text.matchAll(TOKEN))) {
+    const index = match.index ?? 0;
+    if (index > last) parts.push(text.slice(last, index));
+    const [, animated, emojiName, emojiId, channelId, roleId, userId] = match;
+    if (emojiId) {
+      parts.push(
+        <img
+          key={key++}
+          className="adm-emoji"
+          src={`https://cdn.discordapp.com/emojis/${emojiId}.${animated ? "gif" : "webp"}?size=48&quality=lossless`}
+          alt={`:${emojiName}:`}
+          title={`:${emojiName}:`}
+          loading="lazy"
+        />,
+      );
+    } else if (channelId) {
+      const name = mentions?.channels[channelId];
+      parts.push(
+        <span key={key++} className="adm-mention" title={channelId}>
+          #{name ?? "unknown-channel"}
+        </span>,
+      );
+    } else if (roleId) {
+      const role = mentions?.roles[roleId];
+      parts.push(
+        <span key={key++} className="adm-mention" style={role?.color ? ({ "--m": role.color } as React.CSSProperties) : undefined}>
+          @{role?.name ?? "unknown-role"}
+        </span>,
+      );
+    } else if (userId) {
+      const person = people?.[userId];
+      parts.push(
+        <button
+          key={key++}
+          type="button"
+          className="adm-mention"
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenMember?.(userId);
+          }}
+        >
+          @{person?.name ?? userId}
+        </button>,
+      );
+    }
+    last = index + match[0].length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return <>{parts}</>;
+}
+
+// ==========================================
+// Member search with suggestions
+// ==========================================
+export type MemberSuggestion = { id: string; name: string; username: string | null; avatar: string | null; inServer: boolean; punishments: number };
+
+/**
+ * A search box that suggests Discord members as you type. Picking one calls onPick;
+ * pressing Enter without picking calls onSubmit with the text.
+ */
+export function MemberSearch({
+  value,
+  onChange,
+  onPick,
+  onSubmit,
+  placeholder,
+  className,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  onPick: (member: MemberSuggestion) => void;
+  onSubmit?: (text: string) => void;
+  placeholder: string;
+  className?: string;
+}) {
+  const [suggestions, setSuggestions] = useState<MemberSuggestion[]>([]);
+  const [open, setOpen] = useState(false);
+  const [highlight, setHighlight] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const q = value.trim();
+    if (q.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+    const controller = new AbortController();
+    setLoading(true);
+    const timer = window.setTimeout(() => {
+      fetch(`/api/admin/members?q=${encodeURIComponent(q)}`, { signal: controller.signal, cache: "no-store" })
+        .then((r) => r.json())
+        .then((body) => {
+          setSuggestions(body.members ?? []);
+          setHighlight(0);
+        })
+        .catch(() => undefined)
+        .finally(() => setLoading(false));
+    }, 180);
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [value]);
+
+  useEffect(() => {
+    const close = (e: MouseEvent) => {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, []);
+
+  function pick(member: MemberSuggestion) {
+    setOpen(false);
+    onPick(member);
+  }
+
+  const showList = open && value.trim().length >= 2;
+  return (
+    <div className={`adm-msearch${className ? ` ${className}` : ""}`} ref={boxRef}>
+      <span className="adm-msearch-icon" aria-hidden="true">
+        🔍
+      </span>
+      <input
+        type="search"
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            setHighlight((h) => Math.min(h + 1, Math.max(0, suggestions.length - 1)));
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            setHighlight((h) => Math.max(h - 1, 0));
+          } else if (e.key === "Enter") {
+            e.preventDefault();
+            if (showList && suggestions[highlight]) pick(suggestions[highlight]);
+            else {
+              setOpen(false);
+              onSubmit?.(value);
+            }
+          } else if (e.key === "Escape") {
+            setOpen(false);
+          }
+        }}
+        role="combobox"
+        aria-expanded={showList}
+        aria-autocomplete="list"
+      />
+      {showList ? (
+        <ul className="adm-msearch-list" role="listbox">
+          {suggestions.map((m, i) => (
+            <li key={m.id} role="option" aria-selected={i === highlight}>
+              <button
+                type="button"
+                className={i === highlight ? "is-hl" : undefined}
+                onMouseEnter={() => setHighlight(i)}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => pick(m)}
+              >
+                <Avatar person={{ name: m.name, username: m.username, avatar: m.avatar, inServer: m.inServer }} id={m.id} size={30} />
+                <span className="adm-msearch-text">
+                  <strong>{m.name}</strong>
+                  <small>
+                    {m.username ? `@${m.username} · ` : ""}
+                    {m.id}
+                  </small>
+                </span>
+                {!m.inServer ? <span className="adm-tag adm-tag--muted">left</span> : null}
+                {m.punishments ? <span className="adm-msearch-count">{m.punishments} on record</span> : null}
+              </button>
+            </li>
+          ))}
+          {!suggestions.length ? <li className="adm-msearch-empty">{loading ? "Searching…" : "No members match. Press Enter to search text."}</li> : null}
+        </ul>
+      ) : null}
+    </div>
+  );
+}

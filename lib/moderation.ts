@@ -264,7 +264,12 @@ export async function punishmentStats(q: StatsQuery) {
           ],
           topUsers: [{ $match: { n_user: { $ne: null } } }, { $group: { _id: "$n_user", n: { $sum: 1 }, last: { $max: "$timestamp" } } }, { $sort: { n: -1, last: -1 } }, { $limit: 10 }],
           topIssuers: [{ $match: { n_issuer: { $ne: null } } }, { $group: { _id: "$n_issuer", n: { $sum: 1 } } }, { $sort: { n: -1 } }, { $limit: 10 }],
-          topReasons: [{ $group: { _id: { $toLower: { $trim: { input: { $toString: { $ifNull: ["$reason", ""] } } } } }, n: { $sum: 1 } } }, { $sort: { n: -1 } }, { $limit: 8 }],
+          // Grouped ignoring case, shown with the original wording
+          topReasons: [
+            { $group: { _id: { $toLower: { $trim: { input: { $toString: { $ifNull: ["$reason", ""] } } } } }, n: { $sum: 1 }, text: { $first: "$reason" } } },
+            { $sort: { n: -1 } },
+            { $limit: 8 },
+          ],
           hours: [{ $group: { _id: { $hour: { date: "$timestamp", timezone: "America/Denver" } }, n: { $sum: 1 } } }],
           total: [{ $count: "n" }],
         },
@@ -279,7 +284,7 @@ export async function punishmentStats(q: StatsQuery) {
     timeline: (result?.timeline ?? []).map((d: Document) => ({ bucket: (d._id.t as Date).toISOString(), action: String(d._id.a), count: d.n as number })),
     topUsers: ((result?.topUsers ?? []) as Document[]).map((d) => ({ id: String(d._id), count: d.n as number, last: (d.last as Date)?.toISOString() ?? null })) as { id: string; count: number; last: string | null }[],
     topIssuers: ((result?.topIssuers ?? []) as Document[]).map((d) => ({ id: String(d._id), count: d.n as number, automod: String(d._id) === botId })) as { id: string; count: number; automod: boolean }[],
-    topReasons: (result?.topReasons ?? []).filter((d: Document) => d._id).map((d: Document) => ({ reason: String(d._id), count: d.n as number })),
+    topReasons: ((result?.topReasons ?? []) as Document[]).filter((d) => d._id).map((d) => ({ reason: String(d.text ?? d._id).trim(), count: d.n as number })) as { reason: string; count: number }[],
     hours: Array.from({ length: 24 }, (_, h) => (result?.hours ?? []).find((d: Document) => d._id === h)?.n ?? 0) as number[],
     currentlyBanned: bans?.size ?? null,
   };
