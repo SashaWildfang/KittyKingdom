@@ -1,19 +1,20 @@
 "use client";
 
-import { BarChart3, Gavel, ScrollText, Ticket, Users, type LucideIcon } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { BarChart3, Gavel, Newspaper, ScrollText, Ticket, Users, type LucideIcon } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AccountsTab } from "./accounts-tab";
 import { MemberSearch, useLive, useStored } from "./admin-shared";
 import { DrillPanel, type Drill } from "./drill-panel";
 import { LogsTab } from "./logs-tab";
 import { MemberDrawer } from "./member-drawer";
+import { NewsTab } from "./news-tab";
 import { OverviewTab } from "./overview-tab";
 import { DEFAULT_PUNISHMENT_FILTERS, PunishmentsTab, type PunishmentFilters } from "./punishments-tab";
 import { TicketsTab } from "./tickets-tab";
 import { TranscriptViewer } from "./transcript-viewer";
 
-type Tab = "overview" | "punishments" | "logs" | "tickets" | "accounts";
+type Tab = "overview" | "punishments" | "logs" | "tickets" | "accounts" | "news";
 type Level = "admin" | "staff";
 
 const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean }[] = [
@@ -22,6 +23,7 @@ const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean }[] = [
   { key: "logs", label: "Bot Logs", icon: ScrollText },
   { key: "tickets", label: "Tickets & Transcripts", icon: Ticket, admin: true },
   { key: "accounts", label: "Website Accounts", icon: Users, admin: true },
+  { key: "news", label: "News", icon: Newspaper, admin: true },
 ];
 
 // Clicking a headline number opens the punishments list filtered to that kind
@@ -43,6 +45,17 @@ export function AdminClient({ adminName, level }: { adminName: string; level: Le
   const [drill, setDrill] = useState<Drill | null>(null);
   const [punishmentFilters, setPunishmentFilters] = useStored<PunishmentFilters>("punishment-filters", DEFAULT_PUNISHMENT_FILTERS);
   const { data: meta } = useLive<{ actions: string[]; ticketTypes: string[] }>("/api/admin/meta", 60_000);
+  const [urlRead, setUrlRead] = useState(false);
+  const tabsRef = useRef<HTMLElement>(null);
+
+  // On narrow screens the tab strip scrolls sideways; keep the open tab in view
+  useEffect(() => {
+    const strip = tabsRef.current;
+    const active = strip?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (!strip || !active || strip.scrollWidth <= strip.clientWidth) return;
+    const offset = active.getBoundingClientRect().left - strip.getBoundingClientRect().left + strip.scrollLeft;
+    strip.scrollTo({ left: offset - (strip.clientWidth - active.offsetWidth) / 2, behavior: "smooth" });
+  }, [tab]);
 
   // Keep the open tab / member / transcript in the address bar so links can be shared
   useEffect(() => {
@@ -51,15 +64,18 @@ export function AdminClient({ adminName, level }: { adminName: string; level: Le
     if (t && tabs.some((x) => x.key === t)) setTab(t);
     if (params.get("member")) setMember(params.get("member"));
     if (isAdmin && params.get("ticket")) setTranscript(Number(params.get("ticket")));
+    setUrlRead(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
+    // Wait until the address bar has been read, or it would be overwritten with the default tab
+    if (!urlRead) return;
     const params = new URLSearchParams({ tab });
     if (member) params.set("member", member);
     if (transcript) params.set("ticket", String(transcript));
     window.history.replaceState(null, "", `/admin?${params}`);
-  }, [tab, member, transcript]);
+  }, [tab, member, transcript, urlRead]);
 
   const openMember = useCallback((id: string) => setMember(id), []);
   const openTranscript = useCallback((id: number) => isAdmin && setTranscript(id), [isAdmin]);
@@ -101,7 +117,7 @@ export function AdminClient({ adminName, level }: { adminName: string; level: Le
         />
       </header>
 
-      <nav className="adm-tabs" role="tablist">
+      <nav className="adm-tabs" role="tablist" ref={tabsRef}>
         {tabs.map((t) => (
           <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} className={tab === t.key ? "is-active" : undefined} onClick={() => setTab(t.key)}>
             <t.icon size={16} aria-hidden="true" /> {t.label}
@@ -126,6 +142,7 @@ export function AdminClient({ adminName, level }: { adminName: string; level: Le
       {tab === "logs" ? <LogsTab onOpenMember={openMember} /> : null}
       {isAdmin && tab === "tickets" ? <TicketsTab typesAvailable={meta?.ticketTypes ?? []} onOpenMember={openMember} onOpenTranscript={openTranscript} /> : null}
       {isAdmin && tab === "accounts" ? <AccountsTab onOpenMember={openMember} /> : null}
+      {isAdmin && tab === "news" ? <NewsTab /> : null}
 
       {/* Overlays render at the page root so they sit above the site's top bar */}
       {member

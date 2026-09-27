@@ -1,3 +1,4 @@
+import { Crown, Shield, Sparkles } from "lucide-react";
 import { LeafEmote } from "../ui-icons";
 import type { CSSProperties } from "react";
 import { getCurrentUser } from "../../lib/auth";
@@ -28,6 +29,12 @@ function timeAgo(date: Date) {
 
 function memberSince(date: Date) {
   return new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric", timeZone: "UTC" }).format(date);
+}
+
+function StaffGroupIcon({ name }: { name: string }) {
+  if (name === "leaf") return <LeafEmote size={24} />;
+  const Icon = { crown: Crown, shield: Shield, sparkles: Sparkles }[name] ?? Sparkles;
+  return <Icon size={22} />;
 }
 
 function StaffCard({ member }: { member: StaffMember }) {
@@ -102,7 +109,7 @@ export default async function StaffPage() {
           <section className="staff-section" key={group.title} aria-labelledby={`staff-${group.title}`}>
             <header className="staff-section-header">
               <span className="staff-section-icon" aria-hidden="true">
-                {group.icon}
+                <StaffGroupIcon name={group.icon} />
               </span>
               <div>
                 <h2 id={`staff-${group.title}`}>
