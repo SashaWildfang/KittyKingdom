@@ -125,6 +125,18 @@ function Emoji({ e }: { e: { name: string; url: string | null } }) {
 }
 
 // ---------- Level hero with the animated XP bar ----------
+/** Level badge in the level role's color, with dark or light text depending on how bright it is. */
+function badgeStyle(colors: string[] | null): CSSProperties | undefined {
+  if (!colors?.length) return undefined;
+  const stops = colors.length === 1 ? [colors[0], colors[0]] : colors;
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(colors[0].slice(i, i + 2), 16) / 255);
+  const light = 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.55;
+  return {
+    background: `radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.35), transparent 55%), linear-gradient(135deg, ${stops.join(", ")})`,
+    color: light ? "#1d0b05" : "#fff",
+    boxShadow: `0 10px 30px ${colors[0]}66`,
+  };
+}
 function LevelHero({ s }: { s: MemberStats }) {
   const { level } = s;
   const progress = Math.min(1, level.needed ? level.xp / level.needed : 0);
@@ -135,7 +147,7 @@ function LevelHero({ s }: { s: MemberStats }) {
   }, [progress]);
   return (
     <section className="st-hero">
-      <div className="st-level-badge" aria-label={`Level ${level.level}`}>
+      <div className="st-level-badge" aria-label={`Level ${level.level}`} style={badgeStyle(level.color)}>
         <span>Level</span>
         <strong>
           <Count value={level.level} />
@@ -515,8 +527,6 @@ export function StatsView({ onBack }: { onBack: () => void }) {
             <div><dt>Items owned</dt><dd>{fmt(s.economy.items)}</dd></div>
             <div><dt>Server bumps</dt><dd>{fmt(s.economy.bumps)} <small>({fmt(s.economy.monthlyBumps)} this month)</small></dd></div>
             <div><dt>QOTD answers</dt><dd>{fmt(s.economy.qotdAnswers)}</dd></div>
-            {s.economy.butterflies ? <div><dt>Butterflies</dt><dd>{fmt(s.economy.butterflies)}</dd></div> : null}
-            {s.economy.crabs ? <div><dt>Crabs</dt><dd>{fmt(s.economy.crabs)}</dd></div> : null}
           </dl>
         </Card>
 
