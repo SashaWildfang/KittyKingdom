@@ -5,7 +5,7 @@ import { Long } from "mongodb";
 import { addMemberRole, getGuildRoles, getMemberRoleIds, removeMemberRole, type GuildRole } from "./discord-member";
 import { getBotCollection } from "./mongodb";
 import { ADULT_ROLE_IDS, ROLE_CATEGORIES, SELF_ROLE_IDS } from "./role-catalog";
-import { getOwnedColorRoles } from "./store";
+import { countShopColorRoles, getOwnedColorRoles } from "./store";
 
 export const STATUS_ROLES = [
   { key: "adult", id: "1358469974552870913", label: "18+ Verified", icon: "🔞" },
@@ -41,6 +41,8 @@ export type RoleState = {
     roles: { id: string; name: string; emoji: string; description: string; has: boolean; exists: boolean }[];
   }[];
   colorRoles: { itemId: string; name: string; roleId: string; colors: string[]; equipped: boolean }[];
+  /** Every color role the shop sells, for the "unlocked" progress. */
+  colorRoleTotal: number;
   levelRoles: { id: string; name: string; colors: string[] }[];
   otherRoles: { id: string; name: string; colors: string[] }[];
 };
@@ -53,11 +55,12 @@ async function memberLevel(discordId: string) {
 }
 
 export async function getRoleState(discordId: string): Promise<RoleState> {
-  const [memberRoles, guildRoles, owned, level] = await Promise.all([
+  const [memberRoles, guildRoles, owned, level, colorRoleTotal] = await Promise.all([
     getMemberRoleIds(discordId),
     getGuildRoles(),
     getOwnedColorRoles(discordId).catch(() => []),
     memberLevel(discordId).catch(() => null),
+    countShopColorRoles().catch(() => 0),
   ]);
   const has = new Set(memberRoles ?? []);
   const isAdult = has.has(ADULT_VERIFIED_ID);
@@ -87,6 +90,7 @@ export async function getRoleState(discordId: string): Promise<RoleState> {
       roles: c.roles.map((r) => ({ ...r, has: has.has(r.id), exists: guildRoles.size === 0 || guildRoles.has(r.id) })),
     })),
     colorRoles: owned.map((o) => ({ ...o, colors: colorsOf(o.roleId), equipped: has.has(o.roleId) })),
+    colorRoleTotal: Math.max(colorRoleTotal, owned.length),
     levelRoles: levelRoles.map((r) => ({ id: r.id, name: r.name, colors: r.colors })),
     otherRoles: otherRoles.map((r) => ({ id: r.id, name: r.name, colors: r.colors })),
   };

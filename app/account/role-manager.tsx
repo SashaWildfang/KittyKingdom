@@ -5,6 +5,17 @@ import type { RoleState } from "../../lib/member-roles";
 
 const POLL_MS = 20_000;
 
+/** "Select this if you identify as male." -> "Identify as male" */
+function shortDescription(text: string) {
+  const trimmed = text
+    .replace(/^select this if you (are )?/i, "")
+    .replace(/^(standard|currently) /i, "")
+    .replace(/\.$/, "")
+    .trim();
+  const short = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+  return short.length > 42 ? `${short.slice(0, 40).trimEnd()}…` : short;
+}
+
 function swatch(colors: string[]) {
   if (!colors.length) return "linear-gradient(135deg, #8b8d98, #5b5d68)";
   return colors.length === 1 ? colors[0] : `linear-gradient(135deg, ${colors.join(", ")})`;
@@ -113,38 +124,49 @@ export function RoleManager({ initial }: { initial: RoleState | null }) {
 
   return (
     <div className="roles">
-      {/* Category picker */}
-      <div className="roles-nav" role="tablist" aria-label="Role categories">
-        {general.map((c) => (
-          <button
-            key={c.key}
-            type="button"
-            role="tab"
-            aria-selected={category?.key === c.key}
-            className={category?.key === c.key ? "is-active" : undefined}
-            style={{ "--cat": c.color } as React.CSSProperties}
-            onClick={() => setActive(c.key)}
-          >
-            {c.title}
-            {selectedCount(c.key) ? <span>{selectedCount(c.key)}</span> : null}
-          </button>
-        ))}
-        <span className="roles-nav-sep" aria-hidden="true" />
-        {adult.map((c) => (
-          <button
-            key={c.key}
-            type="button"
-            role="tab"
-            aria-selected={category?.key === c.key}
-            className={`roles-nav-adult${category?.key === c.key ? " is-active" : ""}`}
-            style={{ "--cat": c.color } as React.CSSProperties}
-            onClick={() => setActive(c.key)}
-          >
-            {c.locked ? "🔒 " : "🔞 "}
-            {c.title}
-            {selectedCount(c.key) ? <span>{selectedCount(c.key)}</span> : null}
-          </button>
-        ))}
+      {/* Category picker, SFW and NSFW kept apart */}
+      <div className="roles-groups">
+        <div className="roles-group">
+          <span className="roles-group-label">SFW roles</span>
+          <div className="roles-nav" role="tablist" aria-label="SFW role categories">
+            {general.map((c) => (
+              <button
+                key={c.key}
+                type="button"
+                role="tab"
+                aria-selected={category?.key === c.key}
+                className={category?.key === c.key ? "is-active" : undefined}
+                style={{ "--cat": c.color } as React.CSSProperties}
+                onClick={() => setActive(c.key)}
+              >
+                {c.title}
+                {selectedCount(c.key) ? <span>{selectedCount(c.key)}</span> : null}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="roles-group roles-group--nsfw">
+          <span className="roles-group-label">
+            🔞 NSFW roles {!state.isAdult ? <em>· unlock with 18+ verification</em> : null}
+          </span>
+          <div className="roles-nav" role="tablist" aria-label="NSFW role categories">
+            {adult.map((c) => (
+              <button
+                key={c.key}
+                type="button"
+                role="tab"
+                aria-selected={category?.key === c.key}
+                className={`roles-nav-adult${category?.key === c.key ? " is-active" : ""}`}
+                style={{ "--cat": c.color } as React.CSSProperties}
+                onClick={() => setActive(c.key)}
+              >
+                {c.locked ? "🔒 " : ""}
+                {c.title}
+                {selectedCount(c.key) ? <span>{selectedCount(c.key)}</span> : null}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {category ? (
@@ -197,7 +219,7 @@ export function RoleManager({ initial }: { initial: RoleState | null }) {
                   </span>
                   <span className="role-tile-text">
                     <strong>{role.name}</strong>
-                    <small>{role.description}</small>
+                    <small>{shortDescription(role.description)}</small>
                   </span>
                   <span className="role-tile-check" aria-hidden="true">
                     {isPending ? <i className="role-spinner" /> : role.has ? "✓" : "+"}
@@ -212,9 +234,24 @@ export function RoleManager({ initial }: { initial: RoleState | null }) {
       {/* Color roles from the shop */}
       <div className="roles-section">
         <div className="roles-section-head">
-          <h3>🎨 Color roles</h3>
+          <h3>
+            🎨 Color roles{" "}
+            <span className="roles-unlocked">
+              {state.colorRoles.length}/{state.colorRoleTotal} unlocked
+            </span>
+          </h3>
           <a href="/store">Get more in the Leaf Shop →</a>
         </div>
+        {state.colorRoleTotal ? (
+          <div className="roles-progress" role="progressbar" aria-valuemin={0} aria-valuemax={state.colorRoleTotal} aria-valuenow={state.colorRoles.length} aria-label="Color roles unlocked">
+            <span style={{ width: `${Math.min(100, (state.colorRoles.length / state.colorRoleTotal) * 100)}%` }} />
+            <small>
+              {state.colorRoles.length === state.colorRoleTotal
+                ? "🏆 You've collected every color role!"
+                : `${Math.round((state.colorRoles.length / state.colorRoleTotal) * 100)}% collected · ${state.colorRoleTotal - state.colorRoles.length} to go`}
+            </small>
+          </div>
+        ) : null}
         {state.colorRoles.length ? (
           <div className="roles-colors">
             {state.colorRoles.map((c) => {
