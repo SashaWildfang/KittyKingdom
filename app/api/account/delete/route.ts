@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { clearSession, getSessionUserId, verifyPassword } from "../../../../lib/auth";
 import { getUsersCollection } from "../../../../lib/mongodb";
+import { sessionsCollection } from "../../../../lib/sessions";
 
 export const maxDuration = 10;
 
@@ -38,6 +39,7 @@ export async function POST(request: Request) {
 
     await users.deleteOne({ _id: userId });
     await clearSession();
+    await (await sessionsCollection()).deleteMany({ userId });
     return NextResponse.redirect(`${origin}/home?account=deleted`, 303);
   } catch (error) {
     console.error("Account deletion failed", error);

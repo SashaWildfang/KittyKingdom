@@ -15,10 +15,11 @@ import {
   type Punishment,
 } from "./admin-shared";
 
-export type Drill =
+export type Drill = (
   | { kind: "reason"; reason: string }
   | { kind: "staff"; id: string; automod?: boolean }
-  | { kind: "member"; id: string };
+  | { kind: "member"; id: string }
+) & { range?: string; source?: string };
 
 type Result = { rows: Punishment[]; total: number; people: People; mentions: Mentions };
 
@@ -28,17 +29,15 @@ type Result = { rows: Punishment[]; total: number; people: People; mentions: Men
  */
 export function DrillPanel({
   drill,
-  range,
-  source,
   onClose,
   onOpenMember,
 }: {
   drill: Drill;
-  range: string;
-  source: string;
   onClose: () => void;
   onOpenMember: (id: string) => void;
 }) {
+  const range = drill.range ?? "all";
+  const source = drill.source ?? "all";
   const params = new URLSearchParams({ pageSize: "100", source, ...(range !== "all" ? { range } : {}) });
   if (drill.kind === "reason") params.set("reason", drill.reason);
   if (drill.kind === "staff") params.set("issuerId", drill.id);

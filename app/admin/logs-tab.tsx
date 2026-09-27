@@ -17,26 +17,48 @@ type LogEntry = {
   footer: string | null;
   subjectId: string | null;
   userIds: string[];
-  attachments: { id: string; filename: string; size: number; image: boolean }[];
+  attachments: { id: string; filename: string; size: number; image: boolean; kind?: string }[];
   postedBy: string;
+  category?: string;
 };
+
+const CATEGORIES = [
+  { key: "messages", label: "Messages", icon: "💬" },
+  { key: "members", label: "Member updates", icon: "👤" },
+  { key: "moderation", label: "Moderation", icon: "🛡️" },
+  { key: "tickets", label: "Tickets", icon: "🎫" },
+  { key: "economy", label: "Levels & economy", icon: "📈" },
+  { key: "boosts", label: "Boosts & bumps", icon: "💎" },
+  { key: "system", label: "Scans & system", icon: "🔍" },
+  { key: "other", label: "Other", icon: "📦" },
+];
+
+function attachmentKind(a: { kind?: string; image: boolean; filename: string }) {
+  if (a.kind) return a.kind;
+  if (a.image) return "image";
+  if (/\.(mp4|mov|webm|m4v)$/i.test(a.filename)) return "video";
+  if (/\.(mp3|ogg|wav|m4a)$/i.test(a.filename)) return "audio";
+  if (/\.(png|jpe?g|gif|webp)$/i.test(a.filename)) return "image";
+  return "file";
+}
 
 type Result = {
   rows: LogEntry[];
   total: number;
-  types: { type: string; count: number }[];
+  types: { type: string; category: string; count: number }[];
   sync: { backfillDone: boolean; oldest: string | null };
   people: People;
   mentions: Mentions;
 };
 
-type Filters = { types: string[]; member: { id: string; name: string } | null; search: string; range: string; order: "desc" | "asc" };
-const DEFAULTS: Filters = { types: [], member: null, search: "", range: "all", order: "desc" };
+type Filters = { types: string[]; categories: string[]; member: { id: string; name: string } | null; search: string; range: string; order: "desc" | "asc" };
+const DEFAULTS: Filters = { types: [], categories: [], member: null, search: "", range: "all", order: "desc" };
 const POLL_MS = 8_000;
 
 function buildParams(f: Filters, extra: Record<string, string> = {}) {
   return new URLSearchParams({
     types: f.types.join(","),
+    categories: (f.categories ?? []).join(","),
     search: f.search,
     order: f.order,
     limit: "40",
@@ -67,6 +89,8 @@ export function LogsTab({ onOpenMember }: { onOpenMember: (id: string) => void }
   const [memberText, setMemberText] = useState("");
   const [searchText, setSearchText] = useState(filters.search);
   const [typeFilter, setTypeFilter] = useState("");
+  const [openCats, setOpenCats] = useStored<string[]>("logs-open-cats", []);
+  const [showRare, setShowRare] = useState<string[]>([]);
   const [hasMore, setHasMore] = useState(true);
   const request = useRef(0);
   const itemsRef = useRef<LogEntry[]>([]);
@@ -159,33 +183,95 @@ export function LogsTab({ onOpenMember }: { onOpenMember: (id: string) => void }
 
   const toggleType = (type: string) =>
     setFilters((f) => ({ ...f, types: f.types.includes(type) ? f.types.filter((t) => t !== type) : [...f.types, type] }));
-  const types = (meta?.types ?? []).filter((t) => t.type.toLowerCase().includes(typeFilter.trim().toLowerCase()));
-  const activeCount = filters.types.length + (filters.member ? 1 : 0) + (filters.search ? 1 : 0) + (filters.range !== "all" ? 1 : 0);
+  const toggleCategory = (key: string) =>
+    setFilters((f) => {
+      const cats = f.categories ?? [];
+      return { ...f, categories: cats.includes(key) ? cats.filter((c) => c !== key) : [...cats, key] };
+    });
+  const needle = typeFilter.trim().toLowerCase();
+  const types = (meta?.types ?? []).filter((t) => t.type.toLowerCase().includes(needle));
+  const grouped = CATEGORIES.map((c) => {
+    const list = types.filter((t) => (t.category || "other") === c.key);
+    return { ...c, list, total: list.reduce((n, t) => n + t.count, 0) };
+  }).filter((c) => c.list.length);
+  const activeCount = filters.types.length + (filters.categories?.length ?? 0) + (filters.member ? 1 : 0) + (filters.search ? 1 : 0) + (filters.range !== "all" ? 1 : 0);
 
   return (
     <div className="adm-logs">
       <aside className="adm-logs-side">
         <div className="adm-logs-side-head">
           <h3>Log types</h3>
-          {filters.types.length ? (
-            <button type="button" className="adm-link" onClick={() => setFilters((f) => ({ ...f, types: [] }))}>
+          {filters.types.length || filters.categories?.length ? (
+            <button type="button" className="adm-link" onClick={() => setFilters((f) => ({ ...f, types: [], categories: [] }))}>
               Clear
             </button>
           ) : null}
         </div>
         <input className="adm-logs-typefilter" placeholder="Find a type…" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} />
-        <ul>
-          {types.map((t) => (
-            <li key={t.type}>
-              <label className={filters.types.includes(t.type) ? "is-on" : undefined}>
-                <input type="checkbox" checked={filters.types.includes(t.type)} onChange={() => toggleType(t.type)} />
-                <span>{t.type}</span>
-                <small>{t.count.toLocaleString()}</small>
-              </label>
-            </li>
-          ))}
-          {meta && !types.length ? <li className="adm-muted">No types yet.</li> : null}
-        </ul>
+        <div className="adm-logs-cats">
+          {grouped.map((c) => {
+            const open = openCats.includes(c.key) || Boolean(needle);
+            const catOn = (filters.categories ?? []).includes(c.key);
+            // Types seen only once are tucked away so the list stays readable
+            const main = c.list.filter((t) => t.count > 1 || filters.types.includes(t.type));
+            const rare = c.list.filter((t) => t.count <= 1 && !filters.types.includes(t.type));
+            const rareOpen = showRare.includes(c.key) || Boolean(needle);
+            return (
+              <div key={c.key} className={`adm-logs-cat${open ? " is-open" : ""}`}>
+                <div className="adm-logs-cat-head">
+                  <label className={catOn ? "is-on" : undefined} title={`Show every ${c.label.toLowerCase()} log`}>
+                    <input type="checkbox" checked={catOn} onChange={() => toggleCategory(c.key)} />
+                    <span>
+                      {c.icon} {c.label}
+                    </span>
+                    <small>{c.total.toLocaleString()}</small>
+                  </label>
+                  <button
+                    type="button"
+                    className="adm-logs-cat-toggle"
+                    aria-expanded={open}
+                    aria-label={`${open ? "Hide" : "Show"} ${c.label} types`}
+                    onClick={() => setOpenCats((list) => (list.includes(c.key) ? list.filter((k) => k !== c.key) : [...list, c.key]))}
+                  >
+                    ▾
+                  </button>
+                </div>
+                {open ? (
+                  <ul>
+                    {main.map((t) => (
+                      <li key={t.type}>
+                        <label className={filters.types.includes(t.type) ? "is-on" : undefined}>
+                          <input type="checkbox" checked={filters.types.includes(t.type)} onChange={() => toggleType(t.type)} />
+                          <span title={t.type}>{t.type}</span>
+                          <small>{t.count.toLocaleString()}</small>
+                        </label>
+                      </li>
+                    ))}
+                    {rare.length ? (
+                      <li>
+                        <button type="button" className="adm-logs-rare" onClick={() => setShowRare((l) => (l.includes(c.key) ? l.filter((k) => k !== c.key) : [...l, c.key]))}>
+                          {rareOpen ? "▴ Hide" : "▾"} {rare.length} one-off type{rare.length === 1 ? "" : "s"}
+                        </button>
+                      </li>
+                    ) : null}
+                    {rareOpen
+                      ? rare.map((t) => (
+                          <li key={t.type} className="is-rare">
+                            <label className={filters.types.includes(t.type) ? "is-on" : undefined}>
+                              <input type="checkbox" checked={filters.types.includes(t.type)} onChange={() => toggleType(t.type)} />
+                              <span title={t.type}>{t.type}</span>
+                              <small>1</small>
+                            </label>
+                          </li>
+                        ))
+                      : null}
+                  </ul>
+                ) : null}
+              </div>
+            );
+          })}
+          {meta && !grouped.length ? <p className="adm-muted">No types match.</p> : null}
+        </div>
         <p className="adm-logs-sync">
           {meta?.sync.backfillDone
             ? "✓ Every log is loaded."
@@ -253,6 +339,7 @@ export function LogsTab({ onOpenMember }: { onOpenMember: (id: string) => void }
 
         <p className="adm-logs-count">
           {meta ? `${meta.total.toLocaleString()} log${meta.total === 1 ? "" : "s"}` : "…"}
+          {filters.categories?.length ? ` · ${filters.categories.map((k) => CATEGORIES.find((c) => c.key === k)?.label ?? k).join(", ")}` : ""}
           {filters.types.length ? ` · ${filters.types.join(", ")}` : ""}
         </p>
 
@@ -293,7 +380,6 @@ function LogCard({
   onOpenMember: (id: string) => void;
   onType: (type: string) => void;
 }) {
-  const [showImage, setShowImage] = useState<string | null>(null);
   const extra = extraFooter(log.footer);
   const rich = (text: string) => <RichText text={text} mentions={mentions} people={people} onOpenMember={onOpenMember} />;
 
@@ -322,19 +408,31 @@ function LogCard({
         </dl>
       ) : null}
       {log.attachments.length ? (
-        <div className="adm-log-files">
-          {log.attachments.map((a) =>
-            a.image ? (
-              <button key={a.id} type="button" className="adm-log-file" onClick={() => setShowImage(showImage === a.id ? null : a.id)}>
-                🖼️ {a.filename} {showImage === a.id ? "▴" : "▾"}
-              </button>
-            ) : (
-              <a key={a.id} className="adm-log-file" href={`/api/admin/logs/${log.id}/${a.id}`} target="_blank" rel="noopener noreferrer">
+        <div className="adm-log-media">
+          {log.attachments.map((a) => {
+            const src = `/api/admin/logs/${log.id}/${a.id}`;
+            const kind = attachmentKind(a);
+            if (kind === "image") {
+              return (
+                <a key={a.id} className="adm-log-thumb" href={src} target="_blank" rel="noopener noreferrer" title={a.filename}>
+                  <img src={src} alt={a.filename} loading="lazy" />
+                </a>
+              );
+            }
+            if (kind === "video") {
+              return (
+                <video key={a.id} className="adm-log-video" src={src} controls preload="metadata" playsInline>
+                  <a href={src}>{a.filename}</a>
+                </video>
+              );
+            }
+            if (kind === "audio") return <audio key={a.id} src={src} controls preload="none" />;
+            return (
+              <a key={a.id} className="adm-log-file" href={src} target="_blank" rel="noopener noreferrer">
                 📎 {a.filename} <small>{(a.size / 1024).toFixed(0)} KB</small>
               </a>
-            ),
-          )}
-          {showImage ? <img className="adm-log-image" src={`/api/admin/logs/${log.id}/${showImage}`} alt="Archived attachment" /> : null}
+            );
+          })}
         </div>
       ) : null}
       {extra ? <p className="adm-log-footer">{extra}</p> : null}

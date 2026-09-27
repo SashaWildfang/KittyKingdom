@@ -6,6 +6,7 @@ import {
   verifyPassword,
 } from "../../../../lib/auth";
 import { getUsersCollection } from "../../../../lib/mongodb";
+import { revokeAllSessions } from "../../../../lib/sessions";
 
 export const maxDuration = 10;
 
@@ -59,6 +60,7 @@ export async function POST(request: Request) {
       },
       { returnDocument: "after" },
     );
+    await revokeAllSessions(userId, "password-change");
     await setSession(userId, typeof updated?.sessionVersion === "number" ? updated.sessionVersion : 0);
 
     return NextResponse.redirect(
