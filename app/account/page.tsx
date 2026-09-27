@@ -190,7 +190,7 @@ export default async function AccountPage({
           <nav className="acct-nav" aria-label="Account sections">
             <a href="#overview"><ClipboardList size={16} aria-hidden="true" /> Overview</a>
             {discordLinked ? <a href="#roles"><Sparkles size={16} aria-hidden="true" /> Server roles</a> : null}
-            {discordLinked ? <a href="#daily"><Gift size={16} aria-hidden="true" /> Daily leaves</a> : null}
+            {discordLinked ? <a href="#daily"><Gift size={16} aria-hidden="true" /> Daily</a> : null}
             {discordLinked ? <a href="#inventory"><Backpack size={16} aria-hidden="true" /> Inventory</a> : null}
             <a href="#profile"><UserRound size={16} aria-hidden="true" /> Profile</a>
             <a href="#contact"><Link2 size={16} aria-hidden="true" /> Contact &amp; socials</a>
