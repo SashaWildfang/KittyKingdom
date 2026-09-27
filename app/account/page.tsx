@@ -16,6 +16,7 @@ import { getRoleState } from "../../lib/member-roles";
 import { CollapsibleCard } from "./collapsible-card";
 import { LiveServerStatus } from "./live-server-status";
 import { TwoFactorSettings } from "./two-factor-settings";
+import { ChangePasswordForm } from "./change-password-form";
 import { twoFactorStatus } from "../../lib/two-factor-account";
 import { DailyCard } from "./daily-card";
 import { getDailyStatus } from "../../lib/daily";
@@ -376,20 +377,7 @@ export default async function AccountPage({
 
           <CollapsibleCard id="security" title={"Security"} description={"Your password and two-factor authentication."} summary={twoFactor.enabled ? "Two-factor on" : "Two-factor off"}>
             <h3 className="acct-subhead">Password</h3>
-            <form className="acct-form" action="/api/account/password" method="post" autoComplete="off">
-              <div className="acct-fields-row">
-                <label>
-                  Current password
-                  <input name="currentAccountPassword" autoComplete="off" data-1p-ignore="true" data-lpignore="true" type="password" required />
-                </label>
-                <label>
-                  New password
-                  <input name="newAccountPassword" autoComplete="off" data-1p-ignore="true" data-lpignore="true" type="password" minLength={8} required />
-                </label>
-              </div>
-              <p className="form-note">8+ characters with at least one number and one symbol.</p>
-              <button className="acct-button" type="submit">Update password</button>
-            </form>
+            <ChangePasswordForm />
             <div className="acct-divider" />
             <TwoFactorSettings initial={twoFactor} />
           </CollapsibleCard>

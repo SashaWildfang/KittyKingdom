@@ -14,6 +14,14 @@ const KINDS = [
   { key: "gift-received", label: "Gifts received" },
 ];
 
+/** 30500 -> "30.5k", 1250000 -> "1.25M" (the exact number is in the tooltip) */
+function compact(n: number) {
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000) return `${+(n / 1_000_000).toFixed(abs >= 10_000_000 ? 1 : 2)}M`;
+  if (abs >= 1_000) return `${+(n / 1_000).toFixed(abs >= 100_000 ? 0 : 1)}k`;
+  return n.toLocaleString();
+}
+
 const when = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString([], { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) : "—";
 
@@ -113,20 +121,24 @@ export function PurchaseHistory({ url, whose = "your", startOpen = false }: { ur
         <div className="ph-body">
           {data ? (
             <div className="ph-totals">
-              <span>
+              <span title={`${data.totals.spent.toLocaleString()} leaves spent`}>
                 <b>
-                  <LeafEmote size={15} /> {data.totals.spent.toLocaleString()}
-                </b>{" "}
-                spent
+                  <LeafEmote size={15} />
+                  {compact(data.totals.spent)}
+                </b>
+                <em>spent</em>
               </span>
               <span>
-                <b>{data.totals.purchases.toLocaleString()}</b> purchases
+                <b>{compact(data.totals.purchases)}</b>
+                <em>{data.totals.purchases === 1 ? "purchase" : "purchases"}</em>
               </span>
               <span>
-                <b>{data.totals.sent.toLocaleString()}</b> gifts sent
+                <b>{compact(data.totals.sent)}</b>
+                <em>{data.totals.sent === 1 ? "gift sent" : "gifts sent"}</em>
               </span>
               <span>
-                <b>{data.totals.received.toLocaleString()}</b> gifts received
+                <b>{compact(data.totals.received)}</b>
+                <em>{data.totals.received === 1 ? "gift received" : "gifts received"}</em>
               </span>
             </div>
           ) : null}
