@@ -212,6 +212,21 @@ export function PersonLink({
   );
 }
 
+/** A member's avatar and name, not clickable on its own (for rows that are clickable). */
+export function PersonTag({ id, people, automod }: { id: string | null; people: People; automod?: boolean }) {
+  if (!id) return <span className="adm-muted">—</span>;
+  const person = people[id];
+  return (
+    <span className="adm-person adm-person--static">
+      <Avatar person={person} id={id} size={22} />
+      <span className="adm-person-text">
+        <strong>{automod ? "AutoMod" : person?.name ?? "Unknown user"}</strong>
+      </span>
+      {person && !person.inServer && !automod ? <span className="adm-tag adm-tag--muted">left</span> : null}
+    </span>
+  );
+}
+
 export function ActionBadge({ action }: { action: string }) {
   return (
     <span className="adm-action" style={{ "--c": actionColor(action) } as React.CSSProperties}>
@@ -319,9 +334,10 @@ export function RichText({ text, mentions, people, onOpenMember }: { text: strin
   const parts: React.ReactNode[] = [];
   let last = 0;
   let key = 0;
+  const plain = (chunk: string) => parts.push(<Markdown key={key++} text={chunk} />);
   for (const match of Array.from(text.matchAll(TOKEN))) {
     const index = match.index ?? 0;
-    if (index > last) parts.push(text.slice(last, index));
+    if (index > last) plain(text.slice(last, index));
     const [, animated, emojiName, emojiId, channelId, roleId, userId] = match;
     if (emojiId) {
       parts.push(
@@ -366,8 +382,36 @@ export function RichText({ text, mentions, people, onOpenMember }: { text: strin
     }
     last = index + match[0].length;
   }
-  if (last < text.length) parts.push(text.slice(last));
+  if (last < text.length) plain(text.slice(last));
   return <>{parts}</>;
+}
+
+// Discord-style markdown: **bold**, *italic*, __underline__, ~~strike~~, `code`, [text](https://link)
+const MD = /\*\*([^*]+)\*\*|__([^_]+)__|~~([^~]+)~~|`([^`]+)`|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|\*([^*\n]+)\*/g;
+
+function Markdown({ text }: { text: string }) {
+  const out: React.ReactNode[] = [];
+  let last = 0;
+  let key = 0;
+  for (const m of Array.from(text.matchAll(MD))) {
+    const index = m.index ?? 0;
+    if (index > last) out.push(text.slice(last, index));
+    const [, bold, underline, strike, code, linkText, linkUrl, italic] = m;
+    if (bold) out.push(<strong key={key++}>{bold}</strong>);
+    else if (underline) out.push(<u key={key++}>{underline}</u>);
+    else if (strike) out.push(<s key={key++}>{strike}</s>);
+    else if (code) out.push(<code key={key++} className="adm-md-code">{code}</code>);
+    else if (linkText && linkUrl)
+      out.push(
+        <a key={key++} className="adm-md-link" href={linkUrl} target="_blank" rel="noopener noreferrer nofollow" onClick={(e) => e.stopPropagation()}>
+          {linkText}
+        </a>,
+      );
+    else if (italic) out.push(<em key={key++}>{italic}</em>);
+    last = index + m[0].length;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return <>{out}</>;
 }
 
 // ==========================================
