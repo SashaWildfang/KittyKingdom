@@ -1,7 +1,8 @@
 import { Crown, Shield, Sparkles } from "lucide-react";
 import { LeafEmote } from "../ui-icons";
 import type { CSSProperties } from "react";
-import { getCurrentUser } from "../../lib/auth";
+import { redirect } from "next/navigation";
+import { canViewStaffPage, getCurrentUser } from "../../lib/auth";
 import { getDiscordInviteSummary } from "../../lib/discord";
 import { getStaffDirectory, type StaffMember, type StaffStatus } from "../../lib/staff";
 import { FallingLeaves } from "../fall-effects";
@@ -72,11 +73,12 @@ function StaffCard({ member }: { member: StaffMember }) {
 }
 
 export default async function StaffPage() {
-  const [discord, user, directory] = await Promise.all([
-    getDiscordInviteSummary(),
-    getCurrentUser(),
-    getStaffDirectory(),
-  ]);
+  // Members only: signed in, email verified and Discord linked
+  const user = await getCurrentUser();
+  if (!user) redirect("/login?account=login-required");
+  if (user.emailVerified === false) redirect("/account?account=staff-verify-required");
+  if (!canViewStaffPage(user)) redirect("/account?account=staff-link-required#discord-account");
+  const [discord, directory] = await Promise.all([getDiscordInviteSummary(), getStaffDirectory()]);
 
   return (
     <main className="site-shell staff-shell">

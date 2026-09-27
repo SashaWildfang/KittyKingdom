@@ -2,7 +2,7 @@
 
 import { randomBytes, randomInt } from "crypto";
 import { ObjectId, type Document } from "mongodb";
-import type { PanelUser } from "./admin";
+import { isStaffDiscordId, type PanelUser } from "./admin";
 import { hashPassword } from "./auth";
 import { getMongoClient, getUsersCollection } from "./mongodb";
 import { formatDateOfBirth } from "./dates";
@@ -187,6 +187,7 @@ export async function getAccount(id: string) {
     dateOfBirth: birthday.birthDate ? formatDateOfBirth(birthday.birthDate) : null,
     age: birthday.age !== null ? String(birthday.age) : null,
     applicationStatus: application?.status ? String(application.status) : null,
+    isStaff: await isStaffDiscordId(doc.discordId),
     updatedAt: iso(doc.updatedAt),
     passwordChangedAt: iso(doc.passwordChangedAt),
     acceptedPoliciesAt: iso(doc.acceptedPoliciesAt),
@@ -208,7 +209,7 @@ export async function accountAction(id: string, action: AccountAction, admin: Pa
   if (!ObjectId.isValid(id)) throw new Error("Unknown account.");
   const _id = new ObjectId(id);
   const users = await getUsersCollection();
-  const target = await users.findOne({ _id }, { projection: { email: 1 } });
+  const target = await users.findOne({ _id }, { projection: { email: 1, discordId: 1 } });
   if (!target) throw new Error("Unknown account.");
 
   let result: { message: string; temporaryPassword?: string };
@@ -235,6 +236,8 @@ export async function accountAction(id: string, action: AccountAction, admin: Pa
     result = { message: "Signed out of the website on every device." };
   } else if (action === "delete") {
     if (id === admin.websiteUserId) throw new Error("You can't delete your own account from here.");
+    // Staff accounts are protected, even from the owner
+    if (await isStaffDiscordId(target.discordId)) throw new Error("Staff accounts can't be deleted. Remove their staff role in Discord first.");
     const client = await getMongoClient();
     const website = client.db(process.env.MONGODB_DB ?? "website");
     await users.deleteOne({ _id });

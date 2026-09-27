@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "./auth";
 import { getMemberRoleIds } from "./discord-member";
+import { getStaffCollection } from "./mongodb";
 
 // Admin or higher see everything in the panel
 export const ADMIN_ROLE_IDS = [
@@ -103,4 +104,20 @@ export function verifyTranscriptToken(messageId: string, token: string) {
   const expected = Buffer.from(sign(messageId, expires));
   const actual = Buffer.from(signature);
   return expected.length === actual.length && timingSafeEqual(expected, actual);
+}
+
+/**
+ * Whether a Discord account belongs to staff: the Staff Team / Admin / Owner role in Discord,
+ * or listed on the bot-synced staff page. Staff website accounts can't be deleted.
+ */
+export async function isStaffDiscordId(discordId: unknown) {
+  if (!discordId) return false;
+  const id = String(discordId);
+  const [roles, listed] = await Promise.all([
+    getMemberRoleIds(id).catch(() => null),
+    getStaffCollection()
+      .then((col) => col.findOne({ $or: [{ _id: id as never }, { discord_id: id }] }, { projection: { _id: 1 } }))
+      .catch(() => null),
+  ]);
+  return Boolean(listed) || Boolean(roles?.some((r) => r === STAFF_TEAM_ROLE_ID || ADMIN_ROLE_IDS.includes(r)));
 }

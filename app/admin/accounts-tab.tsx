@@ -1,6 +1,6 @@
 "use client";
 
-import { BadgeCheck, KeyRound, Trash2, TriangleAlert, Laptop, LogOut, Mail, MailCheck, MessageCircle, Search, Smartphone, Tablet, X, type LucideIcon } from "lucide-react";
+import { BadgeCheck, ShieldCheck, KeyRound, Trash2, TriangleAlert, Laptop, LogOut, Mail, MailCheck, MessageCircle, Search, Smartphone, Tablet, X, type LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { StackedBars } from "./admin-charts";
@@ -51,6 +51,7 @@ type Account = AccountRow & {
   passwordChangedAt: string | null;
   acceptedPoliciesAt: string | null;
   applicationStatus: string | null;
+  isStaff?: boolean;
   audit: { at: string | null; action: string; adminName: string; adminDiscordId: string }[];
 };
 
@@ -722,7 +723,16 @@ function AccountDrawer({ id, onClose, onChanged, onOpenMember }: { id: string; o
               <h3>
                 <TriangleAlert size={16} aria-hidden="true" /> Danger zone
               </h3>
-              {confirming === "delete" ? (
+              {account.isStaff ? (
+                <div className="adm-action-row adm-protected">
+                  <div>
+                    <strong className="adm-inline-icon">
+                      <ShieldCheck size={15} aria-hidden="true" /> Staff account: protected
+                    </strong>
+                    <small>Staff accounts can&apos;t be deleted, not even by the owner. Remove their staff role in Discord first.</small>
+                  </div>
+                </div>
+              ) : confirming === "delete" ? (
                 <div className="adm-danger-confirm">
                   <p>
                     Permanently delete the website account <strong>{account.email}</strong>? Their login, devices and settings are removed. Their Discord and bot data (leafs, levels, punishments) are not touched.
