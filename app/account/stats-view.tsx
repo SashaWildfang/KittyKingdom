@@ -38,11 +38,21 @@ import {
   Users,
   X,
   Zap,
+  CornerDownRight,
+  MessagesSquare,
+  Network,
+  PieChart,
+  Reply,
+  Snowflake,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import type { BadgeShowcase, EarnedBadge } from "../../lib/badges";
 import type { MemberStats } from "../../lib/member-stats";
 import { LeafEmote } from "../ui-icons";
+import { BadgeMedal } from "./badge-medal";
+import { BadgeCollection } from "./stats-badges";
+import { FriendshipMap, PeopleExplorer } from "./stats-social";
 
 const POLL_MS = 20_000;
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -210,6 +220,13 @@ function LevelOrb({ s, onOpen }: { s: MemberStats; onOpen: () => void }) {
       <span className="st-orb-glow" aria-hidden="true" />
       <span className="st-orb-spin" aria-hidden="true" />
       <svg className="st-orb-ring" viewBox="0 0 132 132" aria-hidden="true">
+        <defs>
+          <linearGradient id="st-orb-grad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor={stops[0]} />
+            <stop offset="55%" stopColor={stops[1] ?? stops[0]} />
+            <stop offset="100%" stopColor={stops[2] ?? stops[1] ?? stops[0]} />
+          </linearGradient>
+        </defs>
         <circle cx="66" cy="66" r={R} className="st-orb-track" />
         <circle cx="66" cy="66" r={R} className="st-orb-fill" strokeDasharray={C} strokeDashoffset={C * (1 - ring)} />
       </svg>
@@ -229,7 +246,7 @@ function LevelOrb({ s, onOpen }: { s: MemberStats; onOpen: () => void }) {
   );
 }
 
-function LevelHero({ s }: { s: MemberStats }) {
+function LevelHero({ s, pinned, title }: { s: MemberStats; pinned: EarnedBadge[]; title: EarnedBadge | null }) {
   const { level } = s;
   const progress = Math.min(1, level.needed ? level.xp / level.needed : 0);
   const [fill, setFill] = useState(reducedMotion() ? progress : 0);
@@ -247,11 +264,23 @@ function LevelHero({ s }: { s: MemberStats }) {
           <div>
             <p className="st-eyebrow" style={level.color?.[0] ? { color: level.color[0] } : undefined}>
               {level.role ?? "Rank"}
+              {title ? (
+                <span className="st-hero-title" style={{ color: title.hue }}>
+                  ✦ {title.name}
+                </span>
+              ) : null}
             </p>
             <h2>
               <Count value={level.xp} /> <small>/ {fmt(level.needed)} XP</small>
             </h2>
           </div>
+          {pinned.length ? (
+            <div className="st-hero-badges" aria-label="Pinned badges">
+              {pinned.map((b) => (
+                <BadgeMedal key={b.id} icon={b.icon} shape={b.shape} hue={b.hue} tier={b.tier} size={34} title={b.name} />
+              ))}
+            </div>
+          ) : null}
           <div className="st-hero-rank" title="Your level rank among current members">
             <Trophy size={16} aria-hidden="true" /> #{fmt(level.rank)} <small>of {fmt(level.of)}</small>
           </div>
@@ -507,82 +536,12 @@ function PersonDetail({ p, onClose }: { p: CirclePerson; onClose: () => void }) 
   );
 }
 
-// ---------- Badges ----------
-type Badge = { id: string; name: string; icon: LucideIcon; desc: string; value: number; tiers: number[]; unit?: (n: number) => string };
-
-function badgesFor(s: MemberStats): Badge[] {
-  const hours = s.when.hours;
-  const total = hours.reduce((a, b) => a + b, 0) || 1;
-  const night = (hours.slice(0, 5).reduce((a, b) => a + b, 0) + hours[22] + hours[23]) / total;
-  const morning = hours.slice(5, 11).reduce((a, b) => a + b, 0) / total;
-  const joinedDays = s.profile.joinedServer ? (Date.now() - Date.parse(s.profile.joinedServer)) / 86400000 : 0;
-  return [
-    { id: "chat", name: "Chatterbox", icon: MessageCircle, desc: "Messages sent in the server", value: s.messages.total, tiers: [1000, 5000, 15000] },
-    { id: "level", name: "Climber", icon: TrendingUp, desc: "Level reached", value: s.level.level, tiers: [10, 25, 50] },
-    { id: "streak", name: "Streak keeper", icon: Flame, desc: "Longest run of days chatting in a row", value: s.messages.longestStreak, tiers: [7, 30, 100], unit: (n) => `${fmt(n)} days` },
-    { id: "social", name: "Social star", icon: Users, desc: "Different members you've talked with", value: s.records.people, tiers: [10, 30, 75] },
-    { id: "voice", name: "Voice regular", icon: Headphones, desc: "Time spent in voice chat", value: s.voice.totalSeconds, tiers: [36000, 180000, 720000], unit: duration },
-    { id: "react", name: "Reaction magnet", icon: Heart, desc: "Reactions your messages received", value: s.emojis.reactionsReceived, tiers: [100, 1000, 5000] },
-    { id: "emoji", name: "Emoji artist", icon: Smile, desc: "Emojis used in messages", value: s.messages.emojis, tiers: [100, 500, 2500] },
-    { id: "spender", name: "Big spender", icon: ShoppingBag, desc: "Leaves spent in the store", value: s.economy.spent, tiers: [5000, 25000, 100000] },
-    { id: "gifter", name: "Generous", icon: Gift, desc: "Gifts sent to other members", value: s.economy.giftsSent, tiers: [1, 5, 20] },
-    { id: "bumps", name: "Bumper", icon: Rocket, desc: "Times you bumped the server", value: s.economy.bumps, tiers: [10, 50, 200] },
-    { id: "veteran", name: "Veteran", icon: Crown, desc: "Time since you joined the server", value: joinedDays, tiers: [90, 365, 730], unit: (n) => `${fmt(n)} days` },
-    { id: "curious", name: "Curious cat", icon: HelpCircle, desc: "Questions asked (messages with a ?)", value: s.records.questions, tiers: [50, 250, 1000] },
-    { id: "night", name: "Night owl", icon: Moon, desc: "Share of your messages sent 10 PM – 5 AM", value: Math.round(night * 100), tiers: [25, 35, 50], unit: (n) => `${n}%` },
-    { id: "morning", name: "Early bird", icon: Sun, desc: "Share of your messages sent 5 – 11 AM", value: Math.round(morning * 100), tiers: [20, 30, 45], unit: (n) => `${n}%` },
-    { id: "stream", name: "Streamer", icon: MonitorUp, desc: "Time spent streaming in voice", value: s.voice.streamSeconds, tiers: [3600, 36000, 180000], unit: duration },
-    { id: "roller", name: "High roller", icon: Dices, desc: "Slot spins", value: s.economy.gambling?.spins ?? 0, tiers: [50, 250, 1000] },
-  ];
-}
-
-const TIER_NAMES = ["Bronze", "Silver", "Gold"];
-
-function BadgeGrid({ s }: { s: MemberStats }) {
-  const list = badgesFor(s);
-  const [open, setOpen] = useState<string | null>(null);
-  const earned = list.filter((b) => b.value >= b.tiers[0]).length;
-  return (
-    <>
-      <p className="st-persona">
-        <b>{earned}</b> of {list.length} badges earned. Tap a badge to see how to level it up.
-      </p>
-      <div className="st-badges">
-        {list.map((b) => {
-          const tier = b.tiers.filter((t) => b.value >= t).length;
-          const next = b.tiers[tier];
-          const prev = tier ? b.tiers[tier - 1] : 0;
-          const progress = next ? Math.min(1, Math.max(0, (b.value - prev) / (next - prev))) : 1;
-          const unit = b.unit ?? fmt;
-          const Icon = b.icon;
-          return (
-            <button key={b.id} type="button" className={`st-badge tier-${tier}${open === b.id ? " is-open" : ""}`} onClick={() => setOpen(open === b.id ? null : b.id)}>
-              <span className="st-badge-medal">
-                <Icon size={22} />
-              </span>
-              <b>{b.name}</b>
-              <small>{tier ? TIER_NAMES[tier - 1] : "Locked"}</small>
-              <span className="st-badge-bar">
-                <i style={{ width: `${progress * 100}%` }} />
-              </span>
-              {open === b.id ? (
-                <span className="st-badge-info">
-                  {b.desc}: <b>{unit(b.value)}</b>
-                  <br />
-                  {next ? `${TIER_NAMES[tier]} at ${unit(next)}` : "Maxed out!"}
-                </span>
-              ) : null}
-            </button>
-          );
-        })}
-      </div>
-    </>
-  );
-}
-
 // ---------- The page ----------
 export function StatsView({ onBack }: { onBack: () => void }) {
   const [stats, setStats] = useState<MemberStats | null>(null);
+  const [badges, setBadges] = useState<EarnedBadge[]>([]);
+  const [showcase, setShowcase] = useState<BadgeShowcase>({ pinned: [], title: null });
+  const [openPerson, setOpenPerson] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("overview");
   const [whenView, setWhenView] = useState<"hours" | "days" | "heat">("hours");
@@ -600,6 +559,8 @@ export function StatsView({ onBack }: { onBack: () => void }) {
         if (!alive) return;
         if (res.ok && body.ok) {
           setStats(body.stats);
+          setBadges(body.badges ?? []);
+          if (body.showcase) setShowcase(body.showcase);
           setError(null);
         } else setError(body.error ?? "Your stats couldn't be loaded.");
       } catch {
@@ -655,7 +616,8 @@ export function StatsView({ onBack }: { onBack: () => void }) {
   const month = change(s.trends.last30, s.trends.prev30);
   const topPct = (rank: number, of: number) => (of ? Math.max(1, Math.round((rank / of) * 100)) : 100);
   const joinedDays = s.profile.joinedServer ? Math.floor((Date.now() - Date.parse(s.profile.joinedServer)) / 86400000) : null;
-  const badges = badgesFor(s);
+  const earnedBadges = badges.filter((b) => b.tier > 0);
+  const soc = s.social;
 
   const highlights: { icon: LucideIcon; text: ReactNode; tab: Tab }[] = [
     { icon: Trophy, text: <>You&apos;re in the <b>top {topPct(m.rank, m.of)}%</b> of members for messages</>, tab: "activity" },
@@ -683,7 +645,11 @@ export function StatsView({ onBack }: { onBack: () => void }) {
   return (
     <div className="st-page">
       {top}
-      <LevelHero s={s} />
+      <LevelHero
+        s={s}
+        pinned={showcase.pinned.map((p) => badges.find((b) => b.id === p.id)).filter((b): b is EarnedBadge => Boolean(b && b.tier))}
+        title={showcase.title ? badges.find((b) => b.id === showcase.title!.id) ?? null : null}
+      />
 
       <div className="st-tabs" role="tablist" aria-label="Stats sections" ref={tabsRef}>
         {TABS.map(({ key, label, icon: Icon }) => (
@@ -701,7 +667,7 @@ export function StatsView({ onBack }: { onBack: () => void }) {
             <Tile icon={<Headphones size={18} />} label="Voice time" value={duration(s.voice.totalSeconds)} sub={`${duration(s.voice.monthSeconds)} this month`} tone="blue" onClick={() => go("voice")} />
             <Tile icon={<Flame size={18} />} label="Chat streak" value={<Count value={m.currentStreak} />} sub={`best ${fmt(m.longestStreak)} days`} tone="ember" onClick={() => go("activity")} />
             <Tile icon={<Users size={18} />} label="People you talk to" value={<Count value={s.records.people} />} sub={bestie ? `bestie: ${bestie.name}` : "—"} tone="rose" onClick={() => go("social")} />
-            <Tile icon={<Award size={18} />} label="Badges" value={`${badges.filter((b) => b.value >= b.tiers[0]).length}/${badges.length}`} sub="tap to see them" tone="green" onClick={() => go("badges")} />
+            <Tile icon={<Award size={18} />} label="Badges" value={`${earnedBadges.length}/${badges.length}`} sub="tap to see them" tone="green" onClick={() => go("badges")} />
           </div>
 
           <div className="st-grid">
@@ -817,105 +783,155 @@ export function StatsView({ onBack }: { onBack: () => void }) {
       ) : null}
 
       {tab === "social" ? (
-        <div className="st-grid st-tab" key="social">
-          <Card title="Server bestie" icon={<Heart size={17} />} className="st-bestie">
-            {bestie ? (
-              <>
-                <button type="button" className="st-bestie-main" onClick={() => setPerson(person?.id === bestie.id ? null : bestie)}>
-                  <Avatar src={bestie.avatar} name={bestie.name} size={76} />
-                  <div>
-                    <strong>{bestie.name}</strong>
-                    <p>
-                      {[
-                        bestie.conversations ? `${fmt(bestie.conversations)} back-and-forths` : null,
-                        bestie.replies ? `${fmt(bestie.replies)} replies` : null,
-                        bestie.voiceSeconds ? `${duration(bestie.voiceSeconds)} in VC together` : null,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ") || "You two talk the most"}
-                    </p>
-                    <small>Tap for the full breakdown</small>
-                  </div>
-                </button>
-                {s.circle.length > 1 ? (
-                  <>
-                    <p className="st-note">Your circle</p>
-                    <ol className="st-circle">
-                      {s.circle.slice(1).map((c, i) => (
-                        <li key={c.id}>
-                          <button type="button" className={person?.id === c.id ? "is-on" : undefined} onClick={() => setPerson(person?.id === c.id ? null : c)}>
-                            <em>{i + 2}</em>
-                            <Avatar src={c.avatar} name={c.name} size={28} />
-                            <span>{c.name}</span>
-                            <i style={{ "--w": `${(c.score / Math.max(1, bestie.score)) * 100}%` } as CSSProperties} />
-                          </button>
-                        </li>
-                      ))}
-                    </ol>
-                  </>
-                ) : null}
-                {person ? <PersonDetail p={person} onClose={() => setPerson(null)} /> : null}
-              </>
-            ) : (
-              <p className="st-empty">Chat, reply and hang out in VC and your bestie will show up here.</p>
-            )}
-          </Card>
+        <div className="st-tab" key="social">
+          <div className="st-tiles st-tiles--4">
+            <Tile icon={<Users size={18} />} label="People you talk to" value={<Count value={soc.count} />} sub={`${fmt(soc.mutual)} mutual`} tone="rose" />
+            <Tile icon={<ArrowUpRight size={18} />} label="You reach out" value={<Count value={soc.youReach} />} sub={`${fmt(soc.theyReach)} reach out to you`} tone="ember" />
+            <Tile icon={<Snowflake size={18} />} label="Conversations started" value={<Count value={soc.starts} />} sub="after a quiet spell" tone="blue" />
+            <Tile icon={<Timer size={18} />} label="Reply speed" value={soc.avgReplySeconds !== null ? duration(soc.avgReplySeconds) : "—"} sub="average time to reply" tone="green" />
+            <Tile icon={<Reply size={18} />} label="Replies back" value={soc.replyRatio !== null ? `${soc.replyRatio.toFixed(2)}×` : "—"} sub="replies you get per reply you send" tone="rose" />
+            <Tile icon={<AtSign size={18} />} label="Mentions" value={<Count value={s.records.mentionsReceived} />} sub={`${fmt(s.records.mentionsSent)} sent`} tone="blue" />
+            <Tile icon={<Heart size={18} />} label="Reactions" value={<Count value={s.emojis.reactionsReceived} format={compact} />} sub={`${compact(s.emojis.reactionsGiven)} given`} tone="rose" />
+            <Tile icon={<PieChart size={18} />} label="Inner circle" value={pct(soc.topThreeShare)} sub="of your social time is with your top 3" tone="gold" />
+          </div>
 
-          <Card title="Reactions" icon={<Sparkles size={17} />}>
-            <div className="st-trends">
-              <div><span>Received</span><strong><Count value={s.emojis.reactionsReceived} /></strong></div>
-              <div><span>Given</span><strong><Count value={s.emojis.reactionsGiven} /></strong></div>
-            </div>
-            <p className="st-note">People react to you with</p>
-            <div className="st-emoji-row">
-              {s.emojis.topReceived.length ? s.emojis.topReceived.map((e) => <span key={e.key} className="st-emoji-chip"><Emoji e={e} /> <small>{compact(e.count)}</small></span>) : <span className="st-empty">Nothing yet</span>}
-            </div>
-            <p className="st-note">You react with</p>
-            <div className="st-emoji-row">
-              {s.emojis.topGiven.length ? s.emojis.topGiven.map((e) => <span key={e.key} className="st-emoji-chip"><Emoji e={e} /> <small>{compact(e.count)}</small></span>) : <span className="st-empty">Nothing yet</span>}
-            </div>
-            {s.emojis.biggestFan ? (
-              <p className="st-fav">
-                <Avatar src={s.emojis.biggestFan.avatar} name={s.emojis.biggestFan.name} size={22} /> Biggest fan: <b>{s.emojis.biggestFan.name}</b> ({fmt(s.emojis.biggestFan.n)} reactions)
-              </p>
-            ) : null}
-          </Card>
+          <div className="st-grid">
+            <Card title="Your friendship map" icon={<Network size={17} />} className="st-wide">
+              {soc.everyone.length ? (
+                <FriendshipMap
+                  me={{ name: "You", avatar: s.profile.avatar }}
+                  people={soc.everyone}
+                  color={s.level.color?.[0] ?? "#f59b2a"}
+                  picked={openPerson}
+                  onPick={(id) => {
+                    setOpenPerson(id);
+                    requestAnimationFrame(() => document.getElementById("st-people")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+                  }}
+                />
+              ) : (
+                <p className="st-empty">Chat, reply and hang out in VC and your friendship map will fill in.</p>
+              )}
+            </Card>
 
-          <Card title="Favorite emojis" icon={<Smile size={17} />}>
-            {s.emojis.top.length ? (
-              <>
-                <div className="st-emoji-row st-emoji-row--big">
-                  {s.emojis.top.map((e) => (
-                    <button key={e.key} type="button" className={`st-emoji-chip${emoji === e.key ? " is-on" : ""}`} onClick={() => setEmoji(emoji === e.key ? null : e.key)}>
-                      <Emoji e={e} /> <small>{compact(e.count)}</small>
+            <Card title="Who's who" icon={<Crown size={17} />} className="st-wide">
+              <div className="st-leaders">
+                {(
+                  [
+                    ["conversations", "Most back-and-forths", MessagesSquare, (n: number) => `${fmt(n)} chats`],
+                    ["repliesFrom", "Replies to you most", Reply, (n: number) => `${fmt(n)} replies`],
+                    ["repliesTo", "You reply to most", CornerDownRight, (n: number) => `${fmt(n)} replies`],
+                    ["mentionsFrom", "Mentions you most", AtSign, (n: number) => `${fmt(n)} mentions`],
+                    ["mentionsTo", "You mention most", AtSign, (n: number) => `${fmt(n)} mentions`],
+                    ["reactedBy", "Your biggest fan", Heart, (n: number) => `${fmt(n)} reactions`],
+                    ["reactedTo", "You react to most", Sparkles, (n: number) => `${fmt(n)} reactions`],
+                    ["voice", "VC buddy", Headphones, (n: number) => duration(n)],
+                  ] as const
+                ).map(([key, label, Icon, f], i) => {
+                  const p = soc.leaders[key];
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      className="st-leader"
+                      style={{ "--d": `${i * 50}ms` } as CSSProperties}
+                      disabled={!p}
+                      onClick={() => {
+                        if (!p) return;
+                        setOpenPerson(p.id);
+                        requestAnimationFrame(() => document.getElementById("st-people")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+                      }}
+                    >
+                      <span className="st-leader-label">
+                        <Icon size={13} aria-hidden="true" /> {label}
+                      </span>
+                      {p ? (
+                        <span className="st-leader-who">
+                          <Avatar src={p.avatar} name={p.name} size={34} />
+                          <span>
+                            <b>{p.name}</b>
+                            <small>{f(p.n)}</small>
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="st-empty">Nobody yet</span>
+                      )}
                     </button>
-                  ))}
-                </div>
-                <p className="st-bars-readout">
-                  {pickedEmoji ? (
-                    <>
-                      <Emoji e={pickedEmoji} /> used <b>{fmt(pickedEmoji.count)}</b> times · {pct(pickedEmoji.count / Math.max(1, m.emojis))} of all your emojis
-                    </>
-                  ) : (
-                    <>Tap an emoji for details · {fmt(m.emojis)} emojis used in total</>
-                  )}
-                </p>
-              </>
-            ) : (
-              <p className="st-empty">No emojis counted yet.</p>
-            )}
-          </Card>
+                  );
+                })}
+              </div>
+            </Card>
 
-          <Card title="Conversations" icon={<AtSign size={17} />}>
-            <dl className="st-dl">
-              <div><dt>Back-and-forths</dt><dd>{fmt(s.records.conversations)}</dd></div>
-              <div><dt>People talked with</dt><dd>{fmt(s.records.people)}</dd></div>
-              <div><dt>Replies sent</dt><dd>{fmt(m.repliesSent)}</dd></div>
-              <div><dt>Replies received</dt><dd>{fmt(m.repliesReceived)}</dd></div>
-              <div><dt>Mentions sent</dt><dd>{fmt(s.records.mentionsSent)}</dd></div>
-              <div><dt>Mentions received</dt><dd>{fmt(s.records.mentionsReceived)}</dd></div>
-            </dl>
-          </Card>
+            <Card title="Everyone you talk to" icon={<Users size={17} />} className="st-wide st-anchor" aside={<span className="adm-muted">{fmt(soc.count)} people</span>}>
+              <div id="st-people" />
+              {soc.everyone.length ? (
+                <PeopleExplorer people={soc.everyone} openId={openPerson} onOpen={setOpenPerson} />
+              ) : (
+                <p className="st-empty">Nobody yet. Say hi in the server!</p>
+              )}
+            </Card>
+
+            <Card title="Server bestie" icon={<Heart size={17} />} className="st-bestie">
+              {bestie ? (
+                <>
+                  <button type="button" className="st-bestie-main" onClick={() => setPerson(person?.id === bestie.id ? null : bestie)}>
+                    <Avatar src={bestie.avatar} name={bestie.name} size={76} />
+                    <div>
+                      <strong>{bestie.name}</strong>
+                      <p>
+                        {[
+                          bestie.conversations ? `${fmt(bestie.conversations)} back-and-forths` : null,
+                          bestie.replies ? `${fmt(bestie.replies)} replies` : null,
+                          bestie.voiceSeconds ? `${duration(bestie.voiceSeconds)} in VC together` : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ") || "You two talk the most"}
+                      </p>
+                      <small>Tap for the full breakdown</small>
+                    </div>
+                  </button>
+                  {person ? <PersonDetail p={person} onClose={() => setPerson(null)} /> : null}
+                </>
+              ) : (
+                <p className="st-empty">Chat, reply and hang out in VC and your bestie will show up here.</p>
+              )}
+            </Card>
+
+            <Card title="Reactions" icon={<Sparkles size={17} />}>
+              <p className="st-note">People react to you with</p>
+              <div className="st-emoji-row">
+                {s.emojis.topReceived.length ? s.emojis.topReceived.map((e) => <span key={e.key} className="st-emoji-chip"><Emoji e={e} /> <small>{compact(e.count)}</small></span>) : <span className="st-empty">Nothing yet</span>}
+              </div>
+              <p className="st-note">You react with</p>
+              <div className="st-emoji-row">
+                {s.emojis.topGiven.length ? s.emojis.topGiven.map((e) => <span key={e.key} className="st-emoji-chip"><Emoji e={e} /> <small>{compact(e.count)}</small></span>) : <span className="st-empty">Nothing yet</span>}
+              </div>
+            </Card>
+
+            <Card title="Favorite emojis" icon={<Smile size={17} />} className="st-wide">
+              {s.emojis.top.length ? (
+                <>
+                  <div className="st-emoji-row st-emoji-row--big">
+                    {s.emojis.top.map((e) => (
+                      <button key={e.key} type="button" className={`st-emoji-chip${emoji === e.key ? " is-on" : ""}`} onClick={() => setEmoji(emoji === e.key ? null : e.key)}>
+                        <Emoji e={e} /> <small>{compact(e.count)}</small>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="st-bars-readout">
+                    {pickedEmoji ? (
+                      <>
+                        <Emoji e={pickedEmoji} /> used <b>{fmt(pickedEmoji.count)}</b> times · {pct(pickedEmoji.count / Math.max(1, m.emojis))} of all your emojis
+                      </>
+                    ) : (
+                      <>Tap an emoji for details · {fmt(m.emojis)} emojis used in total</>
+                    )}
+                  </p>
+                </>
+              ) : (
+                <p className="st-empty">No emojis counted yet.</p>
+              )}
+            </Card>
+          </div>
         </div>
       ) : null}
 
@@ -1185,7 +1201,7 @@ export function StatsView({ onBack }: { onBack: () => void }) {
       {tab === "badges" ? (
         <div className="st-tab" key="badges">
           <Card title="Badges" icon={<Award size={17} />}>
-            <BadgeGrid s={s} />
+            <BadgeCollection badges={badges} showcase={showcase} onSaved={setShowcase} />
           </Card>
         </div>
       ) : null}
