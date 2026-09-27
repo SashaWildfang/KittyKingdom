@@ -4,6 +4,7 @@
 
 import type { Document } from "mongodb";
 import { getBotCollection, getMongoClient } from "./mongodb";
+import { userTimeZone } from "./timezone";
 
 export type Ticket = {
   ticketId: number;
@@ -206,7 +207,7 @@ export async function ticketStats(q: { from?: Date | null; to?: Date | null; uni
           byType: [{ $group: { _id: "$ticket_type", n: { $sum: 1 } } }, { $sort: { n: -1 } }],
           byStatus: [{ $group: { _id: "$status", n: { $sum: 1 } } }],
           timeline: [
-            { $group: { _id: { t: { $dateTrunc: { date: "$created", unit: q.unit, timezone: "America/Denver" } }, a: "$ticket_type" }, n: { $sum: 1 } } },
+            { $group: { _id: { t: { $dateTrunc: { date: "$created", unit: q.unit, timezone: userTimeZone() } }, a: "$ticket_type" }, n: { $sum: 1 } } },
             { $sort: { "_id.t": 1 } },
           ],
           // The staff member who handled it: whoever claimed it, else whoever closed it

@@ -8,10 +8,10 @@ import { type Document } from "mongodb";
 import { headers } from "next/headers";
 import { getMongoClient, getPresenceCollection } from "./mongodb";
 import { parseUserAgent } from "./sessions";
+import { userTimeZone } from "./timezone";
 
 const RETENTION_DAYS = 400;
 const MAX_DURATION_MS = 30 * 60_000;
-const TZ = "America/Denver";
 const BOT_UA = /bot|crawl|spider|slurp|preview|facebookexternalhit|embedly|discordbot|whatsapp|telegram|headless|lighthouse|pingdom|uptime|monitor|curl|wget|python|axios|node-fetch|go-http/i;
 
 let indexesReady: Promise<unknown> | null = null;
@@ -172,7 +172,7 @@ export async function trafficReport(range: TrafficRange) {
         {
           $facet: {
             timeline: [
-              { $group: { _id: { $dateTrunc: { date: "$ts", unit, timezone: TZ } }, views: { $sum: 1 }, visitors: { $addToSet: "$vid" } } },
+              { $group: { _id: { $dateTrunc: { date: "$ts", unit, timezone: userTimeZone() } }, views: { $sum: 1 }, visitors: { $addToSet: "$vid" } } },
               { $project: { views: 1, visitors: { $size: "$visitors" } } },
               { $sort: { _id: 1 } },
             ],
@@ -190,8 +190,12 @@ export async function trafficReport(range: TrafficRange) {
             browsers: top("device.browser", 8),
             os: top("device.os", 8),
             screens: top("screen", 5, [{ $match: { screen: { $ne: null } } }]),
-            hours: [{ $group: { _id: { $hour: { date: "$ts", timezone: TZ } }, n: { $sum: 1 } } }],
-            weekdays: [{ $group: { _id: { $dayOfWeek: { date: "$ts", timezone: TZ } }, n: { $sum: 1 } } }],
+            hours: [{ $group: { _id: { $hour: { date: "$ts", timezone: userTimeZone() } }, n: { $sum: 1 }, v: { $addToSet: "$vid" } } }, { $project: { n: 1, v: { $size: "$v" } } }],
+            weekdays: [{ $group: { _id: { $dayOfWeek: { date: "$ts", timezone: userTimeZone() } }, n: { $sum: 1 }, v: { $addToSet: "$vid" } } }, { $project: { n: 1, v: { $size: "$v" } } }],
+            heat: [
+              { $group: { _id: { d: { $dayOfWeek: { date: "$ts", timezone: userTimeZone() } }, h: { $hour: { date: "$ts", timezone: userTimeZone() } } }, n: { $sum: 1 }, v: { $addToSet: "$vid" } } },
+              { $project: { n: 1, v: { $size: "$v" } } },
+            ],
             audience: [{ $group: { _id: { $cond: ["$linked", "Discord linked", { $cond: ["$signedIn", "Signed in", "Guest"] }] }, views: { $sum: 1 }, visitors: { $addToSet: "$vid" } } }, { $project: { views: 1, visitors: { $size: "$visitors" } } }],
           },
         },
@@ -223,8 +227,24 @@ export async function trafficReport(range: TrafficRange) {
     screens: rows(r?.screens),
     audience: rows(r?.audience),
     hours: Array.from({ length: 24 }, (_, h) => ((r?.hours ?? []) as Document[]).find((d) => d._id === h)?.n ?? 0) as number[],
+    hourVisitors: Array.from({ length: 24 }, (_, h) => ((r?.hours ?? []) as Document[]).find((d) => d._id === h)?.v ?? 0) as number[],
     // Mongo's $dayOfWeek: 1 = Sunday
     weekdays: Array.from({ length: 7 }, (_, i) => ((r?.weekdays ?? []) as Document[]).find((d) => d._id === i + 1)?.n ?? 0) as number[],
+    weekdayVisitors: Array.from({ length: 7 }, (_, i) => ((r?.weekdays ?? []) as Document[]).find((d) => d._id === i + 1)?.v ?? 0) as number[],
+    // [day (0 = Sunday)][hour]: views and visitors
+    heat: (() => {
+      const views = Array.from({ length: 7 }, () => Array(24).fill(0) as number[]);
+      const visitors = Array.from({ length: 7 }, () => Array(24).fill(0) as number[]);
+      for (const d of (r?.heat ?? []) as Document[]) {
+        const day = (d._id as { d: number; h: number }).d - 1;
+        const hour = (d._id as { d: number; h: number }).h;
+        if (day >= 0 && day < 7 && hour >= 0 && hour < 24) {
+          views[day][hour] = d.n as number;
+          visitors[day][hour] = d.v as number;
+        }
+      }
+      return { views, visitors };
+    })(),
     site: await siteStats(from, to, prevFrom, unit),
   };
 }
@@ -247,7 +267,7 @@ async function siteStats(from: Date, to: Date, prevFrom: Date, unit: "hour" | "d
     sessions.countDocuments({ createdAt: { $gte: prevFrom, $lt: from } }),
     sessions.distinct("userId", { lastSeenAt: inRange }).then((ids) => ids.length),
     users
-      .aggregate([{ $match: { createdAt: inRange } }, { $group: { _id: { $dateTrunc: { date: "$createdAt", unit, timezone: TZ } }, n: { $sum: 1 } } }, { $sort: { _id: 1 } }])
+      .aggregate([{ $match: { createdAt: inRange } }, { $group: { _id: { $dateTrunc: { date: "$createdAt", unit, timezone: userTimeZone() } }, n: { $sum: 1 } } }, { $sort: { _id: 1 } }])
       .toArray(),
     db.collection("news").countDocuments({ published: { $ne: false } }),
   ]);
@@ -263,5 +283,68 @@ async function siteStats(from: Date, to: Date, prevFrom: Date, unit: "hour" | "d
     activeAccounts,
     publishedNews: news,
     signupTimeline: signupTimeline.map((d) => ({ bucket: (d._id as Date).toISOString(), count: d.n as number })),
+  };
+}
+
+/**
+ * Details for one slot of the "When people visit" chart: an hour of the day, a day of the week
+ * (0 = Sunday), or both, within the report range. Times are in the viewer's time zone.
+ */
+export async function trafficSlot(range: TrafficRange, slot: { hour?: number; weekday?: number }) {
+  const span = RANGE_MS[range] ?? RANGE_MS["7d"];
+  const to = new Date();
+  const from = new Date(to.getTime() - span);
+  const tz = userTimeZone();
+  const conds: Document[] = [];
+  if (slot.hour !== undefined) conds.push({ $eq: [{ $hour: { date: "$ts", timezone: tz } }, slot.hour] });
+  if (slot.weekday !== undefined) conds.push({ $eq: [{ $dayOfWeek: { date: "$ts", timezone: tz } }, slot.weekday + 1] });
+  const col = await viewsCollection();
+  const [r] = await col
+    .aggregate([
+      { $match: { ts: { $gte: from, $lt: to }, ...(conds.length ? { $expr: { $and: conds } } : {}) } },
+      {
+        $facet: {
+          totals: [
+            {
+              $group: {
+                _id: null,
+                views: { $sum: 1 },
+                visitors: { $addToSet: "$vid" },
+                sessions: { $addToSet: "$sid" },
+                dur: { $avg: { $cond: [{ $gt: ["$durMs", 0] }, "$durMs", null] } },
+                newViews: { $sum: { $cond: ["$newVisitor", 1, 0] } },
+              },
+            },
+            { $project: { views: 1, visitors: { $size: "$visitors" }, sessions: { $size: "$sessions" }, dur: 1, newViews: 1 } },
+          ],
+          pages: top("path", 6),
+          referrers: top("ref", 5),
+          countries: top("country", 5),
+          devices: top("device.type", 4),
+          audience: [{ $group: { _id: { $cond: ["$linked", "Discord linked", { $cond: ["$signedIn", "Signed in", "Guest"] }] }, views: { $sum: 1 }, visitors: { $addToSet: "$vid" } } }, { $project: { views: 1, visitors: { $size: "$visitors" } } }],
+          // How this slot did on each calendar day of the range
+          byDate: [
+            { $group: { _id: { $dateToString: { date: "$ts", format: "%Y-%m-%d", timezone: tz } }, views: { $sum: 1 } } },
+            { $sort: { _id: 1 } },
+          ],
+        },
+      },
+    ])
+    .toArray();
+  const t = ((r?.totals ?? []) as Document[])[0];
+  return {
+    range,
+    slot,
+    views: (t?.views as number) ?? 0,
+    visitors: (t?.visitors as number) ?? 0,
+    visits: (t?.sessions as number) ?? 0,
+    avgMs: t?.dur ? Math.round(t.dur as number) : null,
+    newViews: (t?.newViews as number) ?? 0,
+    pages: rows(r?.pages),
+    referrers: rows(r?.referrers, "Direct / none"),
+    countries: rows(r?.countries),
+    devices: rows(r?.devices),
+    audience: rows(r?.audience),
+    byDate: ((r?.byDate ?? []) as Document[]).map((d) => ({ date: String(d._id), views: d.views as number })),
   };
 }

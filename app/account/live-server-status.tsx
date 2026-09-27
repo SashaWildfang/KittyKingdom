@@ -1,7 +1,7 @@
 "use client";
 
-import { BadgeCheck, Check, Gem, Image as ImageIcon, Mic, Minus, ShieldCheck, Star, type LucideIcon } from "lucide-react";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { BadgeCheck, Check, Gem, Image as ImageIcon, Mic, Minus, ShieldCheck, type LucideIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import type { RoleState } from "../../lib/member-roles";
 
 /** Fired by the Server roles section whenever it loads fresh roles, so the profile card follows along. */
@@ -10,25 +10,17 @@ export const ROLE_STATE_EVENT = "kk-role-state";
 const POLL_MS = 20_000;
 const STATUS_ICONS: Record<string, LucideIcon> = { adult: ShieldCheck, member: BadgeCheck, media: ImageIcon, vc: Mic, nitro: Gem };
 
-function rankStyle(colors: string[]): CSSProperties {
-  // One color for normal roles; Discord's gradient roles have two (or three for holographic)
-  const stops = colors.length === 1 ? [colors[0], colors[0]] : colors;
-  return { "--rank-gradient": `linear-gradient(90deg, ${stops.join(", ")})` } as CSSProperties;
-}
-
 /**
- * The profile card's staff line, top role, level and server status list. Updates live: from the
+ * The profile card's staff line and server status list (level and XP live on the stats page). Updates live: from the
  * Server roles section's refreshes, plus its own check every 20s and when the tab comes back.
  */
 export function LiveServerStatus({
   initial,
   discordLinked,
-  fallbackRank,
   fallbackStaff,
 }: {
   initial: RoleState | null;
   discordLinked: boolean;
-  fallbackRank: { name: string; colors: string[] } | null;
   fallbackStaff: boolean;
 }) {
   const [state, setState] = useState<RoleState | null>(initial);
@@ -69,27 +61,13 @@ export function LiveServerStatus({
     };
   }, [discordLinked]);
 
-  const rank = state ? state.rank : fallbackRank;
   const isStaff = state ? state.isStaff : fallbackStaff;
 
   return (
     <>
       {isStaff ? <p className="acct-staff-line">Staff Member</p> : null}
-      {rank ? (
-        <div className="acct-rank-row">
-          <span className="acct-rank" style={rankStyle(rank.colors)} title="Your highest Discord role">
-            <i aria-hidden="true" />
-            <span>{rank.name}</span>
-          </span>
-        </div>
-      ) : null}
       {state?.inServer ? (
         <div className="acct-server-status" aria-label="Server status" aria-live="polite">
-          {state.level !== null ? (
-            <span className="acct-level" title="Your level in the Discord server">
-              <Star size={14} aria-hidden="true" /> Level <strong>{state.level}</strong>
-            </span>
-          ) : null}
           <ul>
             {state.status
               .filter((r) => r.key !== "nitro" || r.has)

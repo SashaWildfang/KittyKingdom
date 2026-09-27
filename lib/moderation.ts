@@ -5,6 +5,7 @@
 import type { Document } from "mongodb";
 import { getBotCollection, getMongoClient } from "./mongodb";
 import { DISCORD_API, botToken, guildId } from "./discord-member";
+import { userTimeZone } from "./timezone";
 
 export type PunishmentSource = "automod" | "manual";
 export type PunishmentStatus = "active" | "ended" | "none";
@@ -283,7 +284,7 @@ export async function punishmentStats(q: StatsQuery) {
           byAction: [{ $group: { _id: "$n_action", n: { $sum: 1 } } }, { $sort: { n: -1 } }],
           bySource: [{ $group: { _id: "$n_source", n: { $sum: 1 } } }],
           timeline: [
-            { $group: { _id: { t: { $dateTrunc: { date: "$timestamp", unit: q.unit, timezone: "America/Denver" } }, a: "$n_action" }, n: { $sum: 1 } } },
+            { $group: { _id: { t: { $dateTrunc: { date: "$timestamp", unit: q.unit, timezone: userTimeZone() } }, a: "$n_action" }, n: { $sum: 1 } } },
             { $sort: { "_id.t": 1 } },
           ],
           topUsers: [{ $match: { n_user: { $ne: null } } }, { $group: { _id: "$n_user", n: { $sum: 1 }, last: { $max: "$timestamp" } } }, { $sort: { n: -1, last: -1 } }, { $limit: 10 }],
@@ -294,7 +295,7 @@ export async function punishmentStats(q: StatsQuery) {
             { $sort: { n: -1 } },
             { $limit: 8 },
           ],
-          hours: [{ $group: { _id: { $hour: { date: "$timestamp", timezone: "America/Denver" } }, n: { $sum: 1 } } }],
+          hours: [{ $group: { _id: { $hour: { date: "$timestamp", timezone: userTimeZone() } }, n: { $sum: 1 } } }],
           total: [{ $count: "n" }],
         },
       },

@@ -1,6 +1,6 @@
 import { loadDirectory, resolveMissing } from "./member-directory";
 
-export type Person = { name: string; username: string | null; avatar: string | null; inServer: boolean };
+export type Person = { name: string; username: string | null; nick?: string | null; avatar: string | null; inServer: boolean };
 
 /** Names and avatars for the Discord ids shown in an admin view. */
 export async function people(ids: (string | null | undefined)[]): Promise<Record<string, Person>> {
@@ -14,6 +14,7 @@ export async function people(ids: (string | null | undefined)[]): Promise<Record
     out[id] = {
       name: entry?.displayName ?? entry?.username ?? "Unknown user",
       username: entry?.username ?? null,
+      nick: entry?.nick ?? null,
       avatar: entry?.avatar ?? null,
       inServer: entry?.inServer ?? false,
     };

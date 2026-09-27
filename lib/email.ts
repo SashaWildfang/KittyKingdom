@@ -2,6 +2,8 @@
 // styles only, light "official" look that doesn't get inverted by dark-mode mail apps), with a
 // plain-text version alongside every HTML email.
 
+import { userTimeZone, zoneLabel } from "./timezone";
+
 const SITE = "https://www.kittykingdom.net";
 const LOGO = `${SITE}/logo.png`;
 const ACCENT = "#e0701e";
@@ -173,7 +175,11 @@ async function sendEmail(to: string, subject: string, html: string, text: string
   }
 }
 
-const stamp = () => new Date().toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Denver" }) + " MT";
+// In the account holder's time zone (from the request that triggered the email)
+const stamp = () => {
+  const timeZone = userTimeZone();
+  return `${new Date().toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short", timeZone })} ${zoneLabel(timeZone)}`;
+};
 
 /** Step 3 of signing up (after /link): confirm the email address. Also used for "resend". */
 export function verificationEmail(email: string, verifyUrl: string, details: { discordName?: string | null; newAccount?: boolean } = {}) {
