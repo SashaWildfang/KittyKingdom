@@ -1,5 +1,6 @@
 "use client";
 
+import { Settings2 } from "lucide-react";
 import { useState } from "react";
 import type { Drill } from "./drill-panel";
 import { BarList, Donut, HourStrip, StackedBars } from "./admin-charts";
@@ -125,7 +126,7 @@ export function OverviewTab({
           <option value="automod">AutoMod only</option>
         </select>
         <button type="button" className={`adm-chip-btn${customizing ? " is-active" : ""}`} onClick={() => setCustomizing((v) => !v)}>
-          ⚙️ Customize
+          <Settings2 size={15} aria-hidden="true" /> Customize
         </button>
         <LiveBadge updatedAt={updatedAt} loading={loading} />
       </div>

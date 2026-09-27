@@ -5,12 +5,16 @@ import { useEffect, useState } from "react";
 /** Day / night switch: the sun slides across a sunset sky and turns into a moon among stars. */
 export function ThemeToggle() {
   const [theme, setTheme] = useState<"dark" | "light">("light");
+  // Only animate once the saved theme has been applied, so loading a page never plays the slide
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem("kitty-theme") as "dark" | "light" | null;
-    const nextTheme = saved ?? "light";
+    const saved = (document.documentElement.dataset.theme ?? window.localStorage.getItem("kitty-theme")) as "dark" | "light" | null;
+    const nextTheme = saved === "dark" ? "dark" : "light";
     setTheme(nextTheme);
     document.documentElement.dataset.theme = nextTheme;
+    const frame = window.requestAnimationFrame(() => window.requestAnimationFrame(() => setReady(true)));
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   function toggleTheme() {
@@ -27,7 +31,7 @@ export function ThemeToggle() {
   const dark = theme === "dark";
   return (
     <button
-      className={`theme-switch${dark ? " is-dark" : ""}`}
+      className={`theme-switch${dark ? " is-dark" : ""}${ready ? " is-ready" : ""}`}
       type="button"
       role="switch"
       aria-checked={dark}

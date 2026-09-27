@@ -3,15 +3,21 @@ import { hashPassword, setSession } from "../../../../../lib/auth";
 import { getUsersCollection } from "../../../../../lib/mongodb";
 import { findResetUser } from "../../../../../lib/password-reset";
 import { revokeAllSessions } from "../../../../../lib/sessions";
+import { HOUR, allow, clientIp } from "../../../../../lib/rate-limit";
+import { cleanPassword, isFormPost } from "../../../../../lib/validate";
 
 export const maxDuration = 10;
 
 export async function POST(request: Request) {
   const origin = new URL(request.url).origin;
+  if (!isFormPost(request)) return NextResponse.redirect(`${origin}/reset-password?status=expired`, 303);
   const form = await request.formData();
-  const token = String(form.get("token") ?? "");
-  const password = String(form.get("newPassword") ?? "");
-  const confirm = String(form.get("confirmPassword") ?? "");
+  const token = String(form.get("token") ?? "").slice(0, 100);
+  const password = cleanPassword(form.get("newPassword")) ?? "";
+  const confirm = String(form.get("confirmPassword") ?? "").slice(0, 200);
+  if (!(await allow([{ key: `reset-confirm:ip:${await clientIp()}`, limit: 20, windowMs: HOUR }]))) {
+    return NextResponse.redirect(`${origin}/reset-password?status=expired`, 303);
+  }
   const back = (status: string) => NextResponse.redirect(`${origin}/reset-password?token=${encodeURIComponent(token)}&status=${status}`, 303);
 
   if (!/^(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(password)) return back("requirements");

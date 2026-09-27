@@ -1,3 +1,4 @@
+import { LeafEmote } from "../ui-icons";
 import type { CSSProperties } from "react";
 import { getCurrentUser } from "../../lib/auth";
 import { getDiscordInviteSummary } from "../../lib/discord";
@@ -58,7 +59,7 @@ function StaffCard({ member }: { member: StaffMember }) {
       ) : null}
       <LastOnline status={member.status} lastOnline={member.lastOnline} />
       <p className="staff-bio">{member.bio}</p>
-      {member.memberSince ? <p className="staff-since">🍂 In the kingdom since {memberSince(member.memberSince)}</p> : null}
+      {member.memberSince ? <p className="staff-since"><LeafEmote size={15} /> In the kingdom since {memberSince(member.memberSince)}</p> : null}
     </article>
   );
 }

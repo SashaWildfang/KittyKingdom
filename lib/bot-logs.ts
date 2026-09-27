@@ -52,6 +52,8 @@ export type LogEntry = {
   authorIcon: string | null;
   fields: { name: string; value: string; inline: boolean }[];
   footer: string | null;
+  thumbnail?: string | null;
+  image?: string | null;
   subjectId: string | null;
   userIds: string[];
   attachments: { id: string; filename: string; size: number; image: boolean; kind?: "image" | "video" | "audio" | "file" }[];
@@ -119,7 +121,7 @@ export function logCategory(type: string) {
   return "other";
 }
 
-const TYPE_VERSION = 3;
+const TYPE_VERSION = 4;
 
 function toEntry(m: DiscordMessage, channel: LogChannelKey) {
   const embed = m.embeds[0];
@@ -146,6 +148,9 @@ function toEntry(m: DiscordMessage, channel: LogChannelKey) {
     authorIcon: embed?.author?.icon_url ?? null,
     fields: (embed?.fields ?? []).map((f) => ({ name: f.name, value: f.value, inline: Boolean(f.inline) })),
     footer: embed?.footer?.text ?? null,
+    // e.g. the new avatar on "Avatar Changed" logs
+    thumbnail: embed?.thumbnail?.url ?? null,
+    image: embed?.image?.url ?? null,
     subjectId: footerId ?? mentioned[0] ?? null,
     userIds,
     attachments: m.attachments.map((a) => ({
@@ -197,7 +202,15 @@ async function syncChannel(channel: (typeof LOG_CHANNELS)[number]) {
   if (!state) return;
 
   // Older copies were typed with the first version of the rules: re-type them once
-  if (channel.key === "bot" && ((state as { typeVersion?: number }).typeVersion ?? 1) < TYPE_VERSION) {
+  const stateVersion = (state as { typeVersion?: number }).typeVersion ?? 1;
+  if (stateVersion < 4) {
+    // Version 4 also saves embed images/thumbnails: fetch the whole channel again once
+    state.newestId = undefined;
+    state.oldestId = undefined;
+    state.backfillDone = false;
+    if (channel.key !== "bot") await meta.updateOne({ _id: channel.meta }, { $set: { typeVersion: TYPE_VERSION } });
+  }
+  if (channel.key === "bot" && stateVersion < TYPE_VERSION) {
     // Logs mirrored before channels were tracked all came from the bot log channel
     await logs.updateMany({ channel: { $exists: false } }, { $set: { channel: "bot" } });
     const old = await logs.find({}, { projection: { title: 1, content: 1 } }).toArray();

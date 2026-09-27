@@ -1,5 +1,6 @@
 "use client";
 
+import { Bot, Download, Rows3, Rows4, Search, Shield, User, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
   ActionBadge,
@@ -195,14 +196,14 @@ export function PunishmentsTab({
           ))}
         </select>
         <button type="button" className={`adm-chip-btn${compact ? " is-active" : ""}`} onClick={() => setCompact((v) => !v)}>
-          {compact ? "▤ Compact" : "☰ Comfortable"}
+          {compact ? <Rows4 size={15} aria-hidden="true" /> : <Rows3 size={15} aria-hidden="true" />} {compact ? "Compact" : "Comfortable"}
         </button>
         <button type="button" className="adm-chip-btn" onClick={exportCsv} disabled={exporting}>
-          {exporting ? "Exporting…" : "⬇ CSV"}
+          {exporting ? "Exporting…" : <><Download size={14} aria-hidden="true" /> CSV</>}
         </button>
         {activeFilters ? (
           <button type="button" className="adm-chip-btn" onClick={() => { setSearchText(""); setFilters(DEFAULT_PUNISHMENT_FILTERS); setPage(1); }}>
-            ✕ Clear ({activeFilters})
+            <X size={14} aria-hidden="true" /> Clear ({activeFilters})
           </button>
         ) : null}
         <LiveBadge updatedAt={updatedAt} loading={loading} />
@@ -211,7 +212,7 @@ export function PunishmentsTab({
       <div className="adm-chips" role="group" aria-label="Actions">
         {filters.member ? (
           <button type="button" className="adm-chip is-on adm-chip--member" style={{ "--c": "#f59b2a" } as React.CSSProperties} onClick={() => update({ member: null })}>
-            👤 {filters.member.name} ✕
+            <User size={13} aria-hidden="true" /> {filters.member.name} <X size={13} aria-hidden="true" />
           </button>
         ) : null}
         {actionsAvailable.map((action, i) => {
@@ -319,7 +320,7 @@ export function PunishmentsTab({
                             </div>
                             <div>
                               <dt>Source</dt>
-                              <dd>{row.source === "automod" ? "🤖 AutoMod / automatic" : "🛡️ Staff"}</dd>
+                              <dd className="adm-inline-icon">{row.source === "automod" ? <><Bot size={14} aria-hidden="true" /> AutoMod / automatic</> : <><Shield size={14} aria-hidden="true" /> Staff</>}</dd>
                             </div>
                             <div>
                               <dt>Extra info</dt>
@@ -341,12 +342,12 @@ export function PunishmentsTab({
                           <div className="adm-detail-actions">
                             {row.userId ? (
                               <button type="button" className="adm-btn" onClick={() => onOpenMember(row.userId!)}>
-                                👤 Member profile
+                                <User size={14} aria-hidden="true" /> Member profile
                               </button>
                             ) : null}
                             {row.userId ? (
                               <button type="button" className="adm-btn adm-btn--ghost" onClick={() => update({ member: { id: row.userId!, name: people[row.userId!]?.name ?? row.userId! }, search: "" })}>
-                                🔎 All for this member
+                                <Search size={14} aria-hidden="true" /> All for this member
                               </button>
                             ) : null}
                           </div>

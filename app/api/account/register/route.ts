@@ -3,6 +3,8 @@ import { createVerificationTokenEntry, hashPassword } from "../../../../lib/auth
 import { isDatabaseConnectionError } from "../../../../lib/db-errors";
 import { sendVerificationEmail } from "../../../../lib/email";
 import { getUsersCollection } from "../../../../lib/mongodb";
+import { HOUR, allow, clientIp } from "../../../../lib/rate-limit";
+import { cleanEmail, cleanPassword, isFormPost } from "../../../../lib/validate";
 
 export const maxDuration = 10;
 
@@ -10,12 +12,15 @@ export async function POST(request: Request) {
   const origin = new URL(request.url).origin;
 
   try {
+    if (!isFormPost(request)) return NextResponse.redirect(`${origin}/register?register=email-required`, 303);
     const form = await request.formData();
-    const email = String(form.get("email") ?? "")
-      .trim()
-      .toLowerCase();
-    const password = String(form.get("password") ?? "");
+    const email = cleanEmail(form.get("email"));
+    const password = cleanPassword(form.get("password")) ?? "";
     const acceptedPolicies = form.get("acceptedPolicies") === "yes";
+
+    if (!(await allow([{ key: `register:ip:${await clientIp()}`, limit: 6, windowMs: HOUR }]))) {
+      return NextResponse.redirect(`${origin}/register?register=too-many`, 303);
+    }
 
     if (!email) {
       return NextResponse.redirect(

@@ -281,6 +281,9 @@ export async function GET(request: Request) {
     if (!currentUser) {
       return NextResponse.json({ rows: [], total: 0, error: "Login required." }, { status: 401 });
     }
+    if (!currentUser.discordId) {
+      return NextResponse.json({ rows: [], total: 0, error: "Link your Discord account to see the leaderboards." }, { status: 403 });
+    }
 
     const escapedSearch = escapeRegex(search);
     const searchQuery = escapedSearch

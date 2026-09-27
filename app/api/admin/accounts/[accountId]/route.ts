@@ -5,7 +5,7 @@ import { requireAdmin } from "../../../../../lib/admin";
 export const dynamic = "force-dynamic";
 export const maxDuration = 15;
 
-const ACTIONS: AccountAction[] = ["send-reset", "temp-password", "sign-out", "verify-email"];
+const ACTIONS: AccountAction[] = ["send-reset", "temp-password", "sign-out", "verify-email", "delete"];
 
 export async function GET(request: Request, { params }: { params: { accountId: string } }) {
   const admin = await requireAdmin(request);
@@ -25,7 +25,8 @@ export async function POST(request: Request, { params }: { params: { accountId: 
   }
   try {
     const result = await accountAction(params.accountId, body.action as AccountAction, admin, new URL(request.url).origin);
-    return NextResponse.json({ ok: true, ...result, account: await getAccount(params.accountId) }, { headers: { "Cache-Control": "no-store" } });
+    const account = body.action === "delete" ? null : await getAccount(params.accountId);
+    return NextResponse.json({ ok: true, ...result, account, deleted: body.action === "delete" }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : "That didn't work." }, { status: 400 });
   }

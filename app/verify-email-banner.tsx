@@ -1,5 +1,6 @@
 "use client";
 
+import { Mail } from "lucide-react";
 import { useState } from "react";
 
 export function VerifyEmailBanner({ email }: { email: string }) {
@@ -10,7 +11,11 @@ export function VerifyEmailBanner({ email }: { email: string }) {
     if (state === "sending") return;
     setState("sending");
     try {
-      const response = await fetch(`/api/account/resend-verification?ajax=1&identifier=${encodeURIComponent(email)}`);
+      const response = await fetch("/api/account/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier: email }),
+      });
       const data = (await response.json()) as { message?: string };
       setMessage(data.message ?? "Verification email sent. Check your inbox.");
     } catch {
@@ -21,7 +26,7 @@ export function VerifyEmailBanner({ email }: { email: string }) {
 
   return (
     <div className="acct-verify-banner" role="status">
-      <span className="acct-verify-icon" aria-hidden="true">✉️</span>
+      <span className="acct-verify-icon" aria-hidden="true"><Mail size={22} /></span>
       <div>
         <strong>Please verify your email address</strong>
         <p>{message ?? `We sent a confirmation link to ${email}. Didn't get it? Check spam, or send a new one.`}</p>

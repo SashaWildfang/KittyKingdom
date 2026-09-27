@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { Backpack, Check, CircleAlert, Flame, Gift, Hourglass, Package, Rocket, ShoppingBag, Sparkles } from "lucide-react";
 import type { InventoryEntry, StoreItem, StoreState } from "../../lib/store";
+import { LeafEmote, StoreItemIcon } from "../ui-icons";
 
 const MAX_BUY = 50;
 const POLL_MS = 15000;
@@ -16,7 +18,7 @@ type Member = { id: string; username: string; displayName: string; avatar: strin
 
 // ---------- small helpers ----------
 function Leaf({ size = 18 }: { size?: number }) {
-  return <img className="store-leaf" src="/leaf.png" alt="leaves" width={size} height={size} />;
+  return <LeafEmote size={size} className="store-leaf" />;
 }
 
 function formatCountdown(ms: number) {
@@ -56,7 +58,11 @@ function ItemVisual({ icon, roleColors, isRole, large = false }: { icon: string 
   if (isRole) {
     return <span className={`store-swatch${large ? " store-swatch--large" : ""}`} style={swatchStyle(roleColors)} aria-hidden="true" />;
   }
-  return <span className={`store-icon${large ? " store-icon--large" : ""}`} aria-hidden="true">{icon ?? "📦"}</span>;
+  return (
+    <span className={`store-icon${large ? " store-icon--large" : ""}`} aria-hidden="true">
+      <StoreItemIcon icon={icon} size={large ? 30 : 22} />
+    </span>
+  );
 }
 
 // ==========================================
@@ -163,10 +169,10 @@ export function StoreClient({ initialState }: { initialState: StoreState }) {
       {/* ---------- Tabs ---------- */}
       <div className="store-tabs" role="tablist">
         <button role="tab" aria-selected={tab === "shop"} className={tab === "shop" ? "active" : ""} onClick={() => setTab("shop")}>
-          🛍️ Shop
+          <ShoppingBag size={16} aria-hidden="true" /> Shop
         </button>
         <button role="tab" aria-selected={tab === "inventory"} className={tab === "inventory" ? "active" : ""} onClick={() => setTab("inventory")}>
-          🎒 Inventory {inventoryCount ? <span className="store-tab-count">{inventoryCount}</span> : null}
+          <Backpack size={16} aria-hidden="true" /> Inventory {inventoryCount ? <span className="store-tab-count">{inventoryCount}</span> : null}
         </button>
       </div>
 
@@ -188,7 +194,7 @@ export function StoreClient({ initialState }: { initialState: StoreState }) {
                 <div className="store-section-head store-section-head--stacked">
                   <h2>{section.title}</h2>
                   {section.ends ? (
-                    <span className="store-timer">⏳ Ends in {formatCountdown(new Date(section.ends).getTime() - now)}</span>
+                    <span className="store-timer"><Hourglass size={13} aria-hidden="true" /> Ends in {formatCountdown(new Date(section.ends).getTime() - now)}</span>
                   ) : null}
                 </div>
                 <div className="store-grid">
@@ -248,7 +254,7 @@ export function StoreClient({ initialState }: { initialState: StoreState }) {
       <div className="store-toasts" aria-live="polite">
         {toasts.map((t) => (
           <div key={t.id} className={`store-toast store-toast--${t.tone}`}>
-            <span aria-hidden="true">{t.tone === "success" ? "✓" : "!"}</span> {t.text}
+            <span aria-hidden="true">{t.tone === "success" ? <Check size={16} /> : <CircleAlert size={16} />}</span> {t.text}
           </div>
         ))}
       </div>
@@ -267,7 +273,7 @@ function ShopCard({ item, balance, onBuy }: { item: StoreItem; balance: number; 
   const short = item.price - balance;
 
   let button: ReactNode;
-  if (ownedRole) button = <button className="store-buy store-buy--owned" disabled>{item.equipped ? "✓ Equipped" : "✓ Owned"}</button>;
+  if (ownedRole) button = <button className="store-buy store-buy--owned" disabled><Check size={14} aria-hidden="true" /> {item.equipped ? "Equipped" : "Owned"}</button>;
   else if (soldOut) button = <button className="store-buy" disabled>Sold out</button>;
   else if (limitReached) button = <button className="store-buy" disabled>Daily limit reached</button>;
   else if (short > 0) button = <button className="store-buy" disabled>Need {short.toLocaleString()} more</button>;
@@ -311,7 +317,7 @@ function InventoryView({ state, now, busy, onEquip, onUse, onGift, onShop }: {
   if (!state.inventory.length && !activeBoosters.length) {
     return (
       <div className="store-empty-card">
-        <span aria-hidden="true">🎒</span>
+        <span aria-hidden="true"><Backpack size={28} /></span>
         <h2>Your inventory is empty</h2>
         <p>Roles, boosters and gifts you buy (or receive) show up here.</p>
         <button className="store-primary" onClick={onShop}>Browse the shop</button>
@@ -323,11 +329,11 @@ function InventoryView({ state, now, busy, onEquip, onUse, onGift, onShop }: {
     <div className="store-inventory">
       {activeBoosters.length ? (
         <section className="store-active">
-          <h2>🔥 Active boosters</h2>
+          <h2><Flame size={20} aria-hidden="true" /> Active boosters</h2>
           <div className="store-active-row">
             {activeBoosters.map((b) => (
               <div className="store-active-pill" key={b.itemId}>
-                <span aria-hidden="true">{b.icon}</span>
+                <span aria-hidden="true"><StoreItemIcon icon={b.icon} size={16} /></span>
                 <strong>{b.name}</strong>
                 <span className="store-timer">{formatCountdown(new Date(b.endsAt).getTime() - now)} left</span>
               </div>
@@ -337,7 +343,7 @@ function InventoryView({ state, now, busy, onEquip, onUse, onGift, onShop }: {
       ) : null}
 
       {roles.length ? (
-        <InventorySection title="🎭 Roles" hint="Only one shop role can be equipped at a time.">
+        <InventorySection title="Roles" icon={<Sparkles size={18} />} hint="Only one shop role can be equipped at a time.">
           {roles.map((e) => (
             <article className={`store-inv-card${e.equipped ? " store-inv-card--equipped" : ""}`} key={e.itemId} style={swatchStyle(e.roleColors)}>
               <ItemVisual icon={null} roleColors={e.roleColors} isRole />
@@ -355,7 +361,7 @@ function InventoryView({ state, now, busy, onEquip, onUse, onGift, onShop }: {
       ) : null}
 
       {boosters.length ? (
-        <InventorySection title="🚀 Boosters">
+        <InventorySection title="Boosters" icon={<Rocket size={18} />}>
           {boosters.map((e) => (
             <article className="store-inv-card" key={e.itemId}>
               <ItemVisual icon={e.icon} roleColors={[]} isRole={false} />
@@ -370,7 +376,7 @@ function InventoryView({ state, now, busy, onEquip, onUse, onGift, onShop }: {
       ) : null}
 
       {gifts.length ? (
-        <InventorySection title="🎁 Gifts" hint={state.giftCooldownEndsAt && new Date(state.giftCooldownEndsAt).getTime() > now
+        <InventorySection title="Gifts" icon={<Gift size={18} />} hint={state.giftCooldownEndsAt && new Date(state.giftCooldownEndsAt).getTime() > now
           ? `Next gift in ${formatCountdown(new Date(state.giftCooldownEndsAt).getTime() - now)}` : "Send them to anyone in the server."}>
           {gifts.map((e) => (
             <article className="store-inv-card" key={e.itemId}>
@@ -386,7 +392,7 @@ function InventoryView({ state, now, busy, onEquip, onUse, onGift, onShop }: {
       ) : null}
 
       {other.length ? (
-        <InventorySection title="📦 Other items">
+        <InventorySection title="Other items" icon={<Package size={18} />}>
           {other.map((e) => (
             <article className="store-inv-card" key={e.itemId}>
               <ItemVisual icon={e.icon} roleColors={[]} isRole={false} />
@@ -402,11 +408,14 @@ function InventoryView({ state, now, busy, onEquip, onUse, onGift, onShop }: {
   );
 }
 
-function InventorySection({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
+function InventorySection({ title, icon, hint, children }: { title: string; icon?: ReactNode; hint?: string; children: ReactNode }) {
   return (
     <section className="store-section">
       <div className="store-section-head">
-        <h2>{title}</h2>
+        <h2>
+          {icon ? <span className="store-section-icon" aria-hidden="true">{icon}</span> : null}
+          {title}
+        </h2>
         {hint ? <span className="store-hint">{hint}</span> : null}
       </div>
       <div className="store-inv-grid">{children}</div>
@@ -470,8 +479,8 @@ function BuyModal({ item, balance, busy, onClose, onConfirm }: {
       ) : null}
 
       <dl className="store-receipt">
-        <div><dt>Price</dt><dd>{amount > 1 ? `${amount} × ${item.price.toLocaleString()}` : item.price.toLocaleString()} <Leaf size={16} /></dd></div>
         <div><dt>Current balance</dt><dd>{balance.toLocaleString()} <Leaf size={16} /></dd></div>
+        <div className="store-receipt-price"><dt>Price</dt><dd>− {amount > 1 ? `${amount} × ${item.price.toLocaleString()}` : item.price.toLocaleString()} <Leaf size={16} /></dd></div>
         <div className="store-receipt-total"><dt>Balance after</dt><dd>{(balance - total).toLocaleString()} <Leaf size={16} /></dd></div>
       </dl>
       {isRole ? <p className="store-modal-note">After buying, equip it from your Inventory — it&apos;ll show on your Discord profile.</p> : null}
@@ -565,13 +574,13 @@ function GiftModal({ entry, cooldownEndsAt, now, busy, onClose, onSend }: {
         <span className="store-muted">{message.length}/{limit}</span>
       </label>
 
-      {cooldownLeft > 0 ? <p className="store-modal-note">⏳ You can send another gift in {formatCountdown(cooldownLeft)}.</p> : null}
+      {cooldownLeft > 0 ? <p className="store-modal-note"><Hourglass size={14} aria-hidden="true" /> You can send another gift in {formatCountdown(cooldownLeft)}.</p> : null}
 
       <div className="store-modal-actions">
         <button className="store-ghost-button" onClick={onClose}>Cancel</button>
         <button className="store-primary" disabled={busy || !picked || cooldownLeft > 0 || (entry.requiresMessage && !message.trim())}
           onClick={() => picked && onSend(picked.id, message)}>
-          {busy ? "Sending..." : "Send gift 🎁"}
+          {busy ? "Sending..." : <><Gift size={16} aria-hidden="true" /> Send gift</>}
         </button>
       </div>
     </ModalShell>

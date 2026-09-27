@@ -1,5 +1,6 @@
 "use client";
 
+import { Download, ExternalLink, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { PersonLink, TICKET_COLORS, formatDate, formatMs, prettyAction, type People, type Ticket } from "./admin-shared";
 
@@ -75,16 +76,16 @@ export function TranscriptViewer({ ticketId, onClose, onOpenMember }: { ticketId
         <div className="adm-viewer-actions">
           {data?.viewer ? (
             <a className="adm-btn adm-btn--ghost" href={data.viewer} target="_blank" rel="noopener">
-              ↗ New tab
+              <ExternalLink size={14} aria-hidden="true" /> New tab
             </a>
           ) : null}
           {data?.download ? (
             <a className="adm-btn adm-btn--ghost" href={data.download.url} rel="noopener noreferrer">
-              ⬇ Zip ({(data.download.size / 1024 / 1024).toFixed(1)} MB)
+              <Download size={14} aria-hidden="true" /> Zip ({(data.download.size / 1024 / 1024).toFixed(1)} MB)
             </a>
           ) : null}
           <button type="button" className="adm-btn" onClick={onClose} aria-label="Close transcript">
-            ✕ Close
+            <X size={15} aria-hidden="true" /> Close
           </button>
         </div>
       </header>
