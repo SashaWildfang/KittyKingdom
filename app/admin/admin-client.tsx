@@ -154,6 +154,7 @@ export function AdminClient({ adminName, level }: { adminName: string; level: Le
       {drill ? createPortal(<DrillPanel
               drill={drill}
               onClose={() => setDrill(null)}
+              onDrill={setDrill}
               onOpenMember={(id) => {
                 setDrill(null);
                 openMember(id);

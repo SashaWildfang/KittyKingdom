@@ -27,9 +27,13 @@ export async function GET(request: Request) {
       order: params.get("order") === "asc" ? "asc" : "desc",
       page: Number(params.get("page") ?? 1),
       pageSize: Number(params.get("pageSize") ?? 25),
+      summary: params.get("summary") === "1",
     });
-    const { mentions, userIds } = await resolveMentions(result.rows.flatMap((r) => [r.reason, r.extraInfo, r.messageContent]));
-    const who = await people([...result.rows.flatMap((r) => [r.userId, r.issuerId]), ...userIds]);
+    const { mentions, userIds } = await resolveMentions([
+      ...result.rows.flatMap((r) => [r.reason, r.extraInfo, r.messageContent]),
+      ...(result.summary?.reasons.map((r) => r.reason) ?? []),
+    ]);
+    const who = await people([...result.rows.flatMap((r) => [r.userId, r.issuerId]), ...userIds, ...(result.summary?.issuers.map((i) => i.id) ?? [])]);
     return NextResponse.json({ ok: true, ...result, people: who, mentions });
   } catch (error) {
     console.error("Admin punishments failed", error);

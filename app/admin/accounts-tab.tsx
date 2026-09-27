@@ -366,8 +366,10 @@ export function AccountsTab({ onOpenMember }: { onOpenMember: (id: string) => vo
                   </span>
                 </td>
                 <td>
-                  <span className="adm-email">{a.email}</span>
-                  {a.emailVerified ? <BadgeCheck className="adm-verified" size={15} aria-label="Verified" /> : <span className="adm-tag">unverified</span>}
+                  <span className="adm-email-cell">
+                    <span className="adm-email">{a.email}</span>
+                    {a.emailVerified ? <BadgeCheck className="adm-verified" size={15} aria-label="Verified" /> : <span className="adm-tag">unverified</span>}
+                  </span>
                 </td>
                 <td>
                   {a.discordId ? (

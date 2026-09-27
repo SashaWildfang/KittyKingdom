@@ -84,14 +84,27 @@ export function StackedBars({
 }
 
 /** Ring chart with a total in the middle. */
-export function Donut({ parts, size = 170, label }: { parts: { key: string; label: string; value: number; color: string }[]; size?: number; label: string }) {
+export function Donut({
+  parts,
+  size = 170,
+  label,
+  onSelect,
+}: {
+  parts: { key: string; label: string; value: number; color: string }[];
+  size?: number;
+  label: string;
+  /** Makes slices and legend rows clickable */
+  onSelect?: (key: string) => void;
+}) {
+  const [hover, setHover] = useState<string | null>(null);
   const total = parts.reduce((a, p) => a + p.value, 0);
   const r = 42;
   const c = 2 * Math.PI * r;
   let offset = 0;
+  const hovered = parts.find((p) => p.key === hover);
   return (
-    <div className="adm-donut">
-      <svg viewBox="0 0 100 100" width={size} height={size} aria-hidden="true">
+    <div className={`adm-donut${onSelect ? " is-clickable" : ""}`}>
+      <svg viewBox="0 0 100 100" width={size} height={size} role={onSelect ? "group" : undefined} aria-hidden={onSelect ? undefined : true} aria-label={onSelect ? "Breakdown chart" : undefined}>
         <circle cx="50" cy="50" r={r} fill="none" stroke="var(--line)" strokeWidth="12" />
         {total > 0
           ? parts.map((p) => {
@@ -99,6 +112,7 @@ export function Donut({ parts, size = 170, label }: { parts: { key: string; labe
               const el = (
                 <circle
                   key={p.key}
+                  className={`adm-donut-slice${hover && hover !== p.key ? " is-dim" : ""}${hover === p.key ? " is-hover" : ""}`}
                   cx="50"
                   cy="50"
                   r={r}
@@ -108,28 +122,46 @@ export function Donut({ parts, size = 170, label }: { parts: { key: string; labe
                   strokeDasharray={`${len} ${c - len}`}
                   strokeDashoffset={-offset}
                   transform="rotate(-90 50 50)"
-                />
+                  onMouseEnter={() => setHover(p.key)}
+                  onMouseLeave={() => setHover(null)}
+                  onClick={onSelect ? () => onSelect(p.key) : undefined}
+                >
+                  <title>{`${p.label}: ${p.value.toLocaleString()}${onSelect ? " (click for the causes)" : ""}`}</title>
+                </circle>
               );
               offset += len;
               return el;
             })
           : null}
         <text x="50" y="49" textAnchor="middle" className="adm-donut-total">
-          {total.toLocaleString()}
+          {(hovered?.value ?? total).toLocaleString()}
         </text>
         <text x="50" y="62" textAnchor="middle" className="adm-donut-label">
-          {label}
+          {hovered ? hovered.label.toLowerCase() : label}
         </text>
       </svg>
       <ul className="adm-legend">
-        {parts.map((p) => (
-          <li key={p.key}>
-            <i style={{ background: p.color }} />
-            <span>{p.label}</span>
-            <strong>{p.value.toLocaleString()}</strong>
-            <small>{total ? Math.round((p.value / total) * 100) : 0}%</small>
-          </li>
-        ))}
+        {parts.map((p) => {
+          const inner = (
+            <>
+              <i style={{ background: p.color }} />
+              <span>{p.label}</span>
+              <strong>{p.value.toLocaleString()}</strong>
+              <small>{total ? Math.round((p.value / total) * 100) : 0}%</small>
+            </>
+          );
+          return (
+            <li key={p.key} className={hover === p.key ? "is-hover" : undefined} onMouseEnter={() => setHover(p.key)} onMouseLeave={() => setHover(null)}>
+              {onSelect ? (
+                <button type="button" onClick={() => onSelect(p.key)} title={`See what caused these ${p.label.toLowerCase()}s`}>
+                  {inner}
+                </button>
+              ) : (
+                inner
+              )}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

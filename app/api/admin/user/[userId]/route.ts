@@ -33,7 +33,9 @@ export async function GET(request: Request, { params }: { params: { userId: stri
     const roles = (roleIds ?? [])
       .map((id) => guildRoles.get(id))
       .filter((r): r is NonNullable<typeof r> => Boolean(r))
-      .map((r) => ({ id: r.id, name: r.name, colors: r.colors }));
+      // Highest role first, the same order Discord shows
+      .sort((a, b) => b.position - a.position)
+      .map((r) => ({ id: r.id, name: r.name, colors: r.colors, position: r.position }));
     const { mentions, userIds } = await resolveMentions(punishments.rows.flatMap((p) => [p.reason, p.messageContent]));
     const who = await people([
       ...userIds,

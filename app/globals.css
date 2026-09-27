@@ -12598,3 +12598,496 @@ p.acct-inline-icon > svg:first-child {
     -webkit-overflow-scrolling: touch;
   }
 }
+
+/* ==========================================
+   My Account: daily leaves
+   ========================================== */
+.daily {
+  display: grid;
+  gap: 1rem;
+}
+
+.daily-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid rgba(245, 155, 42, 0.35);
+  border-radius: 1.2rem;
+  background: radial-gradient(circle at 0% 0%, rgba(245, 155, 42, 0.18), transparent 60%), var(--panel);
+  padding: 1.1rem 1.2rem;
+}
+
+.daily--nitro .daily-main {
+  border-color: rgba(244, 127, 255, 0.4);
+  background: radial-gradient(circle at 0% 0%, rgba(244, 127, 255, 0.16), transparent 60%), var(--panel);
+}
+
+.daily-reward,
+.daily-timer {
+  position: relative;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.daily-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--gold);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.daily-reward strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 2.2rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.daily-reward small,
+.daily-timer small {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.daily-timer {
+  text-align: right;
+}
+
+.daily-timer .daily-label {
+  justify-content: flex-end;
+  color: #7ed99a;
+}
+
+.daily-timer strong {
+  font-size: 2rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.daily-claim {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f7a53a, #e0701e);
+  box-shadow: 0 10px 26px rgba(224, 112, 30, 0.4);
+  color: #241006;
+  cursor: pointer;
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 900;
+  padding: 0.85rem 1.4rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  animation: daily-glow 2.4s ease-in-out infinite;
+}
+
+.daily-claim:hover {
+  transform: translateY(-2px);
+}
+
+.daily-claim:disabled {
+  animation: none;
+  cursor: default;
+  opacity: 0.7;
+}
+
+@keyframes daily-glow {
+  50% {
+    box-shadow: 0 10px 34px rgba(245, 155, 42, 0.7);
+  }
+}
+
+.daily-pop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: #7ed99a;
+  font-size: 1.4rem;
+  font-weight: 900;
+  pointer-events: none;
+  animation: daily-pop 1.8s ease-out forwards;
+}
+
+@keyframes daily-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.8);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(-14px) scale(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-46px) scale(1);
+  }
+}
+
+.daily-streak {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.daily-streak > div {
+  display: grid;
+}
+
+.daily-streak small {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.daily-flame {
+  display: inline-grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: none;
+  border-radius: 0.8rem;
+  background: rgba(245, 155, 42, 0.16);
+  color: var(--ember);
+}
+
+.daily-streak.is-risk .daily-flame {
+  animation: daily-flicker 1.2s ease-in-out infinite;
+  background: rgba(229, 72, 77, 0.18);
+  color: #ff8f6b;
+}
+
+.daily-streak.is-risk small {
+  color: #ffb08f;
+  font-weight: 700;
+}
+
+@keyframes daily-flicker {
+  50% {
+    transform: scale(1.08) rotate(-4deg);
+  }
+}
+
+.daily-week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.daily-week li {
+  display: grid;
+  justify-items: center;
+  gap: 0.3rem;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  background: var(--panel);
+  padding: 0.55rem 0.2rem;
+  text-align: center;
+}
+
+.daily-day {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.daily-dot {
+  display: inline-grid;
+  place-items: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--muted);
+}
+
+.daily-bonus {
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.daily-week li.is-done {
+  border-color: rgba(70, 167, 88, 0.5);
+  background: rgba(70, 167, 88, 0.12);
+}
+
+.daily-week li.is-done .daily-dot {
+  background: #46a758;
+  color: #fff;
+}
+
+.daily-week li.is-next {
+  border-color: var(--ember);
+  box-shadow: 0 0 0 2px rgba(245, 155, 42, 0.25);
+}
+
+.daily-week li.is-locked .daily-bonus {
+  color: var(--muted);
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.daily-nitro {
+  display: flex;
+  gap: 0.8rem;
+  border: 1px dashed rgba(244, 127, 255, 0.45);
+  border-radius: 1.1rem;
+  background: rgba(244, 127, 255, 0.07);
+  padding: 0.95rem 1rem;
+}
+
+.daily-nitro-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  flex: none;
+  border-radius: 0.8rem;
+  background: rgba(244, 127, 255, 0.18);
+  color: #f47fff;
+}
+
+.daily-nitro strong {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.daily-nitro p {
+  margin: 0 0 0.4rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.daily-nitro b {
+  color: var(--text);
+}
+
+.daily-nitro-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: #f47fff;
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.daily-nitro-on {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  color: #f47fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.daily-msg {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.daily-msg.is-ok {
+  color: #7ed99a;
+}
+
+.daily-msg.is-error {
+  color: #ff8f8f;
+}
+
+@media (max-width: 760px) {
+  .daily-main {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+
+  .daily-reward strong {
+    justify-content: center;
+  }
+
+  .daily-timer {
+    text-align: center;
+  }
+
+  .daily-timer .daily-label {
+    justify-content: center;
+  }
+
+  .daily-claim {
+    justify-content: center;
+  }
+
+  .daily-pop {
+    right: 0;
+    justify-content: center;
+  }
+
+  .daily-week {
+    gap: 0.25rem;
+  }
+
+  .daily-week li {
+    padding: 0.45rem 0.1rem;
+    border-radius: 0.7rem;
+  }
+
+  .daily-day {
+    font-size: 0.58rem;
+  }
+
+  .daily-bonus {
+    font-size: 0.7rem;
+  }
+}
+
+/* Email + verified check side by side with a gap, never wrapping under each other */
+.adm-email-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  white-space: nowrap;
+}
+
+.adm-email-cell .adm-verified {
+  flex: none;
+  vertical-align: 0;
+}
+
+.adm-email-cell .adm-tag {
+  margin: 0;
+}
+
+/* Clickable breakdown donut */
+.adm-donut-slice {
+  transition: opacity 0.15s ease, stroke-width 0.15s ease;
+}
+
+.adm-donut-slice.is-dim {
+  opacity: 0.35;
+}
+
+.adm-donut-slice.is-hover {
+  stroke-width: 14;
+}
+
+.adm-donut.is-clickable .adm-donut-slice {
+  cursor: pointer;
+}
+
+.adm-legend li > button {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 0.45rem;
+  width: calc(100% + 0.8rem);
+  margin: -0.2rem -0.4rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: 0.2rem 0.4rem;
+  text-align: left;
+}
+
+.adm-legend li.is-hover > button,
+.adm-legend li > button:focus-visible {
+  background: rgba(245, 155, 42, 0.12);
+}
+
+.adm-legend li:has(> button) {
+  display: block;
+}
+
+.adm-drill-split {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.adm-drill-split span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 0.85rem;
+  padding: 0.3rem 0.75rem;
+}
+
+.adm-drill-split strong {
+  color: var(--text);
+}
+
+/* Role chips hug their text; the remove button only takes space when it shows */
+.adm-roles {
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.adm-role {
+  gap: 0.3rem;
+  max-width: 100%;
+  line-height: 1.3;
+  padding: 0.2rem 0.55rem;
+  white-space: nowrap;
+}
+
+.adm-role .adm-role-x {
+  width: 0;
+  margin: 0 -0.3rem 0 0;
+  overflow: hidden;
+  transition: opacity 0.15s ease, background 0.15s ease, width 0.15s ease, margin 0.15s ease;
+}
+
+.adm-role.is-editable:hover .adm-role-x,
+.adm-role.is-editable:focus-within .adm-role-x,
+.adm-role.is-armed .adm-role-x {
+  width: 1.1rem;
+  margin: 0 -0.25rem 0 0;
+}
+
+@media (hover: none) {
+  .adm-role.is-editable .adm-role-x {
+    width: 1.1rem;
+    margin: 0 -0.25rem 0 0;
+  }
+}
+
+/* Leaderboard: ticking numbers and the "updated Xs ago" label never change their width */
+.lb-value,
+.lb-podium-value,
+.lb-live small {
+  font-variant-numeric: tabular-nums;
+}
+
+.lb-live small {
+  display: inline-block;
+  min-width: 4.6em;
+  text-align: left;
+}
