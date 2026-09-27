@@ -277,3 +277,21 @@ export async function deleteChannelMessage(channelId: string, messageId: string,
     return { ok: false, status: 0 };
   }
 }
+
+const membershipCache = new Map<string, { inServer: boolean; at: number }>();
+
+/**
+ * Whether someone is in the server: true / false, or null if Discord couldn't say (errors never
+ * count as "left"). Cached for a few minutes.
+ */
+export async function isInServer(discordId: string): Promise<boolean | null> {
+  const cached = membershipCache.get(discordId);
+  if (cached && Date.now() - cached.at < 5 * 60_000) return cached.inServer;
+  const guild = await guildId();
+  if (!guild) return null;
+  const res = await discordRequest<{ code?: number }>("GET", `/guilds/${guild}/members/${discordId}`);
+  // 404 "Unknown Member" (10007) is the only answer that means they're not here
+  const inServer = res.ok ? true : res.status === 404 && (res.data?.code === 10007 || res.data?.code === undefined) ? false : null;
+  if (inServer !== null) membershipCache.set(discordId, { inServer, at: Date.now() });
+  return inServer;
+}
