@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { requireAdmin, transcriptToken } from "../../../../../lib/admin";
 import { people } from "../../../../../lib/admin-people";
-import { getTicket, transcriptDownload } from "../../../../../lib/tickets";
+import { getTicket } from "../../../../../lib/tickets";
+import { warmTranscript } from "../../../../../lib/transcript-store";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 15;
+export const maxDuration = 30;
 
 /** One ticket, with a signed link to view its transcript and a fresh zip download link. */
 export async function GET(request: Request, { params }: { params: { ticketId: string } }) {
@@ -13,7 +14,7 @@ export async function GET(request: Request, { params }: { params: { ticketId: st
   const ticket = await getTicket(Number(params.ticketId));
   if (!ticket) return NextResponse.json({ ok: false, error: "Ticket not found." }, { status: 404 });
 
-  const download = ticket.transcriptId ? await transcriptDownload(ticket.transcriptId) : null;
+  const download = ticket.transcriptId ? await warmTranscript(ticket.transcriptId).catch(() => null) : null;
   const viewer = ticket.transcriptId && download
     ? `/api/admin/transcript-files/${ticket.transcriptId}/${transcriptToken(ticket.transcriptId)}/index.html`
     : null;
