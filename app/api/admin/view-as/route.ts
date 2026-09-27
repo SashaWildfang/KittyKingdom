@@ -2,6 +2,13 @@ import { ObjectId, type Document } from "mongodb";
 import { NextResponse } from "next/server";
 import { VIEW_AS_COOKIE, VIEW_AS_MS, getRealUser, getViewAs, viewAsCookieValue, viewAsEligible } from "../../../../lib/auth";
 import { panelLevel } from "../../../../lib/admin";
+import { getMemberRoleIds } from "../../../../lib/discord-member";
+
+// The Owner role: the only one allowed to view the site as another admin
+const OWNER_ROLE_ID = "1358473248534167663";
+async function isOwner(discordId: string) {
+  return ((await getMemberRoleIds(discordId).catch(() => null)) ?? []).includes(OWNER_ROLE_ID);
+}
 import { getMongoClient, getUsersCollection } from "../../../../lib/mongodb";
 import { accountName } from "../../../../lib/names";
 
@@ -72,9 +79,9 @@ export async function POST(request: Request) {
   if (!viewAsEligible(target)) {
     return NextResponse.json({ ok: false, error: "Only accounts with a linked Discord and a verified email can be viewed." }, { status: 400 });
   }
-  // Other admins' accounts stay private
-  if ((await panelLevel(String(target.discordId)).catch(() => null)) === "admin") {
-    return NextResponse.json({ ok: false, error: "You can't view the site as another admin." }, { status: 403 });
+  // Other admins' accounts stay private, except to the Owner
+  if ((await panelLevel(String(target.discordId)).catch(() => null)) === "admin" && !(await isOwner(String(admin.discordId)))) {
+    return NextResponse.json({ ok: false, error: "Only the Owner can view the site as another admin." }, { status: 403 });
   }
   await audit(admin, "view-as", target);
   const res = NextResponse.json({ ok: true, viewing: summary(target), redirect: "/account" });
