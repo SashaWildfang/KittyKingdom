@@ -369,6 +369,23 @@ async function ownedRoleId(discordId: string, itemId: string) {
   return roleId;
 }
 
+/** Every color role the shop has, and whether it's for sale right now. */
+export async function getShopColorRoles() {
+  const c = await collections();
+  const docs = await c.storeInventory
+    .find({ role_id: { $ne: null }, item_id: { $nin: RETIRED_ITEM_IDS }, retired: { $ne: true } }, BIG)
+    .sort({ name: 1 })
+    .toArray();
+  return docs.map((d) => ({
+    itemId: String(d.item_id),
+    name: String(d.name ?? d.item_id),
+    roleId: idString(d.role_id) ?? "",
+    price: num(d.price),
+    inShop: Boolean(d.is_active) && num(d.quantity) !== 0,
+    rotation: ["daily", "weekly"].includes(d.rotation_type) ? (d.rotation_type as string) : "permanent",
+  }));
+}
+
 /** How many color roles the shop has in total (for "3/57 unlocked"). */
 export async function countShopColorRoles() {
   const c = await collections();
@@ -508,4 +525,76 @@ export async function giftItem(
     }],
   });
   return { message: `${item.name} sent to ${recipient.displayName}!` };
+}
+
+// ==========================================
+// ADMIN: view and edit a member's inventory (like /inventoryadmin in Discord)
+// ==========================================
+export async function adminInventory(discordId: string) {
+  const c = await collections();
+  const [docs, catalog, memberRoles] = await Promise.all([
+    c.userInventory.find({ discordId }, BIG).sort({ purchasedAt: 1 }).toArray(),
+    c.storeInventory.find({ item_id: { $nin: RETIRED_ITEM_IDS }, retired: { $ne: true } }, BIG).sort({ name: 1 }).toArray(),
+    getMemberRoleIds(discordId),
+  ]);
+  const grouped = new Map<string, { itemId: string; name: string; type: string; icon: string | null; count: number; gifted: number; roleId: string | null; equipped: boolean; oldest: string | null }>();
+  for (const doc of docs) {
+    const roleId = idString(doc.role_id);
+    const entry = grouped.get(doc.item_id) ?? {
+      itemId: String(doc.item_id),
+      name: String(doc.name ?? doc.item_id),
+      type: String(doc.type ?? "role"),
+      icon: iconFor(doc),
+      count: 0,
+      gifted: 0,
+      roleId,
+      equipped: roleId ? Boolean(memberRoles?.includes(roleId)) : false,
+      oldest: doc.purchasedAt instanceof Date ? doc.purchasedAt.toISOString() : null,
+    };
+    entry.count += 1;
+    if (doc.gifted_by) entry.gifted += 1;
+    grouped.set(doc.item_id, entry);
+  }
+  return {
+    items: Array.from(grouped.values()).sort((a, b) => a.type.localeCompare(b.type) || a.name.localeCompare(b.name)),
+    catalog: catalog.map((i) => ({ itemId: String(i.item_id), name: String(i.name ?? i.item_id), type: String(i.type ?? "role"), icon: iconFor(i), stackable: isStackable(i) })),
+  };
+}
+
+/** Sets how many of an item a member has (adds or removes copies). Returns what changed. */
+export async function adminSetInventory(discordId: string, itemId: string, wanted: number) {
+  if (!Number.isInteger(wanted) || wanted < 0 || wanted > 500) throw new StoreError("Pick an amount from 0 to 500.");
+  const c = await collections();
+  const item = await c.storeInventory.findOne({ item_id: itemId }, BIG);
+  const existing = await c.userInventory.find({ discordId, item_id: itemId }, BIG).sort({ purchasedAt: 1 }).toArray();
+  if (!item && !existing.length) throw new StoreError("That item doesn't exist.");
+  if (item && !isStackable(item) && wanted > 1) throw new StoreError("Members can only hold one of this item.");
+
+  const diff = wanted - existing.length;
+  if (diff > 0) {
+    const source = item ?? existing[0];
+    const now = new Date();
+    await c.userInventory.insertMany(
+      Array.from({ length: diff }, () => ({
+        discordId,
+        item_id: itemId,
+        name: source.name,
+        description: source.description ?? "No description provided.",
+        image_url: source.image_url ?? "",
+        role_id: source.role_id ?? null,
+        type: source.type ?? "role",
+        duration: source.duration ?? null,
+        purchasedAt: now,
+        granted_by_staff: true,
+      })),
+    );
+  } else if (diff < 0) {
+    // Newest copies go first, so gifts and older purchases stay put where possible
+    const remove = existing.slice(diff).map((d) => d._id);
+    await c.userInventory.deleteMany({ _id: { $in: remove } });
+    // Taking away a member's last copy of an equipped role also takes the role off them in Discord
+    const roleId = idString((item ?? existing[0]).role_id);
+    if (wanted === 0 && roleId) await removeMemberRole(discordId, roleId).catch(() => false);
+  }
+  return { name: String((item ?? existing[0]).name ?? itemId), before: existing.length, after: wanted };
 }

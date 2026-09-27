@@ -26,10 +26,10 @@ export type StaffGroup = {
 
 // How ranks are grouped on the page (rank order comes from the bot)
 const GROUPS: { title: string; description: string; icon: string; roles: string[] }[] = [
-  { title: "Administration", description: "Leads the kingdom and keeps everything running.", icon: "👑", roles: ["Owner", "Sr Admin", "Admin"] },
-  { title: "Moderation", description: "Keeps channels safe, friendly, and fun.", icon: "🛡️", roles: ["Sr Mod", "Mod", "Jr Mod"] },
-  { title: "Helper Team", description: "Your first stop for questions and verification.", icon: "🍂", roles: ["Helper"] },
-  { title: "Staff", description: "Members of the Kitty Kingdom staff team.", icon: "✨", roles: ["Staff"] },
+  { title: "Administration", description: "Leads the kingdom and keeps everything running.", icon: "crown", roles: ["Owner", "Sr Admin", "Admin"] },
+  { title: "Moderation", description: "Keeps channels safe, friendly, and fun.", icon: "shield", roles: ["Sr Mod", "Mod", "Jr Mod"] },
+  { title: "Helper Team", description: "Your first stop for questions and verification.", icon: "leaf", roles: ["Helper"] },
+  { title: "Staff", description: "Members of the Kitty Kingdom staff team.", icon: "sparkles", roles: ["Staff"] },
 ];
 
 const ROLE_BIOS: Record<string, string> = {

@@ -1,6 +1,7 @@
 import { getPanelUser } from "../lib/admin";
 import { getCurrentUser } from "../lib/auth";
 import { OnlineStatus } from "./online-status";
+import { MobileMenu } from "./mobile-menu";
 import { ThemeToggle } from "./theme-toggle";
 
 type SiteNavProps = {
@@ -14,6 +15,15 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
   const panel = signedIn ? await getPanelUser().catch(() => null) : null;
   // The Store and Leaderboards need a linked Discord account
   const linked = signedIn ? Boolean((await getCurrentUser().catch(() => null))?.discordId) : false;
+  // Same links for the phone menu
+  const mobileLinks = [
+    { href: "/home", label: "Home", icon: "home" as const },
+    { href: "/news", label: "News", icon: "news" as const },
+    { href: "https://discord.com/invite/M9XKHFdYQV", label: "Discord", icon: "discord" as const, external: true },
+    { href: "/staff", label: "Staff", icon: "staff" as const },
+    ...(linked ? [{ href: "/store", label: "Leaf Shop", icon: "store" as const }, { href: "/leaderboards", label: "Leaderboards", icon: "leaderboards" as const }] : []),
+    ...(panel ? [{ href: "/admin", label: panel.level === "admin" ? "Admin" : "Staff Panel", icon: "admin" as const }] : []),
+  ];
   return (
     <nav className="topbar" aria-label="Main navigation">
       <a className="brand" href="/home" aria-label="Kitty Kingdom home">
@@ -59,6 +69,7 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
           </a>
         )}
       </div>
+      <MobileMenu links={mobileLinks} signedIn={signedIn} />
     </nav>
   );
 }

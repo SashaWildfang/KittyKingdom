@@ -5,7 +5,7 @@ import { Long } from "mongodb";
 import { addMemberRole, getGuildRoles, getMemberRoleIds, removeMemberRole, type GuildRole } from "./discord-member";
 import { getBotCollection } from "./mongodb";
 import { ADULT_ROLE_IDS, ROLE_CATEGORIES, SELF_ROLE_IDS } from "./role-catalog";
-import { countShopColorRoles, getOwnedColorRoles } from "./store";
+import { getOwnedColorRoles, getShopColorRoles } from "./store";
 
 export const STATUS_ROLES = [
   { key: "adult", id: "1358469974552870913", label: "18+ Verified", icon: "🔞" },
@@ -43,6 +43,8 @@ export type RoleState = {
   colorRoles: { itemId: string; name: string; roleId: string; colors: string[]; equipped: boolean }[];
   /** Every color role the shop sells, for the "unlocked" progress. */
   colorRoleTotal: number;
+  /** All color roles: owned ones first, then the rest (greyed out), with whether they're in the shop now */
+  colorCatalog: { itemId: string; name: string; colors: string[]; owned: boolean; equipped: boolean; inShop: boolean; price: number; rotation: string }[];
   levelRoles: { id: string; name: string; colors: string[] }[];
   otherRoles: { id: string; name: string; colors: string[] }[];
 };
@@ -55,13 +57,14 @@ async function memberLevel(discordId: string) {
 }
 
 export async function getRoleState(discordId: string): Promise<RoleState> {
-  const [memberRoles, guildRoles, owned, level, colorRoleTotal] = await Promise.all([
+  const [memberRoles, guildRoles, owned, level, shopRoles] = await Promise.all([
     getMemberRoleIds(discordId),
     getGuildRoles(),
     getOwnedColorRoles(discordId).catch(() => []),
     memberLevel(discordId).catch(() => null),
-    countShopColorRoles().catch(() => 0),
+    getShopColorRoles().catch(() => []),
   ]);
+  const colorRoleTotal = shopRoles.length;
   const has = new Set(memberRoles ?? []);
   const isAdult = has.has(ADULT_VERIFIED_ID);
   const colorRoleIds = new Set(owned.map((o) => o.roleId));
@@ -91,6 +94,18 @@ export async function getRoleState(discordId: string): Promise<RoleState> {
     })),
     colorRoles: owned.map((o) => ({ ...o, colors: colorsOf(o.roleId), equipped: has.has(o.roleId) })),
     colorRoleTotal: Math.max(colorRoleTotal, owned.length),
+    colorCatalog: shopRoles
+      .map((r) => ({
+        itemId: r.itemId,
+        name: r.name,
+        colors: colorsOf(r.roleId),
+        owned: owned.some((o) => o.itemId === r.itemId),
+        equipped: has.has(r.roleId),
+        inShop: r.inShop,
+        price: r.price,
+        rotation: r.rotation,
+      }))
+      .sort((a, b) => Number(b.owned) - Number(a.owned) || Number(b.inShop) - Number(a.inShop) || a.name.localeCompare(b.name)),
     levelRoles: levelRoles.map((r) => ({ id: r.id, name: r.name, colors: r.colors })),
     otherRoles: otherRoles.map((r) => ({ id: r.id, name: r.name, colors: r.colors })),
   };
