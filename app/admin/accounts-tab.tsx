@@ -18,18 +18,26 @@ type AccountRow = {
   lastLoginAt: string | null;
   mustChangePassword: boolean;
   avatar: string | null;
+  lastActiveAt?: string | null;
+  online?: boolean;
 };
 
 /** Discord profile picture when linked, otherwise their initial. */
-function AccountAvatar({ account, size }: { account: { avatar: string | null; displayName: string | null; username: string | null; email: string }; size: number }) {
+function AccountAvatar({ account, size }: { account: { avatar: string | null; displayName: string | null; username: string | null; email: string; online?: boolean }; size: number }) {
   const [failed, setFailed] = useState(false);
   const letter = (account.displayName ?? account.username ?? account.email).charAt(0).toUpperCase();
-  if (account.avatar && !failed) {
-    return <img className="adm-avatar" src={account.avatar} alt="" width={size} height={size} loading="lazy" onError={() => setFailed(true)} />;
-  }
+  const face =
+    account.avatar && !failed ? (
+      <img className="adm-avatar" src={account.avatar} alt="" width={size} height={size} loading="lazy" onError={() => setFailed(true)} />
+    ) : (
+      <span className="adm-avatar adm-avatar--letter" style={{ width: size, height: size, fontSize: size > 40 ? "1.6rem" : undefined }} aria-hidden="true">
+        {letter}
+      </span>
+    );
   return (
-    <span className="adm-avatar adm-avatar--letter" style={{ width: size, height: size, fontSize: size > 40 ? "1.6rem" : undefined }} aria-hidden="true">
-      {letter}
+    <span className="adm-avatar-wrap" style={{ "--s": `${size}px` } as React.CSSProperties}>
+      {face}
+      {account.online ? <i className="adm-online-badge" title="Online now" aria-label="Online now" /> : null}
     </span>
   );
 }
@@ -54,7 +62,7 @@ type Result = {
   totals: { all: number; verified: number; linked: number; newThisWeek: number };
 };
 
-type SortKey = "created" | "email" | "username" | "lastLogin";
+type SortKey = "created" | "email" | "username" | "lastLogin" | "online";
 
 const FILTERS = [
   { key: "all", label: "All" },
@@ -337,6 +345,9 @@ export function AccountsTab({ onOpenMember }: { onOpenMember: (id: string) => vo
                 <button type="button" onClick={() => sortBy("created")}>Joined{arrow("created")}</button>
               </th>
               <th>
+                <button type="button" onClick={() => sortBy("online")}>Last active{arrow("online")}</button>
+              </th>
+              <th>
                 <button type="button" onClick={() => sortBy("lastLogin")}>Last login{arrow("lastLogin")}</button>
               </th>
             </tr>
@@ -375,12 +386,21 @@ export function AccountsTab({ onOpenMember }: { onOpenMember: (id: string) => vo
                   )}
                 </td>
                 <td title={formatDate(a.createdAt)}>{timeAgo(a.createdAt)}</td>
+                <td title={formatDate(a.lastActiveAt ?? null)}>
+                  {a.online ? (
+                    <span className="adm-status adm-status--active">● Online now</span>
+                  ) : a.lastActiveAt ? (
+                    timeAgo(a.lastActiveAt)
+                  ) : (
+                    <span className="adm-muted">—</span>
+                  )}
+                </td>
                 <td title={formatDate(a.lastLoginAt)}>{a.lastLoginAt ? timeAgo(a.lastLoginAt) : <span className="adm-muted">—</span>}</td>
               </tr>
             ))}
             {!loading && data && !data.rows.length ? (
               <tr>
-                <td colSpan={5} className="adm-empty">
+                <td colSpan={6} className="adm-empty">
                   No accounts match.
                 </td>
               </tr>
@@ -548,18 +568,19 @@ function AccountDrawer({ id, onClose, onChanged, onOpenMember }: { id: string; o
   }
 
   const actions = [
-    { key: "send-reset", label: "Email a reset link", icon: Mail, help: "They get a one-time link (1 hour) to choose a new password. Safest option.", confirm: "Email a password reset link to this member?" },
+    { key: "send-reset", label: "Email a reset link", icon: Mail, help: "They get a one-time link (1 hour) to choose a new password. Safest option.", confirm: "Email a password reset link to this member?", button: "Send link" },
     {
       key: "temp-password",
       label: "Set a temporary password",
       icon: KeyRound,
       help: "Replaces their password with one you give them, signs them out everywhere and asks them to change it.",
       confirm: "Replace their password with a temporary one? Their current password stops working immediately.",
+      button: "Set password",
       danger: true,
     },
-    { key: "sign-out", label: "Sign out everywhere", icon: LogOut, help: "Ends every website session on every device.", confirm: "Sign this account out on every device?" },
+    { key: "sign-out", label: "Sign out everywhere", icon: LogOut, help: "Ends every website session on every device.", confirm: "Sign this account out on every device?", button: "Sign out" },
     ...(account && !account.emailVerified
-      ? [{ key: "verify-email", label: "Mark email verified", icon: MailCheck, help: "Lets them log in without clicking the verification email.", confirm: "Mark this email as verified?" }]
+      ? [{ key: "verify-email", label: "Mark email verified", icon: MailCheck, help: "Lets them log in without clicking the verification email.", confirm: "Mark this email as verified?", button: "Mark verified" }]
       : []),
   ];
 
@@ -679,7 +700,7 @@ function AccountDrawer({ id, onClose, onChanged, onOpenMember }: { id: string; o
                       <div className="adm-confirm">
                         <span>{a.confirm}</span>
                         <button type="button" className="adm-btn adm-btn--small" onClick={() => void run(a.key)}>
-                          Yes
+                          Yes, {a.button.toLowerCase()}
                         </button>
                         <button type="button" className="adm-btn adm-btn--ghost adm-btn--small" onClick={() => setConfirming(null)}>
                           Cancel
@@ -687,7 +708,7 @@ function AccountDrawer({ id, onClose, onChanged, onOpenMember }: { id: string; o
                       </div>
                     ) : (
                       <button type="button" className="adm-btn adm-btn--ghost adm-btn--small" disabled={Boolean(busy)} onClick={() => setConfirming(a.key)}>
-                        {busy === a.key ? "Working…" : "Do it"}
+                        {busy === a.key ? "Working…" : a.button}
                       </button>
                     )}
                   </div>

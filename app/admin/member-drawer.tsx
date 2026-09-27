@@ -1,7 +1,7 @@
 "use client";
 
-import { Ban, Check, FileText, MessageCircle, Shield, Star, X } from "lucide-react";
-import { LeafEmote } from "../ui-icons";
+import { Backpack, Ban, Check, Minus, Plus, Trash2, FileText, MessageCircle, Shield, Star, X } from "lucide-react";
+import { LeafEmote, StoreItemIcon } from "../ui-icons";
 import { useEffect, useRef, useState } from "react";
 import type { Drill } from "./drill-panel";
 import {
@@ -165,6 +165,22 @@ export function MemberDrawer({
               )}
             </section>
 
+            <section className="adm-drawer-section">
+              <h3>
+                Roles <small>{data.roles.length}</small>
+              </h3>
+              <RoleEditor userId={userId} roles={data.roles} inServer={data.inServer} editable={canEditRoles} onChanged={reload} />
+            </section>
+
+            {canEditRoles ? (
+              <section className="adm-drawer-section">
+                <h3>
+                  <Backpack size={16} aria-hidden="true" /> Inventory
+                </h3>
+                <InventoryEditor userId={userId} />
+              </section>
+            ) : null}
+
             {data.tickets ? (
             <section className="adm-drawer-section">
               <h3>
@@ -192,13 +208,6 @@ export function MemberDrawer({
               )}
             </section>
             ) : null}
-
-            <section className="adm-drawer-section">
-              <h3>
-                Roles <small>{data.roles.length}</small>
-              </h3>
-              <RoleEditor userId={userId} roles={data.roles} inServer={data.inServer} editable={canEditRoles} onChanged={reload} />
-            </section>
           </>
         ) : loading ? (
           <div className="adm-skeleton" style={{ height: 240 }} />
@@ -324,6 +333,122 @@ function RoleEditor({ userId, roles, inServer, editable, onChanged }: { userId: 
         </div>
       ) : null}
 
+      {message ? <p className={message.tone === "ok" ? "adm-notice" : "adm-error"}>{message.text}</p> : null}
+    </div>
+  );
+}
+
+type InvItem = { itemId: string; name: string; type: string; icon: string | null; count: number; gifted: number; equipped: boolean };
+type CatalogItem = { itemId: string; name: string; type: string; icon: string | null; stackable: boolean };
+
+/** Admins: see and change what a member owns. */
+function InventoryEditor({ userId }: { userId: string }) {
+  const { data, reload } = useLive<{ items: InvItem[]; catalog: CatalogItem[] }>(`/api/admin/user/${userId}/inventory`, 20_000);
+  const [items, setItems] = useState<InvItem[] | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ text: string; tone: "ok" | "error" } | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [filter, setFilter] = useState("");
+  const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (data) setItems(data.items);
+  }, [data]);
+
+  async function setCount(itemId: string, count: number) {
+    setBusy(itemId);
+    setMessage(null);
+    setConfirmRemove(null);
+    try {
+      const res = await fetch(`/api/admin/user/${userId}/inventory`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemId, count }),
+      });
+      const body = await res.json();
+      if (!res.ok || !body.ok) throw new Error(body.error ?? "That didn't work.");
+      setItems(body.items);
+      setMessage({ text: body.message, tone: "ok" });
+      void reload();
+    } catch (e) {
+      setMessage({ text: e instanceof Error ? e.message : "That didn't work.", tone: "error" });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const owned = new Set((items ?? []).map((i) => i.itemId));
+  const options = (data?.catalog ?? []).filter((c) => (!owned.has(c.itemId) || c.stackable) && c.name.toLowerCase().includes(filter.trim().toLowerCase()));
+
+  return (
+    <div className="adm-inv">
+      {!items ? <div className="adm-skeleton adm-skeleton--short" /> : null}
+      {items && !items.length ? <p className="adm-empty">Their inventory is empty.</p> : null}
+      <ul className="adm-inv-list">
+        {(items ?? []).map((i) => (
+          <li key={i.itemId}>
+            <span className="adm-inv-icon" aria-hidden="true">
+              <StoreItemIcon icon={i.type === "role" ? "package" : i.icon} size={18} />
+            </span>
+            <span className="adm-inv-text">
+              <strong>{i.name}</strong>
+              <small>
+                {i.type}
+                {i.gifted ? ` · ${i.gifted} gifted` : ""}
+                {i.equipped ? " · equipped" : ""}
+              </small>
+            </span>
+            {confirmRemove === i.itemId ? (
+              <span className="adm-inv-confirm">
+                <button type="button" className="adm-btn adm-btn--danger adm-btn--small" disabled={busy === i.itemId} onClick={() => void setCount(i.itemId, 0)}>
+                  Remove all
+                </button>
+                <button type="button" className="adm-btn adm-btn--ghost adm-btn--small" onClick={() => setConfirmRemove(null)}>
+                  Cancel
+                </button>
+              </span>
+            ) : (
+              <span className="adm-inv-stepper">
+                <button type="button" aria-label={`One less ${i.name}`} disabled={busy === i.itemId} onClick={() => (i.count <= 1 ? setConfirmRemove(i.itemId) : void setCount(i.itemId, i.count - 1))}>
+                  <Minus size={14} />
+                </button>
+                <strong>{busy === i.itemId ? "…" : i.count}</strong>
+                <button type="button" aria-label={`One more ${i.name}`} disabled={busy === i.itemId || (i.type === "role" && i.count >= 1)} onClick={() => void setCount(i.itemId, i.count + 1)}>
+                  <Plus size={14} />
+                </button>
+                <button type="button" className="adm-inv-trash" aria-label={`Remove all ${i.name}`} onClick={() => setConfirmRemove(i.itemId)}>
+                  <Trash2 size={14} />
+                </button>
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+      <button type="button" className="adm-role-add" onClick={() => setAdding((v) => !v)} aria-expanded={adding}>
+        {adding ? "Done" : "+ Add item"}
+      </button>
+      {adding ? (
+        <div className="adm-role-picker">
+          <input type="search" placeholder="Search items…" value={filter} onChange={(e) => setFilter(e.target.value)} autoFocus />
+          <ul>
+            {options.map((c) => (
+              <li key={c.itemId}>
+                <button
+                  type="button"
+                  disabled={Boolean(busy)}
+                  onClick={() => void setCount(c.itemId, ((items ?? []).find((i) => i.itemId === c.itemId)?.count ?? 0) + 1)}
+                >
+                  <StoreItemIcon icon={c.type === "role" ? "package" : c.icon} size={15} />
+                  {c.name}
+                  <small className="adm-muted">{c.type}</small>
+                  <span>{busy === c.itemId ? "Adding…" : "Give 1"}</span>
+                </button>
+              </li>
+            ))}
+            {data && !options.length ? <li className="adm-muted">No items match.</li> : null}
+          </ul>
+        </div>
+      ) : null}
       {message ? <p className={message.tone === "ok" ? "adm-notice" : "adm-error"}>{message.text}</p> : null}
     </div>
   );

@@ -11,7 +11,9 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en" data-theme="light" suppressHydrationWarning>
+    // data-theme is set only by the script below (from the saved preference) and the theme
+    // switch, never by React, so re-renders can't flip someone back to light mode
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{

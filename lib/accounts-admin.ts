@@ -8,7 +8,7 @@ import { getMongoClient, getUsersCollection } from "./mongodb";
 import { formatDateOfBirth } from "./dates";
 import { applicationBirthday, getJoinApplication } from "./join-application";
 import { startPasswordReset } from "./password-reset";
-import { revokeAllSessions, sessionsCollection } from "./sessions";
+import { ONLINE_WINDOW_MS, revokeAllSessions, sessionsCollection } from "./sessions";
 
 const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -25,6 +25,8 @@ export type AccountRow = {
   mustChangePassword: boolean;
   /** Their Discord profile picture when Discord is linked */
   avatar: string | null;
+  lastActiveAt: string | null;
+  online: boolean;
 };
 
 const iso = (v: unknown) => (v instanceof Date ? v.toISOString() : null);
@@ -42,6 +44,8 @@ function toRow(doc: Document): AccountRow {
     lastLoginAt: iso(doc.lastLoginAt),
     mustChangePassword: Boolean(doc.mustChangePassword),
     avatar: null,
+    lastActiveAt: doc.lastActiveAt instanceof Date && doc.lastActiveAt.getTime() > 0 ? doc.lastActiveAt.toISOString() : null,
+    online: doc.lastActiveAt instanceof Date && Date.now() - doc.lastActiveAt.getTime() < ONLINE_WINDOW_MS,
   };
 }
 
@@ -106,16 +110,32 @@ export async function listAccounts(q: {
   if (q.filter === "unlinked") and.push({ discordId: { $in: [null, ""] } });
   if (q.filter === "temp") and.push({ mustChangePassword: true });
 
-  const sortField = { created: "createdAt", email: "email", username: "username", lastLogin: "lastLoginAt" }[q.sort ?? "created"] ?? "createdAt";
+  const sortField = { created: "createdAt", email: "email", username: "username", lastLogin: "lastLoginAt", online: "lastActiveAt" }[q.sort ?? "created"] ?? "createdAt";
   const pageSize = Math.min(100, Math.max(10, q.pageSize ?? 25));
   const page = Math.max(1, q.page ?? 1);
   const filter = and.length ? { $and: and } : {};
   const [docs, total, totals] = await Promise.all([
+    // Each account's most recent device activity decides "online" (and the online sort)
     users
-      .find(filter, { projection: SAFE_PROJECTION })
-      .sort({ [sortField]: q.order === "asc" ? 1 : -1, _id: -1 })
-      .skip((page - 1) * pageSize)
-      .limit(pageSize)
+      .aggregate([
+        { $match: filter },
+        {
+          $lookup: {
+            from: "sessions",
+            let: { uid: "$_id" },
+            pipeline: [
+              { $match: { $expr: { $eq: ["$userId", "$$uid"] }, revokedAt: { $exists: false } } },
+              { $group: { _id: null, last: { $max: "$lastSeenAt" } } },
+            ],
+            as: "activity",
+          },
+        },
+        { $addFields: { lastActiveAt: { $ifNull: [{ $first: "$activity.last" }, new Date(0)] } } },
+        { $project: { ...SAFE_PROJECTION, activity: 0 } },
+        { $sort: { [sortField]: q.order === "asc" ? 1 : -1, _id: -1 } },
+        { $skip: (page - 1) * pageSize },
+        { $limit: pageSize },
+      ])
       .toArray(),
     users.countDocuments(filter),
     users

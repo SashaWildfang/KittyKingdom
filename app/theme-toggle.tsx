@@ -18,7 +18,9 @@ export function ThemeToggle() {
   }, []);
 
   function toggleTheme() {
-    const nextTheme = theme === "light" ? "dark" : "light";
+    // The page's real theme is the source of truth (the switch's look comes from it via CSS)
+    const current = document.documentElement.dataset.theme === "light" ? "light" : "dark";
+    const nextTheme = current === "light" ? "dark" : "light";
     setTheme(nextTheme);
     document.documentElement.dataset.theme = nextTheme;
     try {
@@ -31,7 +33,7 @@ export function ThemeToggle() {
   const dark = theme === "dark";
   return (
     <button
-      className={`theme-switch${dark ? " is-dark" : ""}${ready ? " is-ready" : ""}`}
+      className={`theme-switch${ready ? " is-ready" : ""}`}
       type="button"
       role="switch"
       aria-checked={dark}

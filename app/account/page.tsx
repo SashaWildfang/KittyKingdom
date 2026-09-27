@@ -1,4 +1,4 @@
-import { BadgeCheck, Check, CircleAlert, ClipboardList, Gem, Image as ImageIcon, KeyRound, Link2, Lock, MessageCircle, Mic, Minus, ShieldCheck, Sparkles, Star, TriangleAlert, UserRound, type LucideIcon } from "lucide-react";
+import { Backpack, BadgeCheck, Check, CircleAlert, ClipboardList, Gem, Image as ImageIcon, KeyRound, Link2, Lock, MessageCircle, Mic, Minus, ShieldCheck, Sparkles, Star, TriangleAlert, UserRound, type LucideIcon } from "lucide-react";
 import { LeafEmote } from "../ui-icons";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -15,6 +15,7 @@ import { formatDateOfBirth } from "../../lib/dates";
 import { applicationBirthday, getJoinApplication } from "../../lib/join-application";
 import { getRoleState } from "../../lib/member-roles";
 import { CollapsibleCard } from "./collapsible-card";
+import { AccountInventory } from "./account-inventory";
 import { DiscordLinkCode } from "./discord-link-code";
 import { RoleManager } from "./role-manager";
 
@@ -233,6 +234,7 @@ export default async function AccountPage({
           <nav className="acct-nav" aria-label="Account sections">
             <a href="#overview"><ClipboardList size={16} aria-hidden="true" /> Overview</a>
             {discordLinked ? <a href="#roles"><Sparkles size={16} aria-hidden="true" /> Server roles</a> : null}
+            {discordLinked ? <a href="#inventory"><Backpack size={16} aria-hidden="true" /> Inventory</a> : null}
             <a href="#profile"><UserRound size={16} aria-hidden="true" /> Profile</a>
             <a href="#contact"><Link2 size={16} aria-hidden="true" /> Contact &amp; socials</a>
             <a href="#discord-account"><MessageCircle size={16} aria-hidden="true" /> Discord</a>
@@ -284,6 +286,12 @@ export default async function AccountPage({
               }
             >
               <RoleManager initial={roleState} />
+            </CollapsibleCard>
+          ) : null}
+
+          {discordLinked ? (
+            <CollapsibleCard id="inventory" title="Inventory" description="Everything you've bought or been gifted. Equip roles, use boosters and send gifts right here.">
+              <AccountInventory />
             </CollapsibleCard>
           ) : null}
 
