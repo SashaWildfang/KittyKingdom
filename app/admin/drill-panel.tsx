@@ -2,6 +2,7 @@
 
 import { Bot, FileText, PieChart, Shield, User, X } from "lucide-react";
 import { BarList } from "./admin-charts";
+import { TicketTypeDrill } from "./ticket-drill";
 import { useEffect } from "react";
 import {
   ActionBadge,
@@ -23,6 +24,7 @@ export type Drill = (
   | { kind: "staff"; id: string; automod?: boolean }
   | { kind: "member"; id: string }
   | { kind: "action"; action: string }
+  | { kind: "ticketType"; type: string }
 ) & { range?: string; source?: string };
 
 type Summary = {
@@ -36,17 +38,20 @@ type Result = { rows: Punishment[]; total: number; people: People; mentions: Men
  * The story behind an overview number: everyone who got a reason, everything a staff member
  * handed out, or a member's whole record. Respects the overview's date range and source.
  */
-export function DrillPanel({
-  drill,
-  onClose,
-  onOpenMember,
-  onDrill,
-}: {
+type DrillProps = {
   drill: Drill;
   onClose: () => void;
   onOpenMember: (id: string) => void;
   onDrill?: (drill: Drill) => void;
-}) {
+  onOpenTranscript?: (ticketId: number) => void;
+};
+
+export function DrillPanel(props: DrillProps) {
+  // Separate components so switching between kinds never mixes up their hooks
+  return props.drill.kind === "ticketType" ? <TicketTypeDrill key="tickets" {...props} /> : <PunishmentDrill key="punishments" {...props} />;
+}
+
+function PunishmentDrill({ drill, onClose, onOpenMember, onDrill }: DrillProps) {
   const range = drill.range ?? "all";
   const source = drill.source ?? "all";
   const params = new URLSearchParams({ pageSize: "100", source, ...(range !== "all" ? { range } : {}) });

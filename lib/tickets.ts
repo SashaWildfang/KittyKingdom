@@ -35,6 +35,8 @@ export type TicketQuery = {
   order?: "asc" | "desc";
   page?: number;
   pageSize?: number;
+  /** Also count statuses, handlers, openers and time to close across every match */
+  summary?: boolean;
 };
 
 const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -83,7 +85,12 @@ async function ticketsPipelineBase(): Promise<{ col: Awaited<ReturnType<typeof g
       {
         $addFields: {
           status: {
-            $cond: [{ $eq: ["$_active", true] }, { $ifNull: ["$status", "Open"] }, { $cond: [{ $eq: ["$status", "Open"] }, "Closed", "$status"] }],
+            $cond: [
+              { $eq: ["$_active", true] },
+              { $ifNull: ["$status", "Open"] },
+              // The bot calls a finished ticket whose channel was removed "Deleted"; staff see "Finalized"
+              { $switch: { branches: [{ case: { $eq: ["$status", "Open"] }, then: "Closed" }, { case: { $eq: ["$status", "Deleted"] }, then: "Finalized" }], default: "$status" } },
+            ],
           },
         },
       },
@@ -100,7 +107,7 @@ export async function queryTickets(q: TicketQuery) {
   const { col, union } = await ticketsPipelineBase();
   const and: Document[] = [];
   if (q.types?.length) and.push({ ticket_type: { $in: q.types } });
-  if (q.statuses?.length) and.push({ status: { $in: q.statuses } });
+  if (q.statuses?.length) and.push({ status: { $in: q.statuses.map((st) => (st === "Deleted" ? "Finalized" : st)) } });
   if (q.userId) and.push({ opened_by: q.userId });
   if (q.staffId) and.push({ $or: [{ claimed_by: q.staffId }, { resolved_by: q.staffId }, { escalated_by: q.staffId }] });
   if (q.from || q.to) and.push({ created: { ...(q.from ? { $gte: q.from } : {}), ...(q.to ? { $lte: q.to } : {}) } });
@@ -135,16 +142,50 @@ export async function queryTickets(q: TicketQuery) {
         $facet: {
           rows: [{ $sort: { [sortField]: order, ticket_id: order } }, { $skip: (page - 1) * pageSize }, { $limit: pageSize }],
           total: [{ $count: "n" }],
+          ...(q.summary
+            ? {
+                byStatus: [{ $group: { _id: "$status", n: { $sum: 1 } } }],
+                handlers: [
+                  { $project: { staff: { $ifNull: ["$claimed_by", "$resolved_by"] } } },
+                  { $match: { staff: { $ne: null } } },
+                  { $group: { _id: "$staff", n: { $sum: 1 } } },
+                  { $sort: { n: -1 } },
+                  { $limit: 8 },
+                ],
+                openers: [{ $match: { opened_by: { $ne: null } } }, { $group: { _id: "$opened_by", n: { $sum: 1 } } }, { $sort: { n: -1 } }, { $limit: 8 }],
+                extra: [
+                  {
+                    $group: {
+                      _id: null,
+                      escalated: { $sum: { $cond: ["$is_escalated", 1, 0] } },
+                      transcripts: { $sum: { $cond: [{ $regexMatch: { input: { $toString: { $ifNull: ["$transcript_id", ""] } }, regex: /^\d{15,21}$/ } }, 1, 0] } },
+                      avgClose: { $avg: { $cond: [{ $and: [{ $eq: [{ $type: "$resolved_at" }, "date"] }, { $eq: [{ $type: "$created" }, "date"] }] }, { $subtract: ["$resolved_at", "$created"] }, null] } },
+                    },
+                  },
+                ],
+              }
+            : {}),
         },
       },
     ])
     .toArray();
 
+  const extra = result?.extra?.[0];
   return {
     rows: ((result?.rows ?? []) as Document[]).map(toTicket) as Ticket[],
     total: result?.total?.[0]?.n ?? 0,
     page,
     pageSize,
+    summary: q.summary
+      ? {
+          byStatus: Object.fromEntries(((result?.byStatus ?? []) as Document[]).map((d) => [String(d._id ?? "Unknown"), d.n as number])) as Record<string, number>,
+          handlers: ((result?.handlers ?? []) as Document[]).map((d) => ({ id: String(d._id), count: d.n as number })),
+          openers: ((result?.openers ?? []) as Document[]).map((d) => ({ id: String(d._id), count: d.n as number })),
+          escalated: (extra?.escalated as number) ?? 0,
+          transcripts: (extra?.transcripts as number) ?? 0,
+          avgCloseMs: (extra?.avgClose as number | null) ?? null,
+        }
+      : null,
   };
 }
 

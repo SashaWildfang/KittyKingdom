@@ -4,6 +4,7 @@
 
 import { ObjectId, type Document } from "mongodb";
 import { people, type Person } from "./admin-people";
+import { isInServer } from "./discord-member";
 import { applicationBirthday } from "./join-application";
 import { getJoinApplicationsCollection, getMongoClient } from "./mongodb";
 
@@ -97,8 +98,27 @@ async function queueHealthy() {
 
 const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+/**
+ * Pending applications from people who already left the server are closed automatically:
+ * they move to "Left" instead of waiting in Pending forever.
+ */
+async function closeLeftApplications() {
+  const col = await getJoinApplicationsCollection();
+  const pending = await col.find({ status: "pending" }, { projection: { discordId: 1 } }).limit(100).toArray();
+  const checks = await Promise.all(pending.map(async (d) => ({ id: String(d.discordId ?? ""), here: /^\d{15,21}$/.test(String(d.discordId)) ? await isInServer(String(d.discordId)) : null })));
+  const gone = checks.filter((c) => c.here === false).map((c) => c.id);
+  if (gone.length) {
+    await col.updateMany(
+      { discordId: { $in: gone }, status: "pending" },
+      { $set: { status: "left", reviewedAt: new Date(), reviewedVia: "website-auto", reason: "Left the server before being reviewed" } },
+    );
+  }
+  return gone.length;
+}
+
 /** Applications for the Join Apps tab, newest first, with counts per status. */
 export async function listJoinApps(q: { status?: string; search?: string; page?: number }) {
+  await closeLeftApplications().catch(() => 0);
   const col = await getJoinApplicationsCollection();
   const filter: Document = {};
   if (q.status && q.status !== "all") filter.status = q.status;
@@ -142,12 +162,14 @@ export async function listJoinApps(q: { status?: string; search?: string; page?:
 
 /** Just the number waiting, for the tab's bubble. */
 export async function pendingJoinCount() {
+  await closeLeftApplications().catch(() => 0);
   return (await getJoinApplicationsCollection()).countDocuments({ status: "pending" });
 }
 
 /** One member's newest application (for their profile in the admin panel). */
 export async function joinAppFor(discordId: string): Promise<{ app: JoinApp | null; people: Record<string, Person>; queueOnline: boolean }> {
   if (!/^\d{15,21}$/.test(discordId)) return { app: null, people: {}, queueOnline: false };
+  await closeLeftApplications().catch(() => 0);
   const col = await getJoinApplicationsCollection();
   const doc = await col.findOne({ $or: [{ discordId }, { discord_id: discordId }, { userId: discordId }] }, { sort: { submittedAt: -1 } });
   if (!doc) return { app: null, people: {}, queueOnline: await queueHealthy() };

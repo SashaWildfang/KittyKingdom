@@ -25,8 +25,12 @@ export async function GET(request: Request) {
       order: params.get("order") === "asc" ? "asc" : "desc",
       page: Number(params.get("page") ?? 1),
       pageSize: Number(params.get("pageSize") ?? 25),
+      summary: params.get("summary") === "1",
     });
-    const who = await people(result.rows.flatMap((t) => [t.openedBy, t.claimedBy, t.resolvedBy]));
+    const who = await people([
+      ...result.rows.flatMap((t) => [t.openedBy, t.claimedBy, t.resolvedBy]),
+      ...(result.summary ? [...result.summary.handlers, ...result.summary.openers].map((x) => x.id) : []),
+    ]);
     return NextResponse.json({ ok: true, ...result, people: who });
   } catch (error) {
     console.error("Admin tickets failed", error);
