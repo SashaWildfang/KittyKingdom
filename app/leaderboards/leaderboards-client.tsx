@@ -173,6 +173,8 @@ export function LeaderboardsClient() {
   const viewKey = `${sort}|${order}|${search.trim().toLowerCase()}`;
   const lastView = useRef<{ key: string; values: Map<string, number>; ranks: Map<string, number> } | null>(null);
   const requestId = useRef(0);
+  // Filled in below, once the row measuring helpers exist
+  const snapshotRef = useRef<(() => void) | null>(null);
 
   const stat = stats.find((s) => s.key === sort) ?? stats[0];
 
@@ -218,6 +220,8 @@ export function LeaderboardsClient() {
         const mergedRanks = previous?.key === viewKey ? new Map([...Array.from(previous.ranks), ...Array.from(ranks)]) : ranks;
         lastView.current = { key: viewKey, values: mergedValues, ranks: mergedRanks };
 
+        // Only live refreshes of the same view slide rows; a new sort/page/search just swaps in
+        if (quiet && previous?.key === viewKey) snapshotRef.current?.();
         setData(body);
         setError(null);
         setUpdatedAt(stamp);
@@ -260,24 +264,37 @@ export function LeaderboardsClient() {
     return () => window.clearInterval(timer);
   }, []);
 
-  // Slide rows to their new places when the order changes (FLIP)
+  // Slide rows to their new places when the order changes (FLIP). Positions are measured on the
+  // page (not the screen) right before new data lands, and only rows whose rank changed move, so
+  // scrolling or opening a row between refreshes never makes the list jump.
   const rowRefs = useRef(new Map<string, HTMLElement>());
-  const lastTops = useRef(new Map<string, number>());
-  useLayoutEffect(() => {
+  const before = useRef<{ tops: Map<string, number>; order: Map<string, number> } | null>(null);
+  const measure = () => {
     const tops = new Map<string, number>();
-    rowRefs.current.forEach((el, key) => tops.set(key, el.getBoundingClientRect().top));
-    if (!prefersReducedMotion()) {
-      tops.forEach((top, key) => {
-        const before = lastTops.current.get(key);
-        const el = rowRefs.current.get(key);
-        if (before === undefined || !el || before === top) return;
-        el.animate([{ transform: `translateY(${before - top}px)` }, { transform: "translateY(0)" }], {
-          duration: 600,
-          easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
-        });
+    rowRefs.current.forEach((el, key) => tops.set(key, el.getBoundingClientRect().top + window.scrollY));
+    return tops;
+  };
+  const snapshot = (rowsNow: LeaderboardRow[] | undefined) => {
+    before.current = { tops: measure(), order: new Map((rowsNow ?? []).map((r, i) => [r._id, i])) };
+  };
+  snapshotRef.current = () => snapshot(data?.rows);
+  useLayoutEffect(() => {
+    const prev = before.current;
+    before.current = null;
+    if (!prev || prefersReducedMotion() || !data) return;
+    const tops = measure();
+    data.rows.forEach((row, index) => {
+      const oldIndex = prev.order.get(row._id);
+      if (oldIndex === undefined || oldIndex === index) return;
+      const from = prev.tops.get(row._id);
+      const to = tops.get(row._id);
+      const el = rowRefs.current.get(row._id);
+      if (from === undefined || to === undefined || !el || from === to) return;
+      el.animate([{ transform: `translateY(${from - to}px)` }, { transform: "translateY(0)" }], {
+        duration: 600,
+        easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
       });
-    }
-    lastTops.current = tops;
+    });
   }, [data]);
 
   const rows = data?.rows ?? [];
