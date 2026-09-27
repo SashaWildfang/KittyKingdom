@@ -26,7 +26,7 @@ function Icon({ path }: { path: string }) {
 }
 
 /** A password box with a clear Show/Hide toggle and a Caps Lock heads-up. */
-function PasswordInput({
+export function PasswordInput({
   name,
   label,
   placeholder,
@@ -91,7 +91,7 @@ function PasswordInput({
   );
 }
 
-function passwordChecks(password: string) {
+export function passwordChecks(password: string) {
   return [
     { label: "8+ characters", ok: password.length >= 8 },
     { label: "A number", ok: /\d/.test(password) },
@@ -99,7 +99,7 @@ function passwordChecks(password: string) {
   ];
 }
 
-function strength(password: string) {
+export function passwordStrength(password: string) {
   if (!password) return 0;
   let score = passwordChecks(password).filter((c) => c.ok).length;
   if (password.length >= 12) score += 1;
@@ -107,7 +107,7 @@ function strength(password: string) {
   return Math.min(5, score);
 }
 
-const STRENGTH_LABELS = ["", "Weak", "Okay", "Good", "Strong", "Very strong"];
+export const STRENGTH_LABELS = ["", "Weak", "Okay", "Good", "Strong", "Very strong"];
 
 function StatusBox({ status, identifier }: { status: AuthStatus; identifier: string }) {
   if (!status) return null;
@@ -202,7 +202,7 @@ function RegisterForm({ active }: { active: boolean }) {
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
   const checks = passwordChecks(password);
   const passwordOk = checks.every((c) => c.ok);
-  const score = strength(password);
+  const score = passwordStrength(password);
   const ready = emailOk && passwordOk && accepted;
 
   return (

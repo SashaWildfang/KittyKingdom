@@ -33,7 +33,7 @@ function BackupCodes({ codes, onDone }: { codes: string[]; onDone: () => void })
       <div className="tfa-actions">
         <button
           type="button"
-          className="acct-button acct-button--ghost"
+          className="acct-button acct-button--small acct-button--ghost"
           onClick={() =>
             void navigator.clipboard?.writeText(text).then(() => {
               setCopied(true);
@@ -45,7 +45,7 @@ function BackupCodes({ codes, onDone }: { codes: string[]; onDone: () => void })
         </button>
         <button
           type="button"
-          className="acct-button acct-button--ghost"
+          className="acct-button acct-button--small acct-button--ghost"
           onClick={() => {
             const a = document.createElement("a");
             a.href = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
@@ -58,7 +58,7 @@ function BackupCodes({ codes, onDone }: { codes: string[]; onDone: () => void })
         </button>
         <button
           type="button"
-          className="acct-button acct-button--ghost"
+          className="acct-button acct-button--small acct-button--ghost"
           onClick={() => {
             const w = window.open("", "_blank", "width=480,height=640");
             if (!w) return;
@@ -74,7 +74,7 @@ function BackupCodes({ codes, onDone }: { codes: string[]; onDone: () => void })
         <input type="checkbox" checked={saved} onChange={(e) => setSaved(e.target.checked)} />
         <span>I&apos;ve saved my backup codes somewhere safe</span>
       </label>
-      <button type="button" className="acct-button" disabled={!saved} onClick={onDone}>
+      <button type="button" className="acct-button acct-button--small" disabled={!saved} onClick={onDone}>
         Done
       </button>
     </div>
@@ -146,7 +146,7 @@ export function TwoFactorSettings({ initial }: { initial: Status }) {
         </div>
 
         {!setup ? (
-          <button type="button" className="acct-button" disabled={busy} onClick={() => void run(async () => setSetup(await call("start")))}>
+          <button type="button" className="acct-button acct-button--small" disabled={busy} onClick={() => void run(async () => setSetup(await call("start")))}>
             <ShieldCheck size={16} aria-hidden="true" /> {busy ? "Starting…" : "Set up two-factor authentication"}
           </button>
         ) : (
@@ -166,7 +166,7 @@ export function TwoFactorSettings({ initial }: { initial: Status }) {
                   <code>{setup.secret}</code>
                   <button
                     type="button"
-                    className="acct-button acct-button--ghost"
+                    className="acct-button acct-button--small acct-button--ghost"
                     onClick={() =>
                       void navigator.clipboard?.writeText(setup.secret.replace(/\s/g, "")).then(() => {
                         setCopiedKey(true);
@@ -198,10 +198,10 @@ export function TwoFactorSettings({ initial }: { initial: Status }) {
                 }}
               >
                 <input className="tfa-input" inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="123456" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} aria-label="6-digit code" />
-                <button type="submit" className="acct-button" disabled={busy || code.length !== 6}>
+                <button type="submit" className="acct-button acct-button--small" disabled={busy || code.length !== 6}>
                   {busy ? "Checking…" : "Turn on"}
                 </button>
-                <button type="button" className="acct-button acct-button--ghost" onClick={() => setSetup(null)}>
+                <button type="button" className="acct-button acct-button--small acct-button--ghost" onClick={() => setSetup(null)}>
                   Cancel
                 </button>
               </form>
@@ -236,10 +236,10 @@ export function TwoFactorSettings({ initial }: { initial: Status }) {
 
       {mode === "idle" ? (
         <div className="tfa-actions">
-          <button type="button" className="acct-button acct-button--ghost" onClick={() => setMode("regenerate")}>
+          <button type="button" className="acct-button acct-button--small acct-button--ghost" onClick={() => setMode("regenerate")}>
             <KeyRound size={15} aria-hidden="true" /> New backup codes
           </button>
-          <button type="button" className="acct-button acct-button--ghost tfa-danger" onClick={() => setMode("disable")}>
+          <button type="button" className="acct-button acct-button--small acct-button--ghost tfa-danger" onClick={() => setMode("disable")}>
             <ShieldOff size={15} aria-hidden="true" /> Turn off
           </button>
         </div>
@@ -269,10 +269,10 @@ export function TwoFactorSettings({ initial }: { initial: Status }) {
           ) : null}
           <input className="tfa-input" autoComplete="one-time-code" maxLength={9} placeholder="Code or backup code" value={code} onChange={(e) => setCode(e.target.value)} aria-label="Authenticator or backup code" />
           <div className="tfa-actions">
-            <button type="submit" className={`acct-button${mode === "disable" ? " acct-button--danger" : ""}`} disabled={busy || code.trim().length < 6 || (mode === "disable" && !password)}>
+            <button type="submit" className={`acct-button acct-button--small${mode === "disable" ? " acct-button--danger" : ""}`} disabled={busy || code.trim().length < 6 || (mode === "disable" && !password)}>
               {busy ? "Checking…" : mode === "regenerate" ? "Make new codes" : "Turn off two-factor"}
             </button>
-            <button type="button" className="acct-button acct-button--ghost" onClick={reset}>
+            <button type="button" className="acct-button acct-button--small acct-button--ghost" onClick={reset}>
               Cancel
             </button>
           </div>
