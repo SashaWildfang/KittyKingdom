@@ -317,6 +317,7 @@ export function OverviewTab({
           <Card title="Ticket types">
             {t ? (
               <Donut
+                onSelect={(type) => setDrill({ kind: "ticketType", type })}
                 label="tickets"
                 parts={t.byType.map((x, i) => ({ key: x.type, label: prettyAction(x.type), value: x.count, color: TICKET_COLORS[x.type] ?? actionColor(x.type, i + 3) }))}
               />

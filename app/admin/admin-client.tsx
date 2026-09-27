@@ -183,6 +183,10 @@ export function AdminClient({ adminName, level }: { adminName: string; level: Le
               drill={drill}
               onClose={() => setDrill(null)}
               onDrill={setDrill}
+              onOpenTranscript={(id) => {
+                setDrill(null);
+                openTranscript(id);
+              }}
               onOpenMember={(id) => {
                 setDrill(null);
                 openMember(id);
