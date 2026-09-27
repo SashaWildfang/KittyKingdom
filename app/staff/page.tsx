@@ -1,3 +1,4 @@
+import { userTimeZone } from "../../lib/timezone";
 import { Crown, Shield, Sparkles } from "lucide-react";
 import { LeafEmote } from "../ui-icons";
 import type { CSSProperties } from "react";
@@ -29,7 +30,7 @@ function timeAgo(date: Date) {
 }
 
 function memberSince(date: Date) {
-  return new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric", timeZone: "UTC" }).format(date);
+  return new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric", timeZone: userTimeZone() }).format(date);
 }
 
 function StaffGroupIcon({ name }: { name: string }) {

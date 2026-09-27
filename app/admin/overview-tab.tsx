@@ -296,7 +296,7 @@ export function OverviewTab({
           </Card>
         ) : null}
         {show("hours") ? (
-          <Card title="Busiest hours (Mountain Time)" span={3}>
+          <Card title="Busiest hours (your time)" span={3}>
             {p ? <HourStrip hours={p.hours} /> : <Skeleton short />}
           </Card>
         ) : null}

@@ -15,6 +15,8 @@ export type DirectoryEntry = {
   _id: string;
   username: string | null;
   displayName: string | null;
+  /** Server nickname only (null when they haven't set one). */
+  nick?: string | null;
   avatar: string | null;
   inServer: boolean;
   updatedAt: Date;
@@ -39,6 +41,7 @@ function entryFromMember(member: DiscordMember, now: Date): DirectoryEntry {
     _id: member.user.id,
     username: member.user.username,
     displayName: member.nick ?? member.user.global_name ?? member.user.username,
+    nick: member.nick ?? null,
     avatar: avatarUrl(member.user),
     inServer: true,
     updatedAt: now,
@@ -179,4 +182,14 @@ export async function resolveMissing(ids: string[], known: Map<string, Directory
     { ordered: false },
   );
   for (const entry of found) known.set(entry._id, entry);
+}
+
+/** Ids of everyone currently in the server (null until a full member sweep has run). */
+export async function inServerIds(): Promise<string[] | null> {
+  await refreshIfStale().catch((error) => console.error("Member directory refresh failed", error));
+  const col = await directory();
+  const meta = (await col.findOne({ _id: META_ID })) as { refreshedAt?: Date } | null;
+  const refreshedAt = meta?.refreshedAt ? new Date(meta.refreshedAt).getTime() : 0;
+  if (!refreshedAt || Date.now() - refreshedAt > REFRESH_MS * 4) return null;
+  return (await col.distinct("_id", { inServer: true } as never)).map(String);
 }

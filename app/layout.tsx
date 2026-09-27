@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
 import { PageTracker } from "./page-tracker";
+import { TimeZoneSync } from "./time-zone-sync";
 
 export const metadata: Metadata = {
   title: "Kitty Kingdom | Furry Community",
@@ -25,6 +26,7 @@ export default function RootLayout({
       <body>
         {children}
         <PageTracker />
+        <TimeZoneSync />
       </body>
     </html>
   );

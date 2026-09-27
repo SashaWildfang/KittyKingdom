@@ -1,8 +1,9 @@
 "use client";
 
 import { ArrowDownRight, ArrowUpRight, Globe2, MousePointerClick, Radio } from "lucide-react";
-import { BarList, Donut, HourStrip, LineChart } from "./admin-charts";
+import { BarList, Donut, LineChart } from "./admin-charts";
 import { LiveBadge, formatMs, useLive, useStored } from "./admin-shared";
+import { TrafficTimes } from "./traffic-times";
 
 type Row = { key: string; views: number; visitors: number };
 type Totals = { views: number; visitors: number; sessions: number; bounces: number; durationMs: number; newVisitors: number; signedInViews: number };
@@ -24,7 +25,10 @@ type Report = {
   screens: Row[];
   audience: Row[];
   hours: number[];
+  hourVisitors: number[];
   weekdays: number[];
+  weekdayVisitors: number[];
+  heat: { views: number[][]; visitors: number[][] };
   site: {
     accounts: number;
     verified: number;
@@ -49,7 +53,6 @@ const RANGES = [
 ];
 
 const PALETTE = ["#f59b2a", "#3e63dd", "#46a758", "#8e4ec6", "#e5484d", "#12a594", "#d6409f", "#978365"];
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const PAGE_NAMES: Record<string, string> = {
   "/": "Home",
@@ -290,16 +293,8 @@ export function TrafficTab() {
           {data ? data.utm.length ? <BarList color="rgba(245, 155, 42, 0.3)" items={bars(data.utm)} /> : <p className="adm-empty">Add ?ref=discord to links you share to see them here.</p> : <div className="adm-skeleton" />}
         </Card>
 
-        <Card title="Busiest hours (Mountain Time)" span={2}>
-          {data ? <HourStrip hours={data.hours} /> : <div className="adm-skeleton adm-skeleton--short" />}
-        </Card>
-
-        <Card title="Busiest days">
-          {data ? (
-            <BarList color="rgba(245, 155, 42, 0.3)" items={data.weekdays.map((n, i) => ({ key: WEEKDAYS[i], value: n, label: WEEKDAYS[i] }))} />
-          ) : (
-            <div className="adm-skeleton" />
-          )}
+        <Card title="When people visit" span={3}>
+          {data ? <TrafficTimes data={data} range={range} /> : <div className="adm-skeleton" />}
         </Card>
       </div>
 

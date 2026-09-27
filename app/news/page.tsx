@@ -1,4 +1,5 @@
 import { Megaphone, Pin } from "lucide-react";
+import { userTimeZone } from "../../lib/timezone";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { getCurrentUser } from "../../lib/auth";
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "News | Kitty Kingdom" };
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "America/Denver" });
+  return new Date(iso).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: userTimeZone() });
 }
 
 export default async function NewsPage({ searchParams }: { searchParams: { tag?: string } }) {
