@@ -1,8 +1,10 @@
 import { verifyTranscriptToken } from "../../../../../../../lib/admin";
-import { transcriptFile } from "../../../../../../../lib/tickets";
+import { openTranscriptFile } from "../../../../../../../lib/transcript-store";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+
+const RANGE_PIECE = 8 * 1024 * 1024;
 
 const TYPES: Record<string, string> = {
   html: "text/html; charset=utf-8",
@@ -54,7 +56,7 @@ export async function GET(
   }
 
   const name = params.path.map((part) => decodeURIComponent(part)).join("/");
-  const file = await transcriptFile(params.messageId, name).catch(() => null);
+  const file = await openTranscriptFile(params.messageId, name).catch(() => null);
   if (!file) return new Response("File not found in transcript.", { status: 404 });
 
   const ext = name.split(".").pop()?.toLowerCase() ?? "";
@@ -69,30 +71,41 @@ export async function GET(
   else headers["Content-Security-Policy"] = "sandbox; default-src 'none'; img-src 'self'; media-src 'self'; style-src 'unsafe-inline'";
   if (!TYPES[ext]) headers["Content-Disposition"] = `attachment; filename="${name.split("/").pop()?.replace(/"/g, "") ?? "file"}"`;
 
-  // Byte ranges, so videos can be seeked (and play at all in Safari)
-  let data = file;
+  // Byte ranges, so videos can be seeked (and play at all in Safari). Open-ended ranges are
+  // answered a piece at a time; players ask for the rest as they go.
+  const size = file.size;
+  let start = 0;
+  let end = size - 1;
   let status = 200;
   const range = /^bytes=(\d*)-(\d*)$/.exec(request.headers.get("range") ?? "");
   if (range && (range[1] || range[2])) {
-    const size = file.length;
-    const start = range[1] ? Number(range[1]) : Math.max(0, size - Number(range[2]));
-    const end = range[1] && range[2] ? Math.min(Number(range[2]), size - 1) : size - 1;
+    start = range[1] ? Number(range[1]) : Math.max(0, size - Number(range[2]));
+    end = range[1] && range[2] ? Math.min(Number(range[2]), size - 1) : Math.min(size - 1, start + RANGE_PIECE - 1);
     if (start >= size || start > end) {
       return new Response(null, { status: 416, headers: { ...headers, "Content-Range": `bytes */${size}` } });
     }
-    data = file.subarray(start, end + 1);
     status = 206;
     headers["Content-Range"] = `bytes ${start}-${end}/${size}`;
   }
-  headers["Content-Length"] = String(data.length);
+  headers["Content-Length"] = String(end - start + 1);
+  if (size === 0) return new Response(new Uint8Array(0), { status: 200, headers });
 
-  // Streamed in chunks so larger attachments (videos) aren't held back by response size limits
-  const stream = new ReadableStream<Uint8Array>({
-    start(controller) {
-      const chunk = 256 * 1024;
-      for (let i = 0; i < data.length; i += chunk) controller.enqueue(data.subarray(i, i + chunk));
-      controller.close();
-    },
-  });
-  return new Response(stream, { status, headers });
+  let body: ReadableStream<Uint8Array> | Uint8Array;
+  try {
+    body = await file.read(start, end);
+  } catch {
+    return new Response("This file couldn't be loaded from Discord right now. Try again.", { status: 502 });
+  }
+  if (body instanceof Uint8Array) {
+    // Streamed in chunks so larger attachments aren't held back by response size limits
+    const data = body;
+    body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const chunk = 256 * 1024;
+        for (let i = 0; i < data.length; i += chunk) controller.enqueue(data.subarray(i, i + chunk));
+        controller.close();
+      },
+    });
+  }
+  return new Response(body, { status, headers });
 }
