@@ -5,6 +5,7 @@ import { BarList, Donut, HourStrip, StackedBars } from "./admin-charts";
 import {
   LiveBadge,
   PersonLink,
+  RichText,
   RANGES,
   TICKET_COLORS,
   actionColor,
@@ -12,6 +13,7 @@ import {
   prettyAction,
   useLive,
   useStored,
+  type Mentions,
   type People,
 } from "./admin-shared";
 
@@ -27,7 +29,7 @@ type Stats = {
     hours: number[];
     currentlyBanned: number | null;
   };
-  tickets: {
+  tickets: null | {
     total: number;
     open: number;
     byType: { type: string; count: number }[];
@@ -38,22 +40,33 @@ type Stats = {
     avgResolveMs: number | null;
   };
   people: People;
+  mentions: Mentions;
 };
 
 const WIDGETS = [
   { key: "kpis", label: "Headline numbers" },
   { key: "timeline", label: "Punishments over time" },
   { key: "breakdown", label: "Punishment breakdown" },
-  { key: "hours", label: "Busiest hours" },
   { key: "offenders", label: "Most punished members" },
   { key: "issuers", label: "Most active staff" },
   { key: "reasons", label: "Top reasons" },
-  { key: "ticketTimeline", label: "Tickets over time" },
-  { key: "ticketTypes", label: "Ticket types" },
-  { key: "ticketStaff", label: "Top ticket handlers" },
+  { key: "hours", label: "Busiest hours" },
+  { key: "ticketTimeline", label: "Tickets over time", admin: true },
+  { key: "ticketTypes", label: "Ticket types", admin: true },
+  { key: "ticketStaff", label: "Top ticket handlers", admin: true },
+  { key: "ticketOpeners", label: "Most tickets opened", admin: true },
+  { key: "ticketStatus", label: "Ticket status", admin: true },
 ];
 
-export function OverviewTab({ onOpenMember, onFilterPunishments }: { onOpenMember: (id: string) => void; onFilterPunishments: (action: string) => void }) {
+export function OverviewTab({
+  level,
+  onOpenMember,
+  onFilterPunishments,
+}: {
+  level: "admin" | "staff";
+  onOpenMember: (id: string) => void;
+  onFilterPunishments: (action: string) => void;
+}) {
   const [range, setRange] = useStored("overview-range", "30d");
   const [unit, setUnit] = useStored<"day" | "week" | "month">("overview-unit", "day");
   const [source, setSource] = useStored("overview-source", "all");
@@ -63,7 +76,9 @@ export function OverviewTab({ onOpenMember, onFilterPunishments }: { onOpenMembe
 
   const params = new URLSearchParams({ unit, source, ...(range !== "all" ? { range } : {}) });
   const { data, error, loading, updatedAt } = useLive<Stats>(`/api/admin/stats?${params}`, 15_000);
-  const show = (key: string) => !hiddenWidgets.includes(key);
+  const isAdmin = level === "admin";
+  const widgets = WIDGETS.filter((w) => isAdmin || !w.admin);
+  const show = (key: string) => !hiddenWidgets.includes(key) && widgets.some((w) => w.key === key);
 
   const p = data?.punishments;
   const t = data?.tickets;
@@ -106,7 +121,7 @@ export function OverviewTab({ onOpenMember, onFilterPunishments }: { onOpenMembe
         <div className="adm-customize">
           <div>
             <strong>Widgets</strong>
-            {WIDGETS.map((w) => (
+            {widgets.map((w) => (
               <label key={w.key}>
                 <input
                   type="checkbox"
@@ -138,20 +153,27 @@ export function OverviewTab({ onOpenMember, onFilterPunishments }: { onOpenMembe
       {show("kpis") ? (
         <div className="adm-kpis">
           <Kpi label="Punishments" value={p?.total} hint={range === "all" ? "all time" : `last ${RANGES.find((r) => r.key === range)?.label}`} />
-          <Kpi label="Currently banned" value={p?.currentlyBanned ?? undefined} tone="red" hint="from Discord" />
-          <Kpi label="Bans" value={p ? count("ban") : undefined} tone="red" onClick={() => onFilterPunishments("ban")} />
+          <Kpi label="Currently banned" value={p?.currentlyBanned ?? undefined} tone="red" hint="live from Discord" />
+          <Kpi label="Bans" value={p ? count("ban") + count("tempban") : undefined} tone="red" onClick={() => onFilterPunishments("ban")} />
           <Kpi label="Warnings" value={p ? count("warn") : undefined} tone="yellow" onClick={() => onFilterPunishments("warn")} />
           <Kpi label="Mutes" value={p ? count("mute") + count("tempmute") + count("timeout") : undefined} tone="orange" onClick={() => onFilterPunishments("mute")} />
           <Kpi label="Kicks" value={p ? count("kick") + count("kick_unverified") : undefined} tone="orange" onClick={() => onFilterPunishments("kick")} />
-          <Kpi label="By AutoMod" value={p?.bySource.automod ?? (p ? 0 : undefined)} hint={p?.total ? `${Math.round(((p.bySource.automod ?? 0) / p.total) * 100)}%` : undefined} />
-          <Kpi label="Tickets" value={t?.total} tone="blue" hint={t ? `${t.open} open` : undefined} />
-          <Kpi label="Avg. ticket time" text={t ? formatMs(t.avgResolveMs) : undefined} tone="blue" hint="open → closed" />
+          <Kpi
+            label="By AutoMod"
+            value={p?.bySource.automod ?? (p ? 0 : undefined)}
+            hint={p?.total ? `${Math.round(((p.bySource.automod ?? 0) / p.total) * 100)}% of all` : undefined}
+          />
+          {isAdmin ? (
+            <Kpi label="Tickets" value={t?.total} tone="blue" hint={t ? `${t.open} open · avg ${formatMs(t.avgResolveMs)}` : undefined} />
+          ) : (
+            <Kpi label="Unbans" value={p ? count("unban") : undefined} tone="green" onClick={() => onFilterPunishments("unban")} />
+          )}
         </div>
       ) : null}
 
       <div className="adm-grid">
         {show("timeline") ? (
-          <Card title="Punishments over time" wide>
+          <Card title="Punishments over time" span={2}>
             {p ? <StackedBars points={p.timeline} series={series} unit={unit} /> : <Skeleton />}
           </Card>
         ) : null}
@@ -168,9 +190,6 @@ export function OverviewTab({ onOpenMember, onFilterPunishments }: { onOpenMembe
               <Skeleton />
             )}
           </Card>
-        ) : null}
-        {show("hours") ? (
-          <Card title="Busiest hours (MT)">{p ? <HourStrip hours={p.hours} /> : <Skeleton />}</Card>
         ) : null}
         {show("offenders") ? (
           <Card title="Most punished members">
@@ -199,14 +218,30 @@ export function OverviewTab({ onOpenMember, onFilterPunishments }: { onOpenMembe
         {show("reasons") ? (
           <Card title="Top reasons">
             {p ? (
-              <BarList color="rgba(245, 155, 42, 0.3)" items={p.topReasons.map((r) => ({ key: r.reason, value: r.count, label: <span className="adm-reason">{r.reason}</span> }))} />
+              <BarList
+                color="rgba(245, 155, 42, 0.3)"
+                items={p.topReasons.map((r) => ({
+                  key: r.reason,
+                  value: r.count,
+                  label: (
+                    <span className="adm-reason">
+                      <RichText text={r.reason} mentions={data?.mentions} people={people} onOpenMember={onOpenMember} />
+                    </span>
+                  ),
+                }))}
+              />
             ) : (
               <Skeleton />
             )}
           </Card>
         ) : null}
-        {show("ticketTimeline") ? (
-          <Card title="Tickets over time" wide>
+        {show("hours") ? (
+          <Card title="Busiest hours (Mountain Time)" span={3}>
+            {p ? <HourStrip hours={p.hours} /> : <Skeleton short />}
+          </Card>
+        ) : null}
+        {isAdmin && show("ticketTimeline") ? (
+          <Card title="Tickets over time" span={2}>
             {t ? (
               <StackedBars
                 points={t.timeline}
@@ -218,7 +253,7 @@ export function OverviewTab({ onOpenMember, onFilterPunishments }: { onOpenMembe
             )}
           </Card>
         ) : null}
-        {show("ticketTypes") ? (
+        {isAdmin && show("ticketTypes") ? (
           <Card title="Ticket types">
             {t ? (
               <Donut
@@ -230,13 +265,47 @@ export function OverviewTab({ onOpenMember, onFilterPunishments }: { onOpenMembe
             )}
           </Card>
         ) : null}
-        {show("ticketStaff") ? (
+        {isAdmin && show("ticketStaff") ? (
           <Card title="Top ticket handlers">
             {t ? (
               <BarList
                 color="rgba(18, 165, 148, 0.3)"
                 items={t.topStaff.map((u) => ({ key: u.id, value: u.count, label: <PersonLink id={u.id} people={people} onOpen={onOpenMember} compact /> }))}
               />
+            ) : (
+              <Skeleton />
+            )}
+          </Card>
+        ) : null}
+        {isAdmin && show("ticketOpeners") ? (
+          <Card title="Most tickets opened">
+            {t ? (
+              <BarList
+                color="rgba(214, 64, 159, 0.28)"
+                items={t.topOpeners.map((u) => ({ key: u.id, value: u.count, label: <PersonLink id={u.id} people={people} onOpen={onOpenMember} compact /> }))}
+              />
+            ) : (
+              <Skeleton />
+            )}
+          </Card>
+        ) : null}
+        {isAdmin && show("ticketStatus") ? (
+          <Card title="Ticket status">
+            {t ? (
+              <div className="adm-stat-list">
+                {Object.entries(t.byStatus)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([status, n]) => (
+                    <div key={status}>
+                      <span className={status === "Open" ? "adm-status adm-status--active" : "adm-status"}>{status === "Open" ? "● Open" : status}</span>
+                      <strong>{n.toLocaleString()}</strong>
+                    </div>
+                  ))}
+                <div>
+                  <span className="adm-muted">Average time to close</span>
+                  <strong>{formatMs(t.avgResolveMs)}</strong>
+                </div>
+              </div>
             ) : (
               <Skeleton />
             )}
@@ -258,15 +327,15 @@ function Kpi({ label, value, text, hint, tone, onClick }: { label: string; value
   );
 }
 
-function Card({ title, wide, children }: { title: string; wide?: boolean; children: React.ReactNode }) {
+function Card({ title, span = 1, children }: { title: string; span?: 1 | 2 | 3; children: React.ReactNode }) {
   return (
-    <section className={`adm-card${wide ? " adm-card--wide" : ""}`}>
+    <section className={`adm-card adm-card--span${span}`}>
       <h3>{title}</h3>
       {children}
     </section>
   );
 }
 
-function Skeleton() {
-  return <div className="adm-skeleton" aria-hidden="true" />;
+function Skeleton({ short }: { short?: boolean }) {
+  return <div className={`adm-skeleton${short ? " adm-skeleton--short" : ""}`} aria-hidden="true" />;
 }

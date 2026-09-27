@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   getSessionUserId,
+  setSession,
   hashPassword,
   verifyPassword,
 } from "../../../../lib/auth";
@@ -48,12 +49,17 @@ export async function POST(request: Request) {
     }
 
     const { salt, hash } = hashPassword(newPassword);
-    await users.updateOne(
+    // A new password signs out every other device; this one gets a fresh session
+    const updated = await users.findOneAndUpdate(
       { _id: userId },
       {
-        $set: { passwordSalt: salt, passwordHash: hash, updatedAt: new Date() },
+        $set: { passwordSalt: salt, passwordHash: hash, updatedAt: new Date(), passwordChangedAt: new Date() },
+        $unset: { mustChangePassword: "", passwordReset: "" },
+        $inc: { sessionVersion: 1 },
       },
+      { returnDocument: "after" },
     );
+    await setSession(userId, typeof updated?.sessionVersion === "number" ? updated.sessionVersion : 0);
 
     return NextResponse.redirect(
       `${origin}/account?account=password-saved`,

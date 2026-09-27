@@ -34,7 +34,8 @@ export async function POST(request: Request) {
       );
     }
 
-    await setSession(user._id);
+    await users.updateOne({ _id: user._id }, { $set: { lastLoginAt: new Date() } });
+    await setSession(user._id, typeof user.sessionVersion === "number" ? user.sessionVersion : 0);
     return NextResponse.redirect(
       user.username
         ? `${origin}/home?login=success`

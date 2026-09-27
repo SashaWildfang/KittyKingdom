@@ -61,11 +61,21 @@ function sign(value: string) {
   return createHmac("sha256", getSecret()).update(value).digest("hex");
 }
 
-export async function setSession(userId: ObjectId | string) {
-  const value = String(userId);
-  const signature = sign(value);
+/**
+ * Sessions are "<userId>.<version>.<signature>". Bumping a user's sessionVersion (password reset,
+ * "sign out everywhere") makes every older session stop working. Sessions from before versions
+ * existed ("<userId>.<signature>") count as version 0.
+ */
+export async function setSession(userId: ObjectId | string, version?: number) {
+  const id = String(userId);
+  let v = version;
+  if (v === undefined) {
+    const users = await getUsersCollection();
+    const user = await users.findOne({ _id: new ObjectId(id) }, { projection: { sessionVersion: 1 } });
+    v = typeof user?.sessionVersion === "number" ? user.sessionVersion : 0;
+  }
   const cookieStore = await cookies();
-  cookieStore.set(sessionCookie, `${value}.${signature}`, {
+  cookieStore.set(sessionCookie, `${id}.${v}.${sign(`${id}:${v}`)}`, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
@@ -85,21 +95,50 @@ export async function clearSession() {
   });
 }
 
-export async function getSessionUserId() {
+function safeEqual(a: string, b: string) {
+  const x = Buffer.from(a);
+  const y = Buffer.from(b);
+  return x.length === y.length && timingSafeEqual(x, y);
+}
+
+/** The signed session cookie's user id and version, without checking the database. */
+async function readSessionCookie(): Promise<{ userId: ObjectId; version: number } | null> {
   const cookieStore = await cookies();
   const session = cookieStore.get(sessionCookie)?.value;
   if (!session) return null;
 
-  const [userId, signature] = session.split(".");
-  if (!userId || !signature || sign(userId) !== signature) return null;
-  return ObjectId.isValid(userId) ? new ObjectId(userId) : null;
+  const parts = session.split(".");
+  let id: string;
+  let version: number;
+  if (parts.length === 3) {
+    [id] = parts;
+    version = Number(parts[1]);
+    if (!Number.isInteger(version) || !safeEqual(sign(`${id}:${version}`), parts[2])) return null;
+  } else if (parts.length === 2) {
+    [id] = parts;
+    version = 0;
+    if (!safeEqual(sign(id), parts[1])) return null;
+  } else {
+    return null;
+  }
+  return ObjectId.isValid(id) ? { userId: new ObjectId(id), version } : null;
+}
+
+/** The signed-in user's document, or null if the session is missing, forged or signed out. */
+const getSessionUser = cache(async () => {
+  const session = await readSessionCookie();
+  if (!session) return null;
+  const users = await getUsersCollection();
+  const user = await users.findOne({ _id: session.userId });
+  if (!user) return null;
+  const current = typeof user.sessionVersion === "number" ? user.sessionVersion : 0;
+  return current === session.version ? user : null;
+});
+
+export async function getSessionUserId() {
+  const user = await getSessionUser();
+  return user ? (user._id as ObjectId) : null;
 }
 
 // Memoized per request, so the page and the nav can both ask without a second database lookup
-export const getCurrentUser = cache(async () => {
-  const userId = await getSessionUserId();
-  if (!userId) return null;
-
-  const users = await getUsersCollection();
-  return users.findOne({ _id: userId });
-});
+export const getCurrentUser = getSessionUser;
