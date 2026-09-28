@@ -4299,3 +4299,39 @@ a.dt-partner-chip:hover {
     max-width: none;
   }
 }
+
+/* Partner tags on cards */
+.dt-chip-mini.is-partner {
+  background: rgba(224, 72, 122, 0.88);
+}
+.dt-deck-partner {
+  position: absolute;
+  right: 0.8rem;
+  bottom: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #fff;
+  background: rgba(224, 72, 122, 0.88);
+}
+
+/* Header logo buttons take the profile's color */
+.dt-profile--v2 .dt-hero-side .dt-social-chip {
+  color: var(--acc);
+  background: color-mix(in srgb, var(--acc) 14%, var(--panel));
+  border-color: color-mix(in srgb, var(--acc) 45%, transparent);
+}
+.dt-profile--v2 .dt-hero-side .dt-social-chip svg {
+  color: var(--acc);
+}
+.dt-profile--v2 .dt-hero-side .dt-social-chip:hover {
+  color: var(--acc-ink, #fff);
+  background: var(--acc);
+}
+.dt-profile--v2 .dt-hero-side .dt-social-chip:hover svg {
+  color: var(--acc-ink, #fff);
+}
