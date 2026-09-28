@@ -3,7 +3,8 @@
 import { randomBytes, randomInt } from "crypto";
 import { ObjectId, type Document } from "mongodb";
 import { isStaffDiscordId, type PanelUser } from "./admin";
-import { hashPassword } from "./auth";
+import { createVerificationTokenEntry, hashPassword, maxActiveVerificationTokens } from "./auth";
+import { sendDiscordLinkReminderEmail, sendVerificationReminderEmail } from "./email";
 import { getMongoClient, getUsersCollection } from "./mongodb";
 import { formatDateOfBirth } from "./dates";
 import { applicationBirthday, getJoinApplication } from "./join-application";
@@ -199,6 +200,11 @@ export async function getAccount(id: string) {
     applicationStatus: application?.status ? String(application.status) : null,
     isStaff: await isStaffDiscordId(doc.discordId),
     twoFactor: Boolean(doc.twoFactor?.enabled),
+    registrationPending: Boolean(doc.registration?.pending),
+    reminders: {
+      verify: doc.reminders?.verify?.at ? { at: iso(doc.reminders.verify.at), by: String(doc.reminders.verify.by ?? ""), count: Number(doc.reminders.verify.count ?? 1) } : null,
+      link: doc.reminders?.link?.at ? { at: iso(doc.reminders.link.at), by: String(doc.reminders.link.by ?? ""), count: Number(doc.reminders.link.count ?? 1) } : null,
+    },
     updatedAt: iso(doc.updatedAt),
     passwordChangedAt: iso(doc.passwordChangedAt),
     acceptedPoliciesAt: iso(doc.acceptedPoliciesAt),
@@ -214,7 +220,7 @@ function temporaryPassword() {
   return `${pick()}-${pick()}-${randomInt(1000, 10000)}${symbols[randomInt(symbols.length)]}`;
 }
 
-export type AccountAction = "send-reset" | "temp-password" | "sign-out" | "verify-email" | "unlink-discord" | "reset-2fa" | "delete";
+export type AccountAction = "send-reset" | "temp-password" | "sign-out" | "verify-email" | "remind-verify" | "remind-link" | "unlink-discord" | "reset-2fa" | "delete";
 
 /** Whether a request's action is one the admin panel supports. */
 export function isAccountAction(value: unknown): value is AccountAction {
@@ -223,6 +229,8 @@ export function isAccountAction(value: unknown): value is AccountAction {
     case "temp-password":
     case "sign-out":
     case "verify-email":
+    case "remind-verify":
+    case "remind-link":
     case "unlink-discord":
     case "reset-2fa":
     case "delete":
@@ -236,7 +244,7 @@ export async function accountAction(id: string, action: AccountAction, admin: Pa
   if (!ObjectId.isValid(id)) throw new Error("Unknown account.");
   const _id = new ObjectId(id);
   const users = await getUsersCollection();
-  const target = await users.findOne({ _id }, { projection: { email: 1, discordId: 1, discord: 1, twoFactor: 1 } });
+  const target = await users.findOne({ _id }, { projection: { email: 1, discordId: 1, discord: 1, twoFactor: 1, emailVerified: 1, displayName: 1, username: 1, registration: 1, reminders: 1 } });
   if (!target) throw new Error("Unknown account.");
 
   let result: { message: string; temporaryPassword?: string };
@@ -283,6 +291,29 @@ export async function accountAction(id: string, action: AccountAction, admin: Pa
       website.collection("link_codes").deleteMany({ userId: _id }),
     ]);
     result = { message: `Deleted the website account for ${target.email}. Their Discord and bot data are untouched.` };
+  } else if (action === "remind-verify" || action === "remind-link") {
+    // Reminders: at most one of each per day, so nobody gets spammed
+    const kind = action === "remind-verify" ? "verify" : "link";
+    const last = target.reminders?.[kind]?.at;
+    if (last instanceof Date && Date.now() - last.getTime() < 86_400_000) {
+      throw new Error(`A reminder already went out ${Math.max(1, Math.round((Date.now() - last.getTime()) / 3_600_000))}h ago. You can send another tomorrow.`);
+    }
+    const name = accountName(target as Document);
+    if (kind === "verify") {
+      if (target.emailVerified) throw new Error("Their email is already verified.");
+      if (target.registration?.pending) throw new Error("They haven't finished signing up (Discord step), so there's no email to confirm yet. Send the Discord reminder instead.");
+      const { token, entry } = createVerificationTokenEntry();
+      await users.updateOne({ _id }, { $push: { emailVerificationTokens: { $each: [entry], $slice: -maxActiveVerificationTokens } } as never, $set: { updatedAt: new Date() } });
+      const sent = await sendVerificationReminderEmail(String(target.email), `${origin}/api/account/verify-email?token=${token}`, name);
+      if (!sent.sent) throw new Error(`The email couldn't be sent${"reason" in sent && sent.reason ? `: ${sent.reason}` : "."}`);
+    } else {
+      if (target.discordId) throw new Error("Their Discord is already linked.");
+      const sent = await sendDiscordLinkReminderEmail(String(target.email), name);
+      if (!sent.sent) throw new Error(`The email couldn't be sent${"reason" in sent && sent.reason ? `: ${sent.reason}` : "."}`);
+    }
+    const count = (target.reminders?.[kind]?.count ?? 0) + 1;
+    await users.updateOne({ _id }, { $set: { [`reminders.${kind}`]: { at: new Date(), by: admin.name, count } } });
+    result = { message: `${kind === "verify" ? "Email confirmation" : "Discord linking"} reminder sent to ${target.email}.` };
   } else if (action === "verify-email") {
     await users.updateOne({ _id }, { $set: { emailVerified: true, updatedAt: new Date() }, $unset: { emailVerificationTokens: "", emailVerificationTokenHash: "" } });
     result = { message: "Email marked as verified." };

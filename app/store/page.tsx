@@ -45,7 +45,7 @@ export default async function StorePage() {
             <span className="store-gate-icon">
               <DiscordIcon />
             </span>
-            <p className="eyebrow">Leaf Shop</p>
+            <p className="eyebrow">Store</p>
             <h1>Link Discord to start shopping</h1>
             <p>
               The store uses your Discord account for your leaf balance, roles, boosters and gifts. Link it once and
@@ -64,7 +64,7 @@ export default async function StorePage() {
       ) : loadError || !state ? (
         <section className="store-gate">
           <div className="store-gate-card">
-            <p className="eyebrow">Leaf Shop</p>
+            <p className="eyebrow">Store</p>
             <h1>The store is taking a nap</h1>
             <p>We couldn&apos;t load the store right now. Please refresh in a moment.</p>
           </div>
@@ -72,7 +72,7 @@ export default async function StorePage() {
       ) : !state.inServer ? (
         <section className="store-gate">
           <div className="store-gate-card">
-            <p className="eyebrow">Leaf Shop</p>
+            <p className="eyebrow">Store</p>
             <h1>Join the server to shop</h1>
             <p>Your linked Discord account isn&apos;t in the Kitty Kingdom server. Join it to use the store.</p>
             <div className="store-gate-actions">

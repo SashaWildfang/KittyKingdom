@@ -19,7 +19,7 @@ const tickerItems: { label: string; icon: LucideIcon | "leaf" }[] = [
   { label: "Leaf economy", icon: "leaf" },
   { label: "Custom bot", icon: Bot },
   { label: "Leaderboards", icon: Trophy },
-  { label: "Leaf Shop", icon: ShoppingBag },
+  { label: "Store", icon: ShoppingBag },
   { label: "Voice chats", icon: Mic },
   { label: "AutoMod protection", icon: Shield },
   { label: "Matchmaking", icon: Heart },
@@ -85,7 +85,7 @@ const showcaseTabs = [
 
 const memberSections = [
   { title: "Leaderboards", text: "Track top members, activity and seasonal achievements, live.", href: "/leaderboards", icon: "rank", ready: true },
-  { title: "Leaf Shop", text: "Buy roles, boosters and gifts, and manage your inventory.", href: "/store", icon: "store", ready: true },
+  { title: "Store", text: "Buy roles, boosters and gifts, and manage your inventory.", href: "/store", icon: "store", ready: true },
   { title: "Dating Profiles", text: "Create introductions and match with verified members.", href: DISCORD_INVITE, icon: "heart", ready: true },
   { title: "Role Customization", text: "Manage role selection, profile identity and personalization.", href: DISCORD_INVITE, icon: "users", ready: true },
   { title: "Much More", text: "More member tools arrive as the website grows with the server.", href: "/news", icon: "spark", ready: false },
@@ -231,7 +231,7 @@ export default async function Home({ searchParams }: { searchParams?: { register
             {signedIn ? (
               <>
                 <a className="home-btn home-btn--primary" href="/store" data-leaf-burst>
-                  Visit the Leaf Shop
+                  Visit the Store
                 </a>
                 <a className="home-btn home-btn--ghost" href="/account">
                   My Account
@@ -466,7 +466,7 @@ export default async function Home({ searchParams }: { searchParams?: { register
             <a href="/login">My Account</a>
             <a href="/news">News</a>
             <a href="/leaderboards">Leaderboards</a>
-            <a href="/store">Leaf Shop</a>
+            <a href="/store">Store</a>
           </div>
           <div>
             <h3>Community</h3>
@@ -475,7 +475,8 @@ export default async function Home({ searchParams }: { searchParams?: { register
             <a href={REVIEWS_URL}>Reviews</a>
           </div>
           <div>
-            <h3>Corporate</h3>
+            <h3>Help</h3>
+            <a href="/faq">FAQ &amp; Guide</a>
             <a href="/support">Support</a>
             <a href="/privacy">Privacy Policy</a>
             <a href="/terms">Terms of Service</a>

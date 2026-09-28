@@ -18,7 +18,7 @@ const sections: LegalSection[] = [
         </p>
         <p>It applies to (together, the &quot;<b>Services</b>&quot;):</p>
         <ul>
-          <li>the website at kittykingdom.net and its subdomains (the &quot;<b>Site</b>&quot;), including accounts, the Leaf Store, leaderboards, news, the staff page and My Account;</li>
+          <li>the website at kittykingdom.net and its subdomains (the &quot;<b>Site</b>&quot;), including accounts, the Store, leaderboards, news, the staff page and My Account;</li>
           <li>the Kitty Kingdom Discord server (the &quot;<b>Server</b>&quot;); and</li>
           <li>the Discord bots we operate in the Server, including the main bot, the ticket system and the dating bot (the &quot;<b>Bots</b>&quot;).</li>
         </ul>
@@ -59,7 +59,7 @@ const sections: LegalSection[] = [
             These are stored as hashes or expire automatically.
           </li>
           <li>
-            <b>Purchases and gifts</b> you make in the Leaf Store, including any gift message (&quot;love letter&quot;) you write, which is delivered to the
+            <b>Purchases and gifts</b> you make in the Store, including any gift message (&quot;love letter&quot;) you write, which is delivered to the
             recipient.
           </li>
         </ul>
@@ -405,6 +405,11 @@ export default function PrivacyPage() {
       current="privacy"
       title="Privacy Policy"
       updated={UPDATED}
+      parts={[
+        { title: "What we collect", ids: ["scope", "account", "discord", "moderation", "automatic", "cookies"] },
+        { title: "How it's used & shared", ids: ["use", "visibility", "sharing", "retention", "security"] },
+        { title: "Your rights", ids: ["rights", "age", "transfers", "changes", "contact"] },
+      ]}
       intro={
         <p>
           We believe you should know exactly what we keep about you. This policy lists everything the Kitty Kingdom website, Discord server and bots store,
