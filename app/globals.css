@@ -20656,3 +20656,37 @@ button.st-emoji-chip.is-on {
     opacity: 1;
   }
 }
+.st-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+.st-map-controls {
+  justify-content: center;
+}
+.st-vibe {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--gold) 40%, transparent);
+  border-radius: 0.9rem;
+  background: color-mix(in srgb, var(--gold) 8%, transparent);
+  color: var(--text);
+  font-weight: 700;
+}
+.st-vibe svg {
+  flex: none;
+  color: var(--gold);
+}
+/* The map moves with the sway animation now, so the old per-node float is off */
+.st-map-node {
+  animation: st-node-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation-delay: var(--d);
+}

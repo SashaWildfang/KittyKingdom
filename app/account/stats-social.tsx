@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight, ChevronDown, Headphones, Search, Users } from "lucide-react";
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { MemberStats } from "../../lib/member-stats";
 
 type SocialPerson = MemberStats["social"]["everyone"][number];
@@ -46,6 +46,9 @@ const RINGS = [
 type MapNode = { p: SocialPerson; i: number; x: number; y: number; r: number; closeness: number; ring: number };
 
 const MAP_INNER = 70;
+// The strip at the bottom kept free for the ring tags (radians either side), and how far rings sway
+const TAG_ZONE = 0.62;
+const SWAY = 0.14;
 const ringBounds = (ring: number, maxR: number) => {
   const width = (maxR - MAP_INNER) / RINGS.length;
   return [MAP_INNER + ring * width, MAP_INNER + (ring + 1) * width] as const;
@@ -68,7 +71,7 @@ function layout(people: SocialPerson[], W: number, H: number): MapNode[] {
     const [r0, r1] = ringBounds(ring, maxR);
     members.forEach((n, k) => {
       // Spread around the band, leaving the bottom free for the rings' name tags
-      const wedge = 0.7;
+      const wedge = 1.3;
       const angle = Math.PI / 2 + wedge / 2 + ((k + 0.5) / Math.max(1, members.length)) * (Math.PI * 2 - wedge);
       // Closer within the band sits nearer its inner edge; alternate a little so neighbours don't touch
       const within = members.length > 6 ? (k % 2 ? 0.35 : 0.65) : 0.5;
@@ -98,8 +101,8 @@ function layout(people: SocialPerson[], W: number, H: number): MapNode[] {
     // Keep everyone inside their own band, off the name tags at the bottom, and inside the frame
     for (const n of nodes) {
       const at = Math.atan2(n.y - cy, (n.x - cx) / xStretch);
-      if (Math.abs(at - Math.PI / 2) < 0.32) {
-        const target = at >= Math.PI / 2 ? Math.PI / 2 + 0.32 : Math.PI / 2 - 0.32;
+      if (Math.abs(at - Math.PI / 2) < TAG_ZONE) {
+        const target = at >= Math.PI / 2 ? Math.PI / 2 + TAG_ZONE : Math.PI / 2 - TAG_ZONE;
         const dd = Math.hypot((n.x - cx) / xStretch, n.y - cy);
         n.x = cx + Math.cos(target) * dd * xStretch;
         n.y = cy + Math.sin(target) * dd;
@@ -128,7 +131,36 @@ export function FriendshipMap({ me, people, color, onPick, picked }: { me: { nam
   const H = 520;
   const cx = W / 2;
   const cy = H / 2;
-  const nodes = useMemo(() => layout(shown, W, H), [shown]);
+  const base = useMemo(() => layout(shown, W, H), [shown]);
+  // Gentle motion: each ring sways back and forth at its own pace (paused while hovering)
+  const [t, setT] = useState(0);
+  const paused = useRef(false);
+  useEffect(() => {
+    if (typeof window === "undefined" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let frame = 0;
+    let last = performance.now();
+    let clock = 0;
+    const tick = (now: number) => {
+      const dt = Math.min(100, now - last);
+      last = now;
+      if (!paused.current) clock += dt / 1000;
+      if (Math.round(clock * 30) !== Math.round((clock - dt / 1000) * 30)) setT(clock);
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, []);
+  const nodes = useMemo(
+    () =>
+      base.map((n) => {
+        const ex = (n.x - W / 2) / 1.3;
+        const ey = n.y - H / 2;
+        const dist = Math.hypot(ex, ey);
+        const angle = Math.atan2(ey, ex) + Math.sin(t * (0.22 + n.ring * 0.05) + n.ring * 1.7) * SWAY;
+        return { ...n, x: W / 2 + Math.cos(angle) * dist * 1.3, y: H / 2 + Math.sin(angle) * dist };
+      }),
+    [base, t],
+  );
   const maxR = Math.min(W, H) / 2 - 30;
   const active = hover ?? picked;
   const activeNode = nodes.find((n) => n.p.id === active) ?? null;
@@ -143,7 +175,6 @@ export function FriendshipMap({ me, people, color, onPick, picked }: { me: { nam
             </button>
           ))}
         </div>
-        <span className="adm-muted">{fmt(members.length)} people still in the server</span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Your friendship map">
         <defs>
@@ -224,8 +255,14 @@ export function FriendshipMap({ me, people, color, onPick, picked }: { me: { nam
               key={n.p.id}
               className={`st-map-node${on ? " is-on" : active ? " is-dim" : ""}`}
               style={{ "--d": `${150 + n.i * 45}ms`, "--f": `${(n.i % 6) * 0.5}s`, transformOrigin: `${n.x}px ${n.y}px` } as CSSProperties}
-              onMouseEnter={() => setHover(n.p.id)}
-              onMouseLeave={() => setHover(null)}
+              onMouseEnter={() => {
+                paused.current = true;
+                setHover(n.p.id);
+              }}
+              onMouseLeave={() => {
+                paused.current = false;
+                setHover(null);
+              }}
               onClick={() => onPick(n.p.id)}
               role="button"
               tabIndex={0}

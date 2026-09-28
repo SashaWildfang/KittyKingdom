@@ -810,7 +810,12 @@ export function StatsView({ onBack }: { onBack: () => void }) {
           </div>
 
           <div className="st-grid">
-            <Card title="Your friendship map" icon={<Network size={17} />} className="st-wide">
+            <Card
+              title="Your friendship map"
+              icon={<Network size={17} />}
+              className="st-wide"
+              aside={<span className="st-chip">{fmt(soc.everyone.filter((p) => p.inServer && p.score > 0).length)} people still in the server</span>}
+            >
               {soc.everyone.length ? (
                 <FriendshipMap
                   me={{ name: "You", avatar: s.profile.avatar }}
