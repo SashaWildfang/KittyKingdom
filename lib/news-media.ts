@@ -48,7 +48,7 @@ export async function readNewsMedia(id: string) {
   return { data: Buffer.concat(chunks), type: String(file.metadata?.contentType ?? "application/octet-stream") };
 }
 
-function sniff(b: Buffer): string | null {
+export function sniff(b: Buffer): string | null {
   if (b.length < 12) return null;
   if (b[0] === 0x89 && b.toString("ascii", 1, 4) === "PNG") return "image/png";
   if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return "image/jpeg";
