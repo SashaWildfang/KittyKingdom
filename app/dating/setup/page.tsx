@@ -2,7 +2,7 @@
 
 import { ArrowLeft, ArrowRight, Check, Loader2, PartyPopper, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { FieldInput, LooksEditor, PhotoManager, PromptsEditor, changed, saveMe, type Own } from "../profile-form";
+import { FieldInput, LooksEditor, PhotoManager, PromptsEditor, changed, clearDraft, readDraft, saveMe, writeDraft, type Own } from "../profile-form";
 import { useApi } from "../ui";
 
 type Me = { profile: Own | null; view: { id: string } | null };
@@ -29,16 +29,32 @@ export default function Setup() {
   const [err, setErr] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [started, setStarted] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+  const [restored, setRestored] = useState(false);
 
   useEffect(() => {
-    if (!data) return;
+    if (!data || hydrated) return;
     if (data.profile) {
       setOwn(data.profile);
       setValues(data.profile.values);
       setPrompts(data.profile.prompts);
       setWeb(data.profile.web);
     }
-  }, [data]);
+    // Pick up where they left off if the tab was refreshed (or the site updated) mid-setup
+    const draft = readDraft<{ values: Record<string, unknown>; prompts: Own["prompts"]; web: Own["web"]; step: number; started: boolean }>("setup");
+    if (draft) {
+      setValues({ ...(data.profile?.values ?? {}), ...draft.values });
+      if (draft.prompts) setPrompts(draft.prompts);
+      if (draft.web) setWeb(draft.web);
+      setStep(draft.step ?? 0);
+      setStarted(Boolean(draft.started));
+      setRestored(Boolean(draft.started));
+    }
+    setHydrated(true);
+  }, [data, hydrated]);
+  useEffect(() => {
+    if (hydrated && !done && started) writeDraft("setup", { values, prompts, web, step, started });
+  }, [hydrated, done, started, values, prompts, web, step]);
 
   // Decided once from the profile as loaded, so confirming the review doesn't shift the steps
   const review = Boolean(data?.profile && !data.profile.reviewConfirmed);
@@ -81,7 +97,10 @@ export default function Setup() {
       setOwn(r.profile);
       setValues(r.profile.values);
     }
-    if (step >= steps.length - 1) setDone(true);
+    if (step >= steps.length - 1) {
+      clearDraft("setup");
+      setDone(true);
+    }
     else setStep((s) => s + 1);
   };
 
@@ -146,6 +165,14 @@ export default function Setup() {
       <p className="dt-kicker">
         Step {step + 1} of {steps.length}
       </p>
+      {restored ? (
+        <p className="dt-note">
+          Welcome back! We kept the answers you hadn&apos;t saved yet.{" "}
+          <button type="button" className="dt-textlink" onClick={() => setRestored(false)}>
+            OK
+          </button>
+        </p>
+      ) : null}
       <h1>{cur.title}</h1>
       <p className="dt-muted">{cur.intro}</p>
 
