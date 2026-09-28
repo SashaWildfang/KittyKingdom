@@ -1,4 +1,4 @@
-import { LayoutDashboard } from "lucide-react";
+import { ShieldUser } from "lucide-react";
 import { getPanelUser } from "../lib/admin";
 import { canViewStaffPage, getCurrentUser } from "../lib/auth";
 import { OnlineStatus } from "./online-status";
@@ -54,7 +54,7 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
       <div className="nav-actions">
         {panel ? (
           <a className="nav-panel-btn" href="/admin" title={panel.level === "admin" ? "Admin panel" : "Staff panel"} aria-label={panel.level === "admin" ? "Admin panel" : "Staff panel"}>
-            <LayoutDashboard size={19} aria-hidden="true" />
+            <ShieldUser size={20} strokeWidth={2.1} aria-hidden="true" />
           </a>
         ) : null}
         <ThemeToggle />
