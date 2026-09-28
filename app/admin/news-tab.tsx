@@ -231,6 +231,9 @@ export function NewsTab() {
                 const ok = editing === "new" ? await send("POST", "/api/admin/news", values) : await send("PATCH", `/api/admin/news/${editing.id}`, values);
                 if (ok) setEditing(null);
               }}
+              onDelete={async () => {
+                if (editing !== "new" && (await send("DELETE", `/api/admin/news/${editing.id}`))) setEditing(null);
+              }}
             />,
             document.body,
           )
@@ -239,7 +242,20 @@ export function NewsTab() {
   );
 }
 
-function NewsEditor({ post, tags, onClose, onSave }: { post: Post | null; tags: Tag[]; onClose: () => void; onSave: (values: Record<string, unknown>) => Promise<void> }) {
+function NewsEditor({
+  post,
+  tags,
+  onClose,
+  onSave,
+  onDelete,
+}: {
+  post: Post | null;
+  tags: Tag[];
+  onClose: () => void;
+  onSave: (values: Record<string, unknown>) => Promise<void>;
+  onDelete: () => Promise<void>;
+}) {
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [title, setTitle] = useState(post?.title ?? "");
   const [body, setBody] = useState(post?.body ?? "");
   const [tag, setTag] = useState(post?.tag ?? tags[0]?.name ?? "");
@@ -255,6 +271,12 @@ function NewsEditor({ post, tags, onClose, onSave }: { post: Post | null; tags: 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  async function saveDraft() {
+    setSaving(true);
+    await onSave({ title, body, tag, pinned, status: "draft", published: false, publishedAt: new Date(publishedAt).toISOString() });
+    setSaving(false);
+  }
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -276,7 +298,7 @@ function NewsEditor({ post, tags, onClose, onSave }: { post: Post | null; tags: 
         <form onSubmit={save} className="adm-form">
           <label>
             <span>Title</span>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} required placeholder="What's new?" />
+            <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} required={status !== "draft"} placeholder="What's new?" />
           </label>
           <div className="adm-form-row">
             <label>
@@ -319,7 +341,7 @@ function NewsEditor({ post, tags, onClose, onSave }: { post: Post | null; tags: 
                   onChange={(e) => setBody(e.target.value)}
                   rows={12}
                   maxLength={8000}
-                  required
+                  required={status !== "draft"}
                   placeholder="Write the update. Select text and use the buttons above, or type Discord-style formatting like **bold** and *italic*."
                 />
               </>
@@ -350,9 +372,30 @@ function NewsEditor({ post, tags, onClose, onSave }: { post: Post | null; tags: 
             <button type="submit" className="adm-btn" disabled={saving}>
               {saving ? "Saving…" : status === "published" ? (post ? "Save & keep live" : "Publish post") : status === "pending" ? "Pend review" : "Save draft"}
             </button>
+            {status !== "draft" ? (
+              <button type="button" className="adm-btn adm-btn--ghost" disabled={saving} onClick={() => void saveDraft()} title="Save it as a draft (only visible here) and finish later">
+                Save as draft
+              </button>
+            ) : null}
             <button type="button" className="adm-btn adm-btn--ghost" onClick={onClose}>
               Cancel
             </button>
+            {post && post.status !== "published" ? (
+              confirmingDelete ? (
+                <span className="adm-news-editor-delete">
+                  <button type="button" className="adm-btn adm-btn--danger adm-btn--small" onClick={() => void onDelete()}>
+                    Yes, delete {post.status === "draft" ? "draft" : "post"}
+                  </button>
+                  <button type="button" className="adm-btn adm-btn--ghost adm-btn--small" onClick={() => setConfirmingDelete(false)}>
+                    Keep it
+                  </button>
+                </span>
+              ) : (
+                <button type="button" className="adm-btn adm-btn--ghost adm-news-delete adm-news-editor-delete" onClick={() => setConfirmingDelete(true)}>
+                  <Trash2 size={14} aria-hidden="true" /> Delete {post.status === "draft" ? "draft" : "post"}
+                </button>
+              )
+            ) : null}
           </div>
         </form>
       </aside>
@@ -489,7 +532,7 @@ function FormatBar({ textRef, value, onChange }: { textRef: React.RefObject<HTML
       ))}
       <span className="adm-format-sep" aria-hidden="true" />
       <label className={`adm-format-media${uploading ? " is-busy" : ""}`} title="Upload an image or short video (up to 4 MB)">
-        <ImagePlus size={15} aria-hidden="true" /> {uploading ? "Uploading…" : "Image / video"}
+        <ImagePlus size={13} aria-hidden="true" /> {uploading ? "Uploading…" : "Media"}
         <input
           type="file"
           accept="image/png,image/jpeg,image/gif,image/webp,video/mp4,video/webm"
@@ -524,7 +567,7 @@ function FormatBar({ textRef, value, onChange }: { textRef: React.RefObject<HTML
         }}
         title="Embed a YouTube video or a linked image/video"
       >
-        <Film size={15} aria-hidden="true" /> Embed link
+        <Film size={13} aria-hidden="true" /> Embed
       </button>
       {mediaError ? <span className="adm-format-error">{mediaError}</span> : null}
     </div>

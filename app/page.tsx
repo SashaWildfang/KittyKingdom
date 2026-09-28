@@ -284,21 +284,21 @@ export default async function Home({ searchParams }: { searchParams?: { register
             </li>
           </ul>
           {growth ? (
-            <ul className="home-stats home-stats--growth" aria-label="Member growth">
+            <ul className="home-stats home-stats--growth" aria-label="Discord server growth" title="From the Discord server's member list (not website accounts)">
               <li>
                 <strong>{growth.today.toLocaleString()}</strong>
-                <span>joined today</span>
+                <span>joined the Discord today</span>
               </li>
               <li>
                 <strong>{growth.perDay >= 10 ? Math.round(growth.perDay) : growth.perDay.toFixed(1)}</strong>
-                <span>avg joins / day</span>
+                <span>avg Discord joins / day</span>
               </li>
               <li>
                 <strong className={growth.growth >= 0 ? "is-up" : "is-down"}>
                   {growth.growth >= 0 ? "+" : ""}
                   {(growth.growth * 100).toFixed(1)}%
                 </strong>
-                <span>growth (30 days)</span>
+                <span>server growth (30 days)</span>
               </li>
             </ul>
           ) : null}
