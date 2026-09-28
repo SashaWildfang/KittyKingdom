@@ -24198,3 +24198,312 @@ body.live-fullscreen .view-as-bar {
 .nb-icon--partner {
   background: #d6409f;
 }
+
+/* ---------- News v2: one clean column, read state ---------- */
+.nw--v2 {
+  max-width: 980px;
+}
+.nw2 {
+  display: grid;
+  gap: 1rem;
+}
+.nw2-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+.nw2-seg {
+  display: inline-flex;
+  gap: 0.2rem;
+  padding: 0.25rem;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+.nw2-seg button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.42rem 0.85rem;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.nw2-seg button.is-on {
+  color: var(--text);
+  background: var(--well, rgba(255, 242, 215, 0.08));
+  box-shadow: 0 2px 8px var(--shadow);
+}
+.nw2-seg b {
+  min-width: 1.3rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  line-height: 1.3rem;
+  text-align: center;
+  background: var(--line);
+}
+.nw2-seg b.is-hot {
+  background: var(--ember);
+  color: #2a1206;
+}
+.nw2-search {
+  flex: 1 1 220px;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0 0.85rem;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+.nw2-search:focus-within {
+  border-color: var(--ember);
+}
+.nw2-search input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.55rem 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  outline: none;
+}
+.nw2-select {
+  padding: 0.5rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+.nw2-markall {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ember);
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.nw2-markall:hover {
+  border-color: var(--ember);
+}
+.nw2-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.nw2-tags button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.nw2-tags button i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tag, var(--ember));
+}
+.nw2-tags button small {
+  color: var(--muted);
+  font-weight: 700;
+}
+.nw2-tags button.is-on {
+  border-color: var(--tag, var(--ember));
+  background: color-mix(in srgb, var(--tag, var(--ember)) 18%, var(--panel));
+}
+.nw2-filtering {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.nw2-filtering button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: 0;
+  background: none;
+  color: var(--ember);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.nw2-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.7rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.nw2-meta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.nw2-state.is-unread {
+  color: var(--ember);
+  font-weight: 800;
+}
+.nw2-state.is-unread i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ember);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ember) 25%, transparent);
+}
+.nw2-state.is-read {
+  color: #46a758;
+  font-weight: 700;
+}
+.nw2-featured {
+  display: grid;
+  gap: 1.2rem;
+  padding: 1.3rem;
+  border-radius: 22px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow: 0 14px 36px var(--shadow);
+  transition: transform 0.15s, border-color 0.15s;
+}
+.nw2-featured.has-cover {
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  align-items: center;
+}
+.nw2-featured img {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-radius: 16px;
+}
+.nw2-featured h2 {
+  margin: 0.5rem 0 0.4rem;
+  font-size: clamp(1.4rem, 2.6vw, 1.9rem);
+  max-width: none;
+  letter-spacing: normal;
+  line-height: 1.2;
+}
+.nw2-featured p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+.nw2-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.8rem;
+  color: var(--ember);
+  font-weight: 800;
+}
+.nw2-featured:hover,
+.nw2-row:hover {
+  border-color: var(--ember);
+}
+.nw2-featured:hover {
+  transform: translateY(-2px);
+}
+.nw2-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+.nw2-row {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 1rem;
+  align-items: center;
+  padding: 0.8rem;
+  border-radius: 18px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  transition: border-color 0.15s, background 0.15s;
+}
+.nw2-row img,
+.nw2-icon {
+  width: 120px;
+  height: 84px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+.nw2-icon {
+  display: grid;
+  place-items: center;
+  color: var(--tag, var(--ember));
+  background: color-mix(in srgb, var(--tag, var(--ember)) 14%, transparent);
+}
+.nw2-row h3 {
+  margin: 0.3rem 0 0.2rem;
+  font-size: 1.08rem;
+  line-height: 1.3;
+}
+.nw2-row p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.nw2-row.is-read h3,
+.nw2-featured.is-read h2 {
+  color: color-mix(in srgb, var(--text) 80%, transparent);
+}
+@media (max-width: 700px) {
+  .nw2-featured.has-cover {
+    grid-template-columns: 1fr;
+  }
+  .nw2-row {
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 0.7rem;
+  }
+  .nw2-row img,
+  .nw2-icon {
+    width: 72px;
+    height: 72px;
+  }
+  .nw2-search {
+    flex-basis: 100%;
+  }
+}
+.nw--v2 .nw-head h1 {
+  font-size: clamp(2rem, 4.2vw, 3.2rem);
+  line-height: 1.05;
+  max-width: none;
+  margin-bottom: 0.5rem;
+}
+.nw--v2 .nw-head {
+  margin-bottom: 1.2rem;
+}

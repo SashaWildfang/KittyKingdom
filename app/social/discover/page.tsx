@@ -128,7 +128,7 @@ export default function Discover() {
             <button type="button" className="dt-btn" onClick={() => switchMode("friends")}>
               <Users size={14} aria-hidden="true" /> Find friends
             </button>
-            <a className="dt-btn dt-btn--ghost" href="/social/profile#targets">
+            <a className="dt-btn dt-btn--ghost" href="/social/profile/edit#targets">
               I&apos;m open to dating
             </a>
           </div>
@@ -163,7 +163,7 @@ export default function Discover() {
       {card ? (
         <article className={`dt-deck${leaving ? ` is-leaving-${leaving}` : ""}`} style={{ "--acc": card.accent } as CSSProperties} key={card.id}>
           <a href={`/social/u/${card.id}`} className="dt-deck-photo" aria-label={`Open ${card.name}'s profile`}>
-            <Photo src={card.photo} name={card.name} accent={card.accent} />
+            <Photo src={card.photo} name={card.name} accent={card.accent} crop={card.photoCrop} />
             {card.photoCount > 1 ? <span className="dt-deck-count">{card.photoCount} photos</span> : null}
             <span className="dt-deck-score">
               <Score score={card.score} fit={!friends} /> · {friends ? "Get-along score" : card.tier}

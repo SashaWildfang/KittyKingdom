@@ -29,7 +29,17 @@ function socialLink(key: string, value: string): string | null {
   return /^[A-Za-z0-9_.-]{2,32}$/.test(handle) ? make(handle) : null;
 }
 
-export type Photo = { id: string; ext: string; caption?: string };
+/** crop: how the photo is framed (x/y = focus point in %, z = zoom 1–3). Never changes the file. */
+export type Crop = { x: number; y: number; z: number };
+export type Photo = { id: string; ext: string; caption?: string; crop?: Crop };
+
+export function cleanCrop(raw: unknown): Crop | undefined {
+  const c = raw as Partial<Crop> | null;
+  if (!c || typeof c !== "object") return undefined;
+  const num = (v: unknown, lo: number, hi: number, d: number) => (typeof v === "number" && Number.isFinite(v) ? Math.min(hi, Math.max(lo, Math.round(v * 10) / 10)) : d);
+  const crop = { x: num(c.x, 0, 100, 50), y: num(c.y, 0, 100, 50), z: num(c.z, 1, 3, 1) };
+  return crop.x === 50 && crop.y === 50 && crop.z === 1 ? undefined : crop;
+}
 export type Prompt = { q: string; a: string };
 export type Fursona = { name: string; description: string; art_links: string[] };
 export type WebPrefs = { accent?: string; headline?: string; paused?: boolean; pausedByStaff?: boolean; hideAge?: boolean; showOnline?: boolean };
@@ -121,7 +131,8 @@ export async function saveProfile(discordId: string, patch: ProfilePatch): Promi
     const next: Photo[] = [];
     for (const raw of patch.photos as Photo[]) {
       const p = byId.get(String(raw?.id));
-      if (p) next.push({ ...p, caption: cleanText(raw?.caption, 120) || undefined });
+      // Caption and framing can change; a photo without `crop` in the request keeps its framing
+      if (p) next.push({ ...p, caption: cleanText(raw?.caption, 120) || undefined, crop: raw && "crop" in raw ? cleanCrop(raw.crop) : p.crop });
     }
     $set.photos = next.slice(0, MAX_PHOTOS);
   }
@@ -188,7 +199,7 @@ export type ProfileView = {
   age: number | null;
   headline: string | null;
   accent: string;
-  photos: { url: string; caption: string | null }[];
+  photos: { url: string; caption: string | null; crop: Crop | null }[];
   facts: { label: string; value: string; key: string }[];
   sections: { id: string; label: string; emoji: string; items: { key: string; label: string; value: string; legacy: boolean; long: boolean; href: string | null }[] }[];
   prompts: Prompt[];
@@ -221,7 +232,7 @@ export async function profileView(doc: ProfileDoc, opts: { viewerIsOwner?: boole
   const partnerNames = new Map(partnerDocs.map((p) => [String(p._id), String(p.name ?? "")]));
   const partners = partnerIds.map((pid) => ({ id: pid, name: partnerNames.get(pid) || partnerWho[pid]?.name || "Member", avatar: bigAvatar(partnerWho[pid]?.avatar, 128), hasProfile: partnerNames.has(pid) }));
   const web = (doc.web ?? {}) as WebPrefs;
-  const photos = ((doc.photos ?? []) as Photo[]).map((p) => ({ url: photoUrl(p), caption: p.caption ?? null }));
+  const photos = ((doc.photos ?? []) as Photo[]).map((p) => ({ url: photoUrl(p), caption: p.caption ?? null, crop: p.crop ?? null }));
   const age = typeof doc.age === "number" ? doc.age : Number(doc.age) || null;
   const sections = SECTIONS.map((s) => ({
     id: s.id,

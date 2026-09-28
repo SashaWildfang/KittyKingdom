@@ -102,7 +102,7 @@ export default function Likes() {
         ) : (
           <Empty icon={<Heart size={28} />} title="No likes yet">
             <p>A great bio, a photo and a prompt or two make a big difference. Profiles with photos get far more likes.</p>
-            <a className="dt-btn" href="/social/profile">
+            <a className="dt-btn" href="/social/profile/edit">
               Improve my profile
             </a>
           </Empty>

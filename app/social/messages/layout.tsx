@@ -10,12 +10,17 @@ function NewMessage({ onClose }: { onClose: () => void }) {
   const matches = useApi<{ cards: Card[] }>("/api/dating/lists?list=matches");
   const friends = useApi<{ cards: (Card & { friend: string })[] }>("/api/dating/lists?list=friends");
   const [q, setQ] = useState("");
-  const seen = new Set<string>();
-  const people = [
-    ...(matches.data?.cards ?? []).map((c) => ({ ...c, why: "Match" })),
-    ...(friends.data?.cards ?? []).filter((c) => c.friend === "friends").map((c) => ({ ...c, why: "Friend" })),
-  ].filter((c) => (seen.has(c.id) ? false : (seen.add(c.id), true)));
-  const shown = people.filter((c) => c.name.toLowerCase().includes(q.trim().toLowerCase()));
+  // One row per person; someone who's both a match and a friend shows both
+  const byId = new Map<string, Card & { why: string[] }>();
+  for (const c of matches.data?.cards ?? []) byId.set(c.id, { ...c, why: ["Match"] });
+  for (const c of (friends.data?.cards ?? []).filter((c) => c.friend === "friends")) {
+    const had = byId.get(c.id);
+    if (had) had.why.push("Friend");
+    else byId.set(c.id, { ...c, why: ["Friend"] });
+  }
+  const people = Array.from(byId.values()).sort((a, b) => Number(Boolean(b.online)) - Number(Boolean(a.online)) || a.name.localeCompare(b.name));
+  const needle = q.trim().toLowerCase();
+  const shown = people.filter((c) => c.name.toLowerCase().includes(needle) || (c.username ?? "").toLowerCase().includes(needle));
   const loading = !matches.data || !friends.data;
   return (
     <div className="dt-newmsg">
@@ -36,10 +41,18 @@ function NewMessage({ onClose }: { onClose: () => void }) {
           {shown.map((c) => (
             <li key={c.id}>
               <a href={`/social/messages/${c.id}`}>
-                <Photo src={c.photo} name={c.name} accent={c.accent} className="dt-avatar" />
+                <span className="dt-avatar-wrap">
+                  <Photo src={c.photo} name={c.name} accent={c.accent} crop={c.photoCrop} className="dt-avatar" />
+                  {c.online ? <span className="dt-face-dot" title="Online now" /> : null}
+                </span>
                 <span className="dt-inbox-text">
-                  <b>{c.name}</b>
-                  <small>{c.why}</small>
+                  <b>
+                    {c.name} {c.username ? <small className="dt-at">@{c.username}</small> : null}
+                  </b>
+                  <small>
+                    {c.why.join(" · ")}
+                    {c.online ? <span className="is-online"> · Online now</span> : null}
+                  </small>
                 </span>
               </a>
             </li>

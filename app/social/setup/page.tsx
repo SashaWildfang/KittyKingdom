@@ -122,7 +122,7 @@ export default function Setup() {
           <a className="dt-btn dt-btn--big" href={values.is_looking === "Yes" ? "/social/discover" : "/social/discover?mode=friends"}>
             {values.is_looking === "Yes" ? "Start discovering" : "Find friends"} <ArrowRight size={16} aria-hidden="true" />
           </a>
-          <a className="dt-btn dt-btn--ghost" href="/social/profile">
+          <a className="dt-btn dt-btn--ghost" href="/social/profile/edit">
             Fine-tune my profile
           </a>
         </div>

@@ -6,6 +6,7 @@
 import { Flag, Heart, MapPin, Sparkles, Users, X } from "lucide-react";
 import { Score } from "./icons";
 import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 export type Card = {
   id: string;
@@ -14,6 +15,7 @@ export type Card = {
   headline: string | null;
   photo: string | null;
   photoCount: number;
+  photoCrop?: Crop | null;
   accent: string;
   location: string | null;
   gender: string | null;
@@ -30,6 +32,8 @@ export type Card = {
   liked: boolean;
   inServer: boolean;
   openToDating: boolean;
+  username?: string | null;
+  online?: boolean;
 };
 
 /** GET a dating API route; `reload()` fetches again. */
@@ -79,8 +83,16 @@ export function ago(iso: string | null) {
   return d < 30 ? `active ${d}d ago` : "active a while ago";
 }
 
+export type Crop = { x: number; y: number; z: number };
+
+/** Styles that frame a photo the way its owner adjusted it (focus point + zoom). */
+export function cropStyle(crop: Crop | null | undefined): CSSProperties | undefined {
+  if (!crop) return undefined;
+  return { objectPosition: `${crop.x}% ${crop.y}%`, transform: crop.z > 1 ? `scale(${crop.z})` : undefined, transformOrigin: `${crop.x}% ${crop.y}%` };
+}
+
 /** A photo, or a soft gradient with their initial in their accent color. */
-export function Photo({ src, name, accent, className = "" }: { src: string | null; name: string; accent: string; className?: string }) {
+export function Photo({ src, name, accent, className = "", crop }: { src: string | null; name: string; accent: string; className?: string; crop?: Crop | null }) {
   // One quiet retry before falling back (a busy first load can fail a request or two)
   const [tries, setTries] = useState(0);
   useEffect(() => {
@@ -88,6 +100,15 @@ export function Photo({ src, name, accent, className = "" }: { src: string | nul
   }, [src]);
   if (src && tries < 2) {
     const url = tries ? `${src}${src.includes("?") ? "&" : "?"}retry=1` : src;
+    // Zoomed photos get a clipping frame so the zoom stays inside their box
+    if (crop && crop.z > 1) {
+      return (
+        <span className={`dt-photo dt-photo-frame ${className}`}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={url} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" style={cropStyle(crop)} onError={() => window.setTimeout(() => setTries((t) => t + 1), tries ? 0 : 900)} />
+        </span>
+      );
+    }
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
@@ -97,6 +118,7 @@ export function Photo({ src, name, accent, className = "" }: { src: string | nul
         loading="lazy"
         decoding="async"
         referrerPolicy="no-referrer"
+        style={cropStyle(crop)}
         onError={() => window.setTimeout(() => setTries((t) => t + 1), tries ? 0 : 900)}
       />
     );
@@ -114,7 +136,7 @@ export function ProfileTile({ card, extra, onLike }: { card: Card; extra?: React
   return (
     <article className="dt-tile" style={{ "--acc": card.accent } as CSSProperties}>
       <a href={`/social/u/${card.id}`} className="dt-tile-link" aria-label={`Open ${card.name}'s profile`}>
-        <Photo src={card.photo} name={card.name} accent={card.accent} className="dt-tile-photo" />
+        <Photo src={card.photo} name={card.name} accent={card.accent} className="dt-tile-photo" crop={card.photoCrop} />
         <span className="dt-tile-badges">
           {card.score !== null ? (
             <span className={`dt-score${card.datingFit ? "" : " is-friendly"}`} title={card.datingFit ? `${card.tier} match` : "Compatibility (not a dating fit on preferences)"}>
@@ -214,7 +236,8 @@ export function ReportButton({ target, type = "profile", photoId, messageId, lab
       <button type="button" className={`dt-btn dt-btn--ghost${small ? " dt-btn--small" : ""}`} onClick={() => setOpen(true)}>
         <Flag size={14} aria-hidden="true" /> {label}
       </button>
-      {open ? (
+      {open
+        ? createPortal(
         <div className="dt-modal-backdrop" onClick={() => setOpen(false)}>
           <div className="dt-modal" role="dialog" aria-modal="true" aria-label="Report" onClick={(e) => e.stopPropagation()}>
             <button type="button" className="dt-modal-close" onClick={() => setOpen(false)} aria-label="Close">
@@ -256,8 +279,10 @@ export function ReportButton({ target, type = "profile", photoId, messageId, lab
               </>
             )}
           </div>
-        </div>
-      ) : null}
+        </div>,
+            document.body,
+          )
+        : null}
     </>
   );
 }
