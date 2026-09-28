@@ -2,45 +2,40 @@
 
 import { Sparkles, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { NEWS_READ_KEY, NEWS_SEEN_KEY } from "./news/news-seen";
+import { isRead, useNewsReads } from "./news/news-seen";
 
 type Item = { id: string; title: string; publishedAt: string };
 
 /** "3 new posts since your last visit" above the home page news (or new this week, first time). */
+const DISMISS_KEY = "kk_news_notice_dismissed";
+
 export function HomeNewsNotice({ posts }: { posts: Item[] }) {
-  const [fresh, setFresh] = useState<Item[] | null>(null);
-  const [firstVisit, setFirstVisit] = useState(false);
-
+  const reads = useNewsReads();
+  const [dismissedAt, setDismissedAt] = useState<string | null>(null);
   useEffect(() => {
-    let seen: string | null = null;
-    let read = new Set<string>();
     try {
-      seen = window.localStorage.getItem(NEWS_SEEN_KEY);
-      read = new Set(JSON.parse(window.localStorage.getItem(NEWS_READ_KEY) ?? "[]"));
-    } catch {
-      seen = null;
-    }
-    const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
-    setFirstVisit(!seen);
-    setFresh(posts.filter((p) => p.publishedAt > (seen ?? weekAgo) && !read.has(p.id)));
-  }, [posts]);
+      setDismissedAt(window.localStorage.getItem(DISMISS_KEY));
+    } catch {}
+  }, []);
+  const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
+  // Unread posts from the last week (hidden until the next new post once dismissed)
+  const fresh = reads ? posts.filter((p) => p.publishedAt > weekAgo && !isRead(reads, p.id, p.publishedAt) && (!dismissedAt || p.publishedAt > dismissedAt)) : [];
+  const firstVisit = false;
 
-  if (!fresh?.length) return null;
+  if (!fresh.length) return null;
   const newest = fresh[0];
   const dismiss = () => {
     try {
-      window.localStorage.setItem(NEWS_SEEN_KEY, newest.publishedAt);
-    } catch {
-      // ignore
-    }
-    setFresh([]);
+      window.localStorage.setItem(DISMISS_KEY, newest.publishedAt);
+    } catch {}
+    setDismissedAt(newest.publishedAt);
   };
   return (
     <div className="home-news-notice" role="status">
       <Sparkles size={16} aria-hidden="true" />
       <span>
         <b>
-          {fresh.length} new post{fresh.length === 1 ? "" : "s"} {firstVisit ? "this week" : "since your last visit"}
+          {fresh.length} new post{fresh.length === 1 ? "" : "s"} unread this week
         </b>
         {" · "}
         <a href={`/news/${newest.id}`}>{newest.title}</a>

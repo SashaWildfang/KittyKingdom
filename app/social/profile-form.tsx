@@ -3,11 +3,12 @@
 // Form pieces shared by the profile editor and the setup wizard. Every field is drawn from the
 // bot's schema (lib/dating/schema-data.ts), so adding a field there makes it appear here.
 
-import { ArrowLeft, ArrowRight, ImagePlus, Link2, Loader2, Plus, Star, Trash2, TriangleAlert, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, ImagePlus, Link2, Loader2, Minus, Move, Plus, RotateCcw, Star, Trash2, TriangleAlert, X } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { ACCENTS, FIELDS, MAX_FURSONAS, MAX_PHOTOS, MAX_PROMPTS, PROMPTS } from "../../lib/dating/schema";
 import { SectionIcon } from "./icons";
-import { Chips, Photo } from "./ui";
+import { Chips, Photo, cropStyle, type Crop } from "./ui";
 
 export type Own = {
   values: Record<string, unknown>;
@@ -16,7 +17,7 @@ export type Own = {
   reviewConfirmed: boolean;
   prompts: { q: string; a: string }[];
   fursonas: { name: string; description: string; art_links: string[] }[];
-  photos: { id: string; ext: string; caption?: string; url: string }[];
+  photos: { id: string; ext: string; caption?: string; url: string; crop?: Crop | null }[];
   web: { accent?: string; headline?: string; paused?: boolean; pausedByStaff?: boolean; hideAge?: boolean; showOnline?: boolean };
   strength: { score: number; missing: { points: number; label: string; tip: string }[] };
   createdOn: string;
@@ -146,11 +147,103 @@ async function shrink(file: File): Promise<Blob> {
   }
 }
 
+/** Frame a photo: drag to move, zoom with the slider, the buttons or the mouse wheel. Saves only
+ *  the framing (the photo file itself is untouched), so it can be changed any time. */
+function CropEditor({ url, crop, onSave, onClose }: { url: string; crop: Crop | null | undefined; onSave: (c: Crop) => Promise<void>; onClose: () => void }) {
+  const [c, setC] = useState<Crop>(crop ?? { x: 50, y: 50, z: 1 });
+  const [busy, setBusy] = useState(false);
+  const frame = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ px: number; py: number; x: number; y: number } | null>(null);
+  const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+  const zoom = (dz: number) => setC((o) => ({ ...o, z: clamp(Math.round((o.z + dz) * 20) / 20, 1, 3) }));
+  useEffect(() => {
+    const el = frame.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      zoom(e.deltaY < 0 ? 0.1 : -0.1);
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  // Rendered on <body>: inside a blurred card, "position: fixed" would be trapped in that card
+  return createPortal(
+    <div className="dt-modal-backdrop" onClick={onClose}>
+      <div className="dt-modal dt-crop" role="dialog" aria-modal="true" aria-label="Adjust photo" onClick={(e) => e.stopPropagation()}>
+        <h3>Adjust photo</h3>
+        <p className="dt-muted">Drag to move it, zoom to fill the frame. This is how it shows on cards and your profile.</p>
+        <div
+          ref={frame}
+          className="dt-crop-frame"
+          onPointerDown={(e) => {
+            (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+            drag.current = { px: e.clientX, py: e.clientY, x: c.x, y: c.y };
+          }}
+          onPointerMove={(e) => {
+            const d = drag.current;
+            const el = frame.current;
+            if (!d || !el) return;
+            // Dragging right shows more of the left side: move the focus point the other way
+            const k = 100 / c.z;
+            setC((o) => ({ ...o, x: clamp(d.x - ((e.clientX - d.px) / el.clientWidth) * k, 0, 100), y: clamp(d.y - ((e.clientY - d.py) / el.clientHeight) * k, 0, 100) }));
+          }}
+          onPointerUp={() => (drag.current = null)}
+          onPointerCancel={() => (drag.current = null)}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={url} alt="" draggable={false} style={cropStyle(c)} />
+          <span className="dt-crop-hint">
+            <Move size={14} aria-hidden="true" /> Drag to move
+          </span>
+        </div>
+        <div className="dt-crop-zoom">
+          <button type="button" className="dt-btn dt-btn--ghost dt-btn--icon dt-btn--small" onClick={() => zoom(-0.1)} aria-label="Zoom out">
+            <Minus size={14} />
+          </button>
+          <input type="range" min={1} max={3} step={0.05} value={c.z} onChange={(e) => setC({ ...c, z: Number(e.target.value) })} aria-label="Zoom" />
+          <button type="button" className="dt-btn dt-btn--ghost dt-btn--icon dt-btn--small" onClick={() => zoom(0.1)} aria-label="Zoom in">
+            <Plus size={14} />
+          </button>
+          <span className="dt-muted">{Math.round(c.z * 100)}%</span>
+        </div>
+        <div className="dt-row">
+          <button
+            type="button"
+            className="dt-btn"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              await onSave(c);
+              setBusy(false);
+              onClose();
+            }}
+          >
+            {busy ? <Loader2 size={14} className="dt-spin" aria-hidden="true" /> : null} Save
+          </button>
+          <button type="button" className="dt-btn dt-btn--ghost" onClick={() => setC({ x: 50, y: 50, z: 1 })}>
+            <RotateCcw size={14} aria-hidden="true" /> Reset
+          </button>
+          <button type="button" className="dt-btn dt-btn--ghost" onClick={onClose}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 export function PhotoManager({ photos, onChange }: { photos: Own["photos"]; onChange: (own: Own) => void }) {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [captions, setCaptions] = useState<Record<string, string>>({});
+  const [adjusting, setAdjusting] = useState<string | null>(null);
 
   const upload = async (files: FileList | null) => {
     if (!files?.length) return;
@@ -169,13 +262,13 @@ export function PhotoManager({ photos, onChange }: { photos: Own["photos"]; onCh
     setBusy(false);
     if (input.current) input.current.value = "";
   };
-  const save = async (next: { id: string; caption?: string }[]) => {
+  const save = async (next: { id: string; caption?: string; crop?: Crop | null }[]) => {
     const res = await fetch("/api/dating/me", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ photos: next }) }).then((r) => r.json()).catch(() => null);
     if (res?.ok) onChange(res.profile);
     else setErr(res?.error ?? "Couldn't save.");
   };
   const move = (i: number, to: number) => {
-    const next = photos.map((p) => ({ id: p.id, caption: p.caption }));
+    const next = photos.map((p) => ({ id: p.id, caption: p.caption, crop: p.crop ?? null }));
     const [x] = next.splice(i, 1);
     next.splice(to, 0, x);
     void save(next);
@@ -191,9 +284,12 @@ export function PhotoManager({ photos, onChange }: { photos: Own["photos"]; onCh
         {photos.map((p, i) => (
           <figure key={p.id} className={i === 0 ? "is-main" : undefined}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={p.url} alt="" />
+            <img src={p.url} alt="" style={cropStyle(p.crop)} />
             {i === 0 ? <span className="dt-photo-main">Main</span> : null}
             <div className="dt-photo-tools">
+              <button type="button" onClick={() => setAdjusting(p.id)} title="Adjust (move and zoom)" aria-label="Adjust photo">
+                <Move size={14} />
+              </button>
               {i > 0 ? (
                 <button type="button" onClick={() => move(i, 0)} title="Make main photo" aria-label="Make main photo">
                   <Star size={14} />
@@ -221,7 +317,7 @@ export function PhotoManager({ photos, onChange }: { photos: Own["photos"]; onCh
               onChange={(e) => setCaptions((c) => ({ ...c, [p.id]: e.target.value }))}
               onBlur={() => {
                 if ((captions[p.id] ?? p.caption ?? "") === (p.caption ?? "")) return;
-                void save(photos.map((x) => ({ id: x.id, caption: x.id === p.id ? captions[p.id] : x.caption })));
+                void save(photos.map((x) => ({ id: x.id, caption: x.id === p.id ? captions[p.id] : x.caption, crop: x.crop ?? null })));
               }}
             />
           </figure>
@@ -235,6 +331,14 @@ export function PhotoManager({ photos, onChange }: { photos: Own["photos"]; onCh
       </div>
       <input ref={input} type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden onChange={(e) => void upload(e.target.files)} />
       {err ? <p className="dt-error">{err}</p> : null}
+      {adjusting ? (
+        <CropEditor
+          url={photos.find((p) => p.id === adjusting)?.url ?? ""}
+          crop={photos.find((p) => p.id === adjusting)?.crop}
+          onClose={() => setAdjusting(null)}
+          onSave={(crop) => save(photos.map((x) => ({ id: x.id, caption: x.caption, crop: x.id === adjusting ? crop : x.crop ?? null })))}
+        />
+      ) : null}
       <p className="dt-fine">
         Up to {MAX_PHOTOS} photos or pieces of art, SFW only (no nudity or explicit content). Location data is removed automatically. Only verified 18+ members can see them, and anyone can report a photo.
       </p>
