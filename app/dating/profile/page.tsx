@@ -3,7 +3,7 @@
 import { Eye, Loader2, Save, Sparkles, Trash2, TriangleAlert, Wand2 } from "lucide-react";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { SECTIONS } from "../../../lib/dating/schema";
-import { FieldInput, FursonaEditor, LooksEditor, PhotoManager, PromptsEditor, changed, saveMe, type Own } from "../profile-form";
+import { FieldInput, FursonaEditor, LooksEditor, PhotoManager, PromptsEditor, changed, clearDraft, readDraft, saveMe, writeDraft, type Own } from "../profile-form";
 import { Empty, useApi } from "../ui";
 
 type Me = { booster: boolean; profile: Own | null; view: { id: string } | null };
@@ -38,8 +38,19 @@ export default function EditProfile() {
     setSonas(p.fursonas);
     setWeb(p.web);
   };
+  const [restored, setRestored] = useState(false);
   useEffect(() => {
-    if (data?.profile) load(data.profile);
+    if (!data?.profile) return;
+    load(data.profile);
+    // Unsaved edits from before a refresh (or a site update) come back
+    const draft = readDraft<{ values: Record<string, unknown>; prompts: Own["prompts"]; sonas: Own["fursonas"]; web: Own["web"] }>("editor");
+    if (draft) {
+      setValues({ ...data.profile.values, ...draft.values });
+      setPrompts(draft.prompts ?? data.profile.prompts);
+      setSonas(draft.sonas ?? data.profile.fursonas);
+      setWeb(draft.web ?? data.profile.web);
+      setRestored(true);
+    }
   }, [data]);
 
   const diff = useMemo(() => (own ? changed(own.values, values) : {}), [own, values]);
@@ -47,6 +58,13 @@ export default function EditProfile() {
   const sonasDirty = own ? JSON.stringify(own.fursonas) !== JSON.stringify(sonas) : false;
   const webDirty = own ? JSON.stringify({ accent: own.web.accent, headline: own.web.headline ?? "", paused: !!own.web.paused, hideAge: !!own.web.hideAge, showOnline: own.web.showOnline !== false }) !== JSON.stringify({ accent: web.accent, headline: web.headline ?? "", paused: !!web.paused, hideAge: !!web.hideAge, showOnline: web.showOnline !== false }) : false;
   const dirty = Object.keys(diff).length > 0 || promptsDirty || sonasDirty || webDirty;
+
+  // Keep unsaved edits as a draft; drop it once everything is saved or discarded
+  useEffect(() => {
+    if (!own) return;
+    if (dirty) writeDraft("editor", { values, prompts, sonas, web });
+    else clearDraft("editor");
+  }, [own, dirty, values, prompts, sonas, web]);
 
   // Warn before leaving with unsaved changes
   useEffect(() => {
@@ -124,6 +142,22 @@ export default function EditProfile() {
       </aside>
 
       <div className="dt-editor-main">
+        {restored && dirty ? (
+          <div className="dt-banner dt-banner--soft">
+            <Save size={16} aria-hidden="true" />
+            <span>We brought back changes you hadn&apos;t saved yet. Save them, or discard to go back to your saved profile.</span>
+            <button
+              type="button"
+              className="dt-btn dt-btn--ghost dt-btn--small"
+              onClick={() => {
+                load(own);
+                setRestored(false);
+              }}
+            >
+              Discard
+            </button>
+          </div>
+        ) : null}
         {!own.reviewConfirmed ? (
           <a className="dt-banner" href="/dating/setup?mode=review">
             <Sparkles size={18} aria-hidden="true" />

@@ -404,3 +404,28 @@ export async function saveMe(body: Record<string, unknown>): Promise<{ ok: boole
     return { ok: false, error: "Couldn't reach the site." };
   }
 }
+
+// ---------- Drafts ----------
+// Unsaved answers are kept in this tab's session storage, so a refresh, a crashed tab or a site
+// update doesn't lose what someone was typing. Session storage (not local) so nothing personal is
+// left behind on a shared computer once the tab is closed.
+export function readDraft<T>(key: string): T | null {
+  try {
+    const raw = sessionStorage.getItem(`kk_dating_draft:${key}`);
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
+  }
+}
+export function writeDraft(key: string, value: unknown) {
+  try {
+    sessionStorage.setItem(`kk_dating_draft:${key}`, JSON.stringify({ ...(value as object), savedAt: Date.now() }));
+  } catch {
+    // storage full or blocked: drafts are a nicety, not required
+  }
+}
+export function clearDraft(key: string) {
+  try {
+    sessionStorage.removeItem(`kk_dating_draft:${key}`);
+  } catch {}
+}
