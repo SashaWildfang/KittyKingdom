@@ -1,6 +1,6 @@
 "use client";
 
-import { BadgeCheck, ShieldCheck, ShieldOff, Unlink, KeyRound, Trash2, TriangleAlert, Laptop, LogOut, Mail, MailCheck, MessageCircle, Search, Smartphone, Tablet, X, type LucideIcon } from "lucide-react";
+import { BadgeCheck, BellRing, ShieldCheck, ShieldOff, Unlink, KeyRound, Trash2, TriangleAlert, Laptop, LogOut, Mail, MailCheck, MessageCircle, Search, Smartphone, Tablet, X, type LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { StackedBars } from "./admin-charts";
@@ -55,6 +55,8 @@ type Account = AccountRow & {
   applicationStatus: string | null;
   isStaff?: boolean;
   twoFactor?: boolean;
+  registrationPending?: boolean;
+  reminders?: { verify: { at: string | null; by: string; count: number } | null; link: { at: string | null; by: string; count: number } | null };
   audit: { at: string | null; action: string; adminName: string; adminDiscordId: string }[];
 };
 
@@ -588,6 +590,30 @@ function AccountDrawer({ id, onClose, onChanged, onOpenMember }: { id: string; o
       danger: true,
     },
     { key: "sign-out", label: "Sign out everywhere", icon: LogOut, help: "Ends every website session on every device.", confirm: "Sign this account out on every device?", button: "Sign out" },
+    ...(account && !account.emailVerified && !account.registrationPending
+      ? [
+          {
+            key: "remind-verify",
+            label: "Remind them to confirm their email",
+            icon: BellRing,
+            help: `Emails a fresh confirmation link with a friendly nudge.${account.reminders?.verify?.at ? ` Last sent ${timeAgo(account.reminders.verify.at)} by ${account.reminders.verify.by} (${account.reminders.verify.count}× so far).` : ""} One per day at most.`,
+            confirm: `Email ${account.email} a reminder to confirm their email?`,
+            button: "Send reminder",
+          },
+        ]
+      : []),
+    ...(account && !account.discordId
+      ? [
+          {
+            key: "remind-link",
+            label: "Remind them to link Discord",
+            icon: BellRing,
+            help: `Emails step-by-step instructions for linking Discord (My Account → Get code → /link in the server).${account.reminders?.link?.at ? ` Last sent ${timeAgo(account.reminders.link.at)} by ${account.reminders.link.by} (${account.reminders.link.count}× so far).` : ""} One per day at most.`,
+            confirm: `Email ${account.email} how to link their Discord?`,
+            button: "Send how-to",
+          },
+        ]
+      : []),
     ...(account && !account.emailVerified
       ? [{ key: "verify-email", label: "Mark email verified", icon: MailCheck, help: "Lets them log in without clicking the verification email.", confirm: "Mark this email as verified?", button: "Mark verified" }]
       : []),
