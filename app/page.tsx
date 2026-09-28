@@ -4,11 +4,14 @@ import { LeafEmote } from "./ui-icons";
 import { getCurrentUser, canViewStaffPage } from "../lib/auth";
 import { getDiscordInviteSummary } from "../lib/discord";
 import { publishedNews } from "../lib/news";
+import { memberGrowth } from "../lib/member-directory";
+import { userTimeZone, zoneOffsetMinutes } from "../lib/timezone";
 import { newsExcerpt } from "../lib/news-format";
 import { LEAVE_REVIEW_URL, REVIEWS_URL, getReviews, type Review } from "../lib/reviews";
 import { BrandIcon } from "./brand-icon";
 import { Embers, FallEffects, FallingLeaves, LeafSvg, TiltCard } from "./fall-effects";
 import { HomeShowcase } from "./home-showcase";
+import { HomeNewsNotice } from "./home-news-notice";
 import { SiteNav } from "./site-nav";
 
 const DISCORD_INVITE = "https://discord.com/invite/M9XKHFdYQV";
@@ -182,15 +185,26 @@ function Hills() {
 export const dynamic = "force-dynamic";
 
 export default async function Home({ searchParams }: { searchParams?: { register?: string; account?: string } }) {
-  const [reviews, discord, user, latestNews] = await Promise.all([getReviews(), getDiscordInviteSummary(), getCurrentUser(), publishedNews({ limit: 4 })]);
+  // Midnight today in the visitor's time zone, for "joined today"
+  const tz = userTimeZone();
+  const offsetMs = zoneOffsetMinutes(tz) * 60_000;
+  const local = new Date(Date.now() + offsetMs);
+  const startOfToday = new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate()) - offsetMs);
+  const [reviews, discord, user, latestNews, growth] = await Promise.all([
+    getReviews(),
+    getDiscordInviteSummary(),
+    getCurrentUser(),
+    publishedNews({ limit: 6 }),
+    memberGrowth(startOfToday).catch(() => null),
+  ]);
   // Newest three posts written by admins in the Admin tab
   // Show up to three; "All news" only when there's more than that to see
-  const moreNews = latestNews.length > 3;
+  const moreNews = latestNews.length > 0;
   const shownNews = latestNews.slice(0, 3);
   const news = shownNews.map((p) => {
     // A lone post gets the whole row, so it can show more of its text
     const { text, cut } = newsExcerpt(p.body, shownNews.length === 1 ? 420 : shownNews.length === 2 ? 240 : 150);
-    return { id: p.id, tag: p.tag, tagColor: p.tagColor, title: p.title, text, cut };
+    return { id: p.id, tag: p.tag, tagColor: p.tagColor, title: p.title, text, cut, isNew: Date.now() - new Date(p.publishedAt).getTime() < 7 * 86_400_000 };
   });
   const status = searchParams?.register ?? searchParams?.account;
   const signedIn = Boolean(user);
@@ -269,6 +283,25 @@ export default async function Home({ searchParams }: { searchParams?: { register
               <span>on DISBOARD</span>
             </li>
           </ul>
+          {growth ? (
+            <ul className="home-stats home-stats--growth" aria-label="Member growth">
+              <li>
+                <strong>{growth.today.toLocaleString()}</strong>
+                <span>joined today</span>
+              </li>
+              <li>
+                <strong>{growth.perDay >= 10 ? Math.round(growth.perDay) : growth.perDay.toFixed(1)}</strong>
+                <span>avg joins / day</span>
+              </li>
+              <li>
+                <strong className={growth.growth >= 0 ? "is-up" : "is-down"}>
+                  {growth.growth >= 0 ? "+" : ""}
+                  {(growth.growth * 100).toFixed(1)}%
+                </strong>
+                <span>growth (30 days)</span>
+              </li>
+            </ul>
+          ) : null}
         </div>
 
         <TiltCard className="home-art">
@@ -311,10 +344,12 @@ export default async function Home({ searchParams }: { searchParams?: { register
             </a>
           ) : null}
         </div>
+        <HomeNewsNotice posts={latestNews.map((p) => ({ id: p.id, title: p.title, publishedAt: p.publishedAt })).sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))} />
         <div className={`home-news home-news--${news.length}`}>
           {news.map((item, index) => (
-            <a className="home-news-card" data-spotlight key={item.id} href={`/news#${item.id}`}>
+            <a className="home-news-card" data-spotlight key={item.id} href={`/news/${item.id}`}>
               <span className="home-news-num">0{index + 1}</span>
+              {item.isNew ? <span className="home-news-new">New</span> : null}
               <span className="home-news-tag" style={{ "--tag": item.tagColor } as CSSProperties}>
                 {item.tag}
               </span>
