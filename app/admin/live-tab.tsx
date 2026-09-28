@@ -26,6 +26,8 @@ import {
   CheckCheck,
   Play as PlayIcon,
   MoreHorizontal,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChannelTile, LiveAttachment, LiveEmbed, LiveMessage, LivePrefs, LiveSnapshot } from "../../lib/live-chat";
@@ -661,6 +663,8 @@ export function LiveTab({ onOpenMember, onUnread }: { onOpenMember: (id: string)
   const [toast, setToast] = useState<{ text: string; tone: "ok" | "error" } | null>(null);
   const [pulses, setPulses] = useState<Record<string, number>>({});
   const [atBottom, setAtBottom] = useState(true);
+  // The message feed can take over the whole screen
+  const [expanded, setExpanded] = useState(false);
   const [unseen, setUnseen] = useState(0);
   const [known, setKnown] = useState<{ people: People; mentions: Mentions; staff: Staff }>({ people: {}, mentions: { channels: {}, roles: {} }, staff: {} });
 
@@ -961,6 +965,21 @@ export function LiveTab({ onOpenMember, onUnread }: { onOpenMember: (id: string)
     el.classList.add("is-flash");
   }
 
+  useEffect(() => {
+    if (!expanded) return;
+    stickUntil.current = Date.now() + 800;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setExpanded(false);
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.body.classList.add("live-fullscreen");
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = overflow;
+      document.body.classList.remove("live-fullscreen");
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [expanded]);
+
   // With auto-follow, messages you'd already read in this channel wait behind "Show earlier"
   const cutActive = Boolean(readCut && !showEarlier && focus.length === 1 && readCut.channel === focus[0] && readCut.at);
   const unreadFrom = cutActive ? shown.findIndex((m) => m.ts > readCut!.at!) : 0;
@@ -1124,7 +1143,7 @@ export function LiveTab({ onOpenMember, onUnread }: { onOpenMember: (id: string)
           </div>
         </aside>
 
-        <section className="live-feed-wrap" aria-label="Live messages">
+        <section className={`live-feed-wrap${expanded ? " is-expanded" : ""}`} aria-label="Live messages">
           <div className="live-feed-bar">
             <label className="adm-search">
               <Search size={15} aria-hidden="true" />
@@ -1144,6 +1163,16 @@ export function LiveTab({ onOpenMember, onUnread }: { onOpenMember: (id: string)
             </button>
             <button type="button" className="adm-btn adm-btn--ghost adm-btn--small" onClick={() => void clearAll()} title="Clear the feed and mark every channel as read">
               <CheckCheck size={14} aria-hidden="true" /> Clear
+            </button>
+            <button
+              type="button"
+              className="adm-btn adm-btn--ghost adm-btn--small live-expand"
+              onClick={() => setExpanded((v) => !v)}
+              title={expanded ? "Shrink back (Esc)" : "Expand to full screen"}
+              aria-label={expanded ? "Shrink back" : "Expand to full screen"}
+              aria-pressed={expanded}
+            >
+              {expanded ? <Minimize2 size={15} aria-hidden="true" /> : <Maximize2 size={15} aria-hidden="true" />}
             </button>
           </div>
           {focus.length ? (
