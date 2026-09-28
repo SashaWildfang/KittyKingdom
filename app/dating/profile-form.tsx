@@ -4,9 +4,9 @@
 // bot's schema (lib/dating/schema-data.ts), so adding a field there makes it appear here.
 
 import { ArrowLeft, ArrowRight, ImagePlus, Loader2, Plus, Star, Trash2, TriangleAlert, X } from "lucide-react";
-import { useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { ACCENTS, FIELDS, MAX_FURSONAS, MAX_PHOTOS, MAX_PROMPTS, PROMPTS } from "../../lib/dating/schema";
-import { Chips } from "./ui";
+import { Chips, Photo } from "./ui";
 
 export type Own = {
   values: Record<string, unknown>;
@@ -19,7 +19,34 @@ export type Own = {
   web: { accent?: string; headline?: string; paused?: boolean; pausedByStaff?: boolean; hideAge?: boolean; showOnline?: boolean };
   strength: { score: number; missing: { points: number; label: string; tip: string }[] };
   createdOn: string;
+  ageLocked?: boolean;
 };
+
+export type Birth = { age: number | null; fromBirthday: boolean; source: "application" | "account" | null } | null;
+
+/** Age isn't typed: it's read from their birthday and updates by itself. Only someone with no age on
+ *  file anywhere gets a box to enter it (once). */
+export function AgeField({ value, locked, birth, onChange }: { value: unknown; locked: boolean; birth: Birth; onChange: (v: unknown) => void }) {
+  const age = birth?.age ?? (typeof value === "number" ? value : null);
+  if (locked || birth?.age) {
+    return (
+      <div className="dt-field">
+        <label>Age</label>
+        <p className="dt-age">
+          <b>{age ?? "—"}</b>
+          <small className="dt-muted">
+            {birth?.fromBirthday
+              ? `From the birthday on your ${birth.source === "account" ? "account" : "join application"}. It updates on its own every birthday.`
+              : birth?.age
+                ? "From your join application."
+                : "Set when you made your profile. Ask staff in a ticket if it's wrong."}
+          </small>
+        </p>
+      </div>
+    );
+  }
+  return <FieldInput k="age" value={value} onChange={onChange} />;
+}
 
 const HELP: Record<string, string> = {
   bio: "A few sentences about your personality, what you're like to be around and what you want. Our AI reads this to find people like you.",
@@ -428,4 +455,119 @@ export function clearDraft(key: string) {
   try {
     sessionStorage.removeItem(`kk_dating_draft:${key}`);
   } catch {}
+}
+
+// ---------- Partners ----------
+type PartnerRow = { id: string; status: "partners" | "sent" | "received"; name: string; username: string | null; avatar: string | null; hasProfile: boolean };
+type Found = { id: string; name: string; username: string; avatar: string | null };
+
+/** Link the people you're with. They confirm before it shows on either profile. */
+export function PartnerManager() {
+  const [rows, setRows] = useState<PartnerRow[] | null>(null);
+  const [max, setMax] = useState(8);
+  const [q, setQ] = useState("");
+  const [found, setFound] = useState<Found[]>([]);
+  const [err, setErr] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const load = async () => {
+    const r = await fetch("/api/dating/partners", { cache: "no-store" }).then((x) => x.json()).catch(() => null);
+    if (r?.ok) {
+      setRows(r.partners);
+      setMax(r.max);
+    }
+  };
+  useEffect(() => {
+    void load();
+  }, []);
+  useEffect(() => {
+    if (q.trim().length < 2) {
+      setFound([]);
+      return;
+    }
+    const t = window.setTimeout(async () => {
+      const r = await fetch(`/api/dating/partners/search?q=${encodeURIComponent(q.trim())}`).then((x) => x.json()).catch(() => null);
+      setFound(r?.ok ? r.results : []);
+    }, 300);
+    return () => window.clearTimeout(t);
+  }, [q]);
+
+  const act = async (action: string, target: string, done?: string) => {
+    setBusy(true);
+    setErr(null);
+    const r = await fetch("/api/dating/partners", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, target }) }).then((x) => x.json()).catch(() => null);
+    setBusy(false);
+    if (!r?.ok) return setErr(r?.error ?? "That didn't work.");
+    setNote(done ?? null);
+    setQ("");
+    setFound([]);
+    await load();
+  };
+  const known = new Set((rows ?? []).map((r) => r.id));
+
+  return (
+    <div className="dt-partners-edit">
+      <p className="dt-help">
+        Search for anyone in the server. They get a request to confirm, and it only shows on your profiles once they do. If they haven&apos;t joined the website yet, it waits for them.
+      </p>
+      {rows === null ? (
+        <div className="dt-loading" style={{ height: 60 }} aria-busy="true" />
+      ) : rows.length ? (
+        <div className="dt-partner-list">
+          {rows.map((r) => (
+            <div key={r.id} className={`dt-partner-row is-${r.status}`}>
+              <Photo src={r.avatar} name={r.name} accent="#e0487a" className="dt-avatar dt-avatar--sm" />
+              <span>
+                <b>{r.hasProfile ? <a href={`/dating/u/${r.id}`}>{r.name}</a> : r.name}</b>
+                <small className="dt-muted">
+                  {r.status === "partners" ? "💞 Linked" : r.status === "sent" ? `Waiting for ${r.name} to confirm` : `${r.name} says you're partners`}
+                  {r.username ? ` · @${r.username}` : ""}
+                </small>
+              </span>
+              {r.status === "received" ? (
+                <>
+                  <button type="button" className="dt-btn dt-btn--small" disabled={busy} onClick={() => void act("accept", r.id, `You and ${r.name} are linked!`)}>
+                    Confirm
+                  </button>
+                  <button type="button" className="dt-btn dt-btn--small dt-btn--ghost" disabled={busy} onClick={() => void act("decline", r.id)}>
+                    Decline
+                  </button>
+                </>
+              ) : (
+                <button type="button" className="dt-btn dt-btn--small dt-btn--ghost" disabled={busy} onClick={() => void act("remove", r.id, r.status === "sent" ? "Request cancelled." : `Unlinked from ${r.name}.`)}>
+                  {r.status === "sent" ? "Cancel" : "Unlink"}
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="dt-muted">No partners linked.</p>
+      )}
+      {(rows?.length ?? 0) < max ? (
+        <div className="dt-field">
+          <input className="dt-input" placeholder="Search server members by name…" value={q} onChange={(e) => setQ(e.target.value)} maxLength={32} aria-label="Search for a partner" />
+          {found.length ? (
+            <div className="dt-partner-results">
+              {found.map((m) => (
+                <button key={m.id} type="button" disabled={busy || known.has(m.id)} onClick={() => void act("request", m.id, `Sent! ${m.name} needs to confirm.`)}>
+                  <Photo src={m.avatar} name={m.name} accent="#e0487a" className="dt-avatar dt-avatar--sm" />
+                  <span>
+                    <b>{m.name}</b>
+                    <small className="dt-muted">@{m.username}</small>
+                  </span>
+                  <small className="dt-textlink">{known.has(m.id) ? "Already linked" : "Link as partner"}</small>
+                </button>
+              ))}
+            </div>
+          ) : q.trim().length >= 2 ? (
+            <p className="dt-help">No members found.</p>
+          ) : null}
+        </div>
+      ) : null}
+      {note ? <p className="dt-ok">{note}</p> : null}
+      {err ? <p className="dt-error">{err}</p> : null}
+    </div>
+  );
 }

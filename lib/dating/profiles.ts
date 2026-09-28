@@ -8,6 +8,8 @@ import { datingCols, toLong } from "./db";
 import { ACCENTS, FIELDS, accentFor, MAX_FURSONAS, MAX_PHOTOS, MAX_PROMPTS, PROMPTS, SECTIONS, cleanField, display, getList, isFilled, profileStrength, reviewFields, type ProfileDoc } from "./schema";
 import { SCHEMA_VERSION } from "./schema-data";
 import { deletePhoto, photoOwner } from "./media";
+import { applyLiveAges, birthInfo, type BirthInfo } from "./age";
+import { confirmedPartners } from "./partners";
 import { bigAvatar, cleanMentions, mentionIds } from "./text";
 
 // Social handles become links to the profile on that site (only for plain handles, never free text)
@@ -35,7 +37,9 @@ export const photoUrl = (p: Photo) => `/api/dating/media/${p.id}.${p.ext}`;
 
 export async function getProfile(discordId: string): Promise<ProfileDoc | null> {
   const { profiles } = await datingCols();
-  return (await profiles.findOne({ _id: toLong(discordId) } as never)) as ProfileDoc | null;
+  const doc = (await profiles.findOne({ _id: toLong(discordId) } as never)) as ProfileDoc | null;
+  if (doc) await applyLiveAges([doc]).catch(() => undefined);
+  return doc;
 }
 
 export type ProfilePatch = {
@@ -56,7 +60,14 @@ export async function saveProfile(discordId: string, patch: ProfilePatch): Promi
   const pull: string[] = [];
   const removedArt: string[] = [];
 
-  for (const [key, value] of Object.entries(patch.fields ?? {})) {
+  // Age isn't typed in: it comes from their birthday. Only someone with no age on file at all may enter one.
+  const fields = { ...(patch.fields ?? {}) };
+  const current = await getProfile(discordId);
+  const known = (await birthInfo([discordId]).catch(() => new Map())).get(discordId) as BirthInfo | undefined;
+  if (known?.age || isFilled(current?.age)) delete fields.age;
+  if (!current && known?.age) fields.age = known.age;
+  if (known?.age && known.age < 18) return "Dating is for members 18 and over.";
+  for (const [key, value] of Object.entries(fields)) {
     const res = cleanField(key, value);
     if (typeof res === "string") return res;
     if (res.unset) {
@@ -172,6 +183,7 @@ export type ProfileView = {
   discordName: string | null;
   avatar: string | null;
   inServer: boolean;
+  partners: { id: string; name: string; avatar: string | null; hasProfile: boolean }[];
   age: number | null;
   headline: string | null;
   accent: string;
@@ -198,6 +210,13 @@ export async function profileView(doc: ProfileDoc, opts: { viewerIsOwner?: boole
   const who = found[id] as { name?: string; username?: string | null; avatar?: string | null; inServer?: boolean } | undefined;
   const names = Object.fromEntries(Object.entries(found).map(([k, v]) => [k, v.username ?? v.name]));
   const clean = (t: string) => cleanMentions(t, names);
+  // Confirmed partners (with their dating name if they have a profile, else their Discord name)
+  const partnerIds = await confirmedPartners(id).catch(() => [] as string[]);
+  const [partnerWho, partnerDocs] = partnerIds.length
+    ? await Promise.all([people(partnerIds).catch(() => ({}) as typeof found), datingCols().then((c) => c.profiles.find({ _id: { $in: partnerIds.map(toLong) } } as never, { projection: { _id: 1, name: 1 } }).toArray())])
+    : [{} as typeof found, []];
+  const partnerNames = new Map(partnerDocs.map((p) => [String(p._id), String(p.name ?? "")]));
+  const partners = partnerIds.map((pid) => ({ id: pid, name: partnerNames.get(pid) || partnerWho[pid]?.name || "Member", avatar: bigAvatar(partnerWho[pid]?.avatar, 128), hasProfile: partnerNames.has(pid) }));
   const web = (doc.web ?? {}) as WebPrefs;
   const photos = ((doc.photos ?? []) as Photo[]).map((p) => ({ url: photoUrl(p), caption: p.caption ?? null }));
   const age = typeof doc.age === "number" ? doc.age : Number(doc.age) || null;
@@ -229,6 +248,7 @@ export async function profileView(doc: ProfileDoc, opts: { viewerIsOwner?: boole
     discordName: who?.username ?? null,
     avatar: bigAvatar(who?.avatar, 1024),
     inServer: who?.inServer ?? true,
+    partners,
     age: web.hideAge && !opts.viewerIsOwner ? null : age,
     headline: web.headline || null,
     accent: accentFor(id, web.accent),
@@ -275,6 +295,8 @@ export function ownProfileData(doc: ProfileDoc | null) {
     web: { ...((doc.web ?? {}) as WebPrefs), accent: accentFor(String(doc._id), ((doc.web ?? {}) as WebPrefs).accent) },
     strength: profileStrength(doc),
     createdOn: String(doc.created_on ?? "discord"),
+    // Age comes from their birthday; it can only be typed when nothing is on file
+    ageLocked: isFilled(doc.age),
   };
 }
 

@@ -24195,3 +24195,6 @@ body.live-fullscreen .view-as-bar {
 .nb-foot:hover {
   color: var(--text);
 }
+.nb-icon--partner {
+  background: #d6409f;
+}

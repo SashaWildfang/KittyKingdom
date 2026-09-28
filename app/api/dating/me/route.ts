@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { invalidatePool } from "../../../../lib/dating/pool";
 import { deleteProfile, getProfile, ownProfileData, profileView, saveProfile, type ProfilePatch } from "../../../../lib/dating/profiles";
 import { requireDating, sameOrigin } from "../../../../lib/dating/route-helpers";
+import { birthInfo } from "../../../../lib/dating/age";
 import { deletePhoto } from "../../../../lib/dating/media";
 import { hasOperatorKeys } from "../../../../lib/validate";
 
@@ -13,7 +14,7 @@ export async function GET() {
   if (me instanceof NextResponse) return me;
   const doc = await getProfile(me.discordId);
   return NextResponse.json(
-    { ok: true, booster: me.booster, profile: ownProfileData(doc), view: doc ? await profileView(doc, { viewerIsOwner: true }) : null },
+    { ok: true, booster: me.booster, profile: ownProfileData(doc), view: doc ? await profileView(doc, { viewerIsOwner: true }) : null, birth: (await birthInfo([me.discordId]).catch(() => new Map())).get(me.discordId) ?? null },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

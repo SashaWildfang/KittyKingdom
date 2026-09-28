@@ -7,6 +7,18 @@ import { ANY, DATING_ONLY_KEYS, EMPTY_VALUES, EVERYONE, FIELD_LIST, SECTIONS, TI
 export { ANY, EVERYONE, SECTIONS, FIELD_LIST, DATING_ONLY_KEYS, TIMEZONES };
 export type { FieldDef };
 
+// Website override: relationship status can be more than one thing (e.g. Taken + Open relationship +
+// Polyamorous). Stored as a list (relationship_statuses) plus the joined text the bot shows.
+const REL = FIELD_LIST.find((f) => f.key === "relationship_status");
+if (REL && REL.kind !== "multi") {
+  Object.assign(REL, {
+    kind: "multi",
+    listKey: "relationship_statuses",
+    prompt: "What's your relationship status? (pick all that apply)",
+    options: ["Single", "Taken", "Open relationship", "Polyamorous", "Married", "Engaged", "It's complicated"].map((value) => ({ value, emoji: null })),
+  });
+}
+
 export const FIELDS: Record<string, FieldDef> = Object.fromEntries(FIELD_LIST.map((f) => [f.key, f]));
 const EMPTY = new Set(EMPTY_VALUES);
 const TZ_OFFSET = new Map(TIMEZONES);

@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, Gem, Heart, Lock } from "lucide-react";
+import { Eye, Heart } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Empty, ProfileTile, ago, post, useApi, type Card } from "../ui";
 
@@ -95,23 +95,7 @@ export default function Likes() {
                   }
                 />
               ))}
-              {Array.from({ length: Math.min(data.hidden, 6) }).map((_, n) => (
-                <div key={n} className="dt-tile dt-tile--locked" aria-hidden="true">
-                  <Lock size={22} />
-                </div>
-              ))}
             </div>
-            {data.hidden ? (
-              <div className="dt-upsell">
-                <Gem size={20} aria-hidden="true" />
-                <div>
-                  <b>
-                    {data.hidden} more {data.hidden === 1 ? "person likes" : "people like"} you
-                  </b>
-                  <p className="dt-muted">Server boosters see everyone who liked them and get unlimited likes. Boost KittyKingdom on Discord to unlock.</p>
-                </div>
-              </div>
-            ) : null}
           </>
         ) : (
           <Empty icon={<Heart size={28} />} title="No likes yet">

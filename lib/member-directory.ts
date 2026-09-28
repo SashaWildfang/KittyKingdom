@@ -19,6 +19,7 @@ export type DirectoryEntry = {
   nick?: string | null;
   avatar: string | null;
   inServer: boolean;
+  boosting?: boolean;
   updatedAt: Date;
   /** When they joined the server (from Discord), and when we noticed they left */
   joinedAt?: Date | null;
@@ -26,7 +27,7 @@ export type DirectoryEntry = {
 };
 
 type DiscordUser = { id: string; username: string; global_name?: string | null; avatar?: string | null; bot?: boolean };
-type DiscordMember = { nick?: string | null; avatar?: string | null; joined_at?: string | null; user: DiscordUser };
+type DiscordMember = { nick?: string | null; avatar?: string | null; joined_at?: string | null; premium_since?: string | null; user: DiscordUser };
 
 async function directory() {
   const client = await getMongoClient();
@@ -47,6 +48,8 @@ function entryFromMember(member: DiscordMember, now: Date): DirectoryEntry {
     nick: member.nick ?? null,
     avatar: avatarUrl(member.user),
     inServer: true,
+    // Boosting the server (Discord sets premium_since while they boost)
+    boosting: Boolean(member.premium_since),
     updatedAt: now,
     joinedAt: member.joined_at ? new Date(member.joined_at) : null,
     leftAt: null,

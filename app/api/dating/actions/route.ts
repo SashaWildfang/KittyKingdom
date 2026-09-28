@@ -26,7 +26,6 @@ export async function POST(request: Request) {
   switch (action) {
     case "like": {
       const r = await like(me.discordId, target, me.booster, myName);
-      if (r.status === "limit") return NextResponse.json({ ok: false, error: "You've used your 3 likes for today. Boost the server for unlimited likes!", left: 0 }, { status: 429 });
       if (r.status === "blocked") return NextResponse.json({ ok: false, error: "You can't like this profile." }, { status: 400 });
       invalidatePool();
       return NextResponse.json({ ok: true, mutual: r.mutual, left: r.left });
