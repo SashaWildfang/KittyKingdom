@@ -10,6 +10,8 @@ import { Long, type Document } from "mongodb";
 import { people, type Person } from "./admin-people";
 import { getGuildChannelsRaw, getGuildRoles, getMemberProfile, guildId } from "./discord-member";
 import { inServerIds } from "./member-directory";
+import { TOPICS } from "./topics";
+import { voiceHistory, type VoiceHistory } from "./voice-history";
 import { getBotCollection } from "./mongodb";
 import { zoneOffsetMinutes } from "./timezone";
 
@@ -203,6 +205,17 @@ export async function memberStats(discordId: string, timeZone: string) {
 
   // ---------- Activity ----------
   const a = activity ?? {};
+  // Voice history from the VC logs and VC reward messages (covers time before the tracker)
+  const vh: VoiceHistory | null = await voiceHistory(discordId).catch(() => null);
+  const mergeMax = (x: unknown, y: Record<string, number> | undefined) => {
+    const out: Record<string, number> = {};
+    for (const [k, v] of entries(x)) out[k] = v;
+    for (const [k, v] of Object.entries(y ?? {})) out[k] = Math.max(out[k] ?? 0, v);
+    return out;
+  };
+  const voiceBuddiesAll = mergeMax(a.voiceBuddies, vh?.buddies);
+  const voiceChannelsAll = mergeMax(a.voiceChannels, vh?.channels);
+  const voiceHoursAll = mergeMax(a.voiceHours, vh?.joinHours);
   const tracked = num(a.messages);
   const dayEntries = entries(a.days);
   const { current: currentStreak, longest: longestStreak } = streaks(dayEntries);
@@ -304,10 +317,10 @@ export async function memberStats(discordId: string, timeZone: string) {
   add(a.conversations, "conversations", 1);
   add(a.reactedBy, "reactions", 0.5);
   add(a.reactedTo, "reactions", 0.5);
-  add(a.voiceBuddies, "voiceSeconds", 1 / 600); // 10 minutes in VC together = 1 point
+  add(voiceBuddiesAll, "voiceSeconds", 1 / 600); // 10 minutes in VC together = 1 point
 
-  const topVoiceChannels = top(a.voiceChannels, 5);
-  const topBuddies = top(a.voiceBuddies, 5);
+  const topVoiceChannels = top(voiceChannelsAll, 5);
+  const topBuddies = top(voiceBuddiesAll, 5);
   const reactedBy = top(a.reactedBy, 1);
   const circleIds = Array.from(scores.entries()).sort((x, y) => y[1].score - x[1].score).slice(0, 12).map(([id]) => id);
 
@@ -328,7 +341,7 @@ export async function memberStats(discordId: string, timeZone: string) {
   put(a.mentionsFrom, "in", "mentions");
   put(a.reactedBy, "in", "reactions");
   put(a.conversations, "both", "conversations");
-  put(a.voiceBuddies, "both", "voiceSeconds");
+  put(voiceBuddiesAll, "both", "voiceSeconds");
   const everyoneIds = Array.from(dir.keys())
     .sort((x, y) => (scores.get(y)?.score ?? 0) - (scores.get(x)?.score ?? 0))
     .slice(0, 150);
@@ -341,7 +354,7 @@ export async function memberStats(discordId: string, timeZone: string) {
     reactedTo: leader(a.reactedTo),
     reactedBy: leader(a.reactedBy),
     conversations: leader(a.conversations),
-    voice: leader(a.voiceBuddies),
+    voice: leader(voiceBuddiesAll),
   };
   const giftToId = giftTo[0]?._id ? String(giftTo[0]._id) : null;
   const giftFromId = giftFrom[0]?._id ? String(giftFrom[0]._id) : null;
@@ -445,7 +458,7 @@ export async function memberStats(discordId: string, timeZone: string) {
         pagesWritten: Math.round(num(a.words) / 300),
         typingMinutes: Math.round(num(a.characters) / 200),
         voiceNightShare: (() => {
-          const vh = Array.from({ length: 24 }, (_, h) => toLocal(a.voiceHours).reduce((acc, row) => acc + row[h], 0));
+          const vh = Array.from({ length: 24 }, (_, h) => toLocal(voiceHoursAll).reduce((acc, row) => acc + row[h], 0));
           const all = vh.reduce((acc, v) => acc + v, 0);
           return all ? Math.round(((vh.slice(0, 5).reduce((acc, v) => acc + v, 0) + vh[22] + vh[23]) / all) * 100) : 0;
         })(),
@@ -453,6 +466,20 @@ export async function memberStats(discordId: string, timeZone: string) {
           const all = hours.reduce((acc, v) => acc + v, 0);
           return all >= 50 ? Math.round(((hours[3] + hours[4]) / all) * 1000) / 10 : 0;
         })(),
+      };
+    })(),
+    topics: (() => {
+      const counts = entries(a.topics).sort((x, y) => y[1] - x[1]);
+      const words = entries(a.topicWords);
+      const total = counts.reduce((acc, [, n]) => acc + n, 0);
+      return {
+        total,
+        list: counts.map(([key, n]) => {
+          const def = TOPICS[key];
+          const own = def ? words.filter(([w]) => def.words.includes(w)).sort((x, y) => y[1] - x[1]).slice(0, 12) : [];
+          return { key, label: def?.label ?? key, color: def?.color ?? "#f59b2a", icon: def?.icon ?? "Hash", n, share: total ? n / total : 0, words: own.map(([w, c]) => ({ word: w, n: c })) };
+        }),
+        topWords: [...words].sort((x, y) => y[1] - x[1]).slice(0, 40).map(([w, c]) => ({ word: w, n: c })),
       };
     })(),
     events,
@@ -579,17 +606,22 @@ export async function memberStats(discordId: string, timeZone: string) {
       };
     })(),
     voice: {
-      totalSeconds: Math.max(num(user?.vc_time_total), num(a.voiceSeconds)),
+      totalSeconds: Math.max(num(user?.vc_time_total), num(a.voiceSeconds), vh?.totalSeconds ?? 0),
       monthSeconds: num(user?.vc_time_monthly),
-      trackedSeconds: num(a.voiceSeconds),
-      withOthersSeconds: num(a.voiceWithOthersSeconds),
-      longestSession: num(a.voiceLongestSession),
-      sessions: num(a.voiceSessions),
+      trackedSeconds: Math.max(num(a.voiceSeconds), vh?.rewards.seconds ?? 0),
+      withOthersSeconds: num(a.voiceSeconds) >= (vh?.rewards.seconds ?? 0) ? num(a.voiceWithOthersSeconds) : vh?.rewards.withOthersSeconds ?? 0,
+      longestSession: Math.max(num(a.voiceLongestSession), vh?.longestSession ?? 0),
+      sessions: Math.max(num(a.voiceSessions), vh?.sessions ?? 0),
       streamSeconds: num(a.streamSeconds),
-      cameraSeconds: num(a.cameraSeconds),
-      hours: toLocal(a.voiceHours).map((row) => row.reduce((acc, v) => acc + v, 0)),
-      byHour: Array.from({ length: 24 }, (_, h) => toLocal(a.voiceHours).reduce((acc, row) => acc + row[h], 0)),
-      joins: num(a.voiceJoins),
+      cameraSeconds: Math.max(num(a.cameraSeconds), vh?.cameraSeconds ?? 0),
+      mutedSeconds: vh?.mutedSeconds ?? 0,
+      afkMoves: vh?.afkMoves ?? 0,
+      historySince: vh?.since ?? null,
+      rewards: vh?.rewards ?? null,
+      buddySessions: vh?.buddySessions ?? {},
+      hours: toLocal(voiceHoursAll).map((row) => row.reduce((acc, v) => acc + v, 0)),
+      byHour: Array.from({ length: 24 }, (_, h) => toLocal(voiceHoursAll).reduce((acc, row) => acc + row[h], 0)),
+      joins: Math.max(num(a.voiceJoins), vh?.sessions ?? 0),
       channels: topVoiceChannels.map(([id, s]) => ({ id, name: channels.get(id)?.name ?? "deleted channel", seconds: Math.round(s) })),
       buddies: topBuddies.map(([id, s]) => ({ ...person(id), seconds: Math.round(s) })),
     },

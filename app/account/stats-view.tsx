@@ -38,6 +38,9 @@ import {
   Users,
   X,
   Zap,
+  Shapes,
+  VolumeX,
+  Coins,
   BarChart3,
   CalendarRange,
   Sunrise,
@@ -57,15 +60,17 @@ import { LeafEmote } from "../ui-icons";
 import { BadgeMedal } from "./badge-medal";
 import { BadgeCollection } from "./stats-badges";
 import { FriendshipMap, PeopleExplorer } from "./stats-social";
+import { TopicMap } from "./stats-topics";
 
-const POLL_MS = 20_000;
+const POLL_MS = 7_000;
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const FULL_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-type Tab = "overview" | "social" | "activity" | "voice" | "economy" | "badges";
+type Tab = "overview" | "social" | "activity" | "topics" | "voice" | "economy" | "badges";
 const TABS: { key: Tab; label: string; icon: LucideIcon }[] = [
   { key: "overview", label: "Overview", icon: Sparkles },
   { key: "social", label: "Social", icon: Heart },
   { key: "activity", label: "Activity", icon: MessageCircle },
+  { key: "topics", label: "Topics", icon: Shapes },
   { key: "voice", label: "Voice", icon: Headphones },
   { key: "economy", label: "Leaves & store", icon: ShoppingBag },
   { key: "badges", label: "Badges", icon: Award },
@@ -1153,6 +1158,14 @@ export function StatsView({ onBack }: { onBack: () => void }) {
         </div>
       ) : null}
 
+      {tab === "topics" ? (
+        <div className="st-tab" key="topics">
+          <Card title="Your topic map" icon={<Shapes size={17} />} aside={s.topics.total ? <span className="adm-muted">{fmt(s.topics.total)} topic mentions</span> : null}>
+            <TopicMap topics={s.topics} />
+          </Card>
+        </div>
+      ) : null}
+
       {tab === "voice" ? (
         <div className="st-tab" key="voice">
           <div className="st-tiles">
@@ -1162,6 +1175,9 @@ export function StatsView({ onBack }: { onBack: () => void }) {
             <Tile icon={<Users size={18} />} label="With others" value={s.voice.trackedSeconds ? pct(s.voice.withOthersSeconds / s.voice.trackedSeconds) : "—"} sub="of your VC time" tone="rose" />
             <Tile icon={<MonitorUp size={18} />} label="Streaming" value={duration(s.voice.streamSeconds)} tone="green" />
             <Tile icon={<Camera size={18} />} label="Camera on" value={duration(s.voice.cameraSeconds)} tone="green" />
+            <Tile icon={<VolumeX size={18} />} label="Muted" value={s.voice.trackedSeconds && s.voice.mutedSeconds ? pct(Math.min(1, s.voice.mutedSeconds / Math.max(s.voice.trackedSeconds, s.voice.totalSeconds))) : "—"} sub="of your VC time, self-muted" tone="rose" />
+            <Tile icon={<Coins size={18} />} label="Earned in VC" value={s.voice.rewards ? compact(s.voice.rewards.leaves) : "—"} sub={s.voice.rewards ? `leaves · ${compact(s.voice.rewards.xp)} XP` : undefined} tone="gold" />
+            <Tile icon={<Users size={18} />} label="Sessions with others" value={s.voice.rewards ? fmt(s.voice.rewards.withOthers) : "—"} sub={s.voice.rewards ? `${fmt(s.voice.rewards.solo)} solo` : undefined} tone="blue" />
           </div>
           <div className="st-grid">
             <Card title="Favorite voice channels" icon={<Mic size={17} />}>
@@ -1187,7 +1203,10 @@ export function StatsView({ onBack }: { onBack: () => void }) {
                   {s.voice.buddies.map((b) => (
                     <li key={b.id}>
                       <Avatar src={b.avatar} name={b.name} size={30} />
-                      <span>{b.name}</span>
+                      <span>
+                        {b.name}
+                        {s.voice.buddySessions[b.id] ? <small className="st-sub"> · {fmt(s.voice.buddySessions[b.id])} sessions</small> : null}
+                      </span>
                       <small>{duration(b.seconds)}</small>
                     </li>
                   ))}
@@ -1202,6 +1221,9 @@ export function StatsView({ onBack }: { onBack: () => void }) {
               ) : (
                 <p className="st-empty">Your voice habits show up here after a few sessions.</p>
               )}
+              {s.voice.historySince ? (
+                <p className="st-note">Voice history comes from the VC logs (since {dateLabel(s.voice.historySince)}) and the VC reward messages.</p>
+              ) : null}
             </Card>
           </div>
         </div>
