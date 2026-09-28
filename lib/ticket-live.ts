@@ -4,6 +4,7 @@
 import { DISCORD_API, botToken, guildId } from "./discord-member";
 import { resolveMentions, type Mentions } from "./discord-mentions";
 import { getBotCollection } from "./mongodb";
+import { people, type Person } from "./admin-people";
 
 export type OpenTicket = {
   ticketId: number;
@@ -64,10 +65,13 @@ export async function ticketLive(ticketId: number, after: string | null) {
   if (!token) throw new Error("The bot token isn't set up on the website.");
   const q = after && /^\d{15,21}$/.test(after) ? `after=${after}&limit=100` : "limit=100";
   const res = await fetch(`${DISCORD_API}/channels/${channelId}/messages?${q}`, { headers: { Authorization: `Bot ${token}` }, cache: "no-store" });
-  if (res.status === 404) return { channelId, gone: true, messages: [] as TicketLiveMessage[], mentions: { channels: {}, roles: {} } as Mentions, guildId: await guildId() };
+  if (res.status === 404) return { channelId, gone: true, messages: [] as TicketLiveMessage[], mentions: { channels: {}, roles: {} } as Mentions, people: {} as Record<string, Person>, guildId: await guildId() };
   if (!res.ok) throw new Error("Discord didn't answer. Trying again shortly.");
   const raw = ((await res.json()) as RawMessage[]).sort((a, b) => (BigInt(a.id) < BigInt(b.id) ? -1 : 1));
-  const { mentions } = await resolveMentions(raw.flatMap((m) => [m.content, ...(m.embeds ?? []).map((e) => e.description ?? "")]));
+  const texts = raw.flatMap((m) => [m.content, ...(m.embeds ?? []).flatMap((e) => [e.description ?? "", ...(e.fields ?? []).map((f) => f.value)])]);
+  const { mentions, userIds } = await resolveMentions(texts);
+  // Names for every @person mentioned (and every author), so no raw ids show
+  const who: Record<string, Person> = await people([...userIds, ...raw.map((m) => m.author.id)]).catch(() => ({}));
   const messages: TicketLiveMessage[] = raw.map((m) => ({
     id: m.id,
     at: m.timestamp,
@@ -92,5 +96,5 @@ export async function ticketLive(ticketId: number, after: string | null) {
     })),
     reactions: (m.reactions ?? []).filter((r) => r.emoji.name).map((r) => ({ emoji: r.emoji.name!, count: r.count })),
   }));
-  return { channelId, gone: false, messages, mentions, guildId: await guildId() };
+  return { channelId, gone: false, messages, mentions, people: who, guildId: await guildId() };
 }
