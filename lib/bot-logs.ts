@@ -185,6 +185,12 @@ export async function syncLogs() {
   for (const channel of LOG_CHANNELS) await syncChannel(channel);
 }
 
+/** Same as syncLogs, for one mirrored channel (e.g. the VC logs for the stats page). */
+export async function syncLogChannel(key: LogChannelKey) {
+  const channel = LOG_CHANNELS.find((c) => c.key === key);
+  if (channel) await syncChannel(channel);
+}
+
 async function syncChannel(channel: (typeof LOG_CHANNELS)[number]) {
   const d = await db();
   const logs = d.collection("bot_logs");

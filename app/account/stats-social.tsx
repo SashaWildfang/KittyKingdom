@@ -35,32 +35,48 @@ function Face({ p, size }: { p: { name: string; avatar: string | null }; size: n
 }
 
 // ---------- Friendship map: you in the middle, closer friends nearer to you ----------
+// Closeness bands (closeness = how close someone is compared to your bestie)
 const RINGS = [
-  { at: 0.25, label: "Besties" },
-  { at: 0.5, label: "Close friends" },
-  { at: 0.75, label: "Friends" },
-  { at: 1, label: "Acquaintances" },
+  { key: "besties", label: "Besties", min: 0.7, color: "#ec4899" },
+  { key: "close", label: "Close friends", min: 0.45, color: "#f59b2a" },
+  { key: "friends", label: "Friends", min: 0.25, color: "#5865f2" },
+  { key: "acq", label: "Acquaintances", min: 0, color: "#9ca3af" },
 ];
 
-type MapNode = { p: SocialPerson; i: number; x: number; y: number; r: number; closeness: number };
+type MapNode = { p: SocialPerson; i: number; x: number; y: number; r: number; closeness: number; ring: number };
 
-/** Places people by closeness (score), spread around the center, then nudges overlaps apart. */
+const MAP_INNER = 70;
+const ringBounds = (ring: number, maxR: number) => {
+  const width = (maxR - MAP_INNER) / RINGS.length;
+  return [MAP_INNER + ring * width, MAP_INNER + (ring + 1) * width] as const;
+};
+
+/** Puts each person in their closeness band, spread evenly around it, and nudges overlaps apart. */
 function layout(people: SocialPerson[], W: number, H: number): MapNode[] {
   const cx = W / 2;
   const cy = H / 2;
-  const maxR = Math.min(W, H) / 2 - 46;
-  const minR = 78;
+  const maxR = Math.min(W, H) / 2 - 30;
+  const xStretch = 1.3;
   const top = Math.max(1, people[0]?.score ?? 1);
-  const golden = Math.PI * (3 - Math.sqrt(5));
-  const nodes: MapNode[] = people.map((p, i) => {
+  const withRing = people.map((p, i) => {
     const closeness = Math.sqrt(Math.max(0, p.score) / top);
-    const dist = minR + (1 - closeness) * (maxR - minR);
-    const angle = i * golden - Math.PI / 2;
-    const r = 14 + closeness * 12;
-    return { p, i, closeness, r, x: cx + Math.cos(angle) * dist * (W / H > 1 ? 1.35 : 1), y: cy + Math.sin(angle) * dist };
+    return { p, i, closeness, ring: RINGS.findIndex((r) => closeness >= r.min) };
   });
-  // Push apart anything overlapping (a few passes is plenty for 30 nodes)
-  for (let pass = 0; pass < 60; pass++) {
+  const nodes: MapNode[] = [];
+  RINGS.forEach((_, ring) => {
+    const members = withRing.filter((n) => n.ring === ring);
+    const [r0, r1] = ringBounds(ring, maxR);
+    members.forEach((n, k) => {
+      // Spread around the band, leaving the bottom free for the rings' name tags
+      const wedge = 0.7;
+      const angle = Math.PI / 2 + wedge / 2 + ((k + 0.5) / Math.max(1, members.length)) * (Math.PI * 2 - wedge);
+      // Closer within the band sits nearer its inner edge; alternate a little so neighbours don't touch
+      const within = members.length > 6 ? (k % 2 ? 0.35 : 0.65) : 0.5;
+      const dist = r0 + (r1 - r0) * within;
+      nodes.push({ ...n, r: 13 + n.closeness * 11, x: cx + Math.cos(angle) * dist * xStretch, y: cy + Math.sin(angle) * dist });
+    });
+  });
+  for (let pass = 0; pass < 50; pass++) {
     for (let a = 0; a < nodes.length; a++) {
       for (let b = a + 1; b < nodes.length; b++) {
         const A = nodes[a];
@@ -68,8 +84,9 @@ function layout(people: SocialPerson[], W: number, H: number): MapNode[] {
         const dx = B.x - A.x;
         const dy = B.y - A.y;
         const d = Math.hypot(dx, dy) || 0.01;
-        const need = A.r + B.r + 20;
+        const need = A.r + B.r + 18;
         if (d < need) {
+          // Slide along the band (tangentially) rather than out of it
           const push = (need - d) / 2;
           A.x -= (dx / d) * push;
           A.y -= (dy / d) * push;
@@ -78,20 +95,27 @@ function layout(people: SocialPerson[], W: number, H: number): MapNode[] {
         }
       }
     }
+    // Keep everyone inside their own band, off the name tags at the bottom, and inside the frame
     for (const n of nodes) {
-      // Keep clear of the center and inside the frame (room for the name underneath)
-      const dx = n.x - cx;
-      const dy = n.y - cy;
-      const d = Math.hypot(dx, dy) || 0.01;
-      if (d < minR) {
-        n.x = cx + (dx / d) * minR;
-        n.y = cy + (dy / d) * minR;
+      const at = Math.atan2(n.y - cy, (n.x - cx) / xStretch);
+      if (Math.abs(at - Math.PI / 2) < 0.32) {
+        const target = at >= Math.PI / 2 ? Math.PI / 2 + 0.32 : Math.PI / 2 - 0.32;
+        const dd = Math.hypot((n.x - cx) / xStretch, n.y - cy);
+        n.x = cx + Math.cos(target) * dd * xStretch;
+        n.y = cy + Math.sin(target) * dd;
       }
-      n.x = Math.min(W - n.r - 44, Math.max(n.r + 44, n.x));
-      n.y = Math.min(H - n.r - 22, Math.max(n.r + 6, n.y));
+      const [r0, r1] = ringBounds(n.ring, maxR);
+      const ex = (n.x - cx) / xStretch;
+      const ey = n.y - cy;
+      const d = Math.hypot(ex, ey) || 0.01;
+      const clamped = Math.min(r1 - 4, Math.max(r0 + 4, d));
+      n.x = cx + (ex / d) * clamped * xStretch;
+      n.y = cy + (ey / d) * clamped;
+      n.x = Math.min(W - n.r - 40, Math.max(n.r + 40, n.x));
+      n.y = Math.min(H - n.r - 18, Math.max(n.r + 4, n.y));
     }
   }
-  return nodes;
+  return nodes.sort((x, y) => x.i - y.i);
 }
 
 export function FriendshipMap({ me, people, color, onPick, picked }: { me: { name: string; avatar: string }; people: SocialPerson[]; color: string; onPick: (id: string) => void; picked: string | null }) {
@@ -105,7 +129,7 @@ export function FriendshipMap({ me, people, color, onPick, picked }: { me: { nam
   const cx = W / 2;
   const cy = H / 2;
   const nodes = useMemo(() => layout(shown, W, H), [shown]);
-  const maxR = Math.min(W, H) / 2 - 46;
+  const maxR = Math.min(W, H) / 2 - 30;
   const active = hover ?? picked;
   const activeNode = nodes.find((n) => n.p.id === active) ?? null;
   const top = shown[0]?.score ?? 1;
@@ -136,14 +160,36 @@ export function FriendshipMap({ me, people, color, onPick, picked }: { me: { nam
             </clipPath>
           ))}
         </defs>
-        <circle cx={cx} cy={cy} r={maxR} fill="url(#st-map-glow)" className="st-map-pulse" />
-        {RINGS.map((ring) => {
-          const rr = 78 + ring.at * (maxR - 78);
+        <circle cx={cx} cy={cy} r={MAP_INNER + 20} fill="url(#st-map-glow)" className="st-map-pulse" />
+        {[...RINGS].reverse().map((ring, ri) => {
+          const index = RINGS.length - 1 - ri;
+          const [, outer] = ringBounds(index, maxR);
           return (
-            <g key={ring.label}>
-              <ellipse cx={cx} cy={cy} rx={rr * 1.35} ry={rr} className="st-map-orbit" />
-              <text x={cx} y={cy - rr - 5} textAnchor="middle" className="st-map-ring-label">
-                {ring.label}
+            <ellipse
+              key={ring.key}
+              cx={cx}
+              cy={cy}
+              rx={outer * 1.3}
+              ry={outer}
+              fill={ring.color}
+              fillOpacity={0.06}
+              stroke={ring.color}
+              strokeOpacity={0.45}
+              strokeDasharray="4 6"
+              className="st-map-band"
+            />
+          );
+        })}
+        {RINGS.map((ring, index) => {
+          const [inner, outer] = ringBounds(index, maxR);
+          const count = nodes.filter((n) => n.ring === index).length;
+          const x = cx;
+          const y = cy + (inner + outer) / 2;
+          return (
+            <g key={`label-${ring.key}`} className="st-map-ring-tag">
+              <rect x={x - 54} y={y - 10} width={108} height={20} rx={10} fill={ring.color} fillOpacity={0.22} stroke={ring.color} strokeOpacity={0.6} />
+              <text x={x} y={y + 4} textAnchor="middle" className="st-map-ring-label" style={{ fill: ring.color, opacity: 1, filter: "brightness(1.35)" }}>
+                {ring.label} · {count}
               </text>
             </g>
           );
@@ -222,7 +268,7 @@ export function FriendshipMap({ me, people, color, onPick, picked }: { me: { nam
             <i style={{ background: BALANCE[k].color }} /> {BALANCE[k].label}
           </span>
         ))}
-        <span className="adm-muted">Closer to the middle and bigger = closer friend</span>
+        <span className="adm-muted">Rings: how close they are compared to your bestie (Besties 70%+, Close 45%+, Friends 25%+)</span>
       </div>
     </div>
   );
