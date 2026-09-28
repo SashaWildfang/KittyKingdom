@@ -107,11 +107,14 @@ function normalizeStages(botId: string | null): Document[] {
         n_expires: { $ifNull: ["$expires_at", "$expiresAt"] },
         n_extra: { $ifNull: ["$extra_info", "$extraInfo"] },
         n_action: { $toLower: { $ifNull: ["$action", "unknown"] } },
-        // Issued by the bot itself (AutoMod, automatic kicks) or a reason that says AutoMod
+        // Automatic: AutoMod tags every record it writes (it runs on the separate moderation bot, so the
+        // issuer isn't the main bot), or issued by the main bot itself (automatic kicks), or a reason
+        // that says AutoMod
         n_source: {
           $cond: [
             {
               $or: [
+                { $eq: [{ $ifNull: ["$extra_info", "$extraInfo"] }, "AutoMod"] },
                 { $and: [{ $ne: [botId, null] }, { $eq: [asId("$issuer_discord_id", "$issuerId"), botId] }] },
                 { $regexMatch: { input: { $toString: { $ifNull: ["$reason", ""] } }, regex: "automod", options: "i" } },
               ],
@@ -235,7 +238,7 @@ export async function queryPunishments(q: PunishmentQuery) {
                     { $sort: { n: -1 } },
                     { $limit: 40 },
                   ],
-                  issuers: [{ $match: { n_issuer: { $ne: null } } }, { $group: { _id: "$n_issuer", n: { $sum: 1 } } }, { $sort: { n: -1 } }, { $limit: 8 }],
+                  issuers: [{ $match: { n_issuer: { $ne: null } } }, { $group: { _id: "$n_issuer", n: { $sum: 1 }, auto: { $max: { $eq: ["$n_source", "automod"] } } } }, { $sort: { n: -1 } }, { $limit: 8 }],
                   sources: [{ $group: { _id: "$n_source", n: { $sum: 1 } } }],
                 }
               : {}),
@@ -253,7 +256,7 @@ export async function queryPunishments(q: PunishmentQuery) {
     summary: q.summary
       ? {
           reasons: ((result?.reasons ?? []) as Document[]).map((d) => ({ reason: d._id ? String(d.text ?? d._id).trim() : "", count: d.n as number })),
-          issuers: ((result?.issuers ?? []) as Document[]).map((d) => ({ id: String(d._id), count: d.n as number, automod: String(d._id) === botId })),
+          issuers: ((result?.issuers ?? []) as Document[]).map((d) => ({ id: String(d._id), count: d.n as number, automod: d.auto === true || String(d._id) === botId })),
           sources: Object.fromEntries(((result?.sources ?? []) as Document[]).map((d) => [String(d._id), d.n as number])) as Record<string, number>,
         }
       : null,
@@ -288,7 +291,7 @@ export async function punishmentStats(q: StatsQuery) {
             { $sort: { "_id.t": 1 } },
           ],
           topUsers: [{ $match: { n_user: { $ne: null } } }, { $group: { _id: "$n_user", n: { $sum: 1 }, last: { $max: "$timestamp" } } }, { $sort: { n: -1, last: -1 } }, { $limit: 10 }],
-          topIssuers: [{ $match: { n_issuer: { $ne: null } } }, { $group: { _id: "$n_issuer", n: { $sum: 1 } } }, { $sort: { n: -1 } }, { $limit: 10 }],
+          topIssuers: [{ $match: { n_issuer: { $ne: null } } }, { $group: { _id: "$n_issuer", n: { $sum: 1 }, auto: { $max: { $eq: ["$n_source", "automod"] } } } }, { $sort: { n: -1 } }, { $limit: 10 }],
           // Grouped ignoring case, shown with the original wording
           topReasons: [
             { $group: { _id: { $toLower: { $trim: { input: { $toString: { $ifNull: ["$reason", ""] } } } } }, n: { $sum: 1 }, text: { $first: "$reason" } } },
@@ -308,7 +311,7 @@ export async function punishmentStats(q: StatsQuery) {
     bySource: Object.fromEntries((result?.bySource ?? []).map((d: Document) => [String(d._id), d.n as number])),
     timeline: (result?.timeline ?? []).map((d: Document) => ({ bucket: (d._id.t as Date).toISOString(), action: String(d._id.a), count: d.n as number })),
     topUsers: ((result?.topUsers ?? []) as Document[]).map((d) => ({ id: String(d._id), count: d.n as number, last: (d.last as Date)?.toISOString() ?? null })) as { id: string; count: number; last: string | null }[],
-    topIssuers: ((result?.topIssuers ?? []) as Document[]).map((d) => ({ id: String(d._id), count: d.n as number, automod: String(d._id) === botId })) as { id: string; count: number; automod: boolean }[],
+    topIssuers: ((result?.topIssuers ?? []) as Document[]).map((d) => ({ id: String(d._id), count: d.n as number, automod: d.auto === true || String(d._id) === botId })) as { id: string; count: number; automod: boolean }[],
     topReasons: ((result?.topReasons ?? []) as Document[]).filter((d) => d._id).map((d) => ({ reason: String(d.text ?? d._id).trim(), count: d.n as number })) as { reason: string; count: number }[],
     hours: Array.from({ length: 24 }, (_, h) => (result?.hours ?? []).find((d: Document) => d._id === h)?.n ?? 0) as number[],
     currentlyBanned: bans?.size ?? null,
