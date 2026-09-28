@@ -4335,3 +4335,10 @@ a.dt-partner-chip:hover {
 .dt-profile--v2 .dt-hero-side .dt-social-chip:hover svg {
   color: var(--acc-ink, #fff);
 }
+
+/* Below 1100px the site bar is the slimmer phone-style bar */
+@media (max-width: 1100px) {
+  .dt-nav {
+    top: 4.6rem;
+  }
+}

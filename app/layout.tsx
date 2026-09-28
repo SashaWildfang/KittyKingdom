@@ -4,6 +4,7 @@ import "./globals.css";
 import { PageTracker } from "./page-tracker";
 import { TimeZoneSync } from "./time-zone-sync";
 import { ViewAsBar } from "./view-as-bar";
+import { SiteFooter } from "./site-footer";
 
 const SITE = "https://www.kittykingdom.net";
 const DESCRIPTION =
@@ -46,6 +47,8 @@ export default function RootLayout({
       </head>
       <body>
         {children}
+        {/* The same footer on every page */}
+        <SiteFooter />
         <PageTracker />
         <TimeZoneSync />
         <ViewAsBar />
