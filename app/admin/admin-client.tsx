@@ -1,9 +1,10 @@
 "use client";
 
-import { Activity, BarChart3, ClipboardCheck, MessagesSquare, Gavel, Newspaper, ScrollText, Ticket, Users, type LucideIcon } from "lucide-react";
+import { Activity, BarChart3, ClipboardCheck, MessagesSquare, Gavel, Newspaper, ScrollText, ShieldCheck, Ticket, Users, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AccountsTab } from "./accounts-tab";
+import { AutoModTab } from "./automod-tab";
 import { MemberSearch, useLive, useStored } from "./admin-shared";
 import { DrillPanel, type Drill } from "./drill-panel";
 import { JoinAppsTab } from "./join-apps";
@@ -17,12 +18,13 @@ import { DEFAULT_PUNISHMENT_FILTERS, PunishmentsTab, type PunishmentFilters } fr
 import { TicketsTab } from "./tickets-tab";
 import { TranscriptViewer } from "./transcript-viewer";
 
-type Tab = "overview" | "punishments" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live" | "join";
+type Tab = "overview" | "punishments" | "automod" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live" | "join";
 type Level = "admin" | "staff";
 
 const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean }[] = [
   { key: "overview", label: "Overview", icon: BarChart3 },
   { key: "punishments", label: "Punishments", icon: Gavel },
+  { key: "automod", label: "AutoMod", icon: ShieldCheck },
   { key: "join", label: "Join Apps", icon: ClipboardCheck },
   { key: "logs", label: "Logs", icon: ScrollText },
   { key: "live", label: "Live Chat", icon: MessagesSquare },
@@ -164,6 +166,7 @@ export function AdminClient({ adminName, level }: { adminName: string; level: Le
       {tab === "punishments" ? (
         <PunishmentsTab filters={punishmentFilters} setFilters={setPunishmentFilters} actionsAvailable={meta?.actions ?? []} onOpenMember={openMember} />
       ) : null}
+      {tab === "automod" ? <AutoModTab onOpenMember={openMember} /> : null}
       {tab === "join" ? <JoinAppsTab onOpenMember={openMember} /> : null}
       {tab === "live" ? <LiveTab onOpenMember={openMember} onUnread={setLiveUnread} /> : null}
       {tab === "logs" ? <LogsTab onOpenMember={openMember} /> : null}
