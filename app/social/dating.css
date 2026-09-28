@@ -4231,3 +4231,71 @@ a.dt-partner-chip:hover {
 .dt-masonry .dt-sona-thumbs {
   grid-template-columns: repeat(4, 1fr);
 }
+
+/* ---------- Header: menus aren't clipped, calmer spacing, socials under the photo ---------- */
+.dt-profile--v2 .dt-hero {
+  overflow: visible;
+  position: relative;
+  z-index: 5;
+}
+.dt-profile--v2 .dt-hero-cover {
+  border-radius: 24px 24px 0 0;
+}
+.dt-hero-body .dt-menu {
+  z-index: 60;
+}
+.dt-hero-side {
+  display: grid;
+  justify-items: center;
+  gap: 0.8rem;
+  align-content: start;
+}
+.dt-hero-info {
+  gap: 0.55rem;
+}
+.dt-hero-facts {
+  margin-top: 0.1rem;
+}
+.dt-hero-badges {
+  gap: 0.45rem;
+  margin-top: 0.3rem;
+}
+.dt-hero-badges .dt-badge {
+  padding: 0.28rem 0.7rem;
+}
+.dt-profile--v2 .dt-partners {
+  margin-top: 0.35rem;
+}
+/* Logo buttons under the photo: the handle shows on hover, gaming IDs copy on click */
+.dt-hero-side .dt-socials {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+  max-width: 168px;
+  margin: 0;
+}
+.dt-hero-side .dt-social-chip {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 50%;
+  max-width: none;
+}
+.dt-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.dt-lightbox {
+  z-index: 10050;
+}
+@media (max-width: 640px) {
+  .dt-hero-side .dt-socials {
+    max-width: none;
+  }
+}
