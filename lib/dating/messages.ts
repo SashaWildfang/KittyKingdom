@@ -11,7 +11,9 @@ import { getAutomodConfig } from "../automod";
 import { Matcher, scanLinks } from "../automod-engine";
 import { getMongoClient } from "../mongodb";
 import { notify, markReadByKey } from "../notifications";
+import { getCurrentBans } from "../moderation";
 import { blockedIds, datingCols, pairId, toLong } from "./db";
+import { getSettings } from "./settings";
 import { friendState, isMatch } from "./social";
 
 export const MAX_MESSAGE = 2000;
@@ -118,6 +120,7 @@ export async function send(me: string, other: string, raw: string, myName: strin
   const [mine, theirs] = await Promise.all([profiles.findOne({ _id: toLong(me) } as never, { projection: { _id: 1 } }), profiles.findOne({ _id: toLong(other) } as never, { projection: { web: 1 } })]);
   if (!mine) return "Create your dating profile first.";
   if (!theirs || (theirs.web as { pausedByStaff?: boolean } | undefined)?.pausedByStaff) return "You can't message this member.";
+  if ((await getCurrentBans().catch(() => null))?.has(other)) return "You can't message this member.";
   const m = await automod();
   const hit = m.find(text);
   if (hit?.severe) return "That message has language that isn't allowed here.";
@@ -132,6 +135,9 @@ export async function send(me: string, other: string, raw: string, myName: strin
   if (state === "declined") {
     if (conv?.requestFrom === me && conv.declinedAt instanceof Date && Date.now() - conv.declinedAt.getTime() < DECLINE_COOLDOWN_MS) return "They passed on your message request. You can try again in a few days.";
     state = "request";
+  }
+  if (state === "request" && !(conv && conv.requestFrom !== me && conv.state === "request") && (await getSettings(other)).messagesFrom === "connections") {
+    return "They only take messages from matches and friends. Try adding them as a friend first.";
   }
   if (state === "request") {
     if (conv && conv.requestFrom !== me && conv.state === "request") {

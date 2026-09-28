@@ -24178,3 +24178,20 @@ body.live-fullscreen .view-as-bar {
   align-items: center;
   flex-wrap: wrap;
 }
+.nb-icon--view {
+  background: #8e4ec6;
+}
+.nb-foot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.6rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+.nb-foot:hover {
+  color: var(--text);
+}

@@ -244,7 +244,17 @@ export default function DatingHome() {
                     <Photo src={t.photo} name={t.name} accent={t.accent} className="dt-avatar" />
                     <span>
                       <b>{t.name}</b>
-                      <small className="dt-muted">{t.shared.slice(0, 2).join(" · ") || [t.age, t.location].filter(Boolean).join(" · ")}</small>
+                      {t.shared.length ? (
+                        <span className="dt-toprow-tags">
+                          {t.shared.slice(0, 3).map((x) => (
+                            <em key={x} title={x}>
+                              {x}
+                            </em>
+                          ))}
+                        </span>
+                      ) : (
+                        <small className="dt-muted">{[t.age, t.location].filter(Boolean).join(" · ")}</small>
+                      )}
                     </span>
                     <span className={`dt-score-pill${t.datingFit ? "" : " is-friendly"}`}>
                       {t.datingFit ? t.emoji : "🤝"} {t.score}%

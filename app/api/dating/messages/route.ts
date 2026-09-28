@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cardsFor } from "../../../../lib/dating/discover";
 import { conversations } from "../../../../lib/dating/messages";
 import { requireDating } from "../../../../lib/dating/route-helpers";
+import { getCurrentBans } from "../../../../lib/moderation";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,10 @@ export async function GET() {
   const me = await requireDating();
   if (me instanceof NextResponse) return me;
   const c = await conversations(me.discordId);
+  // Chats with members banned from the server are hidden
+  const banned = (await getCurrentBans().catch(() => null)) ?? new Set<string>();
+  c.inbox = c.inbox.filter((x) => !banned.has(x.other));
+  c.requests = c.requests.filter((x) => !banned.has(x.other));
   const people = await cardsFor(me.discordId, Array.from(new Set([...c.inbox, ...c.requests].map((x) => x.other))));
   const byId = Object.fromEntries(people.map((p) => [p.id, { name: p.name, photo: p.photo, accent: p.accent }]));
   return NextResponse.json({ ok: true, ...c, people: byId }, { headers: { "Cache-Control": "no-store" } });

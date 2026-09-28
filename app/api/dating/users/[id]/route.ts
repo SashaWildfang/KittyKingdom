@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { blockedIds, datingCols, isSnowflake, toLong } from "../../../../../lib/dating/db";
 import { compatWith } from "../../../../../lib/dating/discover";
-import { profileView } from "../../../../../lib/dating/profiles";
+import { getProfile, profileView } from "../../../../../lib/dating/profiles";
+import { recordView } from "../../../../../lib/dating/views";
+import { getCurrentBans } from "../../../../../lib/moderation";
 import { requireDating } from "../../../../../lib/dating/route-helpers";
 import { friendState, hasLiked, isMatch, likesReceived } from "../../../../../lib/dating/social";
 
@@ -16,8 +18,9 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   const { profiles, blocks } = await datingCols();
   const doc = await profiles.findOne({ _id: toLong(params.id) } as never);
   const own = params.id === me.discordId;
+  const banned = !own && Boolean((await getCurrentBans().catch(() => null))?.has(params.id));
   const staffPaused = Boolean((doc?.web as { pausedByStaff?: boolean } | undefined)?.pausedByStaff);
-  if (!doc || (staffPaused && !own) || (blocked.has(params.id) && !(await blocks.countDocuments({ blocker: me.discordId, blocked: params.id }, { limit: 1 })))) {
+  if (!doc || banned || (staffPaused && !own) || (blocked.has(params.id) && !(await blocks.countDocuments({ blocker: me.discordId, blocked: params.id }, { limit: 1 })))) {
     return NextResponse.json({ ok: false, error: "This profile isn't available." }, { status: 404 });
   }
   const [view, compat, iLiked, match, friend, received] = await Promise.all([
@@ -29,6 +32,8 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     own ? [] : likesReceived(me.discordId, me.booster),
   ]);
   const theyLike = received.find((l) => l.id === params.id);
+  // Let them know someone looked (unless you browse anonymously or they turned it off)
+  if (!own) await recordView(me.discordId, params.id, String((await getProfile(me.discordId))?.name ?? me.name)).catch(() => undefined);
   return NextResponse.json(
     {
       ok: true,
