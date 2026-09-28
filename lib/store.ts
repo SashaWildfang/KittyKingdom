@@ -229,7 +229,7 @@ export async function getStoreState(discordId: string): Promise<StoreState> {
       roleId,
       roleColors: roleId ? guildRoles.get(roleId)?.colors ?? [] : [],
       equipped: roleId ? memberRoleSet.has(roleId) : false,
-      durationSeconds: doc.duration ? num(doc.duration) : null,
+      durationSeconds: num((storeItem as { duration?: unknown } | undefined)?.duration) || (doc.duration ? num(doc.duration) : null),
       giftedCount: doc.gifted_by ? 1 : 0,
       requiresMessage: Boolean(storeItem?.requires_message),
     });
@@ -338,7 +338,9 @@ export async function activateItem(discordId: string, itemId: string) {
   if (removed.deletedCount === 0) throw new StoreError("You don't own that item anymore.");
 
   const now = new Date();
-  const seconds = num(owned.duration) || 3600;
+  // The catalog's current duration wins (items bought earlier kept an old copy of it)
+  const catalog = await c.storeInventory.findOne({ item_id: itemId }, { projection: { duration: 1 } });
+  const seconds = num(catalog?.duration) || num(owned.duration) || 86400;
   const active = await c.boosters.findOne({ discordId, item_id: itemId });
   let endsAt: Date;
   if (active && active.end_time instanceof Date && active.end_time > now) {

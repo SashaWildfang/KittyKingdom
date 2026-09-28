@@ -63,7 +63,42 @@ type Block =
   | { kind: "ul" | "ol"; items: string[] }
   | { kind: "quote"; lines: string[] }
   | { kind: "code"; text: string }
+  | { kind: "media"; url: string; caption: string }
   | { kind: "hr" };
+
+const MEDIA_LINE = /^\s*!\[([^\]]*)\]\(([^)\s]+)\)\s*$/;
+const YOUTUBE = /^https:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/;
+
+/** Only https links or our own uploads, never anything else (javascript:, data:, …). */
+const safeMedia = (url: string) => /^https:\/\/[^\s"'<>]+$/.test(url) || /^\/api\/news-media\/[a-f0-9]{24}\.[a-z0-9]{2,5}$/.test(url);
+
+function Media({ url, caption }: { url: string; caption: string }) {
+  if (!safeMedia(url)) return null;
+  const yt = url.match(YOUTUBE);
+  const video = /\.(mp4|webm|mov)(\?|$)/i.test(url);
+  return (
+    <figure className="news-media">
+      {yt ? (
+        <div className="news-embed">
+          <iframe
+            src={`https://www.youtube-nocookie.com/embed/${yt[1]}`}
+            title={caption || "Video"}
+            loading="lazy"
+            allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            referrerPolicy="strict-origin-when-cross-origin"
+          />
+        </div>
+      ) : video ? (
+        <video src={url} controls preload="metadata" playsInline />
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={url} alt={caption} loading="lazy" />
+      )}
+      {caption ? <figcaption>{caption}</figcaption> : null}
+    </figure>
+  );
+}
 
 function parse(body: string): Block[] {
   const lines = body.replace(/\r\n?/g, "\n").split("\n");
@@ -82,6 +117,12 @@ function parse(body: string): Block[] {
     }
     if (!line.trim()) {
       blocks.push({ kind: "p", lines: [] }); // paragraph break marker
+      i++;
+      continue;
+    }
+    const media = line.match(MEDIA_LINE);
+    if (media || YOUTUBE.test(line.trim()) && /^\S+$/.test(line.trim())) {
+      blocks.push(media ? { kind: "media", caption: media[1], url: media[2] } : { kind: "media", caption: "", url: line.trim() });
       i++;
       continue;
     }
@@ -128,6 +169,8 @@ export function NewsBody({ body }: { body: string }) {
             return <pre key={key}><code>{b.text}</code></pre>;
           case "hr":
             return <hr key={key} />;
+          case "media":
+            return <Media key={key} url={b.url} caption={b.caption} />;
           default:
             return <p key={key}>{lineBreaks(b.lines, key)}</p>;
         }

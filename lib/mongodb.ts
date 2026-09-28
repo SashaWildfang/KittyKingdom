@@ -70,7 +70,7 @@ export async function getStaffCollection() {
   return db.collection("staff");
 }
 
-type PresenceDocument = { _id: string; lastSeen: Date };
+type PresenceDocument = { _id: string; lastSeen: Date; userId?: string | null; path?: string; title?: string | null; pathSince?: Date };
 let presenceIndexReady: Promise<string> | null = null;
 
 // Open website tabs (one doc per visitor), cleaned up automatically a few minutes after they leave

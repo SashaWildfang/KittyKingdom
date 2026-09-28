@@ -11,8 +11,9 @@ export function ViewAsButton({ accountId, discordId }: { accountId?: string; dis
     <div className="adm-viewas">
       <button
         type="button"
-        className="adm-btn adm-viewas-btn"
+        className="adm-viewas-btn"
         disabled={busy}
+        title="See the site exactly as they do, read only. Switch members or exit from the bar at the bottom."
         onClick={async () => {
           setBusy(true);
           setError(null);
@@ -29,9 +30,9 @@ export function ViewAsButton({ accountId, discordId }: { accountId?: string; dis
           }
         }}
       >
-        <Eye size={15} aria-hidden="true" /> {busy ? "Opening…" : "View site as this member"}
+        <Eye size={13} aria-hidden="true" /> {busy ? "Opening…" : "View as"}
       </button>
-      {error ? <p className="adm-error">{error}</p> : <p className="adm-muted">See exactly what they see, read only. You can switch members or exit from the bar at the bottom.</p>}
+      {error ? <p className="adm-error">{error}</p> : null}
     </div>
   );
 }
