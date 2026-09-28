@@ -1,6 +1,6 @@
 "use client";
 
-import { Compass, Heart, Home, LayoutGrid, MessageCircle, Sparkles, UserRound, Users } from "lucide-react";
+import { Compass, Heart, Home, LayoutGrid, MessageCircle, Settings, Sparkles, UserRound, Users } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { useApi } from "./ui";
@@ -16,6 +16,7 @@ const TABS = [
   { href: "/dating/messages", label: "Messages", icon: MessageCircle, count: (c: Counts) => c.unread + c.requests, hot: true },
   { href: "/dating/friends", label: "Friends", icon: Users, count: (c: Counts) => c.friendRequests, hot: true },
   { href: "/dating/profile", label: "My profile", icon: UserRound },
+  { href: "/dating/settings", label: "Settings", icon: Settings },
 ];
 
 /** The Dating tabs, with live counts (unread messages and friend requests flash). */

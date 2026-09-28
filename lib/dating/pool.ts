@@ -3,6 +3,7 @@
 
 import { people } from "../admin-people";
 import { inServerIds } from "../member-directory";
+import { getCurrentBans } from "../moderation";
 import { datingCols } from "./db";
 import { decodeVector, type Vectors } from "./matching";
 import type { ProfileDoc } from "./schema";
@@ -11,19 +12,22 @@ import { mentionIds } from "./text";
 /** What the site knows about a member from Discord: name, avatar and whether they're still in the server. */
 export type Who = { name: string; username: string | null; avatar: string | null; inServer: boolean };
 
-type Pool = { at: number; profiles: Map<string, ProfileDoc>; vectors: Map<string, Vectors>; inServer: Set<string> | null; who: Map<string, Who>; names: Map<string, string> };
+type Pool = { at: number; profiles: Map<string, ProfileDoc>; vectors: Map<string, Vectors>; inServer: Set<string> | null; who: Map<string, Who>; names: Map<string, string>; banned: Set<string> };
 let cache: Pool | null = null;
 let loading: Promise<Pool> | null = null;
 const TTL_MS = 30_000;
 
 async function load(): Promise<Pool> {
   const c = await datingCols();
-  const [docs, vecs, members] = await Promise.all([
+  const [docs, vecs, members, bans] = await Promise.all([
     c.profiles.find({}).toArray(),
     c.vectors.find({}).toArray(),
     inServerIds().catch(() => null),
+    getCurrentBans().catch(() => null),
   ]);
-  const profiles = new Map(docs.map((d) => [String(d._id), d as ProfileDoc]));
+  // Members banned from the server never show anywhere in Dating
+  const banned = bans ?? new Set<string>();
+  const profiles = new Map(docs.filter((d) => !banned.has(String(d._id))).map((d) => [String(d._id), d as ProfileDoc]));
   const vectors = new Map<string, Vectors>();
   for (const v of vecs) {
     const id = String(v._id);
@@ -51,7 +55,7 @@ async function load(): Promise<Pool> {
     who.set(id, { name: p.name, username: p.username, avatar: p.avatar, inServer: inServer ? inServer.has(id) : p.inServer });
     if (p.username || p.name !== "Unknown user") names.set(id, p.username ?? p.name);
   }
-  return { at: Date.now(), profiles, vectors, inServer, who, names };
+  return { at: Date.now(), profiles, vectors, inServer, who, names, banned };
 }
 
 export async function datingPool(fresh = false): Promise<Pool> {
