@@ -50,7 +50,7 @@ export async function requestPartner(me: string, other: string, myName: string):
   await c.updateOne({ _id: id } as never, { $set: { users: [me, other].sort(), from: me, to: other, status: "pending", at: new Date() } }, { upsert: true });
   // Only 18+ Verified members get pinged about dating; anyone else sees it waiting once they can use Dating
   if (await canSeeDating(other).catch(() => false)) {
-    await notify(other, { type: "partner", actor: me, title: `${myName} listed you as their partner`, body: "Confirm it to show it on both your profiles.", link: "/social/profile#partners", key: `partner:${me}` });
+    await notify(other, { type: "partner", actor: me, title: `${myName} listed you as their partner`, body: "Confirm it to show it on both your profiles.", link: "/social/profile/edit#partners", key: `partner:${me}` });
   }
   return null;
 }

@@ -266,7 +266,7 @@ export default function SettingsPage() {
             Profile &amp; account
           </h2>
           <div className="dt-linkrows">
-            <a href="/social/profile">
+            <a href="/social/profile/edit">
               <PenLine size={15} aria-hidden="true" /> Edit my profile
             </a>
             {meApi.data?.profile ? null : (
@@ -280,7 +280,7 @@ export default function SettingsPage() {
             <a href="/social/hidden">
               <Ban size={15} aria-hidden="true" /> Hidden profiles (blocked, passed, skipped)
             </a>
-            <a href="/social/profile#danger" className="is-danger">
+            <a href="/social/profile/edit#danger" className="is-danger">
               <Trash2 size={15} aria-hidden="true" /> Delete my dating profile
             </a>
           </div>

@@ -20,6 +20,8 @@ export type Card = {
   headline: string | null;
   photo: string | null;
   photoCount: number;
+  /** Framing of their first photo (null for avatars/art) */
+  photoCrop: { x: number; y: number; z: number } | null;
   accent: string;
   location: string | null;
   gender: string | null;
@@ -37,6 +39,10 @@ export type Card = {
   /** Still in the Discord server (people who left keep their profiles). */
   inServer: boolean;
   openToDating: boolean;
+  /** Their Discord @name */
+  username: string | null;
+  /** On the site right now (only filled in where asked for, and only if their settings allow) */
+  online?: boolean;
 };
 
 type Pool = Awaited<ReturnType<typeof datingPool>>;
@@ -59,6 +65,7 @@ function card(doc: ProfileDoc, compat: Compat | null, liked: boolean, pool: Pool
     // Their first photo, else fursona art, else their Discord avatar
     photo: photos[0] ? photoUrl(photos[0]) : uploadedArt ?? bigAvatar(who?.avatar, 512) ?? linkedArt ?? null,
     photoCount: photos.length,
+    photoCrop: photos[0]?.crop ?? null,
     accent: accentFor(String(doc._id), web.accent),
     location: display(doc, "location")?.text ?? null,
     gender: display(doc, "gender")?.text ?? null,
@@ -75,6 +82,7 @@ function card(doc: ProfileDoc, compat: Compat | null, liked: boolean, pool: Pool
     liked,
     inServer: who ? who.inServer : true,
     openToDating: doc.is_looking === "Yes",
+    username: who?.username ?? null,
   };
 }
 
@@ -191,14 +199,23 @@ export async function browse(me: string, query: BrowseQuery) {
   return { total: rows.length, page, pages: Math.ceil(rows.length / size), cards: rows.slice(page * size, page * size + size).map((x) => card(x.o, x.c, liked.has(String(x.o._id)), pool)) };
 }
 
-/** Cards for a list of ids (likes, matches, friends...), in the given order. */
-export async function cardsFor(me: string, ids: string[]) {
+/** Cards for a list of ids (likes, matches, friends...), in the given order. `online` also works
+ *  out who's on the site right now (respecting their "last active" and "Online now" settings). */
+export async function cardsFor(me: string, ids: string[], opts: { online?: boolean } = {}) {
   const { pool, mine, side } = await candidates(me);
-  const liked = await likedIds(me);
+  const [liked, onlineIds] = await Promise.all([likedIds(me), opts.online ? onlineDiscordIds().catch(() => new Set<string>()) : Promise.resolve(null)]);
   return ids
     .map((id) => pool.profiles.get(id))
     .filter((d): d is ProfileDoc => Boolean(d))
-    .map((d) => card(d, mine ? compatibility(side(mine), side(d)) : null, liked.has(String(d._id)), pool));
+    .map((d) => {
+      const c = card(d, mine ? compatibility(side(mine), side(d)) : null, liked.has(String(d._id)), pool);
+      if (onlineIds) {
+        const id = String(d._id);
+        const visible = ((d.web ?? {}) as WebPrefs).showOnline !== false && pool.settings.get(id)?.showInOnline !== false;
+        c.online = visible && (onlineIds.has(id) || (d.last_active instanceof Date && Date.now() - d.last_active.getTime() < 5 * 60_000));
+      }
+      return c;
+    });
 }
 
 /** Compatibility of one member from my point of view (for their profile page). */
