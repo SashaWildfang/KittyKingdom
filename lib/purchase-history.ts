@@ -1,4 +1,4 @@
-// Purchase history: what a member bought in the Leaf Shop (website and Discord) plus the gifts
+// Purchase history: what a member bought in the Store (website and Discord) plus the gifts
 // they sent and received, newest first, searchable by item name.
 
 import { type Document } from "mongodb";

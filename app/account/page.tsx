@@ -210,7 +210,7 @@ export default async function AccountPage({
             <a href="#discord-account"><MessageCircle size={16} aria-hidden="true" /> Discord</a>
             <a href="#overview"><ClipboardList size={16} aria-hidden="true" /> Overview</a>
             {discordLinked ? <a href="#roles"><Sparkles size={16} aria-hidden="true" /> Server roles</a> : null}
-            {discordLinked ? <a href="#daily"><Gift size={16} aria-hidden="true" /> Daily</a> : null}
+            {discordLinked ? <a href="#daily"><Gift size={16} aria-hidden="true" /> Daily Reward</a> : null}
             {discordLinked ? <a href="#inventory"><Backpack size={16} aria-hidden="true" /> Inventory</a> : null}
             <a href="#profile"><UserRound size={16} aria-hidden="true" /> Profile</a>
             <a href="#contact"><Link2 size={16} aria-hidden="true" /> Contact &amp; socials</a>
@@ -291,7 +291,7 @@ export default async function AccountPage({
           ) : null}
 
           {discordLinked ? (
-            <CollapsibleCard id="daily" title="Daily leaves" description="Claim free leaves once a day. Claim every day to build your streak.">
+            <CollapsibleCard id="daily" title="Daily Reward" description="Claim free leaves once a day. Claim every day to build your streak.">
               <DailyCard initial={dailyStatus} guildId={serverId} />
             </CollapsibleCard>
           ) : null}

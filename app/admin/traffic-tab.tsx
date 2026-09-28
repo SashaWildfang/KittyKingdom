@@ -57,7 +57,7 @@ const PALETTE = ["#f59b2a", "#3e63dd", "#46a758", "#8e4ec6", "#e5484d", "#12a594
 const PAGE_NAMES: Record<string, string> = {
   "/": "Home",
   "/news": "News",
-  "/store": "Leaf Shop",
+  "/store": "Store",
   "/leaderboards": "Leaderboards",
   "/staff": "Staff",
   "/account": "My Account",

@@ -167,14 +167,14 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
             {state.balance.toLocaleString()}
           </span>
           <a className="store-ghost-button" href="/store">
-            <ShoppingBag size={15} aria-hidden="true" /> Open the Leaf Shop
+            <ShoppingBag size={15} aria-hidden="true" /> Open the Store
           </a>
         </div>
       ) : (
       <header className="store-header">
         <div>
           <p className="eyebrow">Kitty Kingdom Store</p>
-          <h1>Leaf Shop</h1>
+          <h1>Store</h1>
           <p className="store-sub">Spend your leaves on roles, boosters and gifts — everything syncs with Discord instantly.</p>
         </div>
         <div className="store-wallet" aria-live="polite">

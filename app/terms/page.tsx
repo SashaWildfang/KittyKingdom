@@ -290,6 +290,12 @@ export default function TermsPage() {
       current="terms"
       title="Terms of Service"
       updated={UPDATED}
+      parts={[
+        { title: "The basics", ids: ["agreement", "eligibility", "accounts"] },
+        { title: "Community rules", ids: ["conduct", "content", "moderation"] },
+        { title: "Leaves, perks & features", ids: ["economy", "support", "features"] },
+        { title: "Legal details", ids: ["ip", "third-party", "availability", "termination", "disclaimers", "liability", "indemnity", "disputes", "general", "changes", "contact"] },
+      ]}
       intro={
         <p>
           These are the rules for using the Kitty Kingdom website, Discord server and bots. Please read them. By using Kitty Kingdom you agree to them.

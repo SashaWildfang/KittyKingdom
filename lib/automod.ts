@@ -278,3 +278,25 @@ export async function automodPlaces() {
       .map((r) => ({ id: r.id, name: r.name, color: r.colors[0] ?? null })),
   };
 }
+
+// ---------- Unread catches (the bubble on the AutoMod tab) ----------
+async function prefsCol() {
+  const client = await (await import("./mongodb")).getMongoClient();
+  return client.db(process.env.MONGODB_DB ?? "website").collection<{ _id: string; automod?: { seenAt?: Date } }>("admin_prefs");
+}
+
+/** Catches since this staff member last had the AutoMod tab open (starts at zero the first time). */
+export async function automodUnread(viewerId: string) {
+  const col = await prefsCol();
+  const doc = await col.findOne({ _id: viewerId });
+  let seenAt = doc?.automod?.seenAt;
+  if (!seenAt) {
+    seenAt = new Date();
+    await col.updateOne({ _id: viewerId }, { $set: { "automod.seenAt": seenAt } }, { upsert: true });
+  }
+  return (await getBotCollection("automod_events")).countDocuments({ at: { $gt: seenAt } });
+}
+
+export async function markAutomodSeen(viewerId: string) {
+  await (await prefsCol()).updateOne({ _id: viewerId }, { $set: { "automod.seenAt": new Date() } }, { upsert: true });
+}

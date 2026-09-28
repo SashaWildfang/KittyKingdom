@@ -25,6 +25,7 @@ import {
   ExternalLink,
   CheckCheck,
   Play as PlayIcon,
+  MoreHorizontal,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChannelTile, LiveAttachment, LiveEmbed, LiveMessage, LivePrefs, LiveSnapshot } from "../../lib/live-chat";
@@ -273,6 +274,8 @@ function MessageRow({
   observe: (el: HTMLElement | null) => void;
 }) {
   const [confirm, setConfirm] = useState(false);
+  // Touch screens: one "⋯" button with a labelled menu instead of three bare icons
+  const [menu, setMenu] = useState(false);
   const [busy, setBusy] = useState(false);
   return (
     <li
@@ -382,6 +385,28 @@ function MessageRow({
               </button>
             </>
           )}
+        </div>
+      ) : null}
+      {!m.deleted ? (
+        <div className="live-touch">
+          <button type="button" className="live-more" onClick={() => setMenu(!menu)} aria-expanded={menu} aria-label="Message options">
+            <MoreHorizontal size={18} />
+          </button>
+          {menu ? (
+            <div className="live-menu" role="menu">
+              {guildId ? (
+                <a role="menuitem" href={`https://discord.com/channels/${guildId}/${m.channelId}/${m.id}`} target="_blank" rel="noreferrer" onClick={() => setMenu(false)}>
+                  <ExternalLink size={16} /> Open in Discord
+                </a>
+              ) : null}
+              <button type="button" role="menuitem" onClick={() => { setMenu(false); ctx.onOpenMember(m.authorId); }}>
+                <User size={16} /> View {m.displayName}&apos;s profile
+              </button>
+              <button type="button" role="menuitem" className="is-danger" onClick={() => { setMenu(false); setConfirm(true); }}>
+                <Trash2 size={16} /> Delete message
+              </button>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </li>
@@ -646,6 +671,12 @@ export function LiveTab({ onOpenMember, onUnread }: { onOpenMember: (id: string)
   const lastNewest = useRef<string | null>(null);
   const lastFollow = useRef(0);
   const feed = useRef<HTMLOListElement>(null);
+  // Auto-follow hides what you've already read in the channel it lands on (latest read time per channel)
+  const latestReadAt = useRef<Record<string, string>>({});
+  const [readCut, setReadCut] = useState<{ channel: string; at: string | null } | null>(null);
+  const [showEarlier, setShowEarlier] = useState(false);
+  // After switching channels the feed sticks to the bottom while images and embeds load in
+  const stickUntil = useRef(0);
   const busy = useRef(false);
   const focusRef = useRef(focus);
   const prefsRef = useRef(prefs);
@@ -703,6 +734,7 @@ export function LiveTab({ onOpenMember, onUnread }: { onOpenMember: (id: string)
         setMessages((list) => merge(list, data.messages, data.changed));
       }
       if (!prefsRef.current) setPrefs(data.prefs);
+      latestReadAt.current = { ...latestReadAt.current, ...(data.prefs?.readAt ?? {}) };
       setSnap(data);
       onUnread?.(data.stats.unread);
       setError(null);
@@ -735,6 +767,11 @@ export function LiveTab({ onOpenMember, onUnread }: { onOpenMember: (id: string)
     setMessages([]);
     setAtBottom(true);
     setUnseen(0);
+    setShowEarlier(false);
+    stickUntil.current = Date.now() + 4000;
+    // With auto-follow on, a single focused channel opens at what you haven't read yet
+    const p = prefsRef.current;
+    setReadCut(p?.autoFollow && focus.length === 1 ? { channel: focus[0], at: latestReadAt.current[focus[0]] ?? null } : null);
     void poll();
     const timer = window.setInterval(() => document.visibilityState === "visible" && void poll(), POLL_MS);
     return () => window.clearInterval(timer);
@@ -814,14 +851,30 @@ export function LiveTab({ onOpenMember, onUnread }: { onOpenMember: (id: string)
   useEffect(() => {
     const el = feed.current;
     if (!el) return;
-    const onLoad = () => atBottomRef.current && el.scrollTo({ top: el.scrollHeight, behavior: "instant" as ScrollBehavior });
-    el.addEventListener("load", onLoad, true);
-    return () => el.removeEventListener("load", onLoad, true);
+    const toBottom = () => {
+      if (Date.now() < stickUntil.current) {
+        el.scrollTo({ top: el.scrollHeight, behavior: "instant" as ScrollBehavior });
+        setAtBottom(true);
+      } else if (atBottomRef.current) el.scrollTo({ top: el.scrollHeight, behavior: "instant" as ScrollBehavior });
+    };
+    // Images, embeds and new rows change the height after the first scroll; keep up with them
+    const mo = new MutationObserver(toBottom);
+    mo.observe(el, { childList: true, subtree: true });
+    const stop = () => (stickUntil.current = 0); // the moment you scroll yourself, it lets go
+    el.addEventListener("load", toBottom, true);
+    el.addEventListener("wheel", stop, { passive: true });
+    el.addEventListener("touchmove", stop, { passive: true });
+    return () => {
+      mo.disconnect();
+      el.removeEventListener("load", toBottom, true);
+      el.removeEventListener("wheel", stop);
+      el.removeEventListener("touchmove", stop);
+    };
   }, []);
 
   const onScroll = () => {
     const el = feed.current;
-    if (!el) return;
+    if (!el || Date.now() < stickUntil.current) return;
     const bottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
     setAtBottom(bottom);
     if (bottom) setUnseen(0);
@@ -835,6 +888,11 @@ export function LiveTab({ onOpenMember, onUnread }: { onOpenMember: (id: string)
 
   async function savePrefs(patch: Partial<Pick<LivePrefs, "hidden" | "autoFollow">>) {
     setPrefs((p) => (p ? { ...p, ...patch } : p));
+    if (patch.autoFollow !== undefined) {
+      setShowEarlier(false);
+      setReadCut(patch.autoFollow && focus.length === 1 ? { channel: focus[0], at: latestReadAt.current[focus[0]] ?? null } : null);
+      stickUntil.current = Date.now() + 2500;
+    }
     const res = await fetch("/api/admin/live/prefs", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) }).catch(() => null);
     const body = res ? await res.json().catch(() => null) : null;
     if (body?.ok) setPrefs(body.prefs);
@@ -885,6 +943,14 @@ export function LiveTab({ onOpenMember, onUnread }: { onOpenMember: (id: string)
     void el.offsetWidth;
     el.classList.add("is-flash");
   }
+
+  // With auto-follow, messages you'd already read in this channel wait behind "Show earlier"
+  const cutActive = Boolean(readCut && !showEarlier && focus.length === 1 && readCut.channel === focus[0] && readCut.at);
+  const unreadFrom = cutActive ? shown.findIndex((m) => m.ts > readCut!.at!) : 0;
+  // Everything already read? Keep the last few for context
+  const start = !cutActive ? 0 : unreadFrom === -1 ? Math.max(0, shown.length - 3) : unreadFrom;
+  const visible = start ? shown.slice(start) : shown;
+  const earlier = start;
 
   // Text channels drop off the list once they've faded out (quiet for FALLOFF_MIN) and have nothing unread
   const isActive = (c: ChannelTile) =>
@@ -1075,8 +1141,15 @@ export function LiveTab({ onOpenMember, onUnread }: { onOpenMember: (id: string)
           ) : null}
 
           <ol className="live-feed" ref={feed} onScroll={onScroll}>
-            {shown.map((m, i) => {
-              const prev = shown[i - 1];
+            {earlier > 0 ? (
+              <li className="live-earlier">
+                <button type="button" onClick={() => { stickUntil.current = 0; setShowEarlier(true); }}>
+                  Show {earlier} earlier message{earlier === 1 ? "" : "s"} you&apos;ve already read
+                </button>
+              </li>
+            ) : null}
+            {visible.map((m, i) => {
+              const prev = visible[i - 1];
               const grouped = Boolean(prev && prev.authorId === m.authorId && key(prev) === key(m) && !prev.deleted && new Date(m.ts).getTime() - new Date(prev.ts).getTime() < GROUP_MS);
               return <MessageRow key={m.id} m={m} grouped={grouped} guildId={snap?.guildId ?? null} ctx={ctx} onChannel={toggleFocus} onDelete={remove} onJump={jumpTo} observe={observe} />;
             })}

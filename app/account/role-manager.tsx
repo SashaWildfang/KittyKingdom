@@ -252,7 +252,7 @@ export function RoleManager({ initial }: { initial: RoleState | null }) {
               {state.colorRoles.length}/{state.colorRoleTotal} unlocked
             </span>
           </h3>
-          <a href="/store">Get more in the Leaf Shop →</a>
+          <a href="/store">Get more in the Store →</a>
         </div>
         {state.colorRoleTotal ? (
           <div className="roles-progress" role="progressbar" aria-valuemin={0} aria-valuemax={state.colorRoleTotal} aria-valuenow={state.colorRoles.length} aria-label="Color roles unlocked">
@@ -301,7 +301,7 @@ export function RoleManager({ initial }: { initial: RoleState | null }) {
             .filter((c) => !c.owned && (colorView === "all" || (colorView === "shop" && c.inShop)))
             .map((c) =>
               c.inShop ? (
-                <a key={c.itemId} className="color-tile is-locked is-buyable" href={`/store?item=${encodeURIComponent(c.itemId)}`} title="Open it in the Leaf Shop">
+                <a key={c.itemId} className="color-tile is-locked is-buyable" href={`/store?item=${encodeURIComponent(c.itemId)}`} title="Open it in the Store">
                   <span className="color-swatch" style={{ background: swatch(c.colors) }} aria-hidden="true" />
                   <strong>{c.name}</strong>
                   <small className="color-tile-shop">
@@ -319,7 +319,7 @@ export function RoleManager({ initial }: { initial: RoleState | null }) {
               ),
             )}
         </div>
-        {!state.colorRoles.length && colorView === "owned" ? <p className="roles-muted">You don&apos;t own any color roles yet. Pick one up in the Leaf Shop!</p> : null}
+        {!state.colorRoles.length && colorView === "owned" ? <p className="roles-muted">You don&apos;t own any color roles yet. Pick one up in the Store!</p> : null}
         <p className="roles-hint">You can wear one color role at a time.</p>
       </div>
 
