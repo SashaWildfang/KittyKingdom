@@ -44,9 +44,14 @@ const STARTER_POSTS = [
   { title: "Leaves Currency", body: "We changed the server currency to leaves.", tag: "Economy", daysAgo: 30 },
 ];
 
+let orderReady: Promise<unknown> | null = null;
+
 async function collection() {
   const client = await getMongoClient();
   const col = client.db(process.env.MONGODB_DB ?? "website").collection("news");
+  // Display order: `sortAt` starts as the publish time and changes when admins drag posts around
+  orderReady ??= col.updateMany({ sortAt: { $exists: false } }, [{ $set: { sortAt: "$publishedAt" } }]).catch(() => undefined);
+  await orderReady;
   if ((await col.estimatedDocumentCount()) === 0) {
     const meta = client.db(process.env.MONGODB_DB ?? "website").collection("site_meta");
     // Only seed once, even if every post is later deleted
@@ -169,7 +174,7 @@ export async function publishedNews(opts: { limit?: number; tag?: string } = {})
     const [col, colors] = await Promise.all([collection(), tagColors()]);
     const filter: Document = { published: { $ne: false }, status: { $nin: ["pending", "draft"] }, publishedAt: { $lte: new Date() } };
     if (opts.tag && colors.has(opts.tag)) filter.tag = opts.tag;
-    const docs = await col.find(filter).sort({ pinned: -1, publishedAt: -1 }).limit(opts.limit ?? 100).toArray();
+    const docs = await col.find(filter).sort({ pinned: -1, sortAt: -1, publishedAt: -1 }).limit(opts.limit ?? 100).toArray();
     return docs.map((d) => toPost(d, colors));
   } catch (error) {
     console.error("News lookup failed", error);
@@ -192,7 +197,7 @@ export async function adminNews(q: { sort?: string; status?: string; search?: st
     filter.$or = [{ title: regex }, { body: regex }];
   }
   const sort: Record<string, 1 | -1> =
-    q.sort === "oldest" ? { publishedAt: 1 } : q.sort === "title" ? { title: 1 } : q.sort === "updated" ? { updatedAt: -1, publishedAt: -1 } : { pinned: -1, publishedAt: -1 };
+    q.sort === "oldest" ? { publishedAt: 1 } : q.sort === "title" ? { title: 1 } : q.sort === "updated" ? { updatedAt: -1, publishedAt: -1 } : { pinned: -1, sortAt: -1, publishedAt: -1 };
   const docs = await col.find(filter).sort(sort).limit(300).toArray();
   return docs.map((d) => toPost(d, colors));
 }
@@ -220,14 +225,16 @@ export async function cleanNewsInput(raw: Record<string, unknown>): Promise<News
 
 export async function createNews(input: NewsInput, author: { name: string; discordId: string }) {
   const col = await collection();
-  const res = await col.insertOne({ ...input, createdAt: new Date(), updatedAt: null, authorName: author.name, authorDiscordId: author.discordId });
+  const res = await col.insertOne({ ...input, sortAt: input.publishedAt, createdAt: new Date(), updatedAt: null, authorName: author.name, authorDiscordId: author.discordId });
   return String(res.insertedId);
 }
 
 export async function updateNews(id: string, input: NewsInput) {
   if (!ObjectId.isValid(id)) return false;
   const col = await collection();
-  const res = await col.updateOne({ _id: new ObjectId(id) }, { $set: { ...input, updatedAt: new Date() } });
+  // A new publish date moves the post to match, unless an admin placed it by hand
+  const cur = await col.findOne({ _id: new ObjectId(id) }, { projection: { ordered: 1 } });
+  const res = await col.updateOne({ _id: new ObjectId(id) }, { $set: { ...input, ...(cur?.ordered ? {} : { sortAt: input.publishedAt }), updatedAt: new Date() } });
   return res.matchedCount > 0;
 }
 
@@ -271,4 +278,21 @@ export async function recentNewsStamps(): Promise<{ id: string; at: string }[]> 
   } catch {
     return [];
   }
+}
+
+/**
+ * Saves a new display order: `ids` is the list as the admin arranged it (top first). The posts swap
+ * their existing sort positions among themselves, so everything else keeps its place and publish
+ * dates never change.
+ */
+export async function reorderNews(ids: string[]) {
+  const clean = Array.from(new Set(ids.filter((id) => ObjectId.isValid(id)))).slice(0, 300);
+  if (clean.length < 2) return;
+  const col = await collection();
+  const docs = await col.find({ _id: { $in: clean.map((id) => new ObjectId(id)) } }, { projection: { sortAt: 1, publishedAt: 1 } }).toArray();
+  if (docs.length !== clean.length) return;
+  const slots = docs.map((d) => ((d.sortAt ?? d.publishedAt) as Date).getTime()).sort((a, b) => b - a);
+  // Equal times would make the order ambiguous: nudge them a millisecond apart
+  for (let i = 1; i < slots.length; i++) if (slots[i] >= slots[i - 1]) slots[i] = slots[i - 1] - 1;
+  await col.bulkWrite(clean.map((id, i) => ({ updateOne: { filter: { _id: new ObjectId(id) }, update: { $set: { sortAt: new Date(slots[i]), ordered: true } } } })));
 }

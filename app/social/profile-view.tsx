@@ -14,6 +14,8 @@ import {
   Gamepad2,
   Globe2,
   Heart,
+  Link2,
+  Quote,
   HeartHandshake,
   HeartOff,
   Mail,
@@ -39,6 +41,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { SectionIcon, TierIcon } from "./icons";
 import { Empty, Photo, ReportButton, ago, cropStyle, post, useApi, type Crop } from "./ui";
 
@@ -52,6 +55,8 @@ type View = {
   age: number | null;
   headline: string | null;
   accent: string;
+  banner: string | null;
+  bannerY: number;
   photos: { url: string; caption: string | null; crop: Crop | null }[];
   facts: { label: string; value: string; key: string }[];
   sections: { id: string; label: string; items: { key: string; label: string; value: string; legacy: boolean; long: boolean; href: string | null }[] }[];
@@ -139,6 +144,75 @@ function Gallery({ photos, name, owner }: { photos: View["photos"]; name: string
   );
 }
 
+/** A fursona with its art as a gallery (click to view full size, arrows between pieces). */
+function FursonaCard({ sona }: { sona: View["fursonas"][number] }) {
+  const images = sona.art_links.filter(isImage);
+  const links = sona.art_links.filter((l) => !isImage(l));
+  const [open, setOpen] = useState<number | null>(null);
+  useEffect(() => {
+    if (open === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(null);
+      if (e.key === "ArrowRight") setOpen((i) => (i === null ? i : (i + 1) % images.length));
+      if (e.key === "ArrowLeft") setOpen((i) => (i === null ? i : (i - 1 + images.length) % images.length));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, images.length]);
+  return (
+    <article className="dt-sona">
+      <div className="dt-sona-text">
+        <b>{sona.name}</b>
+        {sona.description ? <p>{sona.description}</p> : null}
+      </div>
+      {images.length ? (
+        <div className="dt-sona-art" data-count={Math.min(images.length, 4)}>
+          {images.map((l, i) => (
+            <button key={l} type="button" onClick={() => setOpen(i)} aria-label={`View ${sona.name} art ${i + 1}`}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={l} alt="" loading="lazy" referrerPolicy="no-referrer" />
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {links.length ? (
+        <div className="dt-sona-links">
+          {links.map((l) => (
+            <a key={l} href={l} target="_blank" rel="noopener noreferrer nofollow">
+              <Link2 size={13} aria-hidden="true" /> {l.replace(/^https?:\/\/(www\.)?/, "").split("/")[0]}
+            </a>
+          ))}
+        </div>
+      ) : null}
+      {open !== null
+        ? createPortal(
+            <div className="dt-lightbox" onClick={() => setOpen(null)} role="dialog" aria-modal="true" aria-label={`${sona.name} art`}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={images[open]} alt="" referrerPolicy="no-referrer" onClick={(e) => e.stopPropagation()} />
+              {images.length > 1 ? (
+                <>
+                  <button type="button" className="dt-gallery-nav is-prev" onClick={(e) => (e.stopPropagation(), setOpen((open - 1 + images.length) % images.length))} aria-label="Previous">
+                    <ChevronLeft size={22} />
+                  </button>
+                  <button type="button" className="dt-gallery-nav is-next" onClick={(e) => (e.stopPropagation(), setOpen((open + 1) % images.length))} aria-label="Next">
+                    <ChevronRight size={22} />
+                  </button>
+                  <span className="dt-lightbox-count">
+                    {open + 1} / {images.length}
+                  </span>
+                </>
+              ) : null}
+              <button type="button" className="dt-modal-close" aria-label="Close">
+                <X size={20} />
+              </button>
+            </div>,
+            document.body,
+          )
+        : null}
+    </article>
+  );
+}
+
 /** A member's full profile (also what "My profile" shows you about yourself). */
 export function ProfileScreen({ id }: { id: string }) {
   const { data, error, reload } = useApi<Data>(`/api/dating/users/${id}`);
@@ -206,7 +280,11 @@ export function ProfileScreen({ id }: { id: string }) {
 
       {/* Header card */}
       <header className="dt-hero">
-        <div className="dt-hero-cover" aria-hidden="true" />
+        <div
+          className={`dt-hero-cover${p.banner ? " has-banner" : " dt-banner-default"}`}
+          style={p.banner ? { backgroundImage: `url(${p.banner})`, backgroundPosition: `center ${p.bannerY}%` } : undefined}
+          aria-hidden="true"
+        />
         <div className="dt-hero-body">
           <div className="dt-hero-photo">
             <Photo src={cover} name={p.name} accent={p.accent} crop={coverCrop} />
@@ -454,9 +532,10 @@ export function ProfileScreen({ id }: { id: string }) {
 
         <div className="dt-profile-main">
           {p.prompts.length ? (
-            <div className="dt-prompts">
+            <div className="dt-prompt-row" data-count={p.prompts.length}>
               {p.prompts.map((pr) => (
                 <blockquote key={pr.q} className="dt-prompt">
+                  <Quote size={18} aria-hidden="true" className="dt-prompt-mark" />
                   <small>{pr.q}</small>
                   <p>{pr.a}</p>
                 </blockquote>
@@ -464,39 +543,39 @@ export function ProfileScreen({ id }: { id: string }) {
             </div>
           ) : null}
 
-          <section className="dt-card">
-            <h3 className="dt-h-icon">
-              <SectionIcon id="targets" /> Looking for
-            </h3>
-            {p.lookingFor.open ? (
-              <div className="dt-facts">
-                {p.lookingFor.genders.length ? (
-                  <div>
-                    <small>Into</small>
-                    <b>{p.lookingFor.genders.join(", ")}</b>
-                  </div>
-                ) : null}
-                {p.lookingFor.ages ? (
-                  <div>
-                    <small>Ages</small>
-                    <b>{p.lookingFor.ages}</b>
-                  </div>
-                ) : null}
-                {p.lookingFor.relTypes.length ? (
-                  <div>
-                    <small>Relationship</small>
-                    <b>{p.lookingFor.relTypes.join(", ")}</b>
-                  </div>
-                ) : null}
-              </div>
-            ) : (
-              <p className="dt-muted">Not looking to date right now. Here for friends.</p>
-            )}
-          </section>
+          <div className="dt-masonry">
+            <section className="dt-card">
+              <h3 className="dt-h-icon">
+                <SectionIcon id="targets" /> Looking for
+              </h3>
+              {p.lookingFor.open ? (
+                <div className="dt-facts">
+                  {p.lookingFor.genders.length ? (
+                    <div>
+                      <small>Into</small>
+                      <b>{p.lookingFor.genders.join(", ")}</b>
+                    </div>
+                  ) : null}
+                  {p.lookingFor.ages ? (
+                    <div>
+                      <small>Ages</small>
+                      <b>{p.lookingFor.ages}</b>
+                    </div>
+                  ) : null}
+                  {p.lookingFor.relTypes.length ? (
+                    <div>
+                      <small>Relationship</small>
+                      <b>{p.lookingFor.relTypes.join(", ")}</b>
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="dt-muted">Not looking to date right now. Here for friends.</p>
+              )}
+            </section>
 
-          <div className="dt-section-grid">
             {p.sections.map((s) => (
-              <section key={s.id} className={`dt-card${s.items.some((it) => it.long) ? " is-wide" : ""}`}>
+              <section key={s.id} className="dt-card">
                 <h3 className="dt-h-icon">
                   <SectionIcon id={s.id} /> {s.label}
                 </h3>
@@ -521,34 +600,13 @@ export function ProfileScreen({ id }: { id: string }) {
           </div>
 
           {p.fursonas.length ? (
-            <section className="dt-card">
+            <section className="dt-card dt-sonas-card">
               <h3 className="dt-h-icon">
-                <SectionIcon id="fursonas" /> Fursonas
+                <SectionIcon id="fursonas" /> {p.fursonas.length === 1 ? "Fursona" : "Fursonas"}
               </h3>
               <div className="dt-sonas">
                 {p.fursonas.map((f, n) => (
-                  <article key={`${f.name}-${n}`} className="dt-sona">
-                    {f.art_links
-                      .filter(isImage)
-                      .slice(0, 1)
-                      .map((l) => (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img key={l} src={l} alt={`${f.name} art`} loading="lazy" referrerPolicy="no-referrer" />
-                      ))}
-                    <div>
-                      <b>{f.name}</b>
-                      {f.description ? <p>{f.description}</p> : null}
-                      {f.art_links.length > 1 || (f.art_links.length && !isImage(f.art_links[0])) ? (
-                        <small>
-                          {f.art_links.map((l, k) => (
-                            <a key={l} href={l} target="_blank" rel="noopener noreferrer nofollow">
-                              Art {k + 1}
-                            </a>
-                          ))}
-                        </small>
-                      ) : null}
-                    </div>
-                  </article>
+                  <FursonaCard key={`${f.name}-${n}`} sona={f} />
                 ))}
               </div>
             </section>
