@@ -160,7 +160,7 @@ export async function send(me: string, other: string, raw: string, myName: strin
   await notify(other, {
     type: state === "request" ? "request" : "message",
     actor: me,
-    title: state === "request" ? `📨 ${myName} sent you a message request` : `💬 New message from ${myName}`,
+    title: state === "request" ? `${myName} sent you a message request` : `New message from ${myName}`,
     body: text.slice(0, 100),
     link: `/social/messages/${me}`,
     key: `msg:${id}`,

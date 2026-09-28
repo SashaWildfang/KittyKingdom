@@ -1,11 +1,12 @@
 "use client";
 
-import { Ban, Bell, Check, Compass, Eye, Loader2, Lock, MessageCircle, PenLine, Trash2, UserRound } from "lucide-react";
+import { Ban, Bell, Check, Send, Compass, Eye, Loader2, Lock, MessageCircle, PenLine, Trash2, UserRound } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Empty, useApi } from "../ui";
 
 type Settings = {
   notify: Record<string, boolean>;
+  dm: Record<string, boolean>;
   anonymousViews: boolean;
   messagesFrom: "everyone" | "connections";
   showLeft: boolean;
@@ -86,7 +87,7 @@ export default function SettingsPage() {
   if (settingsApi.error) return <p className="dt-error">{settingsApi.error}</p>;
   if (!s || !settingsApi.data) return <div className="dt-loading" aria-busy="true" />;
 
-  const save = async (patch: Partial<Settings> | { notify: Record<string, boolean> }) => {
+  const save = async (patch: Partial<Settings> | { notify: Record<string, boolean> } | { dm: Record<string, boolean> }) => {
     setSaving(true);
     const res = await fetch("/api/dating/settings", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) }).then((r) => r.json()).catch(() => null);
     setSaving(false);
@@ -112,6 +113,7 @@ export default function SettingsPage() {
     } else setSaved(res?.error ?? "Couldn't save. Try again.");
   };
   const allOn = settingsApi.data.types.every((t) => s.notify[t.key] !== false);
+  const dmOn = settingsApi.data.types.some((t) => s.dm[t.key] === true);
 
   return (
     <div className="dt-settings">
@@ -119,6 +121,9 @@ export default function SettingsPage() {
         <nav aria-label="Settings sections">
           <a href="#notifications">
             <Bell size={15} aria-hidden="true" /> Notifications
+          </a>
+          <a href="#dms">
+            <Send size={15} aria-hidden="true" /> Discord DMs
           </a>
           <a href="#privacy">
             <Lock size={15} aria-hidden="true" /> Privacy
@@ -164,6 +169,33 @@ export default function SettingsPage() {
               />
             ))}
           </div>
+        </Section>
+
+        <Section id="dms" icon={<Send size={16} />} title="Discord DMs" intro="Get a little message from the Kitty Kingdom bot in your Discord DMs, with who it was and a button to open it here. Off unless you turn them on.">
+          <Toggle
+            label="Send me Discord DMs"
+            hint={dmOn ? "On for the ones below" : "All off"}
+            checked={dmOn}
+            onChange={(v) => {
+              const dm = Object.fromEntries(settingsApi.data!.types.map((t) => [t.key, v && (t.key === "view" ? false : true)]));
+              setS({ ...s, dm });
+              void save({ dm });
+            }}
+          />
+          <div className="dt-switches dt-switches--nested">
+            {settingsApi.data.types.map((t) => (
+              <Toggle
+                key={t.key}
+                label={t.label}
+                checked={s.dm[t.key] === true}
+                onChange={(v) => {
+                  setS({ ...s, dm: { ...s.dm, [t.key]: v } });
+                  void save({ dm: { [t.key]: v } });
+                }}
+              />
+            ))}
+          </div>
+          <p className="dt-help">Make sure your Discord privacy settings allow DMs from server members, or they won&apos;t arrive. You&apos;ll get at most a few per few minutes.</p>
         </Section>
 
         <Section id="privacy" icon={<Lock size={16} />} title="Privacy">
