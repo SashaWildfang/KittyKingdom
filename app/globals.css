@@ -23868,3 +23868,32 @@ button.adm-format-media {
 .nw-unread button:hover {
   border-color: var(--ember);
 }
+/* Live chat: feed expanded to the whole screen */
+.live-feed-wrap.is-expanded {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  height: 100vh;
+  height: 100dvh;
+  border-radius: 0;
+  background: var(--bg);
+  box-shadow: none;
+}
+.live-feed-wrap.is-expanded .live-feed {
+  flex: 1;
+  max-height: none;
+}
+.live-expand {
+  margin-left: auto;
+}
+.live-feed-wrap.is-expanded .live-expand {
+  border-color: var(--ember) !important;
+  color: var(--ember) !important;
+}
+.live-feed-wrap.is-expanded {
+  z-index: 10000;
+}
+body.live-fullscreen .topbar,
+body.live-fullscreen .view-as-bar {
+  display: none !important;
+}

@@ -72,7 +72,7 @@ const RULES: { key: RuleKey; name: string; icon: LucideIcon; about: string }[] =
   { key: "formatting", name: "Formatting spam", icon: ScanText, about: "Walls of text, zalgo text, keyboard smashing and long character runs." },
   { key: "emoji", name: "Emoji spam", icon: Smile, about: "A message that's mostly a huge pile of emojis." },
   { key: "names", name: "Nickname filter", icon: Tag, about: "Names with blocked words get reset to “Renamed Kitty ####” (or just flagged for staff)." },
-  { key: "mediaChannels", name: "Media in general chats", icon: ImageIcon, about: "Pictures, videos and GIFs posted in sfw-general or nsfw-general are removed with a friendly pointer to sfw-media or nsfw-media (no strike)." },
+  { key: "mediaChannels", name: "Media in general chats", icon: ImageIcon, about: "Pictures and videos posted in sfw-general or nsfw-general are removed with a friendly pointer to sfw-media or nsfw-media (no strike). GIFs and stickers are allowed everywhere." },
   { key: "mediaHint", name: "Media perms helper", icon: ImageIcon, about: "Explains how to unlock media when a low-level member asks why they can't post pictures." },
   { key: "dm", name: "DM members about strikes", icon: Mail, about: "Sends a friendly DM explaining the strike, what happens next and how to appeal." },
 ];
