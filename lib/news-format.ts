@@ -7,6 +7,8 @@
 export function newsPlainText(body: string) {
   return body
     .replace(/```[\s\S]*?```/g, " ")
+    .replace(/^\s*!\[[^\]]*\]\([^)]*\)\s*$/gm, " ")
+    .replace(/^\s*https?:\/\/\S+\s*$/gm, " ")
     .replace(/^\s{0,3}(#{1,3}|>|[-*]|\d+[.)])\s+/gm, "")
     .replace(/^\s*-{3,}\s*$/gm, "")
     .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, "$1")

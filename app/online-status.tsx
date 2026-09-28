@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 
 type OnlineStatusProps = {
   initialOnline: number | null;
+  /** Admins: the "on the website" count opens Admin → Website → Online now */
+  visitorsHref?: string | null;
 };
 
 const HEARTBEAT_MS = 30000;
@@ -23,7 +25,7 @@ function visitorId() {
   }
 }
 
-export function OnlineStatus({ initialOnline }: OnlineStatusProps) {
+export function OnlineStatus({ initialOnline, visitorsHref = null }: OnlineStatusProps) {
   const [online, setOnline] = useState(initialOnline);
   const [siteVisitors, setSiteVisitors] = useState<number | null>(null);
 
@@ -50,7 +52,8 @@ export function OnlineStatus({ initialOnline }: OnlineStatusProps) {
         const response = await fetch("/api/presence", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id }),
+          // Which page this tab is on (admins see it in Admin → Website → Online now)
+          body: JSON.stringify({ id, path: `${location.pathname}${location.search}${location.hash}`.slice(0, 200), title: document.title.slice(0, 120) }),
           cache: "no-store",
         });
         if (response.ok) {
@@ -66,6 +69,14 @@ export function OnlineStatus({ initialOnline }: OnlineStatusProps) {
     const heartbeatInterval = window.setInterval(heartbeat, HEARTBEAT_MS);
     const onVisible = () => void heartbeat();
     document.addEventListener("visibilitychange", onVisible);
+    // Page changes (links, tabs inside a page) report right away
+    let lastPath = location.href;
+    const pathWatch = window.setInterval(() => {
+      if (location.href !== lastPath) {
+        lastPath = location.href;
+        void heartbeat();
+      }
+    }, 2000);
     void refreshDiscord();
     void heartbeat();
 
@@ -74,6 +85,7 @@ export function OnlineStatus({ initialOnline }: OnlineStatusProps) {
       window.clearInterval(discordInterval);
       window.clearInterval(heartbeatInterval);
       document.removeEventListener("visibilitychange", onVisible);
+      window.clearInterval(pathWatch);
     };
   }, []);
 
@@ -84,7 +96,23 @@ export function OnlineStatus({ initialOnline }: OnlineStatusProps) {
         {online === null ? "Live now" : `${online.toLocaleString()} online`}
       </small>
       {siteVisitors && siteVisitors > 0 ? (
-        <small className="online-status staff-online-status" title="People browsing the website right now">
+        <small
+          className={`online-status staff-online-status${visitorsHref ? " is-link" : ""}`}
+          title={visitorsHref ? "See who's on the website and what they're doing" : "People browsing the website right now"}
+          role={visitorsHref ? "link" : undefined}
+          tabIndex={visitorsHref ? 0 : undefined}
+          onClick={
+            visitorsHref
+              ? (e) => {
+                  // It sits inside the logo link, so take over the click
+                  e.preventDefault();
+                  e.stopPropagation();
+                  window.location.href = visitorsHref;
+                }
+              : undefined
+          }
+          onKeyDown={visitorsHref ? (e) => e.key === "Enter" && (e.preventDefault(), (window.location.href = visitorsHref)) : undefined}
+        >
           <span aria-hidden="true" />
           {`${siteVisitors.toLocaleString()} on the website`}
         </small>

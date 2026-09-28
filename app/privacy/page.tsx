@@ -170,8 +170,9 @@ const sections: LegalSection[] = [
             recorded for you.
           </li>
           <li>
-            <b>Online count:</b> a short-lived record (deleted after 5 minutes) that a browser has the Site open, used for the &quot;on the website&quot;
-            counter.
+            <b>Online count:</b> a short-lived record (deleted after 5 minutes) that a browser has the Site open and which page of the Site it is on, used
+            for the &quot;on the website&quot; counter. While you are signed in and online, administrators can see which page you have open (for example
+            &quot;Browsing the Store&quot;) to help with support and keep the Site running smoothly.
           </li>
           <li>
             <b>Abuse prevention:</b> attempts to log in, sign up, reset passwords and similar actions are counted per IP address and per account for a short
