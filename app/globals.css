@@ -20728,3 +20728,211 @@ button.st-emoji-chip.is-on {
   align-items: center;
   gap: 0.6rem;
 }
+/* Topic map: clickable keyword rows (the whole row lights up) and the message context window */
+.st-topic-words button {
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+.st-topic-words button:hover {
+  background: color-mix(in srgb, var(--hue) 12%, transparent);
+}
+.st-topic-words button.is-on {
+  background: color-mix(in srgb, var(--hue) 26%, transparent);
+  box-shadow: inset 3px 0 0 var(--hue), 0 0 0 1px color-mix(in srgb, var(--hue) 55%, transparent);
+}
+.st-topic-words button.is-on .st-rank-name,
+.st-topic-words button.is-on .st-rank-val {
+  color: var(--text);
+  font-weight: 900;
+}
+.st-topic-words button.is-on .st-rank-bar i {
+  box-shadow: 0 0 10px var(--hue);
+}
+.st-topic-see {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--hue) 60%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--hue) 14%, transparent);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.st-topic-see.is-on,
+.st-topic-see:hover {
+  background: color-mix(in srgb, var(--hue) 30%, transparent);
+}
+.st-ctx {
+  margin-top: 0.9rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--hue) 45%, transparent);
+  border-radius: 0.9rem;
+  background: color-mix(in srgb, var(--hue) 7%, var(--panel-strong));
+  animation: st-in 0.25s ease;
+  outline: none;
+}
+.st-ctx header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+.st-ctx header b {
+  color: var(--text);
+  font-size: 0.95rem;
+}
+.st-ctx-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.st-ctx-nav > span {
+  min-width: 4.5rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-align: center;
+}
+.st-ctx-nav button:not(.st-x) {
+  display: grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+}
+.st-ctx-nav button:not(.st-x):hover:not(:disabled) {
+  border-color: var(--hue);
+  background: color-mix(in srgb, var(--hue) 20%, transparent);
+}
+.st-ctx-nav button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.st-ctx-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.st-ctx-meta span,
+.st-ctx-meta a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.st-ctx-meta a {
+  color: var(--hue);
+  filter: brightness(1.35);
+  text-decoration: none;
+}
+.st-ctx-body {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.st-ctx-body li {
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.6rem;
+  opacity: 0.55;
+}
+.st-ctx-body li.is-hit {
+  background: color-mix(in srgb, var(--hue) 16%, transparent);
+  box-shadow: inset 3px 0 0 var(--hue);
+  opacity: 1;
+}
+.st-ctx-body img,
+.st-ctx-av {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+}
+.st-ctx-av {
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--hue) 40%, #333);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+.st-ctx-body li > div {
+  min-width: 0;
+}
+.st-ctx-who {
+  margin: 0;
+  font-size: 0.8rem;
+}
+.st-ctx-who b {
+  color: var(--text);
+}
+.st-ctx-who time,
+.st-ctx-who small {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+.st-ctx-text {
+  margin: 0.1rem 0 0;
+  color: var(--text);
+  font-size: 0.88rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.st-ctx-text mark {
+  padding: 0 0.15em;
+  border-radius: 0.25em;
+  background: var(--hue);
+  color: #fff;
+  font-weight: 800;
+}
+.st-ctx-files {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0.15rem 0 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.st-ctx-body.is-loading i {
+  display: block;
+  height: 2.4rem;
+  border-radius: 0.6rem;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--text) 6%, transparent), color-mix(in srgb, var(--text) 12%, transparent), color-mix(in srgb, var(--text) 6%, transparent));
+  background-size: 200% 100%;
+  animation: st-ctx-shimmer 1.2s linear infinite;
+}
+@keyframes st-ctx-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+.st-ctx-note {
+  margin: 0.3rem 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.st-ctx-foot {
+  margin: 0.55rem 0 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-align: center;
+}
