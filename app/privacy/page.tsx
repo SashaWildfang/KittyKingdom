@@ -104,8 +104,15 @@ const sections: LegalSection[] = [
             (including your &quot;server bestie&quot;, friendship map and topic map), which only you can open.
           </li>
           <li>
-            <b>Dating profiles:</b> if you use the dating bot, the profile you create (which can include sensitive details such as gender, sexuality and
-            relationship preferences), your likes, passes and matches. You control this profile and can reset or delete it with the dating commands.
+            <b>Dating profiles:</b> if you use Dating (on the Site or the dating bot), the profile you create (which can include sensitive details such as
+            gender, sexuality and relationship preferences), any photos or art you upload, your prompts and display choices, and your likes, passes,
+            matches, friends and blocks. Photos have location and other hidden metadata removed when you upload them. To match people by meaning, the dating
+            bot turns the interests, dislikes, bio and location in your profile into numbers (&quot;vectors&quot;) with a small model that runs on our own bot host;
+            nothing is sent to an outside AI service. You control your profile and can edit, pause or delete it at any time on the Dating page.
+          </li>
+          <li>
+            <b>Dating messages and notifications:</b> private messages you send or receive in Dating, message requests, whether a conversation has been read,
+            and notifications (the bell on the Site) about likes, matches, messages and friend requests.
           </li>
         </ul>
       </>
@@ -251,6 +258,12 @@ const sections: LegalSection[] = [
             <b>Staff</b> (moderators and helpers) can see moderation records, server logs, join applications and the Staff Panel.
           </li>
           <li>
+            <b>Dating</b> profiles and photos are only shown to signed-in members who hold the 18+ Verified role. You can hide your age and last-active time,
+            pause your profile, and block anyone. Dating messages are private between the two of you: staff cannot browse them. If you report a message,
+            staff see only that message and up to two messages before and after it; if you report a profile or photo, staff see that profile as it was
+            when reported. Staff may review uploaded photos to keep Dating safe for work.
+          </li>
+          <li>
             <b>Administrators</b> can additionally see Site account details (email, phone, birthday, linked Discord, sign-in sessions and devices), ticket
             transcripts, the live chat mirror, inventories and purchase history, and can manage accounts, roles and inventories. To help with support
             and fix problems, an administrator can also view the Site as a member who has linked Discord and verified their email, seeing the
@@ -305,6 +318,9 @@ const sections: LegalSection[] = [
               <tr><td>Sign-in sessions and devices</td><td>Until you delete your account (you can ask us to clear old ones)</td></tr>
               <tr><td>Site statistics</td><td>About 13 months, then deleted automatically</td></tr>
               <tr><td>Live chat mirror</td><td>72 hours, then deleted automatically</td></tr>
+              <tr><td>Dating profile, photos, likes and matches</td><td>Until you delete your dating profile (deleting it removes your photos, likes and matches)</td></tr>
+              <tr><td>Dating messages</td><td>While both members keep the conversation; a message you unsend is removed. Reports keep a copy of what was reported for as long as needed for safety</td></tr>
+              <tr><td>Notifications</td><td>60 days, then deleted automatically</td></tr>
               <tr><td>Online count, rate limits, link codes</td><td>Minutes to hours, deleted automatically</td></tr>
               <tr><td>Ticket activity (while a ticket is open)</td><td>Until the ticket is closed and its transcript saved (at most 21 days if it is never closed)</td></tr>
               <tr><td>Ticket transcripts, moderation records, server logs, join applications, verification records</td><td>As long as needed for community safety and to handle appeals, disputes and repeat rule-breaking</td></tr>
@@ -343,7 +359,7 @@ const sections: LegalSection[] = [
           <li>unlink Discord at any time (Discord-only features stop working until you link again);</li>
           <li>delete your Site account from My Account. This deletes your account and sign-in sessions. Staff accounts must first have their staff role removed;</li>
           <li>turn off Site statistics for yourself by enabling Do Not Track or Global Privacy Control in your browser; and</li>
-          <li>reset or delete your dating profile with the dating bot commands.</li>
+          <li>edit, pause or delete your dating profile, hide your age or activity, unsend your messages, and block members on the Dating page.</li>
         </ul>
         <p>
           Depending on where you live (for example under the EU or UK GDPR, or California and other US state privacy laws), you may also have the right to

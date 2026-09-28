@@ -4,6 +4,8 @@ import { canViewStaffPage, getCurrentUser } from "../lib/auth";
 import { OnlineStatus } from "./online-status";
 import { NewsNavBadge } from "./news-nav-badge";
 import { recentNewsStamps } from "../lib/news";
+import { canSeeDating } from "../lib/dating/access";
+import { NotificationBell } from "./notification-bell";
 import { MobileMenu } from "./mobile-menu";
 import { ThemeToggle } from "./theme-toggle";
 
@@ -23,6 +25,8 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
   const linked = Boolean(user?.discordId);
   // The Staff page needs a verified email and a linked Discord account too
   const staffPage = canViewStaffPage(user);
+  // Dating is for 18+ Verified members (role checked with Discord, cached for two minutes)
+  const dating = linked ? await canSeeDating(user?.discordId).catch(() => false) : false;
   // Recent posts, for the unread bubble on the News tab
   const newsStamps = await recentNewsStamps();
   // Same links for the phone menu
@@ -32,6 +36,7 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
     { href: "https://discord.com/invite/M9XKHFdYQV", label: "Discord", icon: "discord" as const, external: true },
     { href: PATREON_URL, label: "Patreon", icon: "patreon" as const, external: true },
     ...(staffPage ? [{ href: "/staff", label: "Staff", icon: "staff" as const }] : []),
+    ...(dating ? [{ href: "/dating", label: "Dating", icon: "dating" as const }] : []),
     ...(linked ? [{ href: "/store", label: "Store", icon: "store" as const }, { href: "/leaderboards", label: "Leaderboards", icon: "leaderboards" as const }] : []),
     ...(panel ? [{ href: "/admin", label: panel.level === "admin" ? "Admin" : "Staff Panel", icon: "admin" as const }] : []),
   ];
@@ -55,6 +60,11 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
           Patreon
         </a>
         {staffPage ? <a href="/staff">Staff</a> : null}
+        {dating ? (
+          <a href="/dating" className="nav-dating-tab">
+            Dating
+          </a>
+        ) : null}
         {linked ? <a href="/store">Store</a> : null}
         {linked ? <a href="/leaderboards">Leaderboards</a> : null}
       </div>
@@ -65,6 +75,7 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
           </a>
         ) : null}
         <ThemeToggle />
+        {linked ? <NotificationBell /> : null}
         {signedIn ? (
           <a className="login-link logged-in-link" href="/account">
             My Account
@@ -86,7 +97,7 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
           </a>
         )}
       </div>
-      <MobileMenu links={mobileLinks} signedIn={signedIn} newsStamps={newsStamps} />
+      <MobileMenu links={mobileLinks} signedIn={signedIn} newsStamps={newsStamps} bell={linked} />
     </nav>
   );
 }
