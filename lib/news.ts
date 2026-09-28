@@ -201,10 +201,12 @@ export type NewsInput = { title: string; body: string; tag: string; pinned: bool
 
 /** Checks and cleans an admin's post form. */
 export async function cleanNewsInput(raw: Record<string, unknown>): Promise<NewsInput | string> {
-  const title = typeof raw.title === "string" ? raw.title.trim() : "";
-  const body = typeof raw.body === "string" ? raw.body.trim() : "";
+  const isDraft = raw.status === "draft";
+  // Drafts can be saved half-written
+  const title = (typeof raw.title === "string" ? raw.title.trim() : "") || (isDraft ? "Untitled draft" : "");
+  const body = (typeof raw.body === "string" ? raw.body.trim() : "") || (isDraft ? " " : "");
   const tags = await newsTags();
-  const tag = tags.find((t) => t.name === raw.tag)?.name;
+  const tag = tags.find((t) => t.name === raw.tag)?.name ?? (isDraft ? tags[0]?.name : undefined);
   if (!tag) return "Pick a tag for the post.";
   if (!title || title.length > 120) return "Give the post a title (up to 120 characters).";
   if (!body || body.length > 8000) return "Write the post (up to 8,000 characters).";
@@ -255,4 +257,18 @@ export async function publishedPost(id: string) {
   const [col, colors] = await Promise.all([collection(), tagColors()]);
   const d = await col.findOne({ _id: new ObjectId(id), published: { $ne: false }, status: { $nin: ["pending", "draft"] }, publishedAt: { $lte: new Date() } });
   return d ? toPost(d, colors) : null;
+}
+
+/** Ids and dates of recent public posts, for the unread bubble on the News tab (cheap). */
+export async function recentNewsStamps(): Promise<{ id: string; at: string }[]> {
+  try {
+    const docs = await (await collection())
+      .find({ published: { $ne: false }, status: { $nin: ["pending", "draft"] }, publishedAt: { $lte: new Date(), $gte: new Date(Date.now() - 60 * 86_400_000) } }, { projection: { publishedAt: 1 } })
+      .sort({ publishedAt: -1 })
+      .limit(30)
+      .toArray();
+    return docs.map((d) => ({ id: String(d._id), at: (d.publishedAt as Date).toISOString() }));
+  } catch {
+    return [];
+  }
 }

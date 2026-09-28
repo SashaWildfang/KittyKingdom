@@ -2,7 +2,7 @@
 
 import { Sparkles, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { NEWS_SEEN_KEY } from "./news/news-seen";
+import { NEWS_READ_KEY, NEWS_SEEN_KEY } from "./news/news-seen";
 
 type Item = { id: string; title: string; publishedAt: string };
 
@@ -13,14 +13,16 @@ export function HomeNewsNotice({ posts }: { posts: Item[] }) {
 
   useEffect(() => {
     let seen: string | null = null;
+    let read = new Set<string>();
     try {
       seen = window.localStorage.getItem(NEWS_SEEN_KEY);
+      read = new Set(JSON.parse(window.localStorage.getItem(NEWS_READ_KEY) ?? "[]"));
     } catch {
       seen = null;
     }
     const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
     setFirstVisit(!seen);
-    setFresh(posts.filter((p) => p.publishedAt > (seen ?? weekAgo)));
+    setFresh(posts.filter((p) => p.publishedAt > (seen ?? weekAgo) && !read.has(p.id)));
   }, [posts]);
 
   if (!fresh?.length) return null;

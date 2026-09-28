@@ -37,7 +37,7 @@ export default async function NewsArticle({ params }: { params: { id: string } }
     <main className="site-shell news-shell">
       <FallingLeaves foreground={false} />
       <SiteNav signedIn={Boolean(user)} discordOnline={discord.online} />
-      <NewsSeen latest={post.publishedAt} />
+      <NewsSeen latest={post.publishedAt} readId={post.id} />
       <article className="nw-article">
         <Link href="/news" className="nw-back">
           <ArrowLeft size={15} aria-hidden="true" /> All news
