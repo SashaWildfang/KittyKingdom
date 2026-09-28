@@ -41,6 +41,7 @@ import {
   Laugh,
   Leaf,
   Lock,
+  MessagesSquare,
   Mic2,
   MonitorPlay,
   Moon,
@@ -73,6 +74,7 @@ import {
 import { useMemo, useState, type CSSProperties } from "react";
 import type { MemberStats } from "../../lib/member-stats";
 import { TOPIC_GROUPS } from "../../lib/topics";
+import { TopicMessages } from "./stats-topic-messages";
 
 const ICONS: Record<string, LucideIcon> = { Angry, BedDouble, Bitcoin, BookOpen, Bot, Brain, Briefcase, Camera, Car, Castle, Cigarette, Clapperboard, CloudSun, Code2, Coffee, Cpu, Crosshair, CupSoda, Dices, Dog, Dumbbell, EyeOff, Flame, Gamepad, Gamepad2, Ghost, Gift, Glasses, GraduationCap, Guitar, Hand, Hash, Heart, HeartHandshake, HelpCircle, Home, Languages, Laugh, Leaf, Lock, Mic2, MonitorPlay, Moon, Music, Newspaper, Palette, PartyPopper, PawPrint, Pickaxe, Pizza, Plane, Rainbow, Rocket, Scissors, Shirt, Sparkles, Sprout, Star, Swords, Thermometer, Trees, Trophy, Users, Wallet, Wine, Zap };
 const fmt = (n: number) => Math.round(n).toLocaleString();
@@ -134,7 +136,13 @@ export function TopicMap({ topics: all }: { topics: MemberStats["topics"] }) {
     return { ...all, list: list.map((t) => ({ ...t, share: t.n / total })) };
   }, [all, group, hideNsfw]);
   const groupsPresent = Array.from(new Set(all.list.map((t) => t.group)));
-  const [picked, setPicked] = useState<string | null>(null);
+  const [picked, setPickedRaw] = useState<string | null>(null);
+  // The context window: a word of the picked topic, or the whole topic ("*")
+  const [word, setWord] = useState<string | null>(null);
+  const setPicked = (key: string | null, w: string | null = null) => {
+    setPickedRaw(key);
+    setWord(w);
+  };
   const [hover, setHover] = useState<string | null>(null);
   const W = 760;
   const H = 440;
@@ -234,23 +242,38 @@ export function TopicMap({ topics: all }: { topics: MemberStats["topics"] }) {
                 #{topics.list.indexOf(selected) + 1} topic · {fmt(selected.n)} messages · {pct(selected.share)} of your topics
               </small>
             </div>
+            <button type="button" className={`st-topic-see${word === "*" ? " is-on" : ""}`} onClick={() => setWord(word === "*" ? null : "*")}>
+              <MessagesSquare size={14} /> See messages
+            </button>
             <button type="button" className="st-x" onClick={() => setPicked(null)} aria-label="Close">
               <X size={15} />
             </button>
           </header>
           {selected.words.length ? (
-            <ul className="st-rank-list">
-              {selected.words.map((w) => (
-                <li key={w.word}>
-                  <span className="st-rank-name">{w.word}</span>
-                  <span className="st-rank-bar">
-                    <i style={{ "--w": `${(w.n / maxWord) * 100}%`, background: selected.color } as CSSProperties} />
-                  </span>
-                  <span className="st-rank-val">{fmt(w.n)}</span>
-                </li>
-              ))}
-            </ul>
+            <>
+              <ul className="st-rank-list st-rank-list--click st-topic-words">
+                {selected.words.map((w) => (
+                  <li key={w.word}>
+                    <button
+                      type="button"
+                      className={word === w.word ? "is-on" : undefined}
+                      aria-pressed={word === w.word}
+                      onClick={() => setWord(word === w.word ? null : w.word)}
+                      title={`See your messages with “${w.word}”`}
+                    >
+                      <span className="st-rank-name">{w.word}</span>
+                      <span className="st-rank-bar">
+                        <i style={{ "--w": `${(w.n / maxWord) * 100}%`, background: selected.color } as CSSProperties} />
+                      </span>
+                      <span className="st-rank-val">{fmt(w.n)}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {!word ? <p className="st-bars-readout">Tap a word to see messages where you used it.</p> : null}
+            </>
           ) : null}
+          {word ? <TopicMessages word={word === "*" ? null : word} topic={selected.key} color={selected.color} onClose={() => setWord(null)} /> : null}
         </div>
       ) : (
         <p className="st-bars-readout">Tap a bubble to see the words behind it.</p>
@@ -276,7 +299,7 @@ export function TopicMap({ topics: all }: { topics: MemberStats["topics"] }) {
                 <button
                   key={w.word}
                   type="button"
-                  onClick={() => t && setPicked(t.key)}
+                  onClick={() => t && setPicked(t.key, w.word)}
                   style={{ "--hue": t?.color ?? "#f59b2a", fontSize: `${0.8 + (w.n / cloudMax) * 1.5}rem`, "--d": `${i * 20}ms` } as CSSProperties}
                   title={`${w.word}: ${fmt(w.n)} messages${t ? ` · ${t.label}` : ""}`}
                 >

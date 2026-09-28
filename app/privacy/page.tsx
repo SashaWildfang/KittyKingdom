@@ -97,7 +97,9 @@ const sections: LegalSection[] = [
             in each voice channel and with whom, and which topics your messages touch. Topics are worked out by a small AI model that runs on our own bot (no outside service): it
             reads each message as it arrives, notes which of our topics it relates to (including 18+ topics) and any topic keywords from a fixed list
             (such as &quot;minecraft&quot; or &quot;pizza&quot;), and then discards the message. <b>We do not store the text of your
-            messages for these statistics</b>, only counts. Voice statistics also use the server&apos;s voice-channel logs (joins, leaves, camera and mute
+            messages for these statistics</b>, only counts. For the topic map&apos;s message viewer the bot also keeps the ids (not the text) of your
+            25 newest messages for each topic and topic keyword; when you open the viewer, the website fetches those messages and a few around them
+            directly from Discord, only from channels you can currently see, and does not save them. Deleted messages no longer appear. Voice statistics also use the server&apos;s voice-channel logs (joins, leaves, camera and mute
             changes) and the VC reward messages the bot posts (session length, rewards and who was in the call). They power your My stats page
             (including your &quot;server bestie&quot;, friendship map and topic map), which only you can open.
           </li>
