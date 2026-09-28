@@ -1,7 +1,9 @@
-import { ShieldUser } from "lucide-react";
+import { Gauge } from "lucide-react";
 import { getPanelUser } from "../lib/admin";
 import { canViewStaffPage, getCurrentUser } from "../lib/auth";
 import { OnlineStatus } from "./online-status";
+import { NewsNavBadge } from "./news-nav-badge";
+import { recentNewsStamps } from "../lib/news";
 import { MobileMenu } from "./mobile-menu";
 import { ThemeToggle } from "./theme-toggle";
 
@@ -21,6 +23,8 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
   const linked = Boolean(user?.discordId);
   // The Staff page needs a verified email and a linked Discord account too
   const staffPage = canViewStaffPage(user);
+  // Recent posts, for the unread bubble on the News tab
+  const newsStamps = await recentNewsStamps();
   // Same links for the phone menu
   const mobileLinks = [
     { href: "/home", label: "Home", icon: "home" as const },
@@ -42,7 +46,10 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
       </a>
       <div className="tabs">
         <a href="/home">Home</a>
-        <a href="/news">News</a>
+        <a href="/news" className="nav-news-tab">
+          News
+          <NewsNavBadge items={newsStamps} />
+        </a>
         <a href="https://discord.com/invite/M9XKHFdYQV">Discord</a>
         <a className="nav-patreon-tab" href={PATREON_URL} target="_blank" rel="noopener noreferrer">
           Patreon
@@ -54,7 +61,7 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
       <div className="nav-actions">
         {panel ? (
           <a className="nav-panel-btn" href="/admin" title={panel.level === "admin" ? "Admin panel" : "Staff panel"} aria-label={panel.level === "admin" ? "Admin panel" : "Staff panel"}>
-            <ShieldUser size={20} strokeWidth={2.1} aria-hidden="true" />
+            <Gauge size={20} strokeWidth={2.1} aria-hidden="true" />
           </a>
         ) : null}
         <ThemeToggle />
@@ -79,7 +86,7 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
           </a>
         )}
       </div>
-      <MobileMenu links={mobileLinks} signedIn={signedIn} />
+      <MobileMenu links={mobileLinks} signedIn={signedIn} newsStamps={newsStamps} />
     </nav>
   );
 }
