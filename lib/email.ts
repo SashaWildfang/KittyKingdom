@@ -290,3 +290,83 @@ export async function sendSecurityNoticeEmail(email: string, title: string, mess
   const m = securityNoticeEmail(email, title, message);
   return sendEmail(email, m.subject, m.html, m.text);
 }
+
+/** Staff-sent nudge for accounts that never confirmed their email (Admin → Website). */
+export function verificationReminderEmail(email: string, verifyUrl: string, name: string | null) {
+  const hi = name ? `Hi ${escapeHtml(name)}! ` : "Hi! ";
+  const html = layout({
+    preheader: "Your Kitty Kingdom account is almost ready: confirm your email to log in.",
+    eyebrow: "Friendly reminder",
+    title: "You're one click away from logging in",
+    intro: `${hi}You made a Kitty Kingdom website account but haven't confirmed your email yet, so you can't log in. Tap the button below and you're all set: the Store, Leaderboards, your stats and more are waiting.`,
+    rows: [
+      { label: "Email", value: email },
+      { label: "Sent", value: stamp() },
+    ],
+    button: { label: "Confirm my email", url: verifyUrl },
+    expiry: "This link expires in 72 hours. Any older confirmation links still work too.",
+    security: "Kitty Kingdom staff will never ask for your password or this link. If you didn't make this account, ignore this email and nothing will happen.",
+    reason: "A Kitty Kingdom staff member sent this reminder because this address has an unconfirmed account on kittykingdom.net.",
+  });
+  const text = [
+    "Kitty Kingdom: you're one click away from logging in",
+    "",
+    `${name ? `Hi ${name}! ` : "Hi! "}You made a Kitty Kingdom website account but haven't confirmed your email yet, so you can't log in.`,
+    "",
+    `Confirm your email: ${verifyUrl}`,
+    "This link expires in 72 hours.",
+    "",
+    "If you didn't make this account, ignore this email.",
+    "",
+    `${SITE} · Support: ${SITE}/support`,
+  ].join("\n");
+  return { subject: "Reminder: confirm your email for Kitty Kingdom", html, text };
+}
+
+export async function sendVerificationReminderEmail(email: string, verifyUrl: string, name: string | null) {
+  const m = verificationReminderEmail(email, verifyUrl, name);
+  return sendEmail(email, m.subject, m.html, m.text);
+}
+
+/** Staff-sent how-to for accounts that haven't linked Discord yet (Admin → Website). */
+export function discordLinkReminderEmail(email: string, name: string | null) {
+  const hi = name ? `Hi ${escapeHtml(name)}! ` : "Hi! ";
+  const html = layout({
+    preheader: "Link your Discord to unlock the Store, Leaderboards, your stats and roles on the site.",
+    eyebrow: "Friendly reminder",
+    title: "Link your Discord in under a minute",
+    intro: `${hi}Your Kitty Kingdom website account isn't linked to Discord yet. Linking unlocks the Store, Leaderboards, your live stats, badges and managing your server roles from the site. Here's how:`,
+    rows: [
+      { label: "Step 1", value: "Log in at kittykingdom.net and open My Account." },
+      { label: "Step 2", value: "In the Discord section, press “Get code”." },
+      { label: "Step 3", value: "In our Discord server, type /link and paste the code (it works for 10 minutes)." },
+      { label: "Step 4", value: "That's it! The page updates by itself once it's linked." },
+    ],
+    button: { label: "Open My Account", url: `${SITE}/account#discord-account` },
+    expiry: "Codes last 10 minutes; you can grab a new one anytime.",
+    security: "Staff will never ask for your password. Only paste your link code into the /link command in our server, never in DMs.",
+    reason: "A Kitty Kingdom staff member sent this reminder because your kittykingdom.net account isn't linked to Discord yet.",
+  });
+  const text = [
+    "Kitty Kingdom: link your Discord in under a minute",
+    "",
+    `${name ? `Hi ${name}! ` : "Hi! "}Your website account isn't linked to Discord yet. Linking unlocks the Store, Leaderboards, your stats and roles on the site.`,
+    "",
+    "1. Log in at kittykingdom.net and open My Account.",
+    "2. In the Discord section, press \"Get code\".",
+    "3. In our Discord server, type /link and paste the code (it works for 10 minutes).",
+    "4. Done! The page updates by itself once it's linked.",
+    "",
+    `My Account: ${SITE}/account#discord-account`,
+    "",
+    "Only paste your code into the /link command in our server, never in DMs.",
+    "",
+    `${SITE} · Support: ${SITE}/support`,
+  ].join("\n");
+  return { subject: "Link your Discord to Kitty Kingdom", html, text };
+}
+
+export async function sendDiscordLinkReminderEmail(email: string, name: string | null) {
+  const m = discordLinkReminderEmail(email, name);
+  return sendEmail(email, m.subject, m.html, m.text);
+}

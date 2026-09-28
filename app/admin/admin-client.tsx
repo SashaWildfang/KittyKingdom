@@ -63,6 +63,15 @@ export function AdminClient({ adminName, level }: { adminName: string; level: Le
   useEffect(() => {
     if (typeof liveUnreadPoll.data?.unread === "number") setLiveUnread(liveUnreadPoll.data.unread);
   }, [liveUnreadPoll.data]);
+  // New AutoMod catches since you last looked (the tab marks them seen while it's open)
+  const automodPoll = useLive<{ unread: number | null }>(tab === "automod" ? null : "/api/admin/automod/unread", 10_000);
+  const [automodUnread, setAutomodUnread] = useState<number | null>(null);
+  useEffect(() => {
+    if (typeof automodPoll.data?.unread === "number") setAutomodUnread(automodPoll.data.unread);
+  }, [automodPoll.data]);
+  useEffect(() => {
+    if (tab === "automod") setAutomodUnread(0);
+  }, [tab]);
   const tabsRef = useRef<HTMLElement>(null);
 
   // On narrow screens the tab strip scrolls sideways; keep the open tab in view
@@ -141,6 +150,11 @@ export function AdminClient({ adminName, level }: { adminName: string; level: Le
             {t.key === "live" && liveUnread ? (
               <span className="adm-tab-bubble is-live" aria-label={`${liveUnread} unread`}>
                 {liveUnread > 999 ? "999+" : liveUnread}
+              </span>
+            ) : null}
+            {t.key === "automod" && automodUnread ? (
+              <span className="adm-tab-bubble is-hot" aria-label={`${automodUnread} new`}>
+                {automodUnread > 999 ? "999+" : automodUnread}
               </span>
             ) : null}
             {t.key === "join" && joinCount.data ? (

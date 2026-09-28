@@ -33,11 +33,11 @@ import {
   Zap,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { RULE_LABELS } from "../../lib/automod-data";
 import { testMessage, type AutomodWord } from "../../lib/automod-engine";
 import type { AutomodConfig, AutomodEvent, RuleKey } from "../../lib/automod";
-import { Pager, PersonLink, formatDate, timeAgo, useLive, type People } from "./admin-shared";
+import { LiveBadge, Pager, PersonLink, formatDate, timeAgo, useLive, type People } from "./admin-shared";
 
 type Places = { channels: { id: string; name: string; category: boolean; parent: string | null }[]; roles: { id: string; name: string; color: string | null }[] };
 type Change = { id: string; at: string | null; source: string; byId: string | null; byName: string | null; summary: string };
@@ -121,7 +121,7 @@ export function AutoModTab({ onOpenMember }: { onOpenMember: (id: string) => voi
   }
   useEffect(() => {
     load();
-    const t = setInterval(load, 20_000);
+    const t = setInterval(load, 8_000);
     return () => clearInterval(t);
   }, []);
 
@@ -248,8 +248,21 @@ function ActivitySection({ onOpenMember }: { onOpenMember: (id: string) => void 
   const q = new URLSearchParams({ range, page: String(page) });
   if (rule) q.set("rule", rule);
   if (member) q.set("member", member);
-  const live = useLive<Activity>(`/api/admin/automod/activity?${q}`, 15_000);
+  const live = useLive<Activity>(`/api/admin/automod/activity?${q}`, 5_000);
   const a = live.data;
+  // While this tab is open, everything it shows counts as seen (clears the tab's bubble)
+  useEffect(() => {
+    if (a) void fetch("/api/admin/automod/unread", { method: "POST" }).catch(() => undefined);
+  }, [a]);
+  // New catches flash in as they arrive
+  const known = useRef<Set<string> | null>(null);
+  const fresh = useMemo(() => {
+    const ids = new Set(a?.rows.map((r) => r.id) ?? []);
+    const prev = known.current;
+    const out = new Set(prev ? Array.from(ids).filter((id) => !prev.has(id)) : []);
+    if (a) known.current = new Set([...(prev ? Array.from(prev) : []), ...Array.from(ids)]);
+    return out;
+  }, [a]);
   const max = Math.max(1, ...(a?.series ?? []).map((s) => s.n));
   const strikes = a?.byAction.punish ?? 0;
 
@@ -354,13 +367,15 @@ function ActivitySection({ onOpenMember }: { onOpenMember: (id: string) => void 
       </div>
 
       <section className="adm-card am-feed">
-        <h3>Latest catches</h3>
+        <h3>
+          Latest catches <LiveBadge updatedAt={live.updatedAt} loading={live.loading} />
+        </h3>
         {a?.rows.length ? (
           <ol>
             {a.rows.map((e) => {
               const badge = actionBadge(e);
               return (
-                <li key={e.id}>
+                <li key={e.id} className={fresh.has(e.id) ? "is-new" : undefined}>
                   <time dateTime={e.at} title={formatDate(e.at)}>
                     {timeAgo(e.at)}
                   </time>

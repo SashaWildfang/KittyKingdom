@@ -63,7 +63,7 @@ function Details({ e }: { e: HistoryEntry }) {
 }
 
 /**
- * Searchable purchase history: Leaf Shop buys (website and Discord) and gifts sent/received.
+ * Searchable purchase history: Store buys (website and Discord) and gifts sent/received.
  * `url` is /api/store/history for yourself or /api/admin/user/<id>/history for a member.
  */
 export function PurchaseHistory({ url, whose = "your", startOpen = false }: { url: string; whose?: string; startOpen?: boolean }) {

@@ -61,6 +61,7 @@ import { BadgeMedal } from "./badge-medal";
 import { BadgeCollection } from "./stats-badges";
 import { FriendshipMap, PeopleExplorer } from "./stats-social";
 import { TopicMap } from "./stats-topics";
+import { TrendsCard } from "./stats-trends";
 
 const POLL_MS = 7_000;
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -623,8 +624,6 @@ export function StatsView({ onBack }: { onBack: () => void }) {
   const bestie = s.circle[0] ?? null;
   const favoriteVc = s.voice.channels[0] ?? null;
   const g = s.economy.gambling;
-  const week = change(s.trends.last7, s.trends.prev7);
-  const month = change(s.trends.last30, s.trends.prev30);
   const topPct = (rank: number, of: number) => (of ? Math.max(1, Math.round((rank / of) * 100)) : 100);
   const joinedDays = s.profile.joinedServer ? Math.floor((Date.now() - Date.parse(s.profile.joinedServer)) / 86400000) : null;
   const earnedBadges = badges.filter((b) => b.tier > 0);
@@ -698,33 +697,8 @@ export function StatsView({ onBack }: { onBack: () => void }) {
               </ul>
             </Card>
 
-            <Card title="Trends" icon={<TrendingUp size={17} />}>
-              <div className="st-trends">
-                <div>
-                  <span>Last 7 days</span>
-                  <strong>{fmt(s.trends.last7)}</strong>
-                  {week ? (
-                    <em className={week.up ? "st-up" : "st-down"}>
-                      {week.up ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />} {week.text} vs the week before
-                    </em>
-                  ) : null}
-                </div>
-                <div>
-                  <span>Last 30 days</span>
-                  <strong>{fmt(s.trends.last30)}</strong>
-                  {month ? (
-                    <em className={month.up ? "st-up" : "st-down"}>
-                      {month.up ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />} {month.text} vs the month before
-                    </em>
-                  ) : null}
-                </div>
-              </div>
-              <p className="st-note">Messages per day, last 14 days</p>
-              <Bars
-                values={s.trends.spark}
-                labels={s.trends.spark.map((_, i) => new Date(Date.now() - (13 - i) * 86400000).toLocaleDateString([], { weekday: "short" }))}
-                format={(n) => `${fmt(n)} messages`}
-              />
+            <Card title="Trends" icon={<TrendingUp size={17} />} className="st-trend-card">
+              <TrendsCard calendar={s.calendar} />
             </Card>
 
             {compareRows.length ? (
