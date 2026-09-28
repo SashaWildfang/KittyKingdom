@@ -3,7 +3,7 @@
 // Form pieces shared by the profile editor and the setup wizard. Every field is drawn from the
 // bot's schema (lib/dating/schema-data.ts), so adding a field there makes it appear here.
 
-import { ArrowLeft, ArrowRight, ImagePlus, Link2, Loader2, Minus, Move, Plus, RotateCcw, Star, Trash2, TriangleAlert, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, ImagePlus, Link2, Loader2, Minus, Move, Palette, Plus, RotateCcw, Star, Trash2, TriangleAlert, X } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { ACCENTS, FIELDS, MAX_FURSONAS, MAX_PHOTOS, MAX_PROMPTS, PROMPTS } from "../../lib/dating/schema";
@@ -18,7 +18,7 @@ export type Own = {
   prompts: { q: string; a: string }[];
   fursonas: { name: string; description: string; art_links: string[] }[];
   photos: { id: string; ext: string; caption?: string; url: string; crop?: Crop | null }[];
-  web: { accent?: string; headline?: string; paused?: boolean; pausedByStaff?: boolean; hideAge?: boolean; showOnline?: boolean };
+  web: { accent?: string; headline?: string; paused?: boolean; pausedByStaff?: boolean; hideAge?: boolean; showOnline?: boolean; banner?: string; bannerY?: number };
   strength: { score: number; missing: { points: number; label: string; tip: string }[] };
   createdOn: string;
   ageLocked?: boolean;
@@ -492,8 +492,40 @@ export function FursonaEditor({ value, onChange }: { value: Own["fursonas"]; onC
 }
 
 // ---------- Looks ----------
+/** "#abc", "#aabbcc", "rgb(1, 2, 3)" or "1, 2, 3" -> "#rrggbb" (null if it isn't a color). */
+export function parseColor(raw: string): string | null {
+  const t = raw.trim().toLowerCase();
+  let m = t.match(/^#?([0-9a-f]{6})$/);
+  if (m) return `#${m[1]}`;
+  m = t.match(/^#?([0-9a-f])([0-9a-f])([0-9a-f])$/);
+  if (m) return `#${m[1]}${m[1]}${m[2]}${m[2]}${m[3]}${m[3]}`;
+  m = t.match(/^(?:rgb\s*\()?\s*(\d{1,3})\s*[, ]\s*(\d{1,3})\s*[, ]\s*(\d{1,3})\s*\)?$/);
+  if (m && [m[1], m[2], m[3]].every((n) => Number(n) <= 255)) return `#${[m[1], m[2], m[3]].map((n) => Number(n).toString(16).padStart(2, "0")).join("")}`;
+  return null;
+}
+
 export function LooksEditor({ web, onChange, name }: { web: Own["web"]; onChange: (w: Own["web"]) => void; name: string }) {
   const accent = web.accent ?? ACCENTS[0];
+  const custom = !ACCENTS.includes(accent);
+  const [text, setText] = useState(accent);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const file = useRef<HTMLInputElement>(null);
+  useEffect(() => setText(accent), [accent]);
+
+  const uploadBanner = async (f: File | undefined) => {
+    if (!f) return;
+    setBusy(true);
+    setErr(null);
+    const form = new FormData();
+    form.append("file", await shrink(f), f.name);
+    const res = await fetch("/api/dating/art", { method: "POST", body: form }).then((r) => r.json()).catch(() => ({ ok: false, error: "Upload failed." }));
+    setBusy(false);
+    if (file.current) file.current.value = "";
+    if (!res.ok) return setErr(res.error ?? "Upload failed.");
+    onChange({ ...web, banner: res.url, bannerY: 50 });
+  };
+
   return (
     <div className="dt-looks">
       <div className="dt-field">
@@ -501,17 +533,62 @@ export function LooksEditor({ web, onChange, name }: { web: Own["web"]; onChange
         <p className="dt-help">A short line under your name, like a tagline.</p>
         <input id="f-headline" className="dt-input" maxLength={80} value={web.headline ?? ""} placeholder="e.g. Professional snack thief" onChange={(e) => onChange({ ...web, headline: e.target.value })} />
       </div>
+
       <div className="dt-field">
         <label>Profile color</label>
         <div className="dt-swatches" role="radiogroup" aria-label="Profile color">
           {ACCENTS.map((c) => (
             <button key={c} type="button" role="radio" aria-checked={accent === c} aria-label={c} className={accent === c ? "is-on" : undefined} style={{ "--sw": c } as CSSProperties} onClick={() => onChange({ ...web, accent: c })} />
           ))}
+          <label className={`dt-swatch-custom${custom ? " is-on" : ""}`} style={{ "--sw": custom ? accent : "transparent" } as CSSProperties} title="Pick any color">
+            <input type="color" value={accent} onChange={(e) => onChange({ ...web, accent: e.target.value })} aria-label="Pick any color" />
+            <Palette size={15} aria-hidden="true" />
+          </label>
+        </div>
+        <div className="dt-color-text">
+          <span className="dt-color-dot" style={{ background: accent }} aria-hidden="true" />
+          <input
+            className="dt-input"
+            value={text}
+            onChange={(e) => {
+              setText(e.target.value);
+              const c = parseColor(e.target.value);
+              if (c) onChange({ ...web, accent: c });
+            }}
+            placeholder="#f59b2a or rgb(245, 155, 42)"
+            aria-label="Color as hex or RGB"
+          />
+          {text && !parseColor(text) ? <small className="dt-error">Use a hex code like #f59b2a or RGB like 245, 155, 42</small> : null}
         </div>
       </div>
-      <div className="dt-looks-preview" style={{ "--acc": accent } as CSSProperties}>
-        <b>{name || "Your name"}</b>
-        <span>{web.headline || "Your headline"}</span>
+
+      <div className="dt-field">
+        <label>Banner</label>
+        <p className="dt-help">A wide image across the top of your profile. Without one you get the cozy paw pattern in your color.</p>
+        <div className={`dt-banner-preview${web.banner ? "" : " dt-banner-default"}`} style={{ "--acc": accent, backgroundImage: web.banner ? `url(${web.banner})` : undefined, backgroundPosition: `center ${web.bannerY ?? 50}%` } as CSSProperties}>
+          <span className="dt-banner-name">
+            <b>{name || "Your name"}</b>
+            <span>{web.headline || "Your headline"}</span>
+          </span>
+        </div>
+        {web.banner ? (
+          <label className="dt-banner-pos">
+            <span>Move up / down</span>
+            <input type="range" min={0} max={100} value={web.bannerY ?? 50} onChange={(e) => onChange({ ...web, bannerY: Number(e.target.value) })} />
+          </label>
+        ) : null}
+        <div className="dt-row">
+          <button type="button" className="dt-btn dt-btn--ghost dt-btn--small" disabled={busy} onClick={() => file.current?.click()}>
+            {busy ? <Loader2 size={14} className="dt-spin" aria-hidden="true" /> : <ImagePlus size={14} aria-hidden="true" />} {web.banner ? "Change banner" : "Upload banner"}
+          </button>
+          {web.banner ? (
+            <button type="button" className="dt-btn dt-btn--ghost dt-btn--small" onClick={() => onChange({ ...web, banner: "", bannerY: 50 })}>
+              <Trash2 size={14} aria-hidden="true" /> Use the paw pattern
+            </button>
+          ) : null}
+        </div>
+        <input ref={file} type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden onChange={(e) => void uploadBanner(e.target.files?.[0])} />
+        {err ? <p className="dt-error">{err}</p> : null}
       </div>
     </div>
   );

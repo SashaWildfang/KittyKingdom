@@ -24507,3 +24507,49 @@ body.live-fullscreen .view-as-bar {
 .nw--v2 .nw-head {
   margin-bottom: 1.2rem;
 }
+
+/* Article titles use the full width (the site-wide h1 caps headings at 11 characters) */
+.nw-article {
+  width: min(920px, calc(100% - 2rem));
+}
+.nw-article h1 {
+  max-width: none;
+  font-size: clamp(1.9rem, 4vw, 2.8rem);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+/* Admin → News: drag to reorder */
+.adm-news-order-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.5rem 0.5rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+.adm-news-index li.is-draggable {
+  position: relative;
+  cursor: grab;
+}
+.adm-news-index li.is-draggable > button {
+  padding-left: 1.7rem;
+}
+.adm-news-grip {
+  position: absolute;
+  left: 0.45rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+  z-index: 1;
+}
+.adm-news-index li.is-dragging {
+  opacity: 0.45;
+}
+.adm-news-index li.is-over {
+  box-shadow: 0 -3px 0 0 var(--ember);
+  border-radius: 4px;
+}
