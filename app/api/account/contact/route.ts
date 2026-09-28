@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUserId } from "../../../../lib/auth";
 import { normalizePhone, normalizeSocial, SOCIALS } from "../../../../lib/contact";
+import { fakePhone } from "../../../../lib/spam-check";
 import { getUsersCollection } from "../../../../lib/mongodb";
 
 export const maxDuration = 10;
@@ -21,6 +22,10 @@ export async function POST(request: Request) {
     const phone = normalizePhone(String(form.get("phone") ?? ""));
     if (phone === "invalid") {
       return NextResponse.redirect(`${origin}/account?account=invalid-phone#contact`, 303);
+    }
+    // Real format but obviously made up (1111111111, 1234567890, 555-01xx...)
+    if (phone && fakePhone(phone)) {
+      return NextResponse.redirect(`${origin}/account?account=fake-phone#contact`, 303);
     }
     if (phone) set.phone = phone;
     else unset.phone = "";

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUserId } from "../../../../lib/auth";
 import { getUsersCollection } from "../../../../lib/mongodb";
+import { checkText } from "../../../../lib/spam-check";
 
 export const maxDuration = 10;
 
@@ -23,6 +24,10 @@ export async function POST(request: Request) {
 
     if (!/^[A-Za-z0-9 ]{3,18}$/.test(displayName)) {
       return NextResponse.redirect(`${origin}/account?account=invalid-name`, 303);
+    }
+    // Keyboard mashing and banned words
+    if (await checkText(displayName, { label: "Display name", short: true })) {
+      return NextResponse.redirect(`${origin}/account?account=spam-name`, 303);
     }
 
     const users = await getUsersCollection();

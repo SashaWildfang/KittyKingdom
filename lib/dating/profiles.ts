@@ -10,6 +10,7 @@ import { SCHEMA_VERSION } from "./schema-data";
 import { deletePhoto, photoOwner } from "./media";
 import { applyLiveAges, birthInfo, type BirthInfo } from "./age";
 import { confirmedPartners } from "./partners";
+import { checkText, checkTexts, type TextCheck } from "../spam-check";
 import { getSettings } from "./settings";
 import { bigAvatar, cleanMentions, mentionIds } from "./text";
 
@@ -93,6 +94,12 @@ export async function saveProfile(discordId: string, patch: ProfilePatch): Promi
   for (const [key, value] of Object.entries(fields)) {
     const res = cleanField(key, value);
     if (typeof res === "string") return res;
+    // Typed answers get a junk/spam check (socials and gaming tags only for links and banned words)
+    if (FIELDS[key]?.kind === "text" && !res.unset) {
+      const section = FIELDS[key].section;
+      const junk = await checkText(value, { label: FIELDS[key].label, short: key === "name" || key === "location", allowLinks: section === "socials" || section === "gaming", handle: section === "socials" || section === "gaming" });
+      if (junk) return junk;
+    }
     if (res.unset) {
       $unset[key] = "";
       const lk = FIELDS[key]?.listKey;
@@ -110,6 +117,8 @@ export async function saveProfile(discordId: string, patch: ProfilePatch): Promi
       .map((p) => ({ q: String((p as Prompt)?.q ?? ""), a: cleanText((p as Prompt)?.a, 300) }))
       .filter((p) => PROMPTS.includes(p.q) && p.a);
     if (prompts.length > MAX_PROMPTS) return `Pick up to ${MAX_PROMPTS} prompts.`;
+    const promptJunk = await checkTexts(prompts.map((p) => [p.a, { label: `Your answer to "${p.q}"` }] as [unknown, TextCheck]));
+    if (promptJunk) return promptJunk;
     $set.prompts = prompts;
   }
 
@@ -119,6 +128,11 @@ export async function saveProfile(discordId: string, patch: ProfilePatch): Promi
     for (const raw of patch.fursonas) {
       const s = raw as Fursona;
       const name = cleanText(s?.name, 60);
+      const sonaJunk = await checkTexts([
+        [name, { label: "Fursona name", short: true }],
+        [s?.description, { label: "Fursona description" }],
+      ]);
+      if (sonaJunk) return sonaJunk;
       if (!name) return "Every fursona needs a name.";
       const links = (Array.isArray(s?.art_links) ? s.art_links : []).map((l) => String(l).trim()).filter(Boolean).slice(0, 6);
       if (links.some((l) => !/^https:\/\/[^\s"'<>]+$/.test(l) && !/^\/api\/dating\/media\/[a-f0-9]{24}\.[a-z0-9]{2,5}$/.test(l))) return "Art links must start with https://";
@@ -144,13 +158,18 @@ export async function saveProfile(discordId: string, patch: ProfilePatch): Promi
     for (const raw of patch.photos as Photo[]) {
       const p = byId.get(String(raw?.id));
       // Caption and framing can change; a photo without `crop` in the request keeps its framing
-      if (p) next.push({ ...p, caption: cleanText(raw?.caption, 120) || undefined, crop: raw && "crop" in raw ? cleanCrop(raw.crop) : p.crop });
+      if (!p) continue;
+      const captionJunk = await checkText(raw?.caption, { label: "Photo caption" });
+      if (captionJunk) return captionJunk;
+      next.push({ ...p, caption: cleanText(raw?.caption, 120) || undefined, crop: raw && "crop" in raw ? cleanCrop(raw.crop) : p.crop });
     }
     $set.photos = next.slice(0, MAX_PHOTOS);
   }
 
   if (patch.web !== undefined) {
     const w = (patch.web ?? {}) as WebPrefs;
+    const headlineJunk = await checkText(w.headline, { label: "Headline" });
+    if (headlineJunk) return headlineJunk;
     const web: WebPrefs = {
       accent: isHexColor(w.accent) ? w.accent.toLowerCase() : undefined,
       headline: cleanText(w.headline, 80),
