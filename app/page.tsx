@@ -1,14 +1,13 @@
 import type { CSSProperties } from "react";
 import { Bot, Coffee, Heart, HeartHandshake, Mic, Palette, Shield, ShoppingBag, Star, Trophy, type LucideIcon } from "lucide-react";
 import { LeafEmote } from "./ui-icons";
-import { getCurrentUser, canViewStaffPage } from "../lib/auth";
+import { getCurrentUser } from "../lib/auth";
 import { getDiscordInviteSummary } from "../lib/discord";
 import { publishedNews } from "../lib/news";
 import { memberGrowth } from "../lib/member-directory";
 import { userTimeZone, zoneOffsetMinutes } from "../lib/timezone";
 import { newsExcerpt } from "../lib/news-format";
 import { LEAVE_REVIEW_URL, REVIEWS_URL, getReviews, type Review } from "../lib/reviews";
-import { BrandIcon } from "./brand-icon";
 import { Embers, FallEffects, FallingLeaves, LeafSvg, TiltCard } from "./fall-effects";
 import { HomeShowcase } from "./home-showcase";
 import { HomeNewsNotice } from "./home-news-notice";
@@ -486,52 +485,6 @@ export default async function Home({ searchParams }: { searchParams?: { register
         }}
       />
 
-      {/* Footer */}
-      <footer className="home-footer" aria-label="Footer navigation">
-        <div className="home-footer-brand">
-          <a className="home-footer-logo" href="/home" aria-label="Kitty Kingdom home">
-            <img src="/logo.png" alt="" width="48" height="48" />
-            <span>
-              <strong>Kitty Kingdom</strong>
-              <small>Community portal</small>
-            </span>
-          </a>
-          <div className="home-socials" aria-label="Social links">
-            <a href={DISCORD_INVITE} aria-label="Discord">
-              <DiscordLogo size={18} />
-            </a>
-            <a href="https://youtube.com" aria-label="YouTube">
-              <BrandIcon network="youtube" />
-            </a>
-            <a href="https://x.com" aria-label="X">
-              <BrandIcon network="twitter" />
-            </a>
-          </div>
-          <p>© 2026 Kitty Kingdom. All rights reserved.</p>
-        </div>
-        <nav className="home-footer-cols">
-          <div>
-            <h3>Play</h3>
-            <a href="/login">My Account</a>
-            <a href="/news">News</a>
-            <a href="/leaderboards">Leaderboards</a>
-            <a href="/store">Store</a>
-          </div>
-          <div>
-            <h3>Community</h3>
-            <a href={DISCORD_INVITE}>Discord</a>
-            {canViewStaffPage(user) ? <a href="/staff">Staff</a> : null}
-            <a href={REVIEWS_URL}>Reviews</a>
-          </div>
-          <div>
-            <h3>Help</h3>
-            <a href="/faq">FAQ &amp; Guide</a>
-            <a href="/support">Support</a>
-            <a href="/privacy">Privacy Policy</a>
-            <a href="/terms">Terms of Service</a>
-          </div>
-        </nav>
-      </footer>
     </main>
   );
 }

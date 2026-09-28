@@ -49,8 +49,8 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
           <OnlineStatus initialOnline={discordOnline} visitorsHref={panel?.level === "admin" ? "/admin?tab=accounts#online" : null} />
         </span>
       </a>
+      {/* No Home tab: the logo goes home */}
       <div className="tabs">
-        <a href="/home">Home</a>
         <a href="/news" className="nav-news-tab">
           News
           <NewsNavBadge items={newsStamps} />

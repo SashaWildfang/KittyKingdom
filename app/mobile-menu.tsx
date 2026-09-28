@@ -22,7 +22,7 @@ export function MobileMenu({ links, signedIn, newsStamps = [], bell = false }: {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    const onResize = () => window.innerWidth > 760 && setOpen(false);
+    const onResize = () => window.innerWidth > 1100 && setOpen(false);
     window.addEventListener("keydown", onKey);
     window.addEventListener("resize", onResize);
     document.body.classList.add("menu-open");
