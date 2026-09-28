@@ -46,15 +46,23 @@ const RINGS = [
 type MapNode = { p: SocialPerson; i: number; x: number; y: number; r: number; closeness: number; ring: number };
 
 const MAP_INNER = 70;
-// The strip at the bottom kept free for the ring tags (radians either side), and how far rings sway
-const TAG_ZONE = 0.62;
-const SWAY = 0.14;
+// How far each ring sways back and forth (radians)
+const SWAY = 0.12;
 const ringBounds = (ring: number, maxR: number) => {
   const width = (maxR - MAP_INNER) / RINGS.length;
   return [MAP_INNER + ring * width, MAP_INNER + (ring + 1) * width] as const;
 };
 
 /** Puts each person in their closeness band, spread evenly around it, and nudges overlaps apart. */
+/** A steady pseudo-random number (0..1) for a member id, so the scatter looks natural but doesn't jump around on refresh. */
+function seeded(id: string, salt: number) {
+  let h = 2166136261 ^ salt;
+  for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 16777619);
+  h = Math.imul(h ^ (h >>> 15), 2246822507);
+  h = Math.imul(h ^ (h >>> 13), 3266489909);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+
 function layout(people: SocialPerson[], W: number, H: number): MapNode[] {
   const cx = W / 2;
   const cy = H / 2;
@@ -69,17 +77,20 @@ function layout(people: SocialPerson[], W: number, H: number): MapNode[] {
   RINGS.forEach((_, ring) => {
     const members = withRing.filter((n) => n.ring === ring);
     const [r0, r1] = ringBounds(ring, maxR);
+    // Each band starts at its own spot, and everyone gets a nudge of their own around it and in
+    // and out of the band, so it reads as an organic scatter rather than evenly spaced beads
+    const start = ring * 2.39996 + 0.7;
+    const slot = (Math.PI * 2) / Math.max(1, members.length);
     members.forEach((n, k) => {
-      // Spread around the band, leaving the bottom free for the rings' name tags
-      const wedge = 1.3;
-      const angle = Math.PI / 2 + wedge / 2 + ((k + 0.5) / Math.max(1, members.length)) * (Math.PI * 2 - wedge);
-      // Closer within the band sits nearer its inner edge; alternate a little so neighbours don't touch
-      const within = members.length > 6 ? (k % 2 ? 0.35 : 0.65) : 0.5;
+      const jitter = (seeded(n.p.id, 1) - 0.5) * slot * 0.7;
+      const angle = start + k * slot + jitter;
+      const within = 0.2 + seeded(n.p.id, 2) * 0.6;
       const dist = r0 + (r1 - r0) * within;
-      nodes.push({ ...n, r: 13 + n.closeness * 11, x: cx + Math.cos(angle) * dist * xStretch, y: cy + Math.sin(angle) * dist });
+      const r = 12 + n.closeness * 11 + seeded(n.p.id, 3) * 3;
+      nodes.push({ ...n, r, x: cx + Math.cos(angle) * dist * xStretch, y: cy + Math.sin(angle) * dist });
     });
   });
-  for (let pass = 0; pass < 50; pass++) {
+  for (let pass = 0; pass < 120; pass++) {
     for (let a = 0; a < nodes.length; a++) {
       for (let b = a + 1; b < nodes.length; b++) {
         const A = nodes[a];
@@ -87,7 +98,9 @@ function layout(people: SocialPerson[], W: number, H: number): MapNode[] {
         const dx = B.x - A.x;
         const dy = B.y - A.y;
         const d = Math.hypot(dx, dy) || 0.01;
-        const need = A.r + B.r + 18;
+        // Room for the bubbles plus the names under them (names need more space side by side)
+        const sideBySide = Math.abs(dy) < Math.max(A.r, B.r) + 16;
+        const need = A.r + B.r + (sideBySide ? 40 : 32);
         if (d < need) {
           // Slide along the band (tangentially) rather than out of it
           const push = (need - d) / 2;
@@ -98,15 +111,9 @@ function layout(people: SocialPerson[], W: number, H: number): MapNode[] {
         }
       }
     }
-    // Keep everyone inside their own band, off the name tags at the bottom, and inside the frame
+    // Keep everyone inside their own band and inside the frame
     for (const n of nodes) {
-      const at = Math.atan2(n.y - cy, (n.x - cx) / xStretch);
-      if (Math.abs(at - Math.PI / 2) < TAG_ZONE) {
-        const target = at >= Math.PI / 2 ? Math.PI / 2 + TAG_ZONE : Math.PI / 2 - TAG_ZONE;
-        const dd = Math.hypot((n.x - cx) / xStretch, n.y - cy);
-        n.x = cx + Math.cos(target) * dd * xStretch;
-        n.y = cy + Math.sin(target) * dd;
-      }
+
       const [r0, r1] = ringBounds(n.ring, maxR);
       const ex = (n.x - cx) / xStretch;
       const ey = n.y - cy;
@@ -127,8 +134,8 @@ export function FriendshipMap({ me, people, color, onPick, picked }: { me: { nam
   // Only people still in the server (no deleted or departed accounts)
   const members = useMemo(() => people.filter((p) => p.inServer && p.score > 0), [people]);
   const shown = members.slice(0, count);
-  const W = 760;
-  const H = 520;
+  const W = 820;
+  const H = 600;
   const cx = W / 2;
   const cy = H / 2;
   const base = useMemo(() => layout(shown, W, H), [shown]);
@@ -175,6 +182,13 @@ export function FriendshipMap({ me, people, color, onPick, picked }: { me: { nam
             </button>
           ))}
         </div>
+        <div className="st-ring-legend" aria-label="Closeness rings">
+          {RINGS.map((ring, index) => (
+            <span key={ring.key} style={{ "--c": ring.color } as CSSProperties} title={index < RINGS.length - 1 ? `${Math.round(ring.min * 100)}%+ as close as your bestie` : "Everyone else you talk to"}>
+              <i /> {ring.label} <b>{nodes.filter((n) => n.ring === index).length}</b>
+            </span>
+          ))}
+        </div>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Your friendship map">
         <defs>
@@ -209,20 +223,6 @@ export function FriendshipMap({ me, people, color, onPick, picked }: { me: { nam
               strokeDasharray="4 6"
               className="st-map-band"
             />
-          );
-        })}
-        {RINGS.map((ring, index) => {
-          const [inner, outer] = ringBounds(index, maxR);
-          const count = nodes.filter((n) => n.ring === index).length;
-          const x = cx;
-          const y = cy + (inner + outer) / 2;
-          return (
-            <g key={`label-${ring.key}`} className="st-map-ring-tag">
-              <rect x={x - 54} y={y - 10} width={108} height={20} rx={10} fill={ring.color} fillOpacity={0.22} stroke={ring.color} strokeOpacity={0.6} />
-              <text x={x} y={y + 4} textAnchor="middle" className="st-map-ring-label" style={{ fill: ring.color, opacity: 1, filter: "brightness(1.35)" }}>
-                {ring.label} · {count}
-              </text>
-            </g>
           );
         })}
         {nodes.map((n) => {
@@ -305,7 +305,7 @@ export function FriendshipMap({ me, people, color, onPick, picked }: { me: { nam
             <i style={{ background: BALANCE[k].color }} /> {BALANCE[k].label}
           </span>
         ))}
-        <span className="adm-muted">Rings: how close they are compared to your bestie (Besties 70%+, Close 45%+, Friends 25%+)</span>
+        <span className="adm-muted">Inner rings are closer friends · bigger bubble = closer · thicker line = closer</span>
       </div>
     </div>
   );
