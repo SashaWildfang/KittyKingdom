@@ -1,12 +1,12 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, Check, Loader2, PartyPopper, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, BadgeCheck, Check, Loader2, PartyPopper, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AgeField, FieldInput, LooksEditor, type Birth, PhotoManager, PromptsEditor, changed, clearDraft, readDraft, saveMe, writeDraft, type Own } from "../profile-form";
 import { SectionIcon } from "../icons";
 import { useApi } from "../ui";
 
-type Me = { profile: Own | null; view: { id: string } | null; birth: Birth };
+type Me = { profile: Own | null; view: { id: string } | null; birth: Birth; hints?: Record<string, unknown> };
 type Step = { id: string; title: string; intro: string; keys?: string[]; required?: string[]; datingOnly?: boolean };
 
 const STEPS: Step[] = [
@@ -32,6 +32,7 @@ export default function Setup() {
   const [started, setStarted] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [restored, setRestored] = useState(false);
+  const [fromRoles, setFromRoles] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!data || hydrated) return;
@@ -41,10 +42,22 @@ export default function Setup() {
       setPrompts(data.profile.prompts);
       setWeb(data.profile.web);
     }
+    // Fill blanks from their Discord roles (pronouns, gender, sexuality, timezone...). Never overwrites.
+    const base: Record<string, unknown> = { ...(data.profile?.values ?? {}) };
+    const filled = new Set<string>();
+    const blank = (v: unknown) => v === null || v === undefined || v === "" || (Array.isArray(v) && !v.length);
+    for (const [k, v] of Object.entries(data.hints ?? {})) {
+      if (blank(base[k]) && !blank(v)) {
+        base[k] = v;
+        filled.add(k);
+      }
+    }
+    setValues(base);
+    setFromRoles(filled);
     // Pick up where they left off if the tab was refreshed (or the site updated) mid-setup
     const draft = readDraft<{ values: Record<string, unknown>; prompts: Own["prompts"]; web: Own["web"]; step: number; started: boolean }>("setup");
     if (draft) {
-      setValues({ ...(data.profile?.values ?? {}), ...draft.values });
+      setValues({ ...base, ...draft.values });
       if (draft.prompts) setPrompts(draft.prompts);
       if (draft.web) setWeb(draft.web);
       setStep(draft.step ?? 0);
@@ -203,7 +216,14 @@ export default function Setup() {
                 {k === "age" ? (
                   <AgeField value={values.age} locked={Boolean(own?.ageLocked)} birth={data.birth} onChange={(v) => setValues((x) => ({ ...x, age: v }))} />
                 ) : (
-                  <FieldInput k={k} value={values[k]} flagged={cur.id === "review"} legacy={own?.legacy[k]} onChange={(v) => setValues((x) => ({ ...x, [k]: v }))} />
+                  <>
+                    <FieldInput k={k} value={values[k]} flagged={cur.id === "review"} legacy={own?.legacy[k]} onChange={(v) => setValues((x) => ({ ...x, [k]: v }))} />
+                    {fromRoles.has(k) ? (
+                      <small className="dt-from-roles">
+                        <BadgeCheck size={12} aria-hidden="true" /> Filled in from your Discord roles. Change it if it&apos;s not right.
+                      </small>
+                    ) : null}
+                  </>
                 )}
               </div>
             ))}

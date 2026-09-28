@@ -5,7 +5,7 @@ import type { Document } from "mongodb";
 import { people } from "../admin-people";
 import { newsPlainText } from "../news-format";
 import { datingCols, toLong } from "./db";
-import { ACCENTS, FIELDS, accentFor, MAX_FURSONAS, MAX_PHOTOS, MAX_PROMPTS, PROMPTS, SECTIONS, cleanField, display, getList, isFilled, profileStrength, reviewFields, type ProfileDoc } from "./schema";
+import { ACCENTS, FIELDS, accentFor, isHexColor, MAX_FURSONAS, MAX_PHOTOS, MAX_PROMPTS, PROMPTS, SECTIONS, cleanField, display, getList, isFilled, profileStrength, reviewFields, type ProfileDoc } from "./schema";
 import { SCHEMA_VERSION } from "./schema-data";
 import { deletePhoto, photoOwner } from "./media";
 import { applyLiveAges, birthInfo, type BirthInfo } from "./age";
@@ -42,7 +42,17 @@ export function cleanCrop(raw: unknown): Crop | undefined {
 }
 export type Prompt = { q: string; a: string };
 export type Fursona = { name: string; description: string; art_links: string[] };
-export type WebPrefs = { accent?: string; headline?: string; paused?: boolean; pausedByStaff?: boolean; hideAge?: boolean; showOnline?: boolean };
+export type WebPrefs = {
+  accent?: string;
+  headline?: string;
+  paused?: boolean;
+  pausedByStaff?: boolean;
+  hideAge?: boolean;
+  showOnline?: boolean;
+  /** Their banner image (their own upload) and its vertical position in % */
+  banner?: string;
+  bannerY?: number;
+};
 
 export const photoUrl = (p: Photo) => `/api/dating/media/${p.id}.${p.ext}`;
 
@@ -140,7 +150,7 @@ export async function saveProfile(discordId: string, patch: ProfilePatch): Promi
   if (patch.web !== undefined) {
     const w = (patch.web ?? {}) as WebPrefs;
     const web: WebPrefs = {
-      accent: ACCENTS.includes(String(w.accent)) ? String(w.accent) : undefined,
+      accent: isHexColor(w.accent) ? w.accent.toLowerCase() : undefined,
       headline: cleanText(w.headline, 80),
       paused: w.paused === true,
       hideAge: w.hideAge === true,
@@ -149,6 +159,19 @@ export async function saveProfile(discordId: string, patch: ProfilePatch): Promi
     // A pause from staff (after a report) stays until staff lift it
     const current = ((await getProfile(discordId))?.web ?? {}) as WebPrefs;
     if (current.pausedByStaff) Object.assign(web, { paused: true, pausedByStaff: true });
+    // Banner: must be your own upload; the old one is deleted when it changes
+    const bannerId = (u: unknown) => String(u ?? "").match(/^\/api\/dating\/media\/([a-f0-9]{24})\.[a-z0-9]{2,5}$/)?.[1] ?? null;
+    // Leaving `banner` out of the request keeps the current one
+    if (!("banner" in (w as object))) Object.assign(w, { banner: current.banner, bannerY: w.bannerY ?? current.bannerY });
+    const newBanner = bannerId(w.banner);
+    if (w.banner && !newBanner) return "That banner image isn't valid.";
+    if (newBanner && newBanner !== bannerId(current.banner) && (await photoOwner(newBanner)) !== discordId) return "That banner image isn't yours.";
+    if (newBanner) {
+      web.banner = String(w.banner);
+      web.bannerY = typeof w.bannerY === "number" && Number.isFinite(w.bannerY) ? Math.min(100, Math.max(0, Math.round(w.bannerY))) : 50;
+    }
+    const oldBanner = bannerId(current.banner);
+    if (oldBanner && oldBanner !== newBanner) removedArt.push(oldBanner);
     $set.web = web;
   }
 
@@ -199,6 +222,8 @@ export type ProfileView = {
   age: number | null;
   headline: string | null;
   accent: string;
+  banner: string | null;
+  bannerY: number;
   photos: { url: string; caption: string | null; crop: Crop | null }[];
   facts: { label: string; value: string; key: string }[];
   sections: { id: string; label: string; emoji: string; items: { key: string; label: string; value: string; legacy: boolean; long: boolean; href: string | null }[] }[];
@@ -266,6 +291,8 @@ export async function profileView(doc: ProfileDoc, opts: { viewerIsOwner?: boole
     age: web.hideAge && !opts.viewerIsOwner ? null : age,
     headline: web.headline || null,
     accent: accentFor(id, web.accent),
+    banner: web.banner ?? null,
+    bannerY: typeof web.bannerY === "number" ? web.bannerY : 50,
     photos,
     facts: FACT_KEYS.map((k) => ({ key: k, label: FIELDS[k].label, value: clean(display(doc, k)?.text ?? "") })).filter((f) => f.value),
     sections,

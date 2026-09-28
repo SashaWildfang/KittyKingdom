@@ -3,6 +3,7 @@ import { invalidatePool } from "../../../../lib/dating/pool";
 import { deleteProfile, getProfile, ownProfileData, profileView, saveProfile, type ProfilePatch } from "../../../../lib/dating/profiles";
 import { requireDating, sameOrigin } from "../../../../lib/dating/route-helpers";
 import { birthInfo } from "../../../../lib/dating/age";
+import { roleHints } from "../../../../lib/dating/role-hints";
 import { deletePhoto } from "../../../../lib/dating/media";
 import { hasOperatorKeys } from "../../../../lib/validate";
 
@@ -14,7 +15,7 @@ export async function GET() {
   if (me instanceof NextResponse) return me;
   const doc = await getProfile(me.discordId);
   return NextResponse.json(
-    { ok: true, booster: me.booster, profile: ownProfileData(doc), view: doc ? await profileView(doc, { viewerIsOwner: true }) : null, birth: (await birthInfo([me.discordId]).catch(() => new Map())).get(me.discordId) ?? null },
+    { ok: true, booster: me.booster, profile: ownProfileData(doc), view: doc ? await profileView(doc, { viewerIsOwner: true }) : null, birth: (await birthInfo([me.discordId]).catch(() => new Map())).get(me.discordId) ?? null, hints: await roleHints(me.discordId).catch(() => ({})) },
     { headers: { "Cache-Control": "no-store" } },
   );
 }
@@ -42,7 +43,9 @@ export async function DELETE(request: Request) {
   if (body?.confirm !== "DELETE") return NextResponse.json({ ok: false, error: "Type DELETE to confirm." }, { status: 400 });
   const doc = await getProfile(me.discordId);
   for (const p of (doc?.photos ?? []) as { id: string }[]) await deletePhoto(p.id);
-  // Uploaded fursona art too
+  // Their banner and uploaded fursona art too
+  const banner = String(((doc?.web ?? {}) as { banner?: string }).banner ?? "").match(/^\/api\/dating\/media\/([a-f0-9]{24})\./)?.[1];
+  if (banner) await deletePhoto(banner);
   for (const f of (doc?.fursonas ?? []) as { art_links?: string[] }[]) {
     for (const l of f.art_links ?? []) {
       const id = String(l).match(/^\/api\/dating\/media\/([a-f0-9]{24})\./)?.[1];
