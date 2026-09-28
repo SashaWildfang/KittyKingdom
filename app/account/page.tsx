@@ -1,4 +1,5 @@
 import { userTimeZone } from "../../lib/timezone";
+import { accountGreeting } from "../../lib/greeting";
 import { Backpack, ChevronDown, Gift, ShieldCheck, Check, CircleAlert, ClipboardList, KeyRound, Link2, Lock, MessageCircle, Sparkles, TriangleAlert, UserRound } from "lucide-react";
 import { LeafEmote } from "../ui-icons";
 import { redirect } from "next/navigation";
@@ -131,7 +132,9 @@ export default async function AccountPage({
   const displayName = typeof user.displayName === "string" ? user.displayName : null;
   // No display name set: their Discord nickname, then Discord username
   const shownName = accountName(user, roles);
-  const heading = displayName || user.discordId ? `Welcome back, ${shownName}` : "My Account";
+  // Greets them by their own time of day (their time zone)
+  const greeting = accountGreeting(shownName, userTimeZone());
+  const heading = displayName || user.discordId ? greeting.title : "My Account";
   const discordLinked = Boolean(user.discordId);
   const twoFactor = twoFactorStatus(user);
   const discordName = discordLinked ? String(user.discord?.username ?? roles.username ?? user.discordId) : null;
@@ -145,9 +148,9 @@ export default async function AccountPage({
       <SiteNav signedIn discordOnline={discord.online} />
 
       <section className="account-hero acct-hero" aria-label="My Account">
-        <p className="eyebrow">Member portal</p>
+        <p className="eyebrow">{displayName || user.discordId ? `${greeting.eyebrow} · Member portal` : "Member portal"}</p>
         <h1>{heading}</h1>
-        <p>Manage your Kitty Kingdom profile, Discord link, and account security — all in one place.</p>
+        <p>{displayName || user.discordId ? greeting.line : "Manage your Kitty Kingdom profile, Discord link, and account security, all in one place."}</p>
       </section>
 
       {user.emailVerified === false ? (

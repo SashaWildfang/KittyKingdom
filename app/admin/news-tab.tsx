@@ -65,6 +65,10 @@ export function NewsTab() {
     return true;
   }
 
+  // The post open on the right (defaults to the first in the list)
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selected = data?.posts.find((p) => p.id === selectedId) ?? data?.posts[0] ?? null;
+
   const quickSave = (p: Post, patch: Partial<Post>) => send("PATCH", `/api/admin/news/${p.id}`, { ...p, ...patch });
 
   return (
@@ -112,69 +116,97 @@ export function NewsTab() {
       ) : null}
       {message ? <p className={message.tone === "ok" ? "adm-notice" : "adm-error"}>{message.text}</p> : null}
 
-      <ul className="adm-news-list">
-        {data?.posts.map((p) => (
-          <li key={p.id} className={`adm-news-item${p.status === "published" ? "" : " is-draft"}${p.status === "pending" ? " is-pending" : ""}`}>
-            <div className="adm-news-main">
-              <div className="adm-news-meta">
-                <span className="adm-tag adm-news-tagchip" style={{ "--c": p.tagColor } as CSSProperties}>
+      <div className="adm-news-split">
+        <ul className="adm-news-index" aria-label="Posts">
+          {data?.posts.map((p) => (
+            <li key={p.id}>
+              <button type="button" className={`${selected?.id === p.id ? "is-on" : ""}${p.status !== "published" ? " is-" + p.status : ""}`} onClick={() => setSelectedId(p.id)}>
+                <span className="adm-news-index-meta">
+                  <i style={{ background: p.tagColor }} aria-hidden="true" />
                   {p.tag}
+                  {p.status === "pending" ? <em className="is-pending">Pending</em> : p.status === "draft" ? <em>Draft</em> : null}
+                  {p.pinned ? <Pin size={11} aria-label="Pinned" /> : null}
                 </span>
-                {p.pinned ? (
-                  <span className="adm-tag adm-tag--pin">
-                    <Pin size={11} aria-hidden="true" /> Pinned
+                <b>{p.title}</b>
+                <small>{p.status === "published" ? (new Date(p.publishedAt).getTime() > Date.now() ? `goes live ${timeAgo(p.publishedAt)}` : timeAgo(p.publishedAt)) : `saved ${timeAgo(p.updatedAt ?? p.publishedAt)}`}</small>
+              </button>
+            </li>
+          ))}
+          {data && !data.posts.length ? <li className="adm-empty">No posts match.</li> : null}
+        </ul>
+
+        <section className="adm-news-reader" aria-label="Post">
+          {selected ? (
+            <>
+              <header>
+                <div className="adm-news-meta">
+                  <span className="adm-tag adm-news-tagchip" style={{ "--c": selected.tagColor } as CSSProperties}>
+                    {selected.tag}
                   </span>
-                ) : null}
-                {p.status === "draft" ? <span className="adm-tag adm-tag--draft">Draft</span> : null}
-                {p.status === "pending" ? (
-                  <span className="adm-tag adm-tag--pending">
-                    <Clock size={11} aria-hidden="true" /> Pending review
+                  {selected.pinned ? (
+                    <span className="adm-tag adm-tag--pin">
+                      <Pin size={11} aria-hidden="true" /> Pinned
+                    </span>
+                  ) : null}
+                  {selected.status === "draft" ? <span className="adm-tag adm-tag--draft">Draft</span> : null}
+                  {selected.status === "pending" ? (
+                    <span className="adm-tag adm-tag--pending">
+                      <Clock size={11} aria-hidden="true" /> Pending review
+                    </span>
+                  ) : null}
+                  {selected.status === "published" && new Date(selected.publishedAt).getTime() > Date.now() ? <span className="adm-tag">Scheduled</span> : null}
+                  <span className="adm-muted" title={formatDate(selected.publishedAt)}>
+                    {selected.status === "published" ? formatDate(selected.publishedAt) : "Not public"}
+                    {selected.authorName ? ` · ${selected.authorName}` : ""}
                   </span>
-                ) : null}
-                {p.published && new Date(p.publishedAt).getTime() > Date.now() ? <span className="adm-tag">Scheduled</span> : null}
-                <span className="adm-muted" title={formatDate(p.publishedAt)}>
-                  {new Date(p.publishedAt).getTime() > Date.now() ? `goes live ${timeAgo(p.publishedAt)}` : timeAgo(p.publishedAt)}
-                </span>
-                {p.authorName ? <span className="adm-muted">· {p.authorName}</span> : null}
+                </div>
+                <h2>{selected.title}</h2>
+                <div className="adm-news-actions">
+                  <button type="button" className="adm-btn adm-btn--small" onClick={() => setEditing(selected)}>
+                    <Pencil size={14} aria-hidden="true" /> Edit
+                  </button>
+                  {selected.status === "pending" ? (
+                    <button type="button" className="adm-btn adm-btn--small adm-btn--approve" onClick={() => void quickSave(selected, { status: "published", published: true, publishedAt: new Date().toISOString() })}>
+                      <BadgeCheck size={14} aria-hidden="true" /> Approve &amp; publish
+                    </button>
+                  ) : (
+                    <button type="button" className="adm-btn adm-btn--ghost adm-btn--small" onClick={() => void quickSave(selected, selected.status === "published" ? { status: "draft", published: false } : { status: "published", published: true })}>
+                      <Eye size={14} aria-hidden="true" /> {selected.status === "published" ? "Unpublish" : "Publish"}
+                    </button>
+                  )}
+                  <button type="button" className="adm-btn adm-btn--ghost adm-btn--small" onClick={() => void quickSave(selected, { pinned: !selected.pinned })}>
+                    {selected.pinned ? <PinOff size={14} aria-hidden="true" /> : <Pin size={14} aria-hidden="true" />} {selected.pinned ? "Unpin" : "Pin"}
+                  </button>
+                  {selected.status === "published" ? (
+                    <a className="adm-btn adm-btn--ghost adm-btn--small" href={`/news/${selected.id}`} target="_blank" rel="noreferrer">
+                      <Eye size={14} aria-hidden="true" /> View live
+                    </a>
+                  ) : null}
+                  {confirmDelete === selected.id ? (
+                    <>
+                      <button type="button" className="adm-btn adm-btn--danger adm-btn--small" onClick={() => void send("DELETE", `/api/admin/news/${selected.id}`).then(() => setConfirmDelete(null))}>
+                        Yes, delete
+                      </button>
+                      <button type="button" className="adm-btn adm-btn--ghost adm-btn--small" onClick={() => setConfirmDelete(null)}>
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <button type="button" className="adm-btn adm-btn--ghost adm-btn--small adm-news-delete" onClick={() => setConfirmDelete(selected.id)}>
+                      <Trash2 size={14} aria-hidden="true" /> Delete
+                    </button>
+                  )}
+                </div>
+              </header>
+              <div className="adm-news-read news-card-body">
+                <NewsBody body={selected.body} />
               </div>
-              <h3>{p.title}</h3>
-              <p className="adm-news-excerpt">{newsExcerpt(p.body, 220).text}</p>
-            </div>
-            <div className="adm-news-actions">
-              <button type="button" className="adm-btn adm-btn--ghost adm-btn--small" onClick={() => setEditing(p)}>
-                <Pencil size={14} aria-hidden="true" /> Edit
-              </button>
-              <button type="button" className="adm-btn adm-btn--ghost adm-btn--small" onClick={() => void quickSave(p, { pinned: !p.pinned })}>
-                {p.pinned ? <PinOff size={14} aria-hidden="true" /> : <Pin size={14} aria-hidden="true" />} {p.pinned ? "Unpin" : "Pin"}
-              </button>
-              {p.status === "pending" ? (
-                <button type="button" className="adm-btn adm-btn--small" onClick={() => void quickSave(p, { status: "published", published: true, publishedAt: new Date().toISOString() })}>
-                  <BadgeCheck size={14} aria-hidden="true" /> Approve &amp; publish
-                </button>
-              ) : (
-                <button type="button" className="adm-btn adm-btn--ghost adm-btn--small" onClick={() => void quickSave(p, p.status === "published" ? { status: "draft", published: false } : { status: "published", published: true })}>
-                  <Eye size={14} aria-hidden="true" /> {p.status === "published" ? "Unpublish" : "Publish"}
-                </button>
-              )}
-              {confirmDelete === p.id ? (
-                <>
-                  <button type="button" className="adm-btn adm-btn--danger adm-btn--small" onClick={() => void send("DELETE", `/api/admin/news/${p.id}`).then(() => setConfirmDelete(null))}>
-                    Yes, delete
-                  </button>
-                  <button type="button" className="adm-btn adm-btn--ghost adm-btn--small" onClick={() => setConfirmDelete(null)}>
-                    Cancel
-                  </button>
-                </>
-              ) : (
-                <button type="button" className="adm-btn adm-btn--ghost adm-btn--small adm-news-delete" onClick={() => setConfirmDelete(p.id)}>
-                  <Trash2 size={14} aria-hidden="true" /> Delete
-                </button>
-              )}
-            </div>
-          </li>
-        ))}
-        {data && !data.posts.length ? <li className="adm-empty">No posts match.</li> : null}
-      </ul>
+            </>
+          ) : (
+            <p className="adm-empty">{data ? "Pick a post on the left to read it." : "Loading…"}</p>
+          )}
+        </section>
+      </div>
 
       {managingTags
         ? createPortal(
@@ -258,10 +290,14 @@ function NewsEditor({ post, tags, onClose, onSave }: { post: Post | null; tags: 
                 ))}
               </select>
             </label>
-            <label>
-              <span>Publish date</span>
-              <input type="datetime-local" value={publishedAt} onChange={(e) => setPublishedAt(e.target.value)} />
-            </label>
+            {status === "published" ? (
+              <label>
+                <span>Publish date</span>
+                <input type="datetime-local" value={publishedAt} onChange={(e) => setPublishedAt(e.target.value)} />
+              </label>
+            ) : (
+              <p className="adm-news-when">{status === "pending" ? "Stays pending until an admin presses Approve & publish. It never posts by itself." : "Drafts are only visible here."}</p>
+            )}
           </div>
           <label>
             <span>
@@ -294,7 +330,7 @@ function NewsEditor({ post, tags, onClose, onSave }: { post: Post | null; tags: 
             {(
               [
                 ["published", "Publish", "Live on the site at the publish date"],
-                ["pending", "Pending review", "Waits for an admin to read and approve it"],
+                ["pending", "Pend review", "Never goes live on its own: an admin reads and approves it"],
                 ["draft", "Draft", "Only visible here"],
               ] as const
             ).map(([value, label, hint]) => (
@@ -312,7 +348,7 @@ function NewsEditor({ post, tags, onClose, onSave }: { post: Post | null; tags: 
           </div>
           <div className="adm-form-actions">
             <button type="submit" className="adm-btn" disabled={saving}>
-              {saving ? "Saving…" : status === "published" ? (post ? "Save & keep live" : "Publish post") : status === "pending" ? "Send for review" : "Save draft"}
+              {saving ? "Saving…" : status === "published" ? (post ? "Save & keep live" : "Publish post") : status === "pending" ? "Pend review" : "Save draft"}
             </button>
             <button type="button" className="adm-btn adm-btn--ghost" onClick={onClose}>
               Cancel

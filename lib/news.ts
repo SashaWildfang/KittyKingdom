@@ -248,3 +248,11 @@ function badMedia(body: string): string | null {
   }
   return null;
 }
+
+/** One published post (for its own page), or null if it doesn't exist or isn't public. */
+export async function publishedPost(id: string) {
+  if (!ObjectId.isValid(id)) return null;
+  const [col, colors] = await Promise.all([collection(), tagColors()]);
+  const d = await col.findOne({ _id: new ObjectId(id), published: { $ne: false }, status: { $nin: ["pending", "draft"] }, publishedAt: { $lte: new Date() } });
+  return d ? toPost(d, colors) : null;
+}

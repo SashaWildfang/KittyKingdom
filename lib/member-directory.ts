@@ -20,10 +20,13 @@ export type DirectoryEntry = {
   avatar: string | null;
   inServer: boolean;
   updatedAt: Date;
+  /** When they joined the server (from Discord), and when we noticed they left */
+  joinedAt?: Date | null;
+  leftAt?: Date | null;
 };
 
 type DiscordUser = { id: string; username: string; global_name?: string | null; avatar?: string | null; bot?: boolean };
-type DiscordMember = { nick?: string | null; avatar?: string | null; user: DiscordUser };
+type DiscordMember = { nick?: string | null; avatar?: string | null; joined_at?: string | null; user: DiscordUser };
 
 async function directory() {
   const client = await getMongoClient();
@@ -45,6 +48,8 @@ function entryFromMember(member: DiscordMember, now: Date): DirectoryEntry {
     avatar: avatarUrl(member.user),
     inServer: true,
     updatedAt: now,
+    joinedAt: member.joined_at ? new Date(member.joined_at) : null,
+    leftAt: null,
   };
 }
 
@@ -89,7 +94,7 @@ async function refreshAllMembers() {
   // Anyone not seen in this sweep has left the server
   await col.updateMany(
     { _id: { $ne: META_ID }, inServer: true, updatedAt: { $lt: now } } as never,
-    { $set: { inServer: false } },
+    { $set: { inServer: false, leftAt: now } },
   );
   return true;
 }
@@ -192,4 +197,27 @@ export async function inServerIds(): Promise<string[] | null> {
   const refreshedAt = meta?.refreshedAt ? new Date(meta.refreshedAt).getTime() : 0;
   if (!refreshedAt || Date.now() - refreshedAt > REFRESH_MS * 4) return null;
   return (await col.distinct("_id", { inServer: true } as never)).map(String);
+}
+
+/**
+ * Member growth for the home page: joins today (in the viewer's time zone), average joins per day
+ * over 30 days, and 30-day growth (joins minus leaves). Leaves are only known from when the
+ * directory started recording them, so early on growth leans slightly high.
+ */
+export async function memberGrowth(startOfToday: Date) {
+  await refreshIfStale().catch(() => undefined);
+  const col = await directory();
+  const meta = (await col.findOne({ _id: META_ID })) as { refreshedAt?: Date } | null;
+  if (!meta?.refreshedAt || meta.refreshedAt.getTime() < Date.now() - REFRESH_MS * 8) return null;
+  const since = new Date(Date.now() - 30 * 86_400_000);
+  const q = (filter: Record<string, unknown>) => col.countDocuments({ _id: { $ne: META_ID }, ...filter } as never);
+  const [total, today, joined30, left30] = await Promise.all([
+    q({ inServer: true }),
+    q({ joinedAt: { $gte: startOfToday } }),
+    q({ joinedAt: { $gte: since } }),
+    q({ leftAt: { $gte: since } }),
+  ]);
+  if (!total) return null;
+  const before = Math.max(1, total - joined30 + left30);
+  return { total, today, perDay: joined30 / 30, growth: (total - before) / before };
 }
