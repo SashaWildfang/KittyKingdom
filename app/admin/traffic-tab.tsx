@@ -293,6 +293,10 @@ export function TrafficTab() {
           {data ? data.utm.length ? <BarList color="rgba(245, 155, 42, 0.3)" items={bars(data.utm)} /> : <p className="adm-empty">Add ?ref=discord to links you share to see them here.</p> : <div className="adm-skeleton" />}
         </Card>
 
+        <Card title="Growth by source (30 days)" span={3} hint="links like kittykingdom.net/?ref=reddit or /join?src=reddit">
+          <GrowthSources />
+        </Card>
+
         <Card title="When people visit" span={3}>
           {data ? <TrafficTimes data={data} range={range} /> : <div className="adm-skeleton" />}
         </Card>
@@ -328,6 +332,52 @@ export function TrafficTab() {
       <p className="adm-muted adm-traffic-note">
         First-party stats: no third-party trackers, no IP addresses stored, visitors are anonymous random IDs. Admin pages, bots and browsers with Do Not Track aren&apos;t counted. Views are kept for about 13 months.
       </p>
+    </div>
+  );
+}
+
+type SourceRow = { source: string; visitors: number; inviteClicks: number; signups: number; linked: number };
+
+/** Which ads and sites bring people: visitors → Discord invite clicks → sign-ups → linked (verified) members. */
+function GrowthSources() {
+  const { data } = useLive<{ rows: SourceRow[] }>("/api/admin/traffic/sources", 60_000);
+  if (!data) return <div className="adm-skeleton" />;
+  if (!data.rows.length) {
+    return (
+      <p className="adm-empty">
+        Nothing tracked yet. Share <code>kittykingdom.net/?ref=SITE</code> or <code>kittykingdom.net/join?src=SITE</code> (it opens the Discord invite) instead of plain links, with a different SITE for each place you advertise.
+      </p>
+    );
+  }
+  return (
+    <div className="adm-table-wrap">
+      <table className="adm-table gs-table">
+        <thead>
+          <tr>
+            <th>Source</th>
+            <th>Site visitors</th>
+            <th>Discord invite clicks</th>
+            <th>Website sign-ups</th>
+            <th>Linked Discord</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.rows.map((r) => (
+            <tr key={r.source}>
+              <td>
+                <b>{r.source}</b>
+              </td>
+              <td>{r.visitors.toLocaleString()}</td>
+              <td>{r.inviteClicks.toLocaleString()}</td>
+              <td>{r.signups.toLocaleString()}</td>
+              <td>
+                <b>{r.linked.toLocaleString()}</b>
+                {r.signups ? <small className="adm-muted"> ({Math.round((r.linked / r.signups) * 100)}%)</small> : null}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

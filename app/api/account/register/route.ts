@@ -71,7 +71,7 @@ export async function POST(request: Request) {
       emailVerificationTokens: [],
       acceptedPoliciesAt: now,
       discord: null,
-      registration: { pending: true, startedAt: now },
+      registration: { pending: true, startedAt: now, source: signupSource(request) },
       createdAt: now,
       updatedAt: now,
     });
@@ -89,4 +89,10 @@ export async function POST(request: Request) {
       : "service-unavailable";
     return NextResponse.redirect(`${origin}/home?register=${status}`, 303);
   }
+}
+
+/** Which ad or site sent this sign-up (first ?ref= they arrived with), for the growth stats. */
+function signupSource(request: Request) {
+  const match = (request.headers.get("cookie") ?? "").match(/(?:^|;\s*)kk_src=([a-z0-9._-]{1,40})/);
+  return match ? match[1] : "direct";
 }
