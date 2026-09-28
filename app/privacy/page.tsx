@@ -94,8 +94,9 @@ const sections: LegalSection[] = [
           <li>
             <b>Activity statistics (My stats):</b> counts of how many messages you send in each channel and at what hours and days, how many words, emojis,
             images, links and stickers you post, how often you reply to, mention, chat back-and-forth with or react to other members, and how long you spend
-            in each voice channel and with whom, and which topics your messages touch. For topics, only words from a fixed list of topic words (such as
-            &quot;minecraft&quot;, &quot;pizza&quot; or &quot;anime&quot;) are counted; nothing else in the message is kept. <b>We do not store the text of your
+            in each voice channel and with whom, and which topics your messages touch. Topics are worked out by a small AI model that runs on our own bot (no outside service): it
+            reads each message as it arrives, notes which of our topics it relates to (including 18+ topics) and any topic keywords from a fixed list
+            (such as &quot;minecraft&quot; or &quot;pizza&quot;), and then discards the message. <b>We do not store the text of your
             messages for these statistics</b>, only counts. Voice statistics also use the server&apos;s voice-channel logs (joins, leaves, camera and mute
             changes) and the VC reward messages the bot posts (session length, rewards and who was in the call). They power your My stats page
             (including your &quot;server bestie&quot;, friendship map and topic map), which only you can open.
