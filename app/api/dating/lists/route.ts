@@ -29,12 +29,12 @@ export async function GET(request: Request) {
   }
   if (list === "matches") {
     const m = await matchesOf(id);
-    const cards = await cardsFor(id, m.map((x) => x.id));
+    const cards = await cardsFor(id, m.map((x) => x.id), { online: true });
     return NextResponse.json({ ok: true, cards: cards.map((c) => ({ ...c, at: m.find((x) => x.id === c.id)?.at ?? null })) });
   }
   if (list === "friends") {
     const f = await friendsOf(id);
-    const cards = await cardsFor(id, f.map((x) => x.id));
+    const cards = await cardsFor(id, f.map((x) => x.id), { online: true });
     return NextResponse.json({ ok: true, cards: cards.map((c) => ({ ...c, friend: f.find((x) => x.id === c.id)?.status ?? "none" })) });
   }
   if (list === "blocked") {

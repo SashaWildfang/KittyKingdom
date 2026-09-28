@@ -74,7 +74,7 @@ function Faces({ cards, show = "score" }: { cards: Card[]; show?: "score" | "act
       {cards.map((c) => (
         <a key={c.id} href={`/social/u/${c.id}`} className="dt-face" style={{ "--acc": c.accent } as CSSProperties} title={c.name}>
           <span className="dt-face-img">
-            <Photo src={c.photo} name={c.name} accent={c.accent} />
+            <Photo src={c.photo} name={c.name} accent={c.accent} crop={c.photoCrop} />
             {show === "active" && ago(c.lastActive) === "online now" ? <span className="dt-face-dot" aria-label="Online now" /> : null}
           </span>
           <b>{c.name}</b>
@@ -171,7 +171,7 @@ export default function DatingHome() {
             <div className="dt-online-row">
               {data.online.map((o) => (
                 <a key={o.id} href={`/social/u/${o.id}`} className="dt-bubble-face" title={`${o.name}${o.age ? `, ${o.age}` : ""}`} style={{ "--acc": o.accent } as CSSProperties}>
-                  <Photo src={o.photo} name={o.name} accent={o.accent} />
+                  <Photo src={o.photo} name={o.name} accent={o.accent} crop={o.photoCrop} />
                   <span className="dt-face-dot" aria-hidden="true" />
                   <small>{o.name}</small>
                 </a>
@@ -194,7 +194,7 @@ export default function DatingHome() {
       </section>
 
       {data.partnerRequests.length ? (
-        <a className="dt-banner" href="/social/profile#partners">
+        <a className="dt-banner" href="/social/profile/edit#partners">
           <HeartHandshake size={18} aria-hidden="true" />
           <span>
             <b>{data.partnerRequests.map((p) => p.name).join(", ")}</b> listed you as their partner. Confirm it to show it on both your profiles.
@@ -238,7 +238,7 @@ export default function DatingHome() {
           </header>
           {f ? (
             <a href={`/social/u/${f.card.id}`} className="dt-featured-card">
-              <Photo src={f.card.photo} name={f.card.name} accent={f.card.accent} className="dt-featured-photo" />
+              <Photo src={f.card.photo} name={f.card.name} accent={f.card.accent} crop={f.card.photoCrop} className="dt-featured-photo" />
               <div>
                 <h2>
                   {f.card.name}
@@ -263,7 +263,7 @@ export default function DatingHome() {
               <small>Earlier today</small>
               {data.recent.map((r) => (
                 <a key={r.hour} href={`/social/u/${r.card.id}`} title={r.card.name}>
-                  <Photo src={r.card.photo} name={r.card.name} accent={r.card.accent} />
+                  <Photo src={r.card.photo} name={r.card.name} accent={r.card.accent} crop={r.card.photoCrop} />
                   <span>{r.card.name}</span>
                 </a>
               ))}
@@ -302,7 +302,7 @@ export default function DatingHome() {
               <div className="dt-toplist">
                 {data.top.map((t) => (
                   <a key={t.id} href={`/social/u/${t.id}`} className="dt-toprow" style={{ "--acc": t.accent } as CSSProperties}>
-                    <Photo src={t.photo} name={t.name} accent={t.accent} className="dt-avatar" />
+                    <Photo src={t.photo} name={t.name} accent={t.accent} crop={t.photoCrop} className="dt-avatar" />
                     <span>
                       <b>{t.name}</b>
                       {t.shared.length ? (
@@ -341,7 +341,7 @@ export default function DatingHome() {
                 ) : (
                   <p className="dt-muted">Looking amazing. Nothing left to add!</p>
                 )}
-                <a className="dt-textlink" href="/social/profile">
+                <a className="dt-textlink" href="/social/profile/edit">
                   <PenLine size={13} aria-hidden="true" /> Edit profile
                 </a>
               </div>
@@ -391,7 +391,7 @@ export default function DatingHome() {
             <div className="dt-spot">
               {data.spotlight.answers.map((a) => (
                 <a key={a.card.id} href={`/social/u/${a.card.id}`} className="dt-spot-a" style={{ "--acc": a.card.accent } as CSSProperties}>
-                  <Photo src={a.card.photo} name={a.card.name} accent={a.card.accent} className="dt-avatar dt-avatar--sm" />
+                  <Photo src={a.card.photo} name={a.card.name} accent={a.card.accent} crop={a.card.photoCrop} className="dt-avatar dt-avatar--sm" />
                   <span>
                     <b>{a.card.name}</b>
                     <q>{a.answer}</q>
@@ -403,7 +403,7 @@ export default function DatingHome() {
             <p className="dt-muted">Nobody has answered this one yet. Be the first!</p>
           )}
           {!data.spotlight.mineAnswered && data.hasProfile ? (
-            <a className="dt-textlink" href="/social/profile#prompts">
+            <a className="dt-textlink" href="/social/profile/edit#prompts">
               Answer a prompt <ArrowRight size={13} aria-hidden="true" />
             </a>
           ) : null}

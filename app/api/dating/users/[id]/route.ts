@@ -4,6 +4,7 @@ import { compatWith } from "../../../../../lib/dating/discover";
 import { getProfile, profileView } from "../../../../../lib/dating/profiles";
 import { recordView, viewStats } from "../../../../../lib/dating/views";
 import { getSettings } from "../../../../../lib/dating/settings";
+import { confirmedPartners } from "../../../../../lib/dating/partners";
 import { getCurrentBans } from "../../../../../lib/moderation";
 import { requireDating } from "../../../../../lib/dating/route-helpers";
 import { friendState, hasLiked, isMatch, likesReceived, passedIds } from "../../../../../lib/dating/social";
@@ -36,6 +37,8 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   // Let them know someone looked (unless you browse anonymously or they turned it off)
   if (!own) await recordView(me.discordId, params.id, String((await getProfile(me.discordId))?.name ?? me.name)).catch(() => undefined);
   const views = await viewStats(params.id, me.discordId).catch(() => null);
+  // Linked, confirmed partners: they're together, so "not a dating fit" never applies between them
+  const partnered = !own && (await confirmedPartners(me.discordId).catch(() => [] as string[])).includes(params.id);
   // They can hide their view count (you still see whether they viewed you)
   if (views && !own && (await getSettings(params.id)).showViewCount === false) views.total = -1;
   return NextResponse.json(
@@ -43,7 +46,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       ok: true,
       own,
       profile: view,
-      compat,
+      compat: compat && partnered ? { ...compat, blocked: null, partnered: true } : compat,
       views,
       relation: {
         iLiked,

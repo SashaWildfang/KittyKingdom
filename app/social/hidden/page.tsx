@@ -48,7 +48,7 @@ export default function Hidden() {
           {rows.map((c) => (
             <div key={c.id} className="dt-rowcard">
               <a href={tab === "blocked" ? undefined : `/social/u/${c.id}`}>
-                <Photo src={c.photo} name={c.name} accent={c.accent} className="dt-avatar" />
+                <Photo src={c.photo} name={c.name} accent={c.accent} crop={c.photoCrop} className="dt-avatar" />
                 <span>
                   <b>{c.name}</b>
                   <small className="dt-muted">{[c.age, c.location].filter(Boolean).join(" · ")}</small>
