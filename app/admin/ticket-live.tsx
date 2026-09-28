@@ -52,6 +52,9 @@ export function OpenTickets({ onOpenMember }: { onOpenMember: (id: string) => vo
 function TicketLive({ ticket, people, onOpenMember, onClose }: { ticket: OpenTicket; people: People; onOpenMember: (id: string) => void; onClose: () => void }) {
   const [messages, setMessages] = useState<TicketLiveMessage[]>([]);
   const [mentions, setMentions] = useState<Mentions>({ channels: {}, roles: {} });
+  // Everyone mentioned in the conversation so far (merged as new messages arrive)
+  const [known, setKnown] = useState<People>({});
+  const everyone = { ...known, ...people };
   const [guild, setGuild] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [gone, setGone] = useState(false);
@@ -78,6 +81,7 @@ function TicketLive({ ticket, people, onOpenMember, onClose }: { ticket: OpenTic
       setGone(Boolean(body.gone));
       setGuild(body.guildId ?? null);
       setMentions((m) => ({ channels: { ...m.channels, ...body.mentions.channels }, roles: { ...m.roles, ...body.mentions.roles } }));
+      if (body.people) setKnown((k) => ({ ...k, ...body.people }));
       if (body.messages.length) {
         lastId.current = body.messages[body.messages.length - 1].id;
         setMessages((list) => [...list, ...body.messages.filter((m: TicketLiveMessage) => !list.some((x) => x.id === m.id))]);
@@ -142,7 +146,7 @@ function TicketLive({ ticket, people, onOpenMember, onClose }: { ticket: OpenTic
               </p>
               {m.content ? (
                 <div className="tk-live-text">
-                  <RichText text={m.content} mentions={mentions} people={people} onOpenMember={onOpenMember} />
+                  <RichText text={m.content} mentions={mentions} people={everyone} onOpenMember={onOpenMember} />
                 </div>
               ) : null}
               {m.embeds.map((e, i) => (
@@ -150,13 +154,13 @@ function TicketLive({ ticket, people, onOpenMember, onClose }: { ticket: OpenTic
                   {e.title ? <b>{e.title}</b> : null}
                   {e.description ? (
                     <div>
-                      <RichText text={e.description} mentions={mentions} people={people} onOpenMember={onOpenMember} />
+                      <RichText text={e.description} mentions={mentions} people={everyone} onOpenMember={onOpenMember} />
                     </div>
                   ) : null}
                   {e.fields.map((f, j) => (
-                    <p key={j}>
-                      <b>{f.name}</b> {f.value}
-                    </p>
+                    <div key={j} className="tk-embed-field">
+                      <b>{f.name}</b> <RichText text={f.value} mentions={mentions} people={everyone} onOpenMember={onOpenMember} />
+                    </div>
                   ))}
                   {e.image ? <img src={e.image} alt="" loading="lazy" /> : null}
                 </div>
