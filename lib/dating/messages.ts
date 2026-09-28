@@ -3,7 +3,7 @@
 //                         lastText, lastFrom, unread: {id: n}, declinedAt}
 //   dating_messages      {conv, from, text, at, deleted?}
 // Matches and friends chat freely; anyone else starts in the other person's Message Requests
-// (up to 3 messages until accepted). Blocking hides everything both ways. AutoMod's severe words
+// (they wait in a Requests tab until accepted). Blocking hides everything both ways. AutoMod's severe words
 // and scam-link checks apply here too.
 
 import { ObjectId, type Collection, type Document } from "mongodb";
@@ -17,7 +17,6 @@ import { getSettings } from "./settings";
 import { friendState, isMatch } from "./social";
 
 export const MAX_MESSAGE = 2000;
-const REQUEST_LIMIT = 3;
 const DECLINE_COOLDOWN_MS = 7 * 86_400_000;
 
 let ready: Promise<unknown> | null = null;
@@ -95,15 +94,18 @@ export async function thread(me: string, other: string, before?: string) {
   if (conv && Number(conv.unread?.[me] ?? 0) > 0) await convs.updateOne({ _id: id } as never, { $set: { [`unread.${me}`]: 0, [`readAt.${me}`]: new Date() } });
   await markReadByKey(me, `msg:${id}`);
   const canWriteFreely = await trusted(me, other);
+  const [mySettings, theirSettings] = await Promise.all([getSettings(me), getSettings(other)]);
+  const receipts = mySettings.readReceipts && theirSettings.readReceipts;
   const state = conv?.state ?? (canWriteFreely ? "open" : "none");
-  const mineInRequest = conv?.state === "request" && conv.requestFrom === me ? await msgs.countDocuments({ conv: id, from: me }) : 0;
   return {
     id,
     state,
     incomingRequest: conv?.state === "request" && conv.requestFrom !== me,
-    canSend: state === "open" || canWriteFreely || (state === "none") || (conv?.state === "request" && conv.requestFrom === me && mineInRequest < REQUEST_LIMIT),
-    requestLeft: conv?.state === "request" && conv.requestFrom === me ? Math.max(0, REQUEST_LIMIT - mineInRequest) : null,
-    theirReadAt: conv?.readAt?.[other] instanceof Date ? (conv.readAt[other] as Date).toISOString() : null,
+    // No cap on messages while a request is waiting; they land in the other person's Requests tab
+    canSend: state === "open" || canWriteFreely || state === "none" || (conv?.state === "request" && conv.requestFrom === me),
+    requestPending: conv?.state === "request" && conv.requestFrom === me,
+    // "Seen" works both ways: either of you turning read receipts off hides it for both
+    theirReadAt: receipts && conv?.readAt?.[other] instanceof Date ? (conv.readAt[other] as Date).toISOString() : null,
     messages: rows.reverse().map((m) => ({ id: String(m._id), from: String(m.from), text: m.deleted ? "" : String(m.text), deleted: Boolean(m.deleted), at: (m.at as Date).toISOString() })),
     more: rows.length === 50,
   };
@@ -143,9 +145,6 @@ export async function send(me: string, other: string, raw: string, myName: strin
     if (conv && conv.requestFrom !== me && conv.state === "request") {
       // Replying to a request accepts it
       state = "open";
-    } else {
-      const sent = conv ? await msgs.countDocuments({ conv: id, from: me }) : 0;
-      if (sent >= REQUEST_LIMIT) return `You can send ${REQUEST_LIMIT} messages until they accept your request.`;
     }
   }
   const now = new Date();
@@ -163,7 +162,7 @@ export async function send(me: string, other: string, raw: string, myName: strin
     actor: me,
     title: state === "request" ? `📨 ${myName} sent you a message request` : `💬 New message from ${myName}`,
     body: text.slice(0, 100),
-    link: `/dating/messages/${me}`,
+    link: `/social/messages/${me}`,
     key: `msg:${id}`,
   });
   return { id: String(res.insertedId) };

@@ -3,9 +3,10 @@ import { blockedIds, datingCols, isSnowflake, toLong } from "../../../../../lib/
 import { compatWith } from "../../../../../lib/dating/discover";
 import { getProfile, profileView } from "../../../../../lib/dating/profiles";
 import { recordView, viewStats } from "../../../../../lib/dating/views";
+import { getSettings } from "../../../../../lib/dating/settings";
 import { getCurrentBans } from "../../../../../lib/moderation";
 import { requireDating } from "../../../../../lib/dating/route-helpers";
-import { friendState, hasLiked, isMatch, likesReceived } from "../../../../../lib/dating/social";
+import { friendState, hasLiked, isMatch, likesReceived, passedIds } from "../../../../../lib/dating/social";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,8 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   // Let them know someone looked (unless you browse anonymously or they turned it off)
   if (!own) await recordView(me.discordId, params.id, String((await getProfile(me.discordId))?.name ?? me.name)).catch(() => undefined);
   const views = await viewStats(params.id, me.discordId).catch(() => null);
+  // They can hide their view count (you still see whether they viewed you)
+  if (views && !own && (await getSettings(params.id)).showViewCount === false) views.total = -1;
   return NextResponse.json(
     {
       ok: true,
@@ -44,11 +47,12 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       views,
       relation: {
         iLiked,
-        // They liked you (only shown when your likes list would show them by name)
-        likesMe: Boolean(theyLike && !theyLike.hidden),
+        // They liked you (everyone sees their likes now)
+        likesMe: Boolean(theyLike),
         match,
         friend,
         blockedByMe: blocked.has(params.id),
+        passed: own ? false : (await passedIds(me.discordId)).has(params.id),
       },
     },
     { headers: { "Cache-Control": "no-store" } },

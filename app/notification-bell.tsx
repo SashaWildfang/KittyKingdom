@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, CheckCheck, Eye, Heart, HeartHandshake, Inbox, MessageCircle, Settings, Sparkles, UserCheck, UserPlus } from "lucide-react";
+import { Bell, Eye, Heart, HeartHandshake, Inbox, MessageCircle, Settings, Sparkles, UserCheck, UserPlus } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type Item = { id: string; type: string; title: string; body: string; link: string; at: string; read: boolean; count: number };
@@ -36,11 +36,14 @@ export function NotificationBell() {
     const r = await fetch("/api/notifications?count=1", { cache: "no-store" }).then((x) => x.json()).catch(() => null);
     if (r?.ok) setUnread(r.unread);
   }, []);
+  // Opening the bell reads everything: the count clears right away, and what was new stays
+  // highlighted while the panel is open
   const load = useCallback(async () => {
     const r = await fetch("/api/notifications", { cache: "no-store" }).then((x) => x.json()).catch(() => null);
     if (r?.ok) {
       setItems(r.items);
-      setUnread(r.unread);
+      setUnread(0);
+      if (r.unread) await fetch("/api/notifications", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ all: true }) }).catch(() => null);
     }
   }, []);
 
@@ -79,18 +82,6 @@ export function NotificationBell() {
         <div className="nb-panel" role="dialog" aria-label="Notifications">
           <header>
             <b>Notifications</b>
-            {unread ? (
-              <button
-                type="button"
-                onClick={async () => {
-                  await mark({ all: true });
-                  setUnread(0);
-                  setItems((xs) => xs?.map((x) => ({ ...x, read: true })) ?? null);
-                }}
-              >
-                <CheckCheck size={14} aria-hidden="true" /> Mark all read
-              </button>
-            ) : null}
           </header>
           {!items ? (
             <p className="nb-empty">Loading…</p>
@@ -123,7 +114,7 @@ export function NotificationBell() {
           ) : (
             <p className="nb-empty">You&apos;re all caught up.</p>
           )}
-          <a className="nb-foot" href="/dating/settings#notifications">
+          <a className="nb-foot" href="/social/settings#notifications">
             <Settings size={13} aria-hidden="true" /> Notification settings
           </a>
         </div>
