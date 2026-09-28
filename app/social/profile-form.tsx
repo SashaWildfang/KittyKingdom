@@ -3,7 +3,7 @@
 // Form pieces shared by the profile editor and the setup wizard. Every field is drawn from the
 // bot's schema (lib/dating/schema-data.ts), so adding a field there makes it appear here.
 
-import { ArrowLeft, ArrowRight, ImagePlus, Link2, Loader2, Minus, Move, Palette, Plus, RotateCcw, Star, Trash2, TriangleAlert, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, ImagePlus, Link2, Loader2, Minus, Move, Plus, RotateCcw, Star, Trash2, TriangleAlert, X } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { ACCENTS, FIELDS, MAX_FURSONAS, MAX_PHOTOS, MAX_PROMPTS, PROMPTS } from "../../lib/dating/schema";
@@ -491,6 +491,86 @@ export function FursonaEditor({ value, onChange }: { value: Own["fursonas"]; onC
   );
 }
 
+// ---------- Color picker (in the page, no pop-up) ----------
+export const inkOn = (hex: string) => {
+  const n = parseInt(hex.replace("#", ""), 16);
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c) => c / 255);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.6 ? "#1d0f08" : "#ffffff";
+};
+
+function hexToHsv(hex: string): [number, number, number] {
+  const n = parseInt(hex.slice(1), 16);
+  const r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+  let h = 0;
+  if (d) h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [(h * 60 + 360) % 360, max ? d / max : 0, max];
+}
+function hsvToHex(h: number, s: number, v: number) {
+  const f = (n: number) => {
+    const k = (n + h / 60) % 6;
+    return Math.round((v - v * s * Math.max(0, Math.min(k, 4 - k, 1))) * 255);
+  };
+  return `#${[f(5), f(3), f(1)].map((x) => x.toString(16).padStart(2, "0")).join("")}`;
+}
+
+/** Saturation/brightness square + hue slider. */
+export function ColorPicker({ value, onChange }: { value: string; onChange: (hex: string) => void }) {
+  const [hsv, setHsv] = useState<[number, number, number]>(() => hexToHsv(value));
+  const square = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
+  // Follow outside changes (swatches, typed codes) without fighting the drag
+  useEffect(() => {
+    if (!dragging.current && hsvToHex(...hsv) !== value.toLowerCase()) setHsv(hexToHsv(value));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+  const pick = (e: { clientX: number; clientY: number }) => {
+    const el = square.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const sat = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+    const val = 1 - Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
+    const next: [number, number, number] = [hsv[0], sat, val];
+    setHsv(next);
+    onChange(hsvToHex(...next));
+  };
+  return (
+    <div className="dt-cpick">
+      <div
+        ref={square}
+        className="dt-cpick-sv"
+        style={{ "--hue": `hsl(${hsv[0]} 100% 50%)` } as CSSProperties}
+        onPointerDown={(e) => {
+          dragging.current = true;
+          (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+          pick(e);
+        }}
+        onPointerMove={(e) => dragging.current && pick(e)}
+        onPointerUp={() => (dragging.current = false)}
+        onPointerCancel={() => (dragging.current = false)}
+        role="slider"
+        aria-label="Saturation and brightness"
+        aria-valuetext={value}
+      >
+        <span className="dt-cpick-dot" style={{ left: `${hsv[1] * 100}%`, top: `${(1 - hsv[2]) * 100}%`, background: value }} />
+      </div>
+      <input
+        className="dt-cpick-hue"
+        type="range"
+        min={0}
+        max={359}
+        value={Math.round(hsv[0])}
+        onChange={(e) => {
+          const next: [number, number, number] = [Number(e.target.value), hsv[1] || 0.7, hsv[2] || 0.85];
+          setHsv(next);
+          onChange(hsvToHex(...next));
+        }}
+        aria-label="Hue"
+      />
+    </div>
+  );
+}
+
 // ---------- Looks ----------
 /** "#abc", "#aabbcc", "rgb(1, 2, 3)" or "1, 2, 3" -> "#rrggbb" (null if it isn't a color). */
 export function parseColor(raw: string): string | null {
@@ -506,17 +586,24 @@ export function parseColor(raw: string): string | null {
 
 export function LooksEditor({ web, onChange, name }: { web: Own["web"]; onChange: (w: Own["web"]) => void; name: string }) {
   const accent = web.accent ?? ACCENTS[0];
-  const custom = !ACCENTS.includes(accent);
   const [text, setText] = useState(accent);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const file = useRef<HTMLInputElement>(null);
   useEffect(() => setText(accent), [accent]);
 
+  const [size, setSize] = useState<string | null>(null);
   const uploadBanner = async (f: File | undefined) => {
     if (!f) return;
     setBusy(true);
     setErr(null);
+    // Tell them if it's smaller than the banner shows (it would look blurry)
+    try {
+      const bmp = await createImageBitmap(f);
+      setSize(bmp.width < 1200 || bmp.height < 200 ? `Your image is ${bmp.width} × ${bmp.height} pixels, smaller than recommended, so it may look blurry.` : null);
+    } catch {
+      setSize(null);
+    }
     const form = new FormData();
     form.append("file", await shrink(f), f.name);
     const res = await fetch("/api/dating/art", { method: "POST", body: form }).then((r) => r.json()).catch(() => ({ ok: false, error: "Upload failed." }));
@@ -540,11 +627,11 @@ export function LooksEditor({ web, onChange, name }: { web: Own["web"]; onChange
           {ACCENTS.map((c) => (
             <button key={c} type="button" role="radio" aria-checked={accent === c} aria-label={c} className={accent === c ? "is-on" : undefined} style={{ "--sw": c } as CSSProperties} onClick={() => onChange({ ...web, accent: c })} />
           ))}
-          <label className={`dt-swatch-custom${custom ? " is-on" : ""}`} style={{ "--sw": custom ? accent : "transparent" } as CSSProperties} title="Pick any color">
-            <input type="color" value={accent} onChange={(e) => onChange({ ...web, accent: e.target.value })} aria-label="Pick any color" />
-            <Palette size={15} aria-hidden="true" />
-          </label>
+
         </div>
+        <div className="dt-color-row">
+          <ColorPicker value={accent} onChange={(c) => onChange({ ...web, accent: c })} />
+          <div className="dt-color-side">
         <div className="dt-color-text">
           <span className="dt-color-dot" style={{ background: accent }} aria-hidden="true" />
           <input
@@ -560,11 +647,21 @@ export function LooksEditor({ web, onChange, name }: { web: Own["web"]; onChange
           />
           {text && !parseColor(text) ? <small className="dt-error">Use a hex code like #f59b2a or RGB like 245, 155, 42</small> : null}
         </div>
+            <p className="dt-help">Your color themes your whole profile: the banner, cards, buttons and highlights.</p>
+            <div className="dt-color-sample" style={{ "--acc": accent, "--acc-ink": inkOn(accent) } as CSSProperties}>
+              <span className="dt-btn dt-btn--small dt-btn--acc">Button</span>
+              <span className="dt-tagchip">tag</span>
+              <b>Heading</b>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="dt-field">
         <label>Banner</label>
-        <p className="dt-help">A wide image across the top of your profile. Without one you get the cozy paw pattern in your color.</p>
+        <p className="dt-help">
+          A wide image across the top of your profile. <b>Recommended size: 1500 × 250 pixels</b> (a 6:1 strip; at least 1200 × 200). Without one you get the cozy paw pattern in your color.
+        </p>
         <div className={`dt-banner-preview${web.banner ? "" : " dt-banner-default"}`} style={{ "--acc": accent, backgroundImage: web.banner ? `url(${web.banner})` : undefined, backgroundPosition: `center ${web.bannerY ?? 50}%` } as CSSProperties}>
           <span className="dt-banner-name">
             <b>{name || "Your name"}</b>
@@ -588,6 +685,7 @@ export function LooksEditor({ web, onChange, name }: { web: Own["web"]; onChange
           ) : null}
         </div>
         <input ref={file} type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden onChange={(e) => void uploadBanner(e.target.files?.[0])} />
+        {size ? <p className="dt-warn">{size}</p> : null}
         {err ? <p className="dt-error">{err}</p> : null}
       </div>
     </div>
