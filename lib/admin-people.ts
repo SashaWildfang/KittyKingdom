@@ -1,6 +1,6 @@
 import { loadDirectory, resolveMissing } from "./member-directory";
 
-export type Person = { name: string; username: string | null; nick?: string | null; avatar: string | null; inServer: boolean };
+export type Person = { name: string; username: string | null; nick?: string | null; avatar: string | null; inServer: boolean; deleted?: boolean };
 
 /** Names and avatars for the Discord ids shown in an admin view. */
 export async function people(ids: (string | null | undefined)[]): Promise<Record<string, Person>> {
@@ -17,6 +17,8 @@ export async function people(ids: (string | null | undefined)[]): Promise<Record
       nick: entry?.nick ?? null,
       avatar: entry?.avatar ?? null,
       inServer: entry?.inServer ?? false,
+      // Deleted Discord accounts: Discord 404s them (no username) or renames them "Deleted User"
+      deleted: Boolean(entry) && (!entry?.username || /^deleted_user_/i.test(entry.username) || /^deleted user$/i.test(entry?.displayName ?? "")),
     };
   }
   return out;

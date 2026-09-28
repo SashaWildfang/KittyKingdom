@@ -322,7 +322,7 @@ export async function memberStats(discordId: string, timeZone: string) {
   const topVoiceChannels = top(voiceChannelsAll, 5);
   const topBuddies = top(voiceBuddiesAll, 5);
   const reactedBy = top(a.reactedBy, 1);
-  const circleIds = Array.from(scores.entries()).sort((x, y) => y[1].score - x[1].score).slice(0, 12).map(([id]) => id);
+  const circleIds = Array.from(scores.entries()).sort((x, y) => y[1].score - x[1].score).slice(0, 20).map(([id]) => id);
 
   // Everyone they interact with, both directions (you → them and them → you)
   const dir = new Map<string, { out: Record<string, number>; in: Record<string, number>; both: Record<string, number> }>();
@@ -344,8 +344,9 @@ export async function memberStats(discordId: string, timeZone: string) {
   put(voiceBuddiesAll, "both", "voiceSeconds");
   const everyoneIds = Array.from(dir.keys())
     .sort((x, y) => (scores.get(y)?.score ?? 0) - (scores.get(x)?.score ?? 0))
-    .slice(0, 150);
-  const leader = (map: unknown) => top(map, 1).filter(([id]) => id !== discordId)[0] ?? null;
+    .slice(0, 200);
+  // A few candidates per leader so a deleted account can be skipped once names are known
+  const leader = (map: unknown) => top(map, 6).filter(([id]) => id !== discordId);
   const leaders = {
     repliesTo: leader(a.repliesTo),
     repliesFrom: leader(a.repliesFrom),
@@ -363,13 +364,17 @@ export async function memberStats(discordId: string, timeZone: string) {
     ...everyoneIds,
     ...topBuddies.map(([id]) => id),
     ...reactedBy.map(([id]) => id),
-    ...Object.values(leaders).map((l) => l?.[0] ?? null),
+    ...Object.values(leaders).flatMap((l) => l.map(([id]) => id)),
     giftToId,
     giftFromId,
   ]).catch(() => ({} as Record<string, Person>));
   const person = (id: string) => ({ id, name: who[id]?.name ?? "Unknown member", avatar: who[id]?.avatar ?? null, inServer: who[id]?.inServer ?? false });
+  // Deleted Discord accounts never show up in the social stats
+  const alive = (id: string) => !who[id]?.deleted;
+  const firstAlive = (list: [string, number][]) => list.find(([id]) => alive(id)) ?? null;
   // Prefer people still in the server
   const circle = circleIds
+    .filter(alive)
     .map((id) => ({ ...person(id), ...scores.get(id)! }))
     .sort((x, y) => Number(y.inServer) - Number(x.inServer) || y.score - x.score)
     .slice(0, 6)
@@ -565,7 +570,7 @@ export async function memberStats(discordId: string, timeZone: string) {
     channels: topChannels,
     circle,
     social: (() => {
-      const everyone = everyoneIds.map((id) => {
+      const everyone = everyoneIds.filter(alive).slice(0, 150).map((id) => {
         const d = dir.get(id)!;
         const outN = (d.out.replies ?? 0) + (d.out.mentions ?? 0) + (d.out.reactions ?? 0);
         const inN = (d.in.replies ?? 0) + (d.in.mentions ?? 0) + (d.in.reactions ?? 0);
@@ -585,7 +590,7 @@ export async function memberStats(discordId: string, timeZone: string) {
       const totalScore = everyone.reduce((acc, p) => acc + p.score, 0);
       return {
         everyone,
-        count: dir.size,
+        count: dir.size - everyoneIds.filter((id) => !alive(id)).length,
         mutual: everyone.filter((p) => p.balance === "mutual").length,
         youReach: everyone.filter((p) => p.balance === "you").length,
         theyReach: everyone.filter((p) => p.balance === "them").length,
@@ -594,14 +599,14 @@ export async function memberStats(discordId: string, timeZone: string) {
         avgReplySeconds: num(a.replyDelayCount) ? Math.round(num(a.replyDelaySum) / num(a.replyDelayCount)) : null,
         replyRatio: num(a.repliesSent) ? Math.round((num(a.repliesReceived) / num(a.repliesSent)) * 100) / 100 : null,
         leaders: {
-          repliesTo: lead(leaders.repliesTo),
-          repliesFrom: lead(leaders.repliesFrom),
-          mentionsTo: lead(leaders.mentionsTo),
-          mentionsFrom: lead(leaders.mentionsFrom),
-          reactedTo: lead(leaders.reactedTo),
-          reactedBy: lead(leaders.reactedBy),
-          conversations: lead(leaders.conversations),
-          voice: lead(leaders.voice),
+          repliesTo: lead(firstAlive(leaders.repliesTo)),
+          repliesFrom: lead(firstAlive(leaders.repliesFrom)),
+          mentionsTo: lead(firstAlive(leaders.mentionsTo)),
+          mentionsFrom: lead(firstAlive(leaders.mentionsFrom)),
+          reactedTo: lead(firstAlive(leaders.reactedTo)),
+          reactedBy: lead(firstAlive(leaders.reactedBy)),
+          conversations: lead(firstAlive(leaders.conversations)),
+          voice: lead(firstAlive(leaders.voice)),
         },
       };
     })(),
@@ -623,7 +628,7 @@ export async function memberStats(discordId: string, timeZone: string) {
       byHour: Array.from({ length: 24 }, (_, h) => toLocal(voiceHoursAll).reduce((acc, row) => acc + row[h], 0)),
       joins: Math.max(num(a.voiceJoins), vh?.sessions ?? 0),
       channels: topVoiceChannels.map(([id, s]) => ({ id, name: channels.get(id)?.name ?? "deleted channel", seconds: Math.round(s) })),
-      buddies: topBuddies.map(([id, s]) => ({ ...person(id), seconds: Math.round(s) })),
+      buddies: topBuddies.filter(([id]) => alive(id)).map(([id, s]) => ({ ...person(id), seconds: Math.round(s) })),
     },
     emojis: {
       top: top(a.emojis, 10).map(([k, n]) => emojiView(k, n)),
