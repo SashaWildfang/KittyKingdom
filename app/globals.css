@@ -23824,3 +23824,47 @@ button.adm-format-media {
 .gs-table th {
   white-space: nowrap;
 }
+/* News: unread markers and mark-all-read */
+.nw-unread {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+}
+.nw-unread span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text);
+  font-weight: 800;
+}
+.nw-unread span i,
+.nw-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: #e5484d;
+  box-shadow: 0 0 0 3px rgba(229, 72, 77, 0.2);
+}
+.nw-dot {
+  display: inline-block;
+  margin-left: auto;
+}
+.nw-unread button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.nw-unread button:hover {
+  border-color: var(--ember);
+}
