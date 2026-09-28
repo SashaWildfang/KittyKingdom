@@ -123,6 +123,12 @@ const sections: LegalSection[] = [
             relevant, the message that caused them.
           </li>
           <li>
+            <b>AutoMod:</b> our bot automatically checks messages, edits and server nicknames for blocked words, scam or phishing links, invites to other
+            servers and spam. When it acts, it records what it caught (the rule, the matched word or link, and the start of the message) for 90 days so
+            staff can review it and handle appeals. It may remove the message, give a warning or a temporary mute, reset a nickname, or DM you about it;
+            it never kicks or bans anyone.
+          </li>
+          <li>
             <b>Server logs:</b> our staff log channels record events such as edited and deleted messages (including their content), member and role changes,
             and joining, leaving and moving between voice channels. These logs are mirrored to our database so staff can search them on the Site.
           </li>
