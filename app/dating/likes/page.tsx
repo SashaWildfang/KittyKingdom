@@ -1,14 +1,19 @@
 "use client";
 
-import { Gem, Heart, Lock } from "lucide-react";
-import { useState } from "react";
+import { Eye, Gem, Heart, Lock } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Empty, ProfileTile, ago, post, useApi, type Card } from "../ui";
 
 type Likes = { booster: boolean; received: (Card & { at: string | null })[]; hidden: number; sent: Card[] };
 
 export default function Likes() {
   const { data, error, reload } = useApi<Likes>("/api/dating/lists?list=likes");
-  const [tab, setTab] = useState<"received" | "sent">("received");
+  const [tab, setTab] = useState<"received" | "sent" | "views">("received");
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get("tab");
+    if (t === "sent" || t === "views") setTab(t);
+  }, []);
+  const views = useApi<{ weekCount: number; cards: (Card & { at: string | null })[] }>(tab === "views" ? "/api/dating/lists?list=views" : null);
   const [note, setNote] = useState<string | null>(null);
   if (error) return <p className="dt-error">{error}</p>;
   if (!data) return <div className="dt-loading" aria-busy="true" />;
@@ -32,10 +37,43 @@ export default function Likes() {
         <button type="button" role="tab" aria-selected={tab === "sent"} className={tab === "sent" ? "is-on" : undefined} onClick={() => setTab("sent")}>
           You liked <span>{data.sent.length}</span>
         </button>
+        <button type="button" role="tab" aria-selected={tab === "views"} className={tab === "views" ? "is-on" : undefined} onClick={() => setTab("views")}>
+          <Eye size={14} aria-hidden="true" /> Viewed you
+        </button>
       </div>
       {note ? <p className="dt-note">{note}</p> : null}
 
-      {tab === "received" ? (
+      {tab === "views" ? (
+        !views.data ? (
+          <div className="dt-loading" aria-busy="true" />
+        ) : views.data.cards.length ? (
+          <>
+            <p className="dt-muted dt-count">
+              {views.data.weekCount} profile view{views.data.weekCount === 1 ? "" : "s"} this week · people browsing anonymously aren&apos;t listed ·{" "}
+              <a className="dt-textlink" href="/dating/settings#privacy">
+                Browse anonymously yourself
+              </a>
+            </p>
+            <div className="dt-grid">
+              {views.data.cards.map((c) => (
+                <ProfileTile
+                  key={c.id}
+                  card={c}
+                  extra={
+                    <div className="dt-tile-foot">
+                      <small className="dt-muted">{c.at ? ago(c.at)?.replace("active ", "viewed ") : null}</small>
+                    </div>
+                  }
+                />
+              ))}
+            </div>
+          </>
+        ) : (
+          <Empty icon={<Eye size={28} />} title="No profile views yet">
+            <p>When someone looks at your profile, they&apos;ll show up here (unless they browse anonymously).</p>
+          </Empty>
+        )
+      ) : tab === "received" ? (
         data.received.length || data.hidden ? (
           <>
             <div className="dt-grid">

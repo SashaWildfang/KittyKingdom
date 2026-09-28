@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, CheckCheck, Heart, Inbox, MessageCircle, Sparkles, UserCheck, UserPlus } from "lucide-react";
+import { Bell, CheckCheck, Eye, Heart, Inbox, MessageCircle, Settings, Sparkles, UserCheck, UserPlus } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type Item = { id: string; type: string; title: string; body: string; link: string; at: string; read: boolean; count: number };
@@ -12,6 +12,7 @@ const ICONS: Record<string, typeof Bell> = {
   request: Inbox,
   "friend-request": UserPlus,
   "friend-accepted": UserCheck,
+  view: Eye,
 };
 
 function when(iso: string) {
@@ -121,6 +122,9 @@ export function NotificationBell() {
           ) : (
             <p className="nb-empty">You&apos;re all caught up.</p>
           )}
+          <a className="nb-foot" href="/dating/settings#notifications">
+            <Settings size={13} aria-hidden="true" /> Notification settings
+          </a>
         </div>
       ) : null}
     </div>

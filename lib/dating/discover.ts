@@ -9,6 +9,7 @@ import { bioPreview, photoUrl, type Photo, type WebPrefs } from "./profiles";
 import { PROMPTS, accentFor, display, getList, isFilled, type ProfileDoc } from "./schema";
 import { extractPhrases } from "./matching";
 import { friendSkipIds, friendsOf, likedIds, passedIds } from "./social";
+import { getSettings } from "./settings";
 
 export type Card = {
   id: string;
@@ -76,14 +77,15 @@ function card(doc: ProfileDoc, compat: Compat | null, liked: boolean, pool: Pool
 }
 
 async function candidates(me: string) {
-  const pool = await datingPool();
-  const blocked = await blockedIds(me);
+  const [pool, blocked, settings] = await Promise.all([datingPool(), blockedIds(me), getSettings(me)]);
   const mine = pool.profiles.get(me) ?? null;
   const others = Array.from(pool.profiles.values()).filter((p) => {
     const id = String(p._id);
     if (id === me || blocked.has(id)) return false;
     // Paused profiles are hidden; members who left the server still show (with a badge)
     if (((p.web ?? {}) as WebPrefs).paused) return false;
+    // Members who left the server show unless you turned that off in Settings
+    if (!settings.showLeft && pool.inServer && !pool.inServer.has(id)) return false;
     return true;
   });
   const side = (d: ProfileDoc) => ({ doc: d, vec: pool.vectors.get(String(d._id)) ?? null });

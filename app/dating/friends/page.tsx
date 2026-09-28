@@ -1,7 +1,7 @@
 "use client";
 
 import { Ban, MessageCircle, UserCheck, Users, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Empty, Photo, ProfileTile, post, useApi, type Card } from "../ui";
 
 type Friend = Card & { friend: "friends" | "sent" | "received" | "none" };
@@ -10,6 +10,10 @@ export default function Friends() {
   const friends = useApi<{ cards: Friend[] }>("/api/dating/lists?list=friends");
   const blocked = useApi<{ cards: Card[]; ids: { id: string; at: string }[] }>("/api/dating/lists?list=blocked");
   const [tab, setTab] = useState<"friends" | "requests" | "blocked">("friends");
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get("tab");
+    if (t === "requests" || t === "blocked") setTab(t);
+  }, []);
   const act = async (action: string, target: string) => {
     const r = await post("/api/dating/actions", { action, target });
     if (r.ok) await Promise.all([friends.reload(), blocked.reload()]);
