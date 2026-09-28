@@ -59,7 +59,8 @@ export default function EditProfile() {
   const diff = useMemo(() => (own ? changed(own.values, values) : {}), [own, values]);
   const promptsDirty = own ? JSON.stringify(own.prompts) !== JSON.stringify(prompts.filter((p) => p.a.trim())) || prompts.some((p) => !p.a.trim()) : false;
   const sonasDirty = own ? JSON.stringify(own.fursonas) !== JSON.stringify(sonas) : false;
-  const webDirty = own ? JSON.stringify({ accent: own.web.accent, headline: own.web.headline ?? "", paused: !!own.web.paused, hideAge: !!own.web.hideAge, showOnline: own.web.showOnline !== false }) !== JSON.stringify({ accent: web.accent, headline: web.headline ?? "", paused: !!web.paused, hideAge: !!web.hideAge, showOnline: web.showOnline !== false }) : false;
+  const webKey = (w: Own["web"]) => JSON.stringify({ accent: w.accent, headline: w.headline ?? "", paused: !!w.paused, hideAge: !!w.hideAge, showOnline: w.showOnline !== false, banner: w.banner ?? "", bannerY: w.banner ? w.bannerY ?? 50 : 50 });
+  const webDirty = own ? webKey(own.web) !== webKey(web) : false;
   const dirty = Object.keys(diff).length > 0 || promptsDirty || sonasDirty || webDirty;
 
   // Keep unsaved edits as a draft; drop it once everything is saved or discarded

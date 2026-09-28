@@ -135,11 +135,13 @@ export const PROMPTS = [
 ];
 export const MAX_PROMPTS = 3;
 export const MAX_PHOTOS = 6;
-export const ACCENTS = ["#f59b2a", "#e5484d", "#d6409f", "#8e4ec6", "#3e63dd", "#12a594", "#46a758", "#f5b041"];
+export const ACCENTS = ["#f59b2a", "#e5484d", "#d6409f", "#8e4ec6", "#3e63dd", "#0ea5e9", "#12a594", "#46a758"];
+/** Any #rrggbb color is allowed (members can pick their own). */
+export const isHexColor = (v: unknown): v is string => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
 export const MAX_FURSONAS = 5;
 /** A member's profile color: their pick, or a stable one from their id so placeholders vary. */
 export function accentFor(id: string, chosen?: string | null) {
-  if (chosen && ACCENTS.includes(chosen)) return chosen;
+  if (isHexColor(chosen)) return chosen.toLowerCase();
   let h = 0;
   for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   return ACCENTS[h % ACCENTS.length];

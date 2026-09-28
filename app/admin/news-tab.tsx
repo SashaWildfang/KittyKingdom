@@ -1,6 +1,6 @@
 "use client";
 
-import { BadgeCheck, Bold, Clock, Code, EyeOff, Eye, Film, Heading, ImagePlus, Italic, Link2, List, ListOrdered, Minus, Pencil, Pin, PinOff, Plus, Quote, Search, Strikethrough, Tags, Trash2, Underline, X, type LucideIcon } from "lucide-react";
+import { BadgeCheck, Bold, GripVertical, Clock, Code, EyeOff, Eye, Film, Heading, ImagePlus, Italic, Link2, List, ListOrdered, Minus, Pencil, Pin, PinOff, Plus, Quote, Search, Strikethrough, Tags, Trash2, Underline, X, type LucideIcon } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { newsExcerpt } from "../../lib/news-format";
@@ -51,6 +51,25 @@ export function NewsTab() {
 
   const params = new URLSearchParams({ sort, status, search: query, tag });
   const { data, reload } = useLive<{ posts: Post[]; pending: number }>(`/api/admin/news?${params}`, 30_000);
+
+  // Drag to reorder: only while showing every post in display order (so the order is unambiguous)
+  const canReorder = sort === "newest" && status === "all" && !query && !tag;
+  const [order, setOrder] = useState<string[] | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
+  useEffect(() => setOrder(null), [data]);
+  const listed = order && data ? (order.map((id) => data.posts.find((p) => p.id === id)).filter(Boolean) as Post[]) : data?.posts ?? [];
+  async function dropOn(targetId: string) {
+    if (!dragId || dragId === targetId || !data) return;
+    const ids = listed.map((p) => p.id).filter((id) => id !== dragId);
+    ids.splice(ids.indexOf(targetId), 0, dragId);
+    setOrder(ids);
+    setDragId(null);
+    setOverId(null);
+    const res = await fetch("/api/admin/news/order", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids }) }).then((r) => r.json()).catch(() => null);
+    setMessage(res?.ok ? { text: "New order saved. This is the order readers see (pinned posts stay on top).", tone: "ok" } : { text: "Couldn't save the new order.", tone: "error" });
+    await reload();
+  }
 
   async function send(method: "POST" | "PATCH" | "DELETE", url: string, body?: unknown) {
     setMessage(null);
@@ -118,8 +137,40 @@ export function NewsTab() {
 
       <div className="adm-news-split">
         <ul className="adm-news-index" aria-label="Posts">
-          {data?.posts.map((p) => (
-            <li key={p.id}>
+          <li className="adm-news-order-hint">
+            {canReorder ? (
+              <>
+                <GripVertical size={13} aria-hidden="true" /> Drag posts to change the order readers see
+              </>
+            ) : (
+              "Show all posts, sorted Pinned then newest, to drag and reorder"
+            )}
+          </li>
+          {listed.map((p) => (
+            <li
+              key={p.id}
+              draggable={canReorder}
+              onDragStart={(e) => {
+                setDragId(p.id);
+                e.dataTransfer.effectAllowed = "move";
+              }}
+              onDragOver={(e) => {
+                if (!dragId) return;
+                e.preventDefault();
+                setOverId(p.id);
+              }}
+              onDragLeave={() => setOverId((o) => (o === p.id ? null : o))}
+              onDrop={(e) => {
+                e.preventDefault();
+                void dropOn(p.id);
+              }}
+              onDragEnd={() => {
+                setDragId(null);
+                setOverId(null);
+              }}
+              className={`${canReorder ? "is-draggable" : ""}${dragId === p.id ? " is-dragging" : ""}${overId === p.id && dragId !== p.id ? " is-over" : ""}`}
+            >
+              {canReorder ? <GripVertical size={14} className="adm-news-grip" aria-hidden="true" /> : null}
               <button type="button" className={`${selected?.id === p.id ? "is-on" : ""}${p.status !== "published" ? " is-" + p.status : ""}`} onClick={() => setSelectedId(p.id)}>
                 <span className="adm-news-index-meta">
                   <i style={{ background: p.tagColor }} aria-hidden="true" />
