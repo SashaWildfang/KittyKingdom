@@ -469,7 +469,7 @@ export async function memberStats(discordId: string, timeZone: string) {
       };
     })(),
     topics: (() => {
-      const counts = entries(a.topics).sort((x, y) => y[1] - x[1]);
+      const counts = entries(a.topics).filter(([key]) => TOPICS[key]).sort((x, y) => y[1] - x[1]);
       const words = entries(a.topicWords);
       const total = counts.reduce((acc, [, n]) => acc + n, 0);
       return {
@@ -477,7 +477,7 @@ export async function memberStats(discordId: string, timeZone: string) {
         list: counts.map(([key, n]) => {
           const def = TOPICS[key];
           const own = def ? words.filter(([w]) => def.words.includes(w)).sort((x, y) => y[1] - x[1]).slice(0, 12) : [];
-          return { key, label: def?.label ?? key, color: def?.color ?? "#f59b2a", icon: def?.icon ?? "Hash", n, share: total ? n / total : 0, words: own.map(([w, c]) => ({ word: w, n: c })) };
+          return { key, label: def?.label ?? key, group: def?.group ?? "life", color: def?.color ?? "#f59b2a", icon: def?.icon ?? "Hash", n, share: total ? n / total : 0, words: own.map(([w, c]) => ({ word: w, n: c })) };
         }),
         topWords: [...words].sort((x, y) => y[1] - x[1]).slice(0, 40).map(([w, c]) => ({ word: w, n: c })),
       };
