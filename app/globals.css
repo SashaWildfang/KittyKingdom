@@ -11808,7 +11808,9 @@ svg.lb-crown {
   display: none;
 }
 
-@media (max-width: 760px) {
+/* Up to 1100px (tablets, and big screens with high display scaling) use the phone menu, so the
+   top bar never overflows */
+@media (max-width: 1100px) {
   .site-shell {
     padding-top: 0 !important;
   }
@@ -24552,4 +24554,206 @@ body.live-fullscreen .view-as-bar {
 .adm-news-index li.is-over {
   box-shadow: 0 -3px 0 0 var(--ember);
   border-radius: 4px;
+}
+
+
+/* ---------- Top bar: compact tabs so everything fits on one line ---------- */
+.topbar {
+  gap: 0.7rem;
+  padding-left: clamp(0.9rem, 2.4vw, 2.6rem);
+  padding-right: clamp(0.9rem, 2.4vw, 2.6rem);
+}
+.topbar .tabs {
+  gap: 0.15rem;
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+.topbar .tabs a {
+  padding: 0.5rem 0.7rem;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+.topbar .nav-actions {
+  gap: 0.5rem;
+  flex: none;
+}
+.topbar .nav-actions .login-link,
+.topbar .nav-actions .primary-pill {
+  padding: 0.55rem 0.95rem;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+.topbar .brand {
+  flex: none;
+  gap: 0.65rem;
+}
+.topbar .brand-copy strong {
+  white-space: nowrap;
+}
+/* Between the phone menu and roomy screens, tighten a bit more */
+@media (min-width: 1101px) and (max-width: 1320px) {
+  .topbar .tabs a {
+    padding: 0.45rem 0.55rem;
+    font-size: 0.85rem;
+  }
+}
+@media (min-width: 1101px) and (max-width: 1200px) {
+  .topbar .brand-copy .status-stack {
+    display: none;
+  }
+}
+
+/* ---------- Site footer (every page) ---------- */
+.site-footer {
+  position: relative;
+  z-index: 2;
+  margin-top: clamp(3rem, 6vw, 5rem);
+  border-top: 1px solid var(--line);
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--bg) 70%, #000 30%));
+}
+:root[data-theme="light"] .site-footer {
+  background: linear-gradient(180deg, transparent, rgba(245, 155, 42, 0.1));
+}
+.site-footer-inner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2rem 3rem;
+  width: min(1320px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 2.4rem 0 1.6rem;
+}
+.site-footer-brand {
+  display: grid;
+  gap: 0.9rem;
+  align-content: start;
+  max-width: 300px;
+}
+.site-footer-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+.site-footer-logo img {
+  border-radius: 12px;
+}
+.site-footer-logo span {
+  display: grid;
+  line-height: 1.2;
+}
+.site-footer-logo strong {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.site-footer-logo small {
+  color: var(--muted);
+}
+.site-footer-socials {
+  display: flex;
+  gap: 0.45rem;
+}
+.site-footer-socials a {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  transition: transform 0.15s, border-color 0.15s, color 0.15s;
+}
+.site-footer-socials a:hover {
+  transform: translateY(-2px);
+  border-color: var(--ember);
+  color: var(--ember);
+}
+.site-footer-join {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  justify-self: start;
+  padding: 0.5rem 0.95rem;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 0.88rem;
+  color: #fff;
+  background: #5865f2;
+  box-shadow: 0 6px 16px rgba(88, 101, 242, 0.35);
+}
+.site-footer-join:hover {
+  filter: brightness(1.08);
+}
+.site-footer-cols {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(130px, auto));
+  gap: 1.5rem 2.5rem;
+}
+.site-footer-cols div {
+  display: grid;
+  gap: 0.5rem;
+  align-content: start;
+}
+.site-footer-cols h3 {
+  margin: 0 0 0.2rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ember);
+  max-width: none;
+}
+.site-footer-cols a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+.site-footer-cols a:hover {
+  color: var(--text);
+}
+.site-footer-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+  width: min(1320px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 1rem 0 1.6rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.84rem;
+  color: var(--muted);
+}
+.site-footer-bottom p {
+  margin: 0;
+}
+.site-footer-top {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+.site-footer-top:hover {
+  color: var(--text);
+}
+@media (max-width: 900px) {
+  .site-footer-cols {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+  .site-footer-brand {
+    max-width: none;
+  }
+}
+/* A site-wide "footer" rule lays footers out as a row; this one stacks its two rows */
+.site-footer {
+  display: block;
+  padding: 0;
+  width: auto;
+}
+.site-footer-inner {
+  align-items: flex-start;
 }
