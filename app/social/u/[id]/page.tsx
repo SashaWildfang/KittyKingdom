@@ -1,0 +1,572 @@
+"use client";
+
+import {
+  Activity,
+  Ban,
+  BarChart3,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Eye,
+  EyeOff,
+  FileText,
+  Gamepad2,
+  Globe2,
+  Heart,
+  HeartHandshake,
+  HeartOff,
+  Mail,
+  MapPin,
+  MessageCircle,
+  Moon,
+  MoreHorizontal,
+  PenLine,
+  Sparkles,
+  ThumbsDown,
+  Timer,
+  TriangleAlert,
+  Undo2,
+  UserCheck,
+  UserMinus,
+  UserPlus,
+  UserRound,
+  Users,
+  Wind,
+  Wine,
+  X,
+  type LucideIcon,
+} from "lucide-react";
+import { useEffect, useState, type CSSProperties } from "react";
+import { SectionIcon, TierIcon } from "../../icons";
+import { Empty, Photo, ReportButton, ago, post, useApi } from "../../ui";
+
+type View = {
+  id: string;
+  name: string;
+  discordName: string | null;
+  avatar: string | null;
+  inServer: boolean;
+  partners: { id: string; name: string; avatar: string | null; hasProfile: boolean }[];
+  age: number | null;
+  headline: string | null;
+  accent: string;
+  photos: { url: string; caption: string | null }[];
+  facts: { label: string; value: string; key: string }[];
+  sections: { id: string; label: string; items: { key: string; label: string; value: string; legacy: boolean; long: boolean; href: string | null }[] }[];
+  prompts: { q: string; a: string }[];
+  fursonas: { name: string; description: string; art_links: string[] }[];
+  lookingFor: { open: boolean; genders: string[]; relTypes: string[]; ages: string | null };
+  lastActive: string | null;
+  strength: number;
+  paused: boolean;
+  isNew: boolean;
+};
+type Compat = { score: number; tier: string; parts: Record<string, number | null>; pairs: { a: string; b: string }[]; agreements: string[]; conflicts: string[]; blocked: string | null; starter: string; ai: boolean };
+type Views = { total: number; week: number; theyViewedMe: string | null; iViewedBefore: boolean } | null;
+type Relation = { iLiked: boolean; likesMe: boolean; match: boolean; friend: "none" | "friends" | "sent" | "received"; blockedByMe: boolean; passed: boolean };
+type Data = { own: boolean; profile: View; compat: Compat | null; views: Views; relation: Relation };
+
+const PART_LABELS: Record<string, [string, LucideIcon]> = {
+  interests: ["Interests", Gamepad2],
+  lifestyle: ["Lifestyle", Moon],
+  logistics: ["Distance & time", Globe2],
+  vices: ["Habits", Wine],
+  independence: ["Independence", Wind],
+  completeness: ["Their profile", FileText],
+  recency: ["Recently active", Timer],
+};
+const FACT_ICONS: Record<string, LucideIcon> = { gender: UserRound, pronouns: UserRound, sexuality: Sparkles, location: MapPin, timezone: Clock, relationship_status: HeartHandshake };
+// The matcher prefixes agreements with an emoji; the list already has its own icon
+const noEmoji = (t: string) => t.replace(/^[^A-Za-z0-9(]+/, "");
+const photoId = (url: string) => url.match(/\/media\/([a-f0-9]{24})\./)?.[1];
+const isImage = (l: string) => /\.(png|jpe?g|gif|webp)(\?|$)/i.test(l) || l.startsWith("/api/dating/media/");
+
+function Gallery({ photos, name, owner }: { photos: View["photos"]; name: string; owner: string }) {
+  const [i, setI] = useState(0);
+  const [zoom, setZoom] = useState(false);
+  useEffect(() => {
+    if (!zoom) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setZoom(false);
+      if (e.key === "ArrowRight") setI((x) => (x + 1) % photos.length);
+      if (e.key === "ArrowLeft") setI((x) => (x - 1 + photos.length) % photos.length);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [zoom, photos.length]);
+  if (!photos.length) return null;
+  const p = photos[Math.min(i, photos.length - 1)];
+  const pid = photoId(p.url);
+  return (
+    <div className="dt-gallery">
+      <button type="button" className="dt-gallery-main" onClick={() => setZoom(true)} aria-label="View photo larger">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={p.url} alt={p.caption ?? `${name}'s photo`} />
+        {p.caption ? <span className="dt-gallery-caption">{p.caption}</span> : null}
+      </button>
+      {photos.length > 1 ? (
+        <>
+          <button type="button" className="dt-gallery-nav is-prev" onClick={() => setI((x) => (x - 1 + photos.length) % photos.length)} aria-label="Previous photo">
+            <ChevronLeft size={20} />
+          </button>
+          <button type="button" className="dt-gallery-nav is-next" onClick={() => setI((x) => (x + 1) % photos.length)} aria-label="Next photo">
+            <ChevronRight size={20} />
+          </button>
+          <div className="dt-gallery-dots">
+            {photos.map((ph, n) => (
+              <button key={ph.url} type="button" className={n === i ? "is-on" : undefined} onClick={() => setI(n)} aria-label={`Photo ${n + 1}`} />
+            ))}
+          </div>
+        </>
+      ) : null}
+      {pid ? (
+        <div className="dt-gallery-report">
+          <ReportButton target={owner} type="photo" photoId={pid} label="Report photo" small />
+        </div>
+      ) : null}
+      {zoom ? (
+        <div className="dt-lightbox" onClick={() => setZoom(false)} role="dialog" aria-modal="true" aria-label="Photo">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={p.url} alt={p.caption ?? ""} onClick={(e) => e.stopPropagation()} />
+          <button type="button" className="dt-modal-close" aria-label="Close">
+            <X size={18} />
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export default function ProfilePage({ params }: { params: { id: string } }) {
+  const { data, error, reload } = useApi<Data>(`/api/dating/users/${params.id}`);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  const [menu, setMenu] = useState(false);
+  const [confirmBlock, setConfirmBlock] = useState(false);
+  useEffect(() => {
+    if (!note) return;
+    const t = window.setTimeout(() => setNote(null), 4000);
+    return () => window.clearTimeout(t);
+  }, [note]);
+  // Close the "more" menu when clicking elsewhere
+  useEffect(() => {
+    if (!menu) return;
+    const close = (e: MouseEvent) => !(e.target as HTMLElement).closest(".dt-more") && setMenu(false);
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [menu]);
+
+  if (error)
+    return (
+      <Empty icon={<TriangleAlert size={28} />} title="Profile not available">
+        <p>{error}</p>
+        <a className="dt-btn" href="/social/browse">
+          Back to Browse
+        </a>
+      </Empty>
+    );
+  if (!data) return <div className="dt-loading dt-loading--tall" aria-busy="true" />;
+  const { profile: p, compat: c, relation: r, views: v } = data;
+
+  const act = async (action: string, done?: string) => {
+    setBusy(true);
+    const res = await post<{ mutual?: boolean }>("/api/dating/actions", { action, target: p.id });
+    setBusy(false);
+    setMenu(false);
+    if (!res.ok) return setNote(res.error ?? "That didn't work.");
+    setNote(res.mutual ? `It's a match with ${p.name}! Say hi in Messages.` : done ?? null);
+    await reload();
+  };
+
+  const active = ago(p.lastActive);
+  const cover = p.photos[0]?.url ?? p.avatar;
+  const facts = p.facts.map((f) => ({ ...f, Icon: FACT_ICONS[f.key] ?? Sparkles }));
+
+  return (
+    <div className="dt-profile dt-profile--v2" style={{ "--acc": p.accent } as CSSProperties}>
+      {data.own ? (
+        <div className="dt-banner dt-banner--soft">
+          <Eye size={16} aria-hidden="true" />
+          <span>This is how other members see your profile.</span>
+          <a className="dt-btn dt-btn--small" href="/social/profile">
+            <PenLine size={13} aria-hidden="true" /> Edit
+          </a>
+        </div>
+      ) : null}
+      {r.blockedByMe ? (
+        <div className="dt-banner dt-banner--warn">
+          <Ban size={16} aria-hidden="true" />
+          <span>You blocked {p.name}. They can&apos;t see you or message you.</span>
+          <button type="button" className="dt-btn dt-btn--small" disabled={busy} onClick={() => void act("unblock", "Unblocked.")}>
+            Unblock
+          </button>
+        </div>
+      ) : null}
+
+      {/* Header card */}
+      <header className="dt-hero">
+        <div className="dt-hero-cover" aria-hidden="true" />
+        <div className="dt-hero-body">
+          <div className="dt-hero-photo">
+            <Photo src={cover} name={p.name} accent={p.accent} />
+            {active === "online now" ? <span className="dt-face-dot" title="Online now" /> : null}
+          </div>
+          <div className="dt-hero-info">
+            <h1>
+              {p.name}
+              {p.age ? <span>, {p.age}</span> : null}
+              {p.isNew ? <span className="dt-new">New</span> : null}
+            </h1>
+            {p.headline ? <p className="dt-headline">{p.headline}</p> : null}
+            {p.discordName ? <p className="dt-muted dt-hero-handle">@{p.discordName}</p> : null}
+            <ul className="dt-hero-facts">
+              {facts.map((f) => (
+                <li key={f.key} title={f.label}>
+                  <f.Icon size={14} aria-hidden="true" /> {f.value}
+                </li>
+              ))}
+              {active ? (
+                <li className={active === "online now" ? "is-online" : undefined}>
+                  <Activity size={14} aria-hidden="true" /> {active}
+                </li>
+              ) : null}
+            </ul>
+            <div className="dt-hero-badges">
+              {r.match ? (
+                <span className="dt-badge dt-badge--match">
+                  <HeartHandshake size={12} aria-hidden="true" /> You matched
+                </span>
+              ) : r.likesMe ? (
+                <span className="dt-badge dt-badge--match">
+                  <Mail size={12} aria-hidden="true" /> Likes you
+                </span>
+              ) : null}
+              {!p.lookingFor.open ? (
+                <span className="dt-badge">
+                  <Users size={12} aria-hidden="true" /> Here for friends
+                </span>
+              ) : null}
+              {!p.inServer ? (
+                <span className="dt-badge dt-badge--muted" title="They left the Discord server but kept their profile">
+                  Left the server
+                </span>
+              ) : null}
+              {p.paused ? <span className="dt-badge dt-badge--muted">Paused</span> : null}
+              {v && v.total >= 0 ? (
+                <span className="dt-badge dt-badge--muted" title={`${v.week} this week`}>
+                  <Eye size={12} aria-hidden="true" /> {v.total} view{v.total === 1 ? "" : "s"}
+                </span>
+              ) : null}
+              {v && !data.own ? (
+                v.theyViewedMe ? (
+                  <span className="dt-badge dt-badge--seen">
+                    <Eye size={12} aria-hidden="true" /> Viewed your profile {ago(v.theyViewedMe)?.replace("active ", "").replace("online now", "just now")}
+                  </span>
+                ) : (
+                  <span className="dt-badge dt-badge--muted">
+                    <EyeOff size={12} aria-hidden="true" /> Hasn&apos;t viewed your profile
+                  </span>
+                )
+              ) : null}
+            </div>
+            {p.partners.length ? (
+              <div className="dt-partners">
+                <span>
+                  <HeartHandshake size={14} aria-hidden="true" /> {p.partners.length === 1 ? "Partner" : "Partners"}
+                </span>
+                {p.partners.map((pt) =>
+                  pt.hasProfile ? (
+                    <a key={pt.id} href={`/social/u/${pt.id}`} className="dt-partner-chip">
+                      <Photo src={pt.avatar} name={pt.name} accent={p.accent} />
+                      {pt.name}
+                    </a>
+                  ) : (
+                    <span key={pt.id} className="dt-partner-chip">
+                      <Photo src={pt.avatar} name={pt.name} accent={p.accent} />
+                      {pt.name}
+                    </span>
+                  ),
+                )}
+              </div>
+            ) : null}
+          </div>
+
+          {!data.own && !r.blockedByMe ? (
+            <div className="dt-hero-actions">
+              {r.iLiked ? (
+                <button type="button" className="dt-btn dt-btn--liked" disabled={busy} onClick={() => void act("unlike", "Like removed.")} title="Click to unlike">
+                  <Heart size={15} fill="currentColor" aria-hidden="true" /> {r.match ? "Matched" : "Liked"}
+                </button>
+              ) : (
+                <button type="button" className="dt-btn dt-btn--like" disabled={busy} onClick={() => void act("like", `You liked ${p.name}.`)}>
+                  <Heart size={15} aria-hidden="true" /> {r.likesMe ? "Like back" : "Like"}
+                </button>
+              )}
+              <a className="dt-btn" href={`/social/messages/${p.id}`}>
+                <MessageCircle size={15} aria-hidden="true" /> Message
+              </a>
+              {r.friend === "friends" ? (
+                <span className="dt-btn dt-btn--friends" title="You're friends">
+                  <Check size={15} aria-hidden="true" /> Friends
+                </span>
+              ) : r.friend === "received" ? (
+                <button type="button" className="dt-btn dt-btn--ghost" disabled={busy} onClick={() => void act("accept", "You're friends now!")}>
+                  <UserCheck size={15} aria-hidden="true" /> Accept friend
+                </button>
+              ) : r.friend === "sent" ? (
+                <button type="button" className="dt-btn dt-btn--ghost" disabled={busy} onClick={() => void act("unfriend", "Request cancelled.")} title="Click to cancel">
+                  <Clock size={15} aria-hidden="true" /> Request sent
+                </button>
+              ) : (
+                <button type="button" className="dt-btn dt-btn--ghost" disabled={busy} onClick={() => void act("friend", "Friend request sent.")}>
+                  <UserPlus size={15} aria-hidden="true" /> Add friend
+                </button>
+              )}
+              <div className="dt-more">
+                <button type="button" className="dt-btn dt-btn--ghost dt-btn--icon" onClick={() => setMenu((m) => !m)} aria-expanded={menu} aria-label="More">
+                  <MoreHorizontal size={16} />
+                </button>
+                {menu ? (
+                  <div className="dt-menu" role="menu">
+                    {r.passed ? (
+                      <button type="button" role="menuitem" onClick={() => void act("unpass", "They'll show in Discover again.")}>
+                        <Undo2 size={14} aria-hidden="true" /> Undo "Not for me"
+                      </button>
+                    ) : !r.iLiked && !r.match ? (
+                      <button type="button" role="menuitem" onClick={() => void act("pass", "Passed. They won't show in Discover.")}>
+                        <ThumbsDown size={14} aria-hidden="true" /> Not for me
+                      </button>
+                    ) : null}
+                    {r.friend === "friends" ? (
+                      <button type="button" role="menuitem" onClick={() => void act("unfriend", "Removed from friends.")}>
+                        <UserMinus size={14} aria-hidden="true" /> Remove friend
+                      </button>
+                    ) : null}
+                    {r.friend === "received" ? (
+                      <button type="button" role="menuitem" onClick={() => void act("decline", "Request declined.")}>
+                        <X size={14} aria-hidden="true" /> Decline friend request
+                      </button>
+                    ) : null}
+                    <button type="button" role="menuitem" className="is-danger" onClick={() => setConfirmBlock(true)}>
+                      <Ban size={14} aria-hidden="true" /> Block
+                    </button>
+                    <ReportButton target={p.id} label="Report profile" />
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </header>
+
+      <div className="dt-profile-grid">
+        <div className="dt-profile-left">
+          {p.photos.length ? <Gallery photos={p.photos} name={p.name} owner={p.id} /> : null}
+
+          {c && !data.own ? (
+            <section className="dt-card dt-compat">
+              <header>
+                <div className="dt-ring dt-ring--big" style={{ "--p": c.score } as CSSProperties}>
+                  <b>{c.score}%</b>
+                </div>
+                <div>
+                  <b className="dt-h-icon">
+                    <TierIcon score={c.score} fit={!c.blocked} size={16} /> {c.blocked ? "Friendly fit" : `${c.tier} match`}
+                  </b>
+                  <small className="dt-muted">{c.ai ? "Matched by meaning with our AI" : "Matched on shared words"}</small>
+                  {c.blocked ? <small className="dt-muted">Not a dating fit: {c.blocked}</small> : null}
+                </div>
+              </header>
+              <div className="dt-bars">
+                {Object.entries(c.parts)
+                  .filter(([, val]) => val !== null)
+                  .map(([k, val]) => {
+                    const [label, Icon] = PART_LABELS[k] ?? [k, BarChart3];
+                    return (
+                      <div key={k} className="dt-bar">
+                        <span>
+                          <Icon size={13} aria-hidden="true" /> {label}
+                        </span>
+                        <span className="dt-bar-track">
+                          <span style={{ width: `${Math.round((val as number) * 100)}%` }} />
+                        </span>
+                        <small>{Math.round((val as number) * 100)}</small>
+                      </div>
+                    );
+                  })}
+              </div>
+              {c.pairs.length ? (
+                <div>
+                  <small className="dt-label">You both like</small>
+                  <div className="dt-tags">
+                    {c.pairs.map((x) => (
+                      <span key={`${x.a}-${x.b}`}>{x.a === x.b ? x.a : `${x.a} ↔ ${x.b}`}</span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              {c.agreements.length ? (
+                <ul className="dt-list dt-list--good">
+                  {c.agreements.map((a) => (
+                    <li key={a}>
+                      <Check size={13} aria-hidden="true" /> {noEmoji(a)}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {c.conflicts.length ? (
+                <ul className="dt-list dt-list--bad">
+                  {c.conflicts.map((a) => (
+                    <li key={a}>
+                      <TriangleAlert size={13} aria-hidden="true" /> {noEmoji(a)}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              <p className="dt-starter">
+                <MessageCircle size={14} aria-hidden="true" /> {c.starter}
+              </p>
+            </section>
+          ) : null}
+        </div>
+
+        <div className="dt-profile-main">
+          {p.prompts.length ? (
+            <div className="dt-prompts">
+              {p.prompts.map((pr) => (
+                <blockquote key={pr.q} className="dt-prompt">
+                  <small>{pr.q}</small>
+                  <p>{pr.a}</p>
+                </blockquote>
+              ))}
+            </div>
+          ) : null}
+
+          <section className="dt-card">
+            <h3 className="dt-h-icon">
+              <SectionIcon id="targets" /> Looking for
+            </h3>
+            {p.lookingFor.open ? (
+              <div className="dt-facts">
+                {p.lookingFor.genders.length ? (
+                  <div>
+                    <small>Into</small>
+                    <b>{p.lookingFor.genders.join(", ")}</b>
+                  </div>
+                ) : null}
+                {p.lookingFor.ages ? (
+                  <div>
+                    <small>Ages</small>
+                    <b>{p.lookingFor.ages}</b>
+                  </div>
+                ) : null}
+                {p.lookingFor.relTypes.length ? (
+                  <div>
+                    <small>Relationship</small>
+                    <b>{p.lookingFor.relTypes.join(", ")}</b>
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <p className="dt-muted">Not looking to date right now. Here for friends.</p>
+            )}
+          </section>
+
+          <div className="dt-section-grid">
+            {p.sections.map((s) => (
+              <section key={s.id} className={`dt-card${s.items.some((it) => it.long) ? " is-wide" : ""}`}>
+                <h3 className="dt-h-icon">
+                  <SectionIcon id={s.id} /> {s.label}
+                </h3>
+                <div className="dt-fields">
+                  {s.items.map((it) => (
+                    <div key={it.key} className={it.long ? "is-long" : undefined}>
+                      <small>{it.label}</small>
+                      {it.href ? (
+                        <p>
+                          <a className="dt-social" href={it.href} target="_blank" rel="noopener noreferrer nofollow">
+                            {it.value}
+                          </a>
+                        </p>
+                      ) : (
+                        <p>{it.value}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+
+          {p.fursonas.length ? (
+            <section className="dt-card">
+              <h3 className="dt-h-icon">
+                <SectionIcon id="fursonas" /> Fursonas
+              </h3>
+              <div className="dt-sonas">
+                {p.fursonas.map((f, n) => (
+                  <article key={`${f.name}-${n}`} className="dt-sona">
+                    {f.art_links
+                      .filter(isImage)
+                      .slice(0, 1)
+                      .map((l) => (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img key={l} src={l} alt={`${f.name} art`} loading="lazy" referrerPolicy="no-referrer" />
+                      ))}
+                    <div>
+                      <b>{f.name}</b>
+                      {f.description ? <p>{f.description}</p> : null}
+                      {f.art_links.length > 1 || (f.art_links.length && !isImage(f.art_links[0])) ? (
+                        <small>
+                          {f.art_links.map((l, k) => (
+                            <a key={l} href={l} target="_blank" rel="noopener noreferrer nofollow">
+                              Art {k + 1}
+                            </a>
+                          ))}
+                        </small>
+                      ) : null}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+          ) : null}
+        </div>
+      </div>
+
+      {confirmBlock ? (
+        <div className="dt-modal-backdrop" onClick={() => setConfirmBlock(false)}>
+          <div className="dt-modal" role="dialog" aria-modal="true" aria-label="Block" onClick={(e) => e.stopPropagation()}>
+            <h3>Block {p.name}?</h3>
+            <p className="dt-muted">
+              They won&apos;t see your profile or be able to message you, and any likes, match or friendship between you is removed. They aren&apos;t told. You can
+              unblock later from Settings → Hidden profiles.
+            </p>
+            <div className="dt-row">
+              <button
+                type="button"
+                className="dt-btn dt-btn--danger"
+                disabled={busy}
+                onClick={async () => {
+                  setConfirmBlock(false);
+                  await act("block", `${p.name} is blocked.`);
+                }}
+              >
+                Block
+              </button>
+              <button type="button" className="dt-btn dt-btn--ghost" onClick={() => setConfirmBlock(false)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {note ? (
+        <div className="dt-toast" role="status">
+          {note}
+        </div>
+      ) : null}
+    </div>
+  );
+}

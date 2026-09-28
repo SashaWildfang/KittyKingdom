@@ -10,6 +10,7 @@ import { SCHEMA_VERSION } from "./schema-data";
 import { deletePhoto, photoOwner } from "./media";
 import { applyLiveAges, birthInfo, type BirthInfo } from "./age";
 import { confirmedPartners } from "./partners";
+import { getSettings } from "./settings";
 import { bigAvatar, cleanMentions, mentionIds } from "./text";
 
 // Social handles become links to the profile on that site (only for plain handles, never free text)
@@ -211,7 +212,9 @@ export async function profileView(doc: ProfileDoc, opts: { viewerIsOwner?: boole
   const names = Object.fromEntries(Object.entries(found).map(([k, v]) => [k, v.username ?? v.name]));
   const clean = (t: string) => cleanMentions(t, names);
   // Confirmed partners (with their dating name if they have a profile, else their Discord name)
-  const partnerIds = await confirmedPartners(id).catch(() => [] as string[]);
+  // Hidden from others when they turned "show my partners" off
+  const showPartners = opts.viewerIsOwner || (await getSettings(id).catch(() => null))?.showPartners !== false;
+  const partnerIds = showPartners ? await confirmedPartners(id).catch(() => [] as string[]) : [];
   const [partnerWho, partnerDocs] = partnerIds.length
     ? await Promise.all([people(partnerIds).catch(() => ({}) as typeof found), datingCols().then((c) => c.profiles.find({ _id: { $in: partnerIds.map(toLong) } } as never, { projection: { _id: 1, name: 1 } }).toArray())])
     : [{} as typeof found, []];

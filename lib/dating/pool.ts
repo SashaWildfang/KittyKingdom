@@ -9,22 +9,24 @@ import { decodeVector, type Vectors } from "./matching";
 import type { ProfileDoc } from "./schema";
 import { mentionIds } from "./text";
 import { applyLiveAges } from "./age";
+import { allSettings, type DatingSettings } from "./settings";
 
 /** What the site knows about a member from Discord: name, avatar and whether they're still in the server. */
 export type Who = { name: string; username: string | null; avatar: string | null; inServer: boolean; boosting: boolean };
 
-type Pool = { at: number; profiles: Map<string, ProfileDoc>; vectors: Map<string, Vectors>; inServer: Set<string> | null; who: Map<string, Who>; names: Map<string, string>; banned: Set<string> };
+type Pool = { at: number; profiles: Map<string, ProfileDoc>; vectors: Map<string, Vectors>; inServer: Set<string> | null; who: Map<string, Who>; names: Map<string, string>; banned: Set<string>; settings: Map<string, DatingSettings> };
 let cache: Pool | null = null;
 let loading: Promise<Pool> | null = null;
 const TTL_MS = 30_000;
 
 async function load(): Promise<Pool> {
   const c = await datingCols();
-  const [docs, vecs, members, bans] = await Promise.all([
+  const [docs, vecs, members, bans, settings] = await Promise.all([
     c.profiles.find({}).toArray(),
     c.vectors.find({}).toArray(),
     inServerIds().catch(() => null),
     getCurrentBans().catch(() => null),
+    allSettings().catch(() => new Map<string, DatingSettings>()),
   ]);
   // Members banned from the server never show anywhere in Dating
   const banned = bans ?? new Set<string>();
@@ -58,7 +60,7 @@ async function load(): Promise<Pool> {
     who.set(id, { name: p.name, username: p.username, avatar: p.avatar, inServer: inServer ? inServer.has(id) : p.inServer, boosting: Boolean(p.boosting) });
     if (p.username || p.name !== "Unknown user") names.set(id, p.username ?? p.name);
   }
-  return { at: Date.now(), profiles, vectors, inServer, who, names, banned };
+  return { at: Date.now(), profiles, vectors, inServer, who, names, banned, settings };
 }
 
 export async function datingPool(fresh = false): Promise<Pool> {

@@ -36,7 +36,7 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
     { href: "https://discord.com/invite/M9XKHFdYQV", label: "Discord", icon: "discord" as const, external: true },
     { href: PATREON_URL, label: "Patreon", icon: "patreon" as const, external: true },
     ...(staffPage ? [{ href: "/staff", label: "Staff", icon: "staff" as const }] : []),
-    ...(dating ? [{ href: "/dating", label: "Dating", icon: "dating" as const }] : []),
+    ...(dating ? [{ href: "/social", label: "Social", icon: "dating" as const }] : []),
     ...(linked ? [{ href: "/store", label: "Store", icon: "store" as const }, { href: "/leaderboards", label: "Leaderboards", icon: "leaderboards" as const }] : []),
     ...(panel ? [{ href: "/admin", label: panel.level === "admin" ? "Admin" : "Staff Panel", icon: "admin" as const }] : []),
   ];
@@ -61,8 +61,8 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
         </a>
         {staffPage ? <a href="/staff">Staff</a> : null}
         {dating ? (
-          <a href="/dating" className="nav-dating-tab">
-            Dating
+          <a href="/social" className="nav-dating-tab">
+            Social
           </a>
         ) : null}
         {linked ? <a href="/store">Store</a> : null}

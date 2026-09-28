@@ -48,7 +48,7 @@ export function DatingTab({ onOpenMember }: { onOpenMember: (id: string) => void
         <p className="adm-muted">Loading…</p>
       ) : !data.reports.length ? (
         <div className="adm-empty">
-          <Flag size={22} aria-hidden="true" /> {status === "open" ? "No open dating reports. 🎉" : "Nothing handled yet."}
+          <Flag size={22} aria-hidden="true" /> {status === "open" ? "No open Social reports." : "Nothing handled yet."}
         </div>
       ) : (
         <div className="dtr-list">

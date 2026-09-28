@@ -26,6 +26,24 @@ export type DatingSettings = {
   showLeft: boolean;
   /** Which Discover opens in. */
   discoverMode: "dating" | "friends";
+  /** Appear in "Online now" on the Social home. */
+  showInOnline: boolean;
+  /** Show how many people viewed my profile. */
+  showViewCount: boolean;
+  /** "Seen" in chats. Works both ways: turning it off also hides theirs. */
+  readReceipts: boolean;
+  /** Who can send me friend requests. */
+  friendRequestsFrom: "everyone" | "matches" | "nobody";
+  /** Include me in the hourly featured draw. */
+  featured: boolean;
+  /** Hide Discover matches below this score (0 = show everyone who fits). */
+  discoverMinScore: 0 | 40 | 55 | 70;
+  /** How Browse is sorted until I pick something else. */
+  browseSort: "best" | "active" | "new";
+  /** Enter sends a message (Shift+Enter for a new line); off = Enter adds a line. */
+  enterToSend: boolean;
+  /** Show my confirmed partners on my profile. */
+  showPartners: boolean;
 };
 
 export const DEFAULTS: DatingSettings = {
@@ -34,6 +52,15 @@ export const DEFAULTS: DatingSettings = {
   messagesFrom: "everyone",
   showLeft: true,
   discoverMode: "dating",
+  showInOnline: true,
+  showViewCount: true,
+  readReceipts: true,
+  friendRequestsFrom: "everyone",
+  featured: true,
+  discoverMinScore: 0,
+  browseSort: "best",
+  enterToSend: true,
+  showPartners: true,
 };
 
 async function col() {
@@ -42,6 +69,12 @@ async function col() {
 
 function merge(doc: Partial<DatingSettings> | null | undefined): DatingSettings {
   return { ...DEFAULTS, ...(doc ?? {}), notify: { ...DEFAULTS.notify, ...(doc?.notify ?? {}) } };
+}
+
+/** Everyone's settings at once (for the pool: Online now, featured draw). */
+export async function allSettings(): Promise<Map<string, DatingSettings>> {
+  const rows = (await (await col()).find({}).toArray()) as (Partial<DatingSettings> & { _id: unknown })[];
+  return new Map(rows.map((r) => [String(r._id), merge(r)]));
 }
 
 export async function getSettings(discordId: string): Promise<DatingSettings> {
@@ -59,6 +92,10 @@ export async function saveSettings(discordId: string, patch: unknown): Promise<D
   if (p.messagesFrom === "everyone" || p.messagesFrom === "connections") $set.messagesFrom = p.messagesFrom;
   if (typeof p.showLeft === "boolean") $set.showLeft = p.showLeft;
   if (p.discoverMode === "dating" || p.discoverMode === "friends") $set.discoverMode = p.discoverMode;
+  for (const k of ["showInOnline", "showViewCount", "readReceipts", "featured", "enterToSend", "showPartners"] as const) if (typeof p[k] === "boolean") $set[k] = p[k];
+  if (["everyone", "matches", "nobody"].includes(String(p.friendRequestsFrom))) $set.friendRequestsFrom = p.friendRequestsFrom;
+  if ([0, 40, 55, 70].includes(Number(p.discoverMinScore)) && p.discoverMinScore !== null && p.discoverMinScore !== "") $set.discoverMinScore = Number(p.discoverMinScore);
+  if (["best", "active", "new"].includes(String(p.browseSort))) $set.browseSort = p.browseSort;
   if (Object.keys($set).length) await (await col()).updateOne({ _id: discordId } as never, { $set: { ...$set, updatedAt: new Date() } }, { upsert: true });
   return getSettings(discordId);
 }
