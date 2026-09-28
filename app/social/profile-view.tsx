@@ -138,15 +138,32 @@ function Gallery({ photos, name, owner }: { photos: View["photos"]; name: string
           <ReportButton target={owner} type="photo" photoId={pid} label="Report photo" small />
         </div>
       ) : null}
-      {zoom ? (
-        <div className="dt-lightbox" onClick={() => setZoom(false)} role="dialog" aria-modal="true" aria-label="Photo">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={p.url} alt={p.caption ?? ""} onClick={(e) => e.stopPropagation()} />
-          <button type="button" className="dt-modal-close" aria-label="Close">
-            <X size={18} />
-          </button>
-        </div>
-      ) : null}
+      {/* On <body> so it sits above every card (the columns create their own layers) */}
+      {zoom
+        ? createPortal(
+            <div className="dt-lightbox" onClick={() => setZoom(false)} role="dialog" aria-modal="true" aria-label="Photo">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={p.url} alt={p.caption ?? ""} onClick={(e) => e.stopPropagation()} />
+              {photos.length > 1 ? (
+                <>
+                  <button type="button" className="dt-gallery-nav is-prev" onClick={(e) => (e.stopPropagation(), setI((x) => (x - 1 + photos.length) % photos.length))} aria-label="Previous photo">
+                    <ChevronLeft size={22} />
+                  </button>
+                  <button type="button" className="dt-gallery-nav is-next" onClick={(e) => (e.stopPropagation(), setI((x) => (x + 1) % photos.length))} aria-label="Next photo">
+                    <ChevronRight size={22} />
+                  </button>
+                  <span className="dt-lightbox-count">
+                    {Math.min(i, photos.length - 1) + 1} / {photos.length}
+                  </span>
+                </>
+              ) : null}
+              <button type="button" className="dt-modal-close" aria-label="Close">
+                <X size={20} />
+              </button>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
@@ -160,8 +177,9 @@ function SocialChips({ items }: { items: { key: string; label: string; value: st
     <div className="dt-socials">
       {items.map((it) =>
         it.href ? (
-          <a key={it.key} className={`dt-social-chip is-${it.key}`} href={it.href} target="_blank" rel="noopener noreferrer nofollow" title={`${it.label}: ${it.value}`}>
-            <BrandIcon k={it.key} /> <span>{shown(it.value)}</span>
+          <a key={it.key} className={`dt-social-chip is-${it.key}`} href={it.href} target="_blank" rel="noopener noreferrer nofollow" title={`${it.label}: ${shown(it.value)}`}>
+            <BrandIcon k={it.key} size={17} />
+            <span className="dt-sr">{`${it.label}: ${shown(it.value)}`}</span>
           </a>
         ) : (
           <button
@@ -176,7 +194,8 @@ function SocialChips({ items }: { items: { key: string; label: string; value: st
               });
             }}
           >
-            <BrandIcon k={it.key} /> <span>{copied === it.key ? "Copied!" : it.value}</span>
+            {copied === it.key ? <Check size={17} aria-hidden="true" /> : <BrandIcon k={it.key} size={17} />}
+            <span className="dt-sr">{`${it.label}: ${it.value}`}</span>
           </button>
         ),
       )}
@@ -344,9 +363,12 @@ export function ProfileScreen({ id }: { id: string }) {
           aria-hidden="true"
         />
         <div className="dt-hero-body">
-          <div className="dt-hero-photo">
-            <Photo src={cover} name={p.name} accent={p.accent} crop={coverCrop} />
-            {active === "online now" ? <span className="dt-face-dot" title="Online now" /> : null}
+          <div className="dt-hero-side">
+            <div className="dt-hero-photo">
+              <Photo src={cover} name={p.name} accent={p.accent} crop={coverCrop} />
+              {active === "online now" ? <span className="dt-face-dot" title="Online now" /> : null}
+            </div>
+            {socials.length ? <SocialChips items={socials} /> : null}
           </div>
           <div className="dt-hero-info">
             <h1>
@@ -406,7 +428,6 @@ export function ProfileScreen({ id }: { id: string }) {
                 )
               ) : null}
             </div>
-            {socials.length ? <SocialChips items={socials} /> : null}
             {p.partners.length ? (
               <div className="dt-partners">
                 <span>
