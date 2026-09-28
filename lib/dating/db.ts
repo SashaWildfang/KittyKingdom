@@ -7,6 +7,7 @@
 //   dating_matches   {_id: "lo-hi", users: [lo, hi], matched_at}
 //   dating_friends   {_id: "lo-hi", users, from, to, status: pending|accepted, at}      (new)
 //   dating_blocks    {_id: "blocker-blocked", blocker, blocked, at}                    (new)
+//   dating_friend_skips {_id: member, ids: [{id, at}]}  people skipped in Discover → Friends (new)
 //   dating_messages / dating_conversations / dating_reports / notifications            (new)
 
 import { Long, type Collection, type Document } from "mongodb";
@@ -29,13 +30,14 @@ type Cols = {
   friends: Collection<Document>;
   blocks: Collection<Document>;
   vectors: Collection<Document>;
+  friendSkips: Collection<Document>;
 };
 
 let ready: Promise<void> | null = null;
 
 export async function datingCols(): Promise<Cols> {
-  const [profiles, likes, passes, activity, matches, friends, blocks, vectors] = await Promise.all(
-    ["dating_profiles", "profile_likes", "profile_passes", "dating_activity", "dating_matches", "dating_friends", "dating_blocks", "dating_vectors"].map((n) => getBotCollection(n)),
+  const [profiles, likes, passes, activity, matches, friends, blocks, vectors, friendSkips] = await Promise.all(
+    ["dating_profiles", "profile_likes", "profile_passes", "dating_activity", "dating_matches", "dating_friends", "dating_blocks", "dating_vectors", "dating_friend_skips"].map((n) => getBotCollection(n)),
   );
   ready ??= Promise.all([
     friends.createIndex({ users: 1 }),
@@ -44,7 +46,7 @@ export async function datingCols(): Promise<Cols> {
     matches.createIndex({ users: 1 }),
   ]).then(() => undefined, () => undefined);
   await ready;
-  return { profiles, likes, passes, activity, matches, friends, blocks, vectors };
+  return { profiles, likes, passes, activity, matches, friends, blocks, vectors, friendSkips };
 }
 
 /** Everyone this member has blocked or been blocked by (both hide each other everywhere). */

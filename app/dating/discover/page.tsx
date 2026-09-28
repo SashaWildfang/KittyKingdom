@@ -1,13 +1,26 @@
 "use client";
 
-import { Compass, Eye, Heart, RotateCcw, Sparkles, UserPlus, X } from "lucide-react";
+import { Compass, Eye, Heart, RotateCcw, Sparkles, UserPlus, Users, X } from "lucide-react";
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { Empty, Photo, ago, post, useApi, type Card } from "../ui";
 
 type Queue = { cards: Card[]; total?: number; likesLeft: number | null; booster: boolean; needsProfile?: boolean; notLooking?: boolean };
 
+type Mode = "dating" | "friends";
+
 export default function Discover() {
-  const { data, error, reload } = useApi<Queue>("/api/dating/discover");
+  const [mode, setMode] = useState<Mode | null>(null);
+  // ?mode=friends opens Friends directly
+  useEffect(() => {
+    setMode(new URLSearchParams(window.location.search).get("mode") === "friends" ? "friends" : "dating");
+  }, []);
+  const friends = mode === "friends";
+  const { data, error, reload } = useApi<Queue>(mode ? `/api/dating/discover${friends ? "?mode=friends" : ""}` : null);
+  const switchMode = (m: Mode) => {
+    setMode(m);
+    setLast(null);
+    window.history.replaceState(null, "", m === "friends" ? "?mode=friends" : window.location.pathname);
+  };
   const [index, setIndex] = useState(0);
   const [left, setLeft] = useState<number | null>(null);
   const [last, setLast] = useState<{ card: Card; action: "like" | "pass" } | null>(null);
@@ -32,19 +45,22 @@ export default function Discover() {
   const act = useCallback(
     async (action: "like" | "pass") => {
       if (!card || busy) return;
-      if (action === "like" && left === 0) {
+      if (action === "like" && left === 0 && !friends) {
         setToast({ text: "You've used your 3 likes for today. Boost the server for unlimited likes!", kind: "error" });
         return;
       }
       setBusy(true);
-      const r = await post<{ mutual?: boolean; left?: number | null }>("/api/dating/actions", { action, target: card.id });
+      // In Friends mode "like" sends a friend request and "pass" skips them
+      const api = friends ? (action === "like" ? "friend" : "skip") : action;
+      const r = await post<{ mutual?: boolean; left?: number | null; friend?: string }>("/api/dating/actions", { action: api, target: card.id });
       setBusy(false);
       if (!r.ok) {
         setToast({ text: r.error ?? "That didn't work.", kind: "error" });
         if (typeof r.left === "number") setLeft(r.left);
         return;
       }
-      if (action === "like") {
+      if (friends && action === "like") setToast({ text: r.friend === "friends" ? `🫂 You and ${card.name} are friends now!` : `Friend request sent to ${card.name}.` });
+      else if (action === "like") {
         if (r.left !== undefined) setLeft(r.left ?? null);
         if (r.mutual) setToast({ text: `💞 It's a match with ${card.name}! Say hi in Messages.`, kind: "match" });
       }
@@ -55,19 +71,20 @@ export default function Discover() {
         setIndex((i) => i + 1);
       }, 220);
     },
-    [card, busy, left],
+    [card, busy, left, friends],
   );
 
   const undo = useCallback(async () => {
     if (!last || busy) return;
     setBusy(true);
-    const r = await post("/api/dating/actions", { action: last.action === "like" ? "unlike" : "unpass", target: last.card.id });
+    const undoAction = friends ? (last.action === "like" ? "unfriend" : "unskip") : last.action === "like" ? "unlike" : "unpass";
+    const r = await post("/api/dating/actions", { action: undoAction, target: last.card.id });
     setBusy(false);
     if (!r.ok) return setToast({ text: r.error ?? "Couldn't undo that.", kind: "error" });
     setIndex((i) => Math.max(0, i - 1));
     setLast(null);
-    if (last.action === "like" && left !== null) setLeft(left + 1);
-  }, [last, busy, left]);
+    if (last.action === "like" && left !== null && !friends) setLeft(left + 1);
+  }, [last, busy, left, friends]);
 
   // Keyboard: ← pass, → like, Backspace undo, Enter open
   useEffect(() => {
@@ -82,6 +99,16 @@ export default function Discover() {
     return () => window.removeEventListener("keydown", onKey);
   }, [act, undo, card]);
 
+  const toggle = (
+    <div className="dt-seg dt-seg--mode" role="tablist" aria-label="Discover mode">
+      <button type="button" role="tab" aria-selected={!friends} className={!friends ? "is-on" : undefined} onClick={() => switchMode("dating")}>
+        <Heart size={14} aria-hidden="true" /> Dating
+      </button>
+      <button type="button" role="tab" aria-selected={friends} className={friends ? "is-on" : undefined} onClick={() => switchMode("friends")}>
+        <Users size={14} aria-hidden="true" /> Friends
+      </button>
+    </div>
+  );
   if (error) return <p className="dt-error">{error}</p>;
   if (!data) return <div className="dt-loading" aria-busy="true" />;
   if (data.needsProfile)
@@ -95,28 +122,44 @@ export default function Discover() {
     );
   if (data.notLooking)
     return (
-      <Empty icon={<Heart size={28} />} title="You're set to not looking">
-        <p>Discover is for people open to dating. You can still Browse and make friends, or switch it on in your profile.</p>
-        <div className="dt-row">
-          <a className="dt-btn" href="/dating/profile#targets">
-            I&apos;m open to dating
-          </a>
-          <a className="dt-btn dt-btn--ghost" href="/dating/browse">
-            Browse everyone
-          </a>
-        </div>
-      </Empty>
+      <div className="dt-discover">
+        {toggle}
+        <Empty icon={<Users size={28} />} title="You're here for friends right now">
+          <p>Dating matches are for people open to dating, but you can still find people to hang out with in Friends mode.</p>
+          <div className="dt-row">
+            <button type="button" className="dt-btn" onClick={() => switchMode("friends")}>
+              <Users size={14} aria-hidden="true" /> Find friends
+            </button>
+            <a className="dt-btn dt-btn--ghost" href="/dating/profile#targets">
+              I&apos;m open to dating
+            </a>
+          </div>
+        </Empty>
+      </div>
     );
 
   return (
     <div className="dt-discover">
+      {toggle}
       <div className="dt-discover-top">
         <span className="dt-muted">
-          {data.total ? `${Math.max(0, data.total - index)} great matches waiting` : "Your best matches, one at a time"}
+          {friends
+            ? data.total
+              ? `${Math.max(0, data.total - index)} people you'd get along with`
+              : "People you'd get along with"
+            : data.total
+              ? `${Math.max(0, data.total - index)} great matches waiting`
+              : "Your best matches, one at a time"}
         </span>
-        <span className={`dt-pill${left === 0 ? " is-empty" : ""}`}>
-          <Heart size={13} aria-hidden="true" /> {left === null ? "Unlimited likes" : `${left} like${left === 1 ? "" : "s"} left today`}
-        </span>
+        {friends ? (
+          <span className="dt-pill dt-pill--friends">
+            <Users size={13} aria-hidden="true" /> Friend requests are unlimited
+          </span>
+        ) : (
+          <span className={`dt-pill${left === 0 ? " is-empty" : ""}`}>
+            <Heart size={13} aria-hidden="true" /> {left === null ? "Unlimited likes" : `${left} like${left === 1 ? "" : "s"} left today`}
+          </span>
+        )}
       </div>
 
       {card ? (
@@ -125,8 +168,9 @@ export default function Discover() {
             <Photo src={card.photo} name={card.name} accent={card.accent} />
             {card.photoCount > 1 ? <span className="dt-deck-count">{card.photoCount} photos</span> : null}
             <span className="dt-deck-score">
-              {card.emoji} {card.score}% · {card.tier}
+              {friends ? "🤝" : card.emoji} {card.score}% · {friends ? "Get-along score" : card.tier}
             </span>
+            {!card.inServer ? <span className="dt-deck-left">Left the server</span> : null}
           </a>
           <div className="dt-deck-body">
             <h2>
@@ -158,20 +202,26 @@ export default function Discover() {
             <button type="button" className="dt-round dt-round--undo" onClick={() => void undo()} disabled={!last || busy} title="Undo (Backspace)" aria-label="Undo">
               <RotateCcw size={18} />
             </button>
-            <button type="button" className="dt-round dt-round--pass" onClick={() => void act("pass")} disabled={busy} title="Pass (←)" aria-label={`Pass on ${card.name}`}>
+            <button type="button" className="dt-round dt-round--pass" onClick={() => void act("pass")} disabled={busy} title={friends ? "Skip (←)" : "Pass (←)"} aria-label={friends ? `Skip ${card.name}` : `Pass on ${card.name}`}>
               <X size={26} />
             </button>
             <a className="dt-round dt-round--view" href={`/dating/u/${card.id}`} title="Full profile (Enter)" aria-label="Full profile">
               <Eye size={20} />
             </a>
-            <button type="button" className="dt-round dt-round--like" onClick={() => void act("like")} disabled={busy} title="Like (→)" aria-label={`Like ${card.name}`}>
-              <Heart size={26} />
-            </button>
+            {friends ? (
+              <button type="button" className="dt-round dt-round--like dt-round--friend" onClick={() => void act("like")} disabled={busy} title="Add friend (→)" aria-label={`Add ${card.name} as a friend`}>
+                <UserPlus size={26} />
+              </button>
+            ) : (
+              <button type="button" className="dt-round dt-round--like" onClick={() => void act("like")} disabled={busy} title="Like (→)" aria-label={`Like ${card.name}`}>
+                <Heart size={26} />
+              </button>
+            )}
           </div>
           <p className="dt-fine dt-center dt-desktop-only">Tip: use ← and → on your keyboard. Backspace undoes.</p>
         </article>
       ) : (
-        <Empty icon={<Compass size={28} />} title="You've seen everyone for now">
+        <Empty icon={<Compass size={28} />} title={friends ? "You've met everyone for now" : "You've seen everyone for now"}>
           <p>New people join all the time. Meanwhile, try Browse with different filters or improve your profile to get better matches.</p>
           <div className="dt-row">
             <a className="dt-btn" href="/dating/browse">
