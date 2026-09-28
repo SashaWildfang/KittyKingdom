@@ -171,3 +171,17 @@ export async function blockList(me: string) {
   const { blocks } = await datingCols();
   return (await blocks.find({ blocker: me }).sort({ at: -1 }).toArray()).map((b) => ({ id: String(b.blocked), at: (b.at as Date).toISOString() }));
 }
+
+// ---------- Discover → Friends skips ----------
+export async function friendSkipIds(me: string): Promise<Set<string>> {
+  const { friendSkips } = await datingCols();
+  const doc = await friendSkips.findOne({ _id: me } as never);
+  return new Set(((doc?.ids ?? []) as { id: string }[]).map((x) => String(x.id)));
+}
+
+/** Skip (or un-skip) someone in Discover → Friends. */
+export async function setFriendSkip(me: string, other: string, skip: boolean) {
+  const { friendSkips } = await datingCols();
+  if (skip) await friendSkips.updateOne({ _id: me } as never, { $pull: { ids: { id: other } } } as never);
+  await friendSkips.updateOne({ _id: me } as never, skip ? ({ $push: { ids: { $each: [{ id: other, at: new Date() }], $slice: -2000 } } } as never) : ({ $pull: { ids: { id: other } } } as never), { upsert: true });
+}

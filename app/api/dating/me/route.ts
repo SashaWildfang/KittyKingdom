@@ -41,6 +41,13 @@ export async function DELETE(request: Request) {
   if (body?.confirm !== "DELETE") return NextResponse.json({ ok: false, error: "Type DELETE to confirm." }, { status: 400 });
   const doc = await getProfile(me.discordId);
   for (const p of (doc?.photos ?? []) as { id: string }[]) await deletePhoto(p.id);
+  // Uploaded fursona art too
+  for (const f of (doc?.fursonas ?? []) as { art_links?: string[] }[]) {
+    for (const l of f.art_links ?? []) {
+      const id = String(l).match(/^\/api\/dating\/media\/([a-f0-9]{24})\./)?.[1];
+      if (id) await deletePhoto(id);
+    }
+  }
   await deleteProfile(me.discordId);
   invalidatePool();
   return NextResponse.json({ ok: true });
