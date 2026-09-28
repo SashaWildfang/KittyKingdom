@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, CheckCheck, Eye, Heart, Inbox, MessageCircle, Settings, Sparkles, UserCheck, UserPlus } from "lucide-react";
+import { Bell, CheckCheck, Eye, Heart, HeartHandshake, Inbox, MessageCircle, Settings, Sparkles, UserCheck, UserPlus } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type Item = { id: string; type: string; title: string; body: string; link: string; at: string; read: boolean; count: number };
@@ -13,6 +13,7 @@ const ICONS: Record<string, typeof Bell> = {
   "friend-request": UserPlus,
   "friend-accepted": UserCheck,
   view: Eye,
+  partner: HeartHandshake,
 };
 
 function when(iso: string) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Clock, Compass, Flame, Heart, LayoutGrid, MessageCircle, PenLine, Quote, Sparkles, Trophy, UserPlus, Users, Wand2, Zap } from "lucide-react";
+import { ArrowRight, Clock, Compass, Eye, Flame, Heart, HeartHandshake, LayoutGrid, MessageCircle, PenLine, Quote, Sparkles, Trophy, UserPlus, Users, Wand2 } from "lucide-react";
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { Photo, ago, useApi, type Card } from "./ui";
 
@@ -14,7 +14,9 @@ type Home = {
   strength: { score: number; missing: { points: number; label: string; tip: string }[] } | null;
   featured: Featured | null;
   recent: Featured[];
-  counts: { likes: number; matches: number; unread: number; requests: number; friends: number; friendRequests: number };
+  counts: { likes: number; matches: number; unread: number; requests: number; friends: number; friendRequests: number; views: number; viewsThisWeek: number };
+  online: Card[];
+  partnerRequests: { id: string; name: string }[];
   likesLeft: number | null;
   newest: Card[];
   active: Card[];
@@ -121,7 +123,7 @@ export default function DatingHome() {
             <Heart size={18} aria-hidden="true" />
             <span>
               <b>Find a date</b>
-              <small>{data.looking ? (data.likesLeft === null ? "Unlimited likes" : `${data.likesLeft} likes left today`) : "Turn on in your profile"}</small>
+              <small>{data.looking ? "Your best matches" : "Turn on in your profile"}</small>
             </span>
           </a>
           <a href="/dating/discover?mode=friends" className="dt-quick-btn is-friends">
@@ -148,16 +150,57 @@ export default function DatingHome() {
         </div>
         <div className="dt-mystats">
           <a href="/dating/likes">
-            <b>{data.counts.likes}</b> likes
+            <Heart size={14} aria-hidden="true" /> <b>{data.counts.likes}</b> {data.counts.likes === 1 ? "like" : "likes"}
           </a>
           <a href="/dating/matches">
-            <b>{data.counts.matches}</b> matches
+            <Sparkles size={14} aria-hidden="true" /> <b>{data.counts.matches}</b> {data.counts.matches === 1 ? "match" : "matches"}
           </a>
           <a href="/dating/friends">
-            <b>{data.counts.friends}</b> friends
+            <Users size={14} aria-hidden="true" /> <b>{data.counts.friends}</b> {data.counts.friends === 1 ? "friend" : "friends"}
+          </a>
+          <a href="/dating/likes?tab=views" title={`${data.counts.viewsThisWeek} this week`}>
+            <Eye size={14} aria-hidden="true" /> <b>{data.counts.views}</b> {data.counts.views === 1 ? "view" : "views"}
           </a>
         </div>
+        <div className="dt-online">
+          <p className="dt-online-title">
+            <span className="dt-online-dot" aria-hidden="true" /> {data.online.length ? `Online now · ${data.online.length}` : "Nobody else is online right now"}
+          </p>
+          {data.online.length ? (
+            <div className="dt-online-row">
+              {data.online.map((o) => (
+                <a key={o.id} href={`/dating/u/${o.id}`} className="dt-bubble-face" title={`${o.name}${o.age ? `, ${o.age}` : ""}`} style={{ "--acc": o.accent } as CSSProperties}>
+                  <Photo src={o.photo} name={o.name} accent={o.accent} />
+                  <span className="dt-face-dot" aria-hidden="true" />
+                  <small>{o.name}</small>
+                </a>
+              ))}
+            </div>
+          ) : data.active.length ? (
+            <p className="dt-muted dt-online-fallback">
+              {data.active.length} member{data.active.length === 1 ? " was" : "s were"} active earlier today:{" "}
+              {data.active.slice(0, 5).map((a, i) => (
+                <span key={a.id}>
+                  {i ? ", " : ""}
+                  <a className="dt-textlink" href={`/dating/u/${a.id}`}>
+                    {a.name}
+                  </a>
+                </span>
+              ))}
+            </p>
+          ) : null}
+        </div>
       </section>
+
+      {data.partnerRequests.length ? (
+        <a className="dt-banner" href="/dating/profile#partners">
+          <HeartHandshake size={18} aria-hidden="true" />
+          <span>
+            <b>{data.partnerRequests.map((p) => p.name).join(", ")}</b> listed you as their partner. Confirm it to show it on both your profiles.
+          </span>
+          <span className="dt-btn dt-btn--small">Review</span>
+        </a>
+      ) : null}
 
       {!data.hasProfile ? (
         <section className="dt-hero-cta">
@@ -183,6 +226,7 @@ export default function DatingHome() {
       ) : null}
 
       <div className="dt-home-grid">
+        <div className="dt-home-left">
         {/* Featured this hour */}
         <section className="dt-featured" style={{ "--acc": f?.card.accent ?? "#f59b2a" } as CSSProperties}>
           <header>
@@ -224,8 +268,22 @@ export default function DatingHome() {
               ))}
             </div>
           ) : null}
-          <p className="dt-fine">💎 Server boosters get extra weight in the draw.</p>
+          <p className="dt-fine">💎 Server boosters get double the chance in the draw.</p>
         </section>
+        {data.newest.length ? (
+          <Widget
+            title="New faces"
+            icon={<Sparkles size={16} />}
+            action={
+              <a className="dt-textlink" href="/dating/browse">
+                Browse all
+              </a>
+            }
+          >
+            <Faces cards={data.newest} show="new" />
+          </Widget>
+        ) : null}
+        </div>
 
         <div className="dt-side">
           {data.top.length ? (
@@ -286,14 +344,42 @@ export default function DatingHome() {
               </div>
             </div>
           ) : null}
+        <Widget
+          title="Recent chats"
+          icon={<MessageCircle size={16} />}
+          action={
+            <a className="dt-textlink" href="/dating/messages">
+              Open
+            </a>
+          }
+        >
+          {data.recentChats.length ? (
+            <div className="dt-toplist">
+              {data.recentChats.map((ch) => (
+                <a key={ch.other} href={`/dating/messages/${ch.other}`} className={`dt-toprow${ch.unread ? " is-unread" : ""}`}>
+                  <Photo src={ch.photo} name={ch.name} accent={ch.accent} className="dt-avatar" />
+                  <span>
+                    <b>{ch.name}</b>
+                    <small className="dt-muted">
+                      {ch.lastFromMe ? "You: " : ""}
+                      {ch.lastText}
+                    </small>
+                  </span>
+                  {ch.unread ? <span className="dt-dot-count">{ch.unread}</span> : null}
+                </a>
+              ))}
+            </div>
+          ) : (
+            <p className="dt-muted">
+              No chats yet. Matches and friends can message freely, and anyone else can send a request.{" "}
+              <a className="dt-textlink" href="/dating/discover">
+                <Compass size={13} aria-hidden="true" /> Discover people
+              </a>
+            </p>
+          )}
+        </Widget>
         </div>
       </div>
-
-      {data.active.length ? (
-        <Widget title="Active today" icon={<Zap size={16} />} action={<small className="dt-muted">{c.activeToday} members</small>} className="dt-widget--wide">
-          <Faces cards={data.active} show="active" />
-        </Widget>
-      ) : null}
 
       <div className="dt-widget-grid">
         <Widget title="Prompt spotlight" icon={<Quote size={16} />}>
@@ -365,55 +451,6 @@ export default function DatingHome() {
         </Widget>
       </div>
 
-      <div className="dt-widget-grid dt-widget-grid--two">
-        {data.newest.length ? (
-          <Widget
-            title="New faces"
-            icon={<Sparkles size={16} />}
-            action={
-              <a className="dt-textlink" href="/dating/browse">
-                Browse all
-              </a>
-            }
-          >
-            <Faces cards={data.newest} show="new" />
-          </Widget>
-        ) : null}
-        <Widget
-          title="Recent chats"
-          icon={<MessageCircle size={16} />}
-          action={
-            <a className="dt-textlink" href="/dating/messages">
-              Open
-            </a>
-          }
-        >
-          {data.recentChats.length ? (
-            <div className="dt-toplist">
-              {data.recentChats.map((ch) => (
-                <a key={ch.other} href={`/dating/messages/${ch.other}`} className={`dt-toprow${ch.unread ? " is-unread" : ""}`}>
-                  <Photo src={ch.photo} name={ch.name} accent={ch.accent} className="dt-avatar" />
-                  <span>
-                    <b>{ch.name}</b>
-                    <small className="dt-muted">
-                      {ch.lastFromMe ? "You: " : ""}
-                      {ch.lastText}
-                    </small>
-                  </span>
-                  {ch.unread ? <span className="dt-dot-count">{ch.unread}</span> : null}
-                </a>
-              ))}
-            </div>
-          ) : (
-            <p className="dt-muted">
-              No chats yet. Matches and friends can message freely, and anyone else can send a request.{" "}
-              <a className="dt-textlink" href="/dating/discover">
-                <Compass size={13} aria-hidden="true" /> Discover people
-              </a>
-            </p>
-          )}
-        </Widget>
-      </div>
     </div>
   );
 }

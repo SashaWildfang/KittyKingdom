@@ -5,7 +5,8 @@
 import { getMongoClient } from "../mongodb";
 
 export const NOTIFY_TYPES = [
-  { key: "like", label: "Someone likes you", hint: "Non-boosters see who for their 3 most recent likes" },
+  { key: "like", label: "Someone likes you" },
+  { key: "partner", label: "Partner link requests and confirmations" },
   { key: "match", label: "You match with someone" },
   { key: "message", label: "New messages" },
   { key: "request", label: "Message requests" },
@@ -28,7 +29,7 @@ export type DatingSettings = {
 };
 
 export const DEFAULTS: DatingSettings = {
-  notify: { like: true, match: true, message: true, request: true, "friend-request": true, "friend-accepted": true, view: true },
+  notify: { like: true, partner: true, match: true, message: true, request: true, "friend-request": true, "friend-accepted": true, view: true },
   anonymousViews: false,
   messagesFrom: "everyone",
   showLeft: true,

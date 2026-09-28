@@ -39,3 +39,21 @@ export async function viewersOf(me: string, limit = 60) {
   ]);
   return { views: rows.map((r) => ({ id: String(r.viewer), at: (r.at as Date).toISOString(), count: Number(r.count ?? 1) })), weekCount };
 }
+
+/** For a profile page: how many members have viewed it, and when (if ever) its owner viewed yours. */
+export async function viewStats(profileId: string, me: string) {
+  const c = await col();
+  const [total, week, theirs, mine] = await Promise.all([
+    c.countDocuments({ viewed: profileId }),
+    c.countDocuments({ viewed: profileId, at: { $gte: new Date(Date.now() - 7 * 86_400_000) } }),
+    c.findOne({ _id: `${profileId}:${me}` } as never),
+    c.findOne({ _id: `${me}:${profileId}` } as never),
+  ]);
+  return {
+    total,
+    week,
+    // Anonymous browsers don't show as having viewed you
+    theyViewedMe: theirs && !theirs.anon && theirs.at instanceof Date ? theirs.at.toISOString() : null,
+    iViewedBefore: Boolean(mine && Number(mine.count ?? 0) > 1),
+  };
+}

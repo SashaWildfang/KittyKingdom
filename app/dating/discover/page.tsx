@@ -46,10 +46,6 @@ export default function Discover() {
   const act = useCallback(
     async (action: "like" | "pass") => {
       if (!card || busy) return;
-      if (action === "like" && left === 0 && !friends) {
-        setToast({ text: "You've used your 3 likes for today. Boost the server for unlimited likes!", kind: "error" });
-        return;
-      }
       setBusy(true);
       // In Friends mode "like" sends a friend request and "pass" skips them
       const api = friends ? (action === "like" ? "friend" : "skip") : action;
