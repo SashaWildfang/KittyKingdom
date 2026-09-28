@@ -20722,3 +20722,9 @@ button.st-emoji-chip.is-on {
 .st-map-controls {
   gap: 0.6rem 1rem;
 }
+/* Friendship map: Top 12/20/30 on its own row, ring tags on the row beneath */
+.st-map > .st-map-controls {
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
