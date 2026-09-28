@@ -21,6 +21,8 @@ const SOCIAL_URLS: Record<string, (h: string) => string> = {
   telegram: (h) => `https://t.me/${h}`,
 };
 function socialLink(key: string, value: string): string | null {
+  // Steam: only a pasted profile link (friend codes and names aren't enough to link)
+  if (key === "steam") return /^https:\/\/steamcommunity\.com\/(id|profiles)\/[\w-]+\/?$/i.test(value.trim()) ? value.trim() : null;
   const make = SOCIAL_URLS[key];
   if (!make) return null;
   const url = value.trim().match(/^https:\/\/(www\.)?(x|twitter|instagram|furaffinity|t)\.(com|net|me)\/[\w./-]+$/i);

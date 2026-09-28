@@ -3930,3 +3930,304 @@ a.dt-partner-chip:hover {
   background-repeat: repeat, no-repeat;
   background-position: 0 0, center !important;
 }
+
+/* ---------- Profile theme: the member's color runs through the whole profile ---------- */
+.dt-profile--v2 {
+  position: relative;
+  isolation: isolate;
+}
+.dt-profile--v2::before {
+  content: "";
+  position: absolute;
+  inset: -40px -20px auto;
+  height: 720px;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--acc) 28%, transparent), transparent 70%);
+}
+.dt-profile--v2 .dt-hero,
+.dt-profile--v2 .dt-card,
+.dt-profile--v2 .dt-prompt,
+.dt-profile--v2 .dt-gallery {
+  border-color: color-mix(in srgb, var(--acc) 34%, var(--line));
+}
+.dt-profile--v2 .dt-hero,
+.dt-profile--v2 .dt-card {
+  background: color-mix(in srgb, var(--acc) 7%, var(--panel));
+}
+.dt-profile--v2 .dt-prompt {
+  background: linear-gradient(140deg, color-mix(in srgb, var(--acc) 20%, var(--panel)), color-mix(in srgb, var(--acc) 6%, var(--panel)));
+}
+.dt-profile--v2 .dt-card h3 {
+  color: color-mix(in srgb, var(--acc) 35%, var(--text));
+}
+.dt-profile--v2 .dt-btn:not(.dt-btn--ghost):not(.dt-btn--like):not(.dt-btn--liked):not(.dt-btn--friends):not(.dt-btn--danger),
+.dt-btn--acc {
+  color: var(--acc-ink, #fff);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--acc) 72%, #fff), var(--acc));
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--acc) 35%, transparent);
+}
+.dt-profile--v2 .dt-btn--ghost {
+  border-color: color-mix(in srgb, var(--acc) 40%, var(--line));
+}
+.dt-profile--v2 .dt-badge {
+  border-color: color-mix(in srgb, var(--acc) 35%, var(--line));
+}
+.dt-profile--v2 .dt-social,
+.dt-profile--v2 .dt-textlink {
+  color: color-mix(in srgb, var(--acc) 75%, var(--text));
+}
+.dt-profile--v2 .dt-hero-photo {
+  box-shadow: 0 0 0 5px var(--panel-strong), 0 0 0 7px var(--acc), 0 14px 30px var(--shadow);
+}
+.dt-profile--v2 .dt-partner-chip {
+  background: color-mix(in srgb, var(--acc) 14%, transparent);
+  border-color: color-mix(in srgb, var(--acc) 40%, transparent);
+}
+
+/* Banner: a 6:1 strip everywhere (the editor preview matches the profile) */
+.dt-profile--v2 .dt-hero-cover {
+  height: auto;
+  aspect-ratio: 6 / 1;
+  min-height: 110px;
+  max-height: 250px;
+}
+.dt-banner-preview {
+  height: auto;
+  aspect-ratio: 6 / 1;
+}
+.dt-warn {
+  margin: 0;
+  color: #d9822b;
+  font-weight: 700;
+  font-size: 0.84rem;
+}
+
+/* Socials in the header */
+.dt-socials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+}
+.dt-social-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: 240px;
+  padding: 0.3rem 0.7rem 0.3rem 0.55rem;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--dt-well);
+  border: 1px solid color-mix(in srgb, var(--acc, var(--ember)) 30%, var(--line));
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+}
+.dt-social-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dt-social-chip:hover {
+  transform: translateY(-1px);
+  border-color: var(--acc, var(--ember));
+}
+.dt-social-chip.is-twitter svg { color: var(--text); }
+.dt-social-chip.is-instagram svg { color: #e1306c; }
+.dt-social-chip.is-telegram svg { color: #26a5e4; }
+.dt-social-chip.is-furaffinity svg { color: #faaf3a; }
+.dt-social-chip.is-steam svg { color: #66c0f4; }
+.dt-social-chip.is-playstation svg { color: #3a7bd5; }
+.dt-social-chip.is-xbox svg { color: #1fa81f; }
+.dt-social-chip.is-nintendo_switch svg { color: #e60012; }
+
+/* Fursonas: cards with a big main piece and thumbnails, next to the name */
+.dt-sonas-card .dt-sonas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 1rem;
+}
+.dt-sona,
+.dt-sona + .dt-sona {
+  padding: 0;
+  border-top: 0;
+}
+.dt-sona.has-art {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+.dt-sonas-card .dt-sona-art {
+  display: grid;
+  gap: 0.4rem;
+  grid-template-columns: none;
+}
+.dt-sona-main,
+.dt-sona-thumbs button {
+  position: relative;
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: zoom-in;
+  background: var(--dt-well);
+}
+.dt-sona-main {
+  aspect-ratio: 1;
+  box-shadow: 0 10px 24px var(--shadow);
+}
+.dt-sona-thumbs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.4rem;
+}
+.dt-sona-thumbs button {
+  aspect-ratio: 1;
+  border-radius: 10px;
+}
+.dt-sona-main img,
+.dt-sona-thumbs img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.2s;
+}
+.dt-sona-main:hover img,
+.dt-sona-thumbs button:hover img {
+  transform: scale(1.05);
+}
+.dt-sona-more {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.5);
+}
+.dt-sona-text {
+  display: grid;
+  gap: 0.35rem;
+  align-content: start;
+}
+.dt-sona-text b {
+  font-size: 1.15rem;
+}
+@media (max-width: 640px) {
+  .dt-sonas-card .dt-sonas {
+    grid-template-columns: 1fr;
+  }
+  .dt-sona.has-art {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* In-page color picker */
+.dt-color-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-top: 0.6rem;
+}
+.dt-color-side {
+  flex: 1 1 220px;
+  display: grid;
+  gap: 0.5rem;
+}
+.dt-color-side .dt-color-text {
+  margin-top: 0;
+}
+.dt-cpick {
+  display: grid;
+  gap: 0.55rem;
+  width: 240px;
+}
+.dt-cpick-sv {
+  position: relative;
+  height: 150px;
+  border-radius: 12px;
+  cursor: crosshair;
+  touch-action: none;
+  background: linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, var(--hue));
+  box-shadow: 0 0 0 1px var(--line);
+}
+.dt-cpick-dot {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+.dt-cpick-hue {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 14px;
+  border-radius: 999px;
+  background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+  cursor: pointer;
+}
+.dt-cpick-hue::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid rgba(0, 0, 0, 0.35);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+.dt-cpick-hue::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid rgba(0, 0, 0, 0.35);
+}
+.dt-color-sample {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--acc) 40%, var(--line));
+  background: color-mix(in srgb, var(--acc) 10%, var(--panel));
+}
+.dt-color-sample b {
+  color: color-mix(in srgb, var(--acc) 50%, var(--text));
+}
+.dt-tagchip {
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--acc) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--acc) 40%, transparent);
+}
+.dt-sona.has-art {
+  grid-template-columns: minmax(150px, 230px) minmax(0, 1fr);
+}
+.dt-sonas-card .dt-sonas {
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+}
+@media (max-width: 640px) {
+  .dt-sona.has-art {
+    grid-template-columns: 1fr;
+  }
+  .dt-sonas-card .dt-sonas {
+    grid-template-columns: 1fr;
+  }
+}
+.dt-masonry .dt-sona.has-art {
+  grid-template-columns: minmax(120px, 180px) minmax(0, 1fr);
+}
+.dt-masonry .dt-sona-thumbs {
+  grid-template-columns: repeat(4, 1fr);
+}
