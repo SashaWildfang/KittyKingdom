@@ -18,6 +18,7 @@ import {
   type People,
   type Ticket,
 } from "./admin-shared";
+import { OpenTickets } from "./ticket-live";
 
 type Result = { rows: Ticket[]; total: number; page: number; pageSize: number; people: People };
 type SortKey = "ticketId" | "created" | "resolvedAt" | "type";
@@ -89,6 +90,7 @@ export function TicketsTab({
 
   return (
     <div className="adm-panel">
+      <OpenTickets onOpenMember={onOpenMember} />
       <div className="adm-filters">
         <label className="adm-search">
           <Search size={16} aria-hidden="true" />

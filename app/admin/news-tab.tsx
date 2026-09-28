@@ -1,6 +1,6 @@
 "use client";
 
-import { Bold, Code, EyeOff, Eye, Heading, Italic, Link2, List, ListOrdered, Minus, Pencil, Pin, PinOff, Plus, Quote, Search, Strikethrough, Tags, Trash2, Underline, X, type LucideIcon } from "lucide-react";
+import { BadgeCheck, Bold, Clock, Code, EyeOff, Eye, Film, Heading, ImagePlus, Italic, Link2, List, ListOrdered, Minus, Pencil, Pin, PinOff, Plus, Quote, Search, Strikethrough, Tags, Trash2, Underline, X, type LucideIcon } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { newsExcerpt } from "../../lib/news-format";
@@ -16,6 +16,7 @@ type Post = {
   tagColor: string;
   pinned: boolean;
   published: boolean;
+  status: "published" | "draft" | "pending";
   publishedAt: string;
   updatedAt: string | null;
   authorName: string | null;
@@ -49,7 +50,7 @@ export function NewsTab() {
   }, [search]);
 
   const params = new URLSearchParams({ sort, status, search: query, tag });
-  const { data, reload } = useLive<{ posts: Post[] }>(`/api/admin/news?${params}`, 30_000);
+  const { data, reload } = useLive<{ posts: Post[]; pending: number }>(`/api/admin/news?${params}`, 30_000);
 
   async function send(method: "POST" | "PATCH" | "DELETE", url: string, body?: unknown) {
     setMessage(null);
@@ -75,6 +76,7 @@ export function NewsTab() {
         </label>
         <select className="adm-select" value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Status">
           <option value="all">All posts</option>
+          <option value="pending">Pending review{data?.pending ? ` (${data.pending})` : ""}</option>
           <option value="published">Published</option>
           <option value="draft">Drafts</option>
           <option value="pinned">Pinned</option>
@@ -103,11 +105,16 @@ export function NewsTab() {
         ))}
       </div>
 
+      {data?.pending && status !== "pending" ? (
+        <button type="button" className="adm-news-pending-banner" onClick={() => setStatus("pending")}>
+          <Clock size={15} aria-hidden="true" /> {data.pending} post{data.pending === 1 ? " is" : "s are"} waiting for review. Read and approve {data.pending === 1 ? "it" : "them"} →
+        </button>
+      ) : null}
       {message ? <p className={message.tone === "ok" ? "adm-notice" : "adm-error"}>{message.text}</p> : null}
 
       <ul className="adm-news-list">
         {data?.posts.map((p) => (
-          <li key={p.id} className={`adm-news-item${p.published ? "" : " is-draft"}`}>
+          <li key={p.id} className={`adm-news-item${p.status === "published" ? "" : " is-draft"}${p.status === "pending" ? " is-pending" : ""}`}>
             <div className="adm-news-main">
               <div className="adm-news-meta">
                 <span className="adm-tag adm-news-tagchip" style={{ "--c": p.tagColor } as CSSProperties}>
@@ -118,7 +125,12 @@ export function NewsTab() {
                     <Pin size={11} aria-hidden="true" /> Pinned
                   </span>
                 ) : null}
-                {!p.published ? <span className="adm-tag adm-tag--draft">Draft</span> : null}
+                {p.status === "draft" ? <span className="adm-tag adm-tag--draft">Draft</span> : null}
+                {p.status === "pending" ? (
+                  <span className="adm-tag adm-tag--pending">
+                    <Clock size={11} aria-hidden="true" /> Pending review
+                  </span>
+                ) : null}
                 {p.published && new Date(p.publishedAt).getTime() > Date.now() ? <span className="adm-tag">Scheduled</span> : null}
                 <span className="adm-muted" title={formatDate(p.publishedAt)}>
                   {new Date(p.publishedAt).getTime() > Date.now() ? `goes live ${timeAgo(p.publishedAt)}` : timeAgo(p.publishedAt)}
@@ -135,9 +147,15 @@ export function NewsTab() {
               <button type="button" className="adm-btn adm-btn--ghost adm-btn--small" onClick={() => void quickSave(p, { pinned: !p.pinned })}>
                 {p.pinned ? <PinOff size={14} aria-hidden="true" /> : <Pin size={14} aria-hidden="true" />} {p.pinned ? "Unpin" : "Pin"}
               </button>
-              <button type="button" className="adm-btn adm-btn--ghost adm-btn--small" onClick={() => void quickSave(p, { published: !p.published })}>
-                <Eye size={14} aria-hidden="true" /> {p.published ? "Unpublish" : "Publish"}
-              </button>
+              {p.status === "pending" ? (
+                <button type="button" className="adm-btn adm-btn--small" onClick={() => void quickSave(p, { status: "published", published: true, publishedAt: new Date().toISOString() })}>
+                  <BadgeCheck size={14} aria-hidden="true" /> Approve &amp; publish
+                </button>
+              ) : (
+                <button type="button" className="adm-btn adm-btn--ghost adm-btn--small" onClick={() => void quickSave(p, p.status === "published" ? { status: "draft", published: false } : { status: "published", published: true })}>
+                  <Eye size={14} aria-hidden="true" /> {p.status === "published" ? "Unpublish" : "Publish"}
+                </button>
+              )}
               {confirmDelete === p.id ? (
                 <>
                   <button type="button" className="adm-btn adm-btn--danger adm-btn--small" onClick={() => void send("DELETE", `/api/admin/news/${p.id}`).then(() => setConfirmDelete(null))}>
@@ -195,7 +213,7 @@ function NewsEditor({ post, tags, onClose, onSave }: { post: Post | null; tags: 
   const [tag, setTag] = useState(post?.tag ?? tags[0]?.name ?? "");
   const textRef = useRef<HTMLTextAreaElement>(null);
   const [pinned, setPinned] = useState(post?.pinned ?? false);
-  const [published, setPublished] = useState(post?.published ?? true);
+  const [status, setStatus] = useState<Post["status"]>(post?.status ?? "published");
   const [publishedAt, setPublishedAt] = useState(toLocalInput(post?.publishedAt ?? new Date().toISOString()));
   const [preview, setPreview] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -209,7 +227,7 @@ function NewsEditor({ post, tags, onClose, onSave }: { post: Post | null; tags: 
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    await onSave({ title, body, tag, pinned, published, publishedAt: new Date(publishedAt).toISOString() });
+    await onSave({ title, body, tag, pinned, status, published: status === "published", publishedAt: new Date(publishedAt).toISOString() });
     setSaving(false);
   }
 
@@ -272,11 +290,21 @@ function NewsEditor({ post, tags, onClose, onSave }: { post: Post | null; tags: 
             )}
             <small className="adm-muted">{body.length.toLocaleString()} / 8,000</small>
           </label>
+          <div className="adm-news-status" role="radiogroup" aria-label="Status">
+            {(
+              [
+                ["published", "Publish", "Live on the site at the publish date"],
+                ["pending", "Pending review", "Waits for an admin to read and approve it"],
+                ["draft", "Draft", "Only visible here"],
+              ] as const
+            ).map(([value, label, hint]) => (
+              <button key={value} type="button" role="radio" aria-checked={status === value} className={status === value ? "is-on" : undefined} onClick={() => setStatus(value)}>
+                <b>{label}</b>
+                <small>{hint}</small>
+              </button>
+            ))}
+          </div>
           <div className="adm-form-toggles">
-            <label className="adm-toggle">
-              <input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} />
-              <span>Published {published ? "(visible on the site)" : "(draft)"}</span>
-            </label>
             <label className="adm-toggle">
               <input type="checkbox" checked={pinned} onChange={(e) => setPinned(e.target.checked)} />
               <span>Pin to the top</span>
@@ -284,7 +312,7 @@ function NewsEditor({ post, tags, onClose, onSave }: { post: Post | null; tags: 
           </div>
           <div className="adm-form-actions">
             <button type="submit" className="adm-btn" disabled={saving}>
-              {saving ? "Saving…" : post ? "Save changes" : published ? "Publish post" : "Save draft"}
+              {saving ? "Saving…" : status === "published" ? (post ? "Save & keep live" : "Publish post") : status === "pending" ? "Send for review" : "Save draft"}
             </button>
             <button type="button" className="adm-btn adm-btn--ghost" onClick={onClose}>
               Cancel
@@ -374,6 +402,25 @@ function FormatBar({ textRef, value, onChange }: { textRef: React.RefObject<HTML
     });
   }
 
+  const [uploading, setUploading] = useState(false);
+  const [mediaError, setMediaError] = useState<string | null>(null);
+  /** Puts a media line on its own line at the cursor (add a caption inside the square brackets). */
+  function insertBlock(line: string) {
+    const el = textRef.current;
+    const at = el ? el.selectionStart : value.length;
+    const before = value.slice(0, at);
+    const after = value.slice(at);
+    const text = `${before && !before.endsWith("\n") ? "\n" : ""}${line}\n${after.startsWith("\n") || !after ? "" : "\n"}`;
+    const next = before + text + after;
+    if (next.length > 8000) return setMediaError("The post is too long to add that.");
+    onChange(next);
+    requestAnimationFrame(() => {
+      el?.focus();
+      const caret = before.length + text.indexOf("![") + 2;
+      el?.setSelectionRange(caret, caret);
+    });
+  }
+
   // Ctrl/⌘ + B, I, U, K while typing
   useEffect(() => {
     const el = textRef.current;
@@ -404,6 +451,46 @@ function FormatBar({ textRef, value, onChange }: { textRef: React.RefObject<HTML
           {f.icon ? <f.icon size={15} aria-hidden="true" /> : <LeafEmote size={16} />}
         </button>
       ))}
+      <span className="adm-format-sep" aria-hidden="true" />
+      <label className={`adm-format-media${uploading ? " is-busy" : ""}`} title="Upload an image or short video (up to 4 MB)">
+        <ImagePlus size={15} aria-hidden="true" /> {uploading ? "Uploading…" : "Image / video"}
+        <input
+          type="file"
+          accept="image/png,image/jpeg,image/gif,image/webp,video/mp4,video/webm"
+          hidden
+          disabled={uploading}
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (!file) return;
+            setUploading(true);
+            setMediaError(null);
+            const form = new FormData();
+            form.append("file", file);
+            const res = await fetch("/api/admin/news/media", { method: "POST", body: form }).catch(() => null);
+            const out = res ? await res.json().catch(() => null) : null;
+            setUploading(false);
+            if (!out?.ok) return setMediaError(out?.error ?? "Upload failed.");
+            insertBlock(`![](${out.url})`);
+          }}
+        />
+      </label>
+      <button
+        type="button"
+        className="adm-format-media"
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => {
+          const url = window.prompt("Paste a YouTube link, or a direct https:// link to an image or video:")?.trim();
+          if (!url) return;
+          if (!/^https:\/\/\S+$/.test(url)) return setMediaError("That needs to be an https:// link.");
+          setMediaError(null);
+          insertBlock(`![](${url})`);
+        }}
+        title="Embed a YouTube video or a linked image/video"
+      >
+        <Film size={15} aria-hidden="true" /> Embed link
+      </button>
+      {mediaError ? <span className="adm-format-error">{mediaError}</span> : null}
     </div>
   );
 }

@@ -109,10 +109,20 @@ function flag(country: string | null) {
   return String.fromCodePoint(...country.split("").map((c) => 0x1f1e6 + c.charCodeAt(0) - 65));
 }
 
+type OnlinePage = { path: string | null; title: string | null; label: string; icon: string; since: string };
+
 function OnlineNow({ onOpen }: { onOpen: (id: string) => void }) {
-  const { data } = useLive<{ users: OnlineUser[]; visitors: number }>("/api/admin/online", 15_000);
+  const { data } = useLive<{ users: (OnlineUser & { pages?: OnlinePage[] })[]; visitors: number; guests?: { label: string; path: string | null; n: number }[] }>("/api/admin/online", 10_000);
+  const [picked, setPicked] = useState<string | null>(null);
+  const selected = data?.users.find((u) => u.id === picked) ?? null;
+  // Arrived from the header's "on the website" link
+  useEffect(() => {
+    if (data && window.location.hash === "#online") document.getElementById("online")?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, [Boolean(data)]); // eslint-disable-line react-hooks/exhaustive-deps
+  const guests = data?.guests ?? [];
+  const guestCount = guests.reduce((n, g) => n + g.n, 0);
   return (
-    <section className="adm-online">
+    <section className="adm-online" id="online">
       <div className="adm-online-head">
         <h3>
           <i className="adm-online-dot" aria-hidden="true" /> Online now
@@ -122,30 +132,77 @@ function OnlineNow({ onOpen }: { onOpen: (id: string) => void }) {
         </span>
       </div>
       <div className="adm-online-list">
-        {data?.users.map((u) => (
-          <button key={u.id} type="button" className="adm-online-user" onClick={() => onOpen(u.id)} title={u.devices.map((d) => d.label).join("\n")}>
-            {u.avatar ? (
-              <img className="adm-avatar" src={u.avatar} alt="" width={28} height={28} />
-            ) : (
-              <span className="adm-avatar adm-avatar--letter" style={{ width: 28, height: 28 }} aria-hidden="true">
-                {u.name.charAt(0).toUpperCase()}
+        {data?.users.map((u) => {
+          const now = u.pages?.[0];
+          return (
+            <button
+              key={u.id}
+              type="button"
+              className={`adm-online-user${picked === u.id ? " is-on" : ""}`}
+              onClick={() => setPicked(picked === u.id ? null : u.id)}
+              aria-expanded={picked === u.id}
+              title="See what they're doing"
+            >
+              {u.avatar ? (
+                <img className="adm-avatar" src={u.avatar} alt="" width={28} height={28} />
+              ) : (
+                <span className="adm-avatar adm-avatar--letter" style={{ width: 28, height: 28 }} aria-hidden="true">
+                  {u.name.charAt(0).toUpperCase()}
+                </span>
+              )}
+              <span className="adm-person-text">
+                <strong>{u.name}</strong>
+                <small className="adm-online-doing">{now ? now.label : `Active ${timeAgo(u.lastSeenAt)} · tab in the background`}</small>
               </span>
-            )}
-            <span className="adm-person-text">
-              <strong>{u.name}</strong>
-              <small>
-                <span className="adm-device-icons">
-                  {u.devices.map((d, i) => (
-                    <DeviceIcon key={i} type={d.type} size={12} />
-                  ))}
-                </span>{" "}
-                · {timeAgo(u.lastSeenAt)}
-              </small>
-            </span>
-          </button>
-        ))}
+            </button>
+          );
+        })}
         {data && !data.users.length ? <p className="adm-muted">Nobody signed in is active right now.</p> : null}
       </div>
+      {selected ? (
+        <div className="adm-online-detail">
+          <header>
+            <strong>{selected.name}</strong>
+            <span className="adm-muted">right now</span>
+            <button type="button" className="adm-btn adm-btn--small" onClick={() => onOpen(selected.id)}>
+              Open account
+            </button>
+          </header>
+          {selected.pages?.length ? (
+            <ol>
+              {selected.pages.map((pg, i) => (
+                <li key={i}>
+                  <b>{pg.label}</b>
+                  <small>
+                    {pg.path ? <code>{pg.path}</code> : null} · for {timeAgo(pg.since).replace(" ago", "")}
+                  </small>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="adm-muted">Their tab is in the background, so we can&apos;t see the page right now.</p>
+          )}
+          <p className="adm-muted adm-online-devices">
+            {selected.devices.map((d, i) => (
+              <span key={i}>
+                <DeviceIcon type={d.type} size={12} /> {d.label}
+              </span>
+            ))}
+          </p>
+        </div>
+      ) : null}
+      {guestCount ? (
+        <div className="adm-online-guests">
+          <span className="adm-muted">
+            {guestCount} guest{guestCount === 1 ? "" : "s"}:
+          </span>
+          {guests.map((g) => (
+            <span key={g.label} className="adm-tag" title={g.path ?? undefined}>
+              {g.label} {g.n > 1 ? `×${g.n}` : ""}
+            </span>
+          ))}
+        </div>
+      ) : null}
     </section>
   );
 }
