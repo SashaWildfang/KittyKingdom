@@ -1,0 +1,208 @@
+// Discover (one great match at a time), Browse (everyone, with filters and sorting), profile pages
+// and the hourly featured draw. All work off the cached pool (lib/dating/pool.ts).
+
+import { blockedIds } from "./db";
+import { MIN_SCORE_SHOWN, blockedReason, compatibility, type Compat } from "./matching";
+import { datingPool } from "./pool";
+import { bioPreview, photoUrl, type Photo, type WebPrefs } from "./profiles";
+import { accentFor, display, getList, isFilled, type ProfileDoc } from "./schema";
+import { likedIds, passedIds } from "./social";
+
+export type Card = {
+  id: string;
+  name: string;
+  age: number | null;
+  headline: string | null;
+  photo: string | null;
+  photoCount: number;
+  accent: string;
+  location: string | null;
+  gender: string | null;
+  pronouns: string | null;
+  lookingFor: string | null;
+  bio: string;
+  score: number | null;
+  tier: string | null;
+  emoji: string | null;
+  shared: string[];
+  datingFit: boolean;
+  lastActive: string | null;
+  isNew: boolean;
+  liked: boolean;
+};
+
+function card(doc: ProfileDoc, compat: Compat | null, liked: boolean): Card {
+  const web = (doc.web ?? {}) as WebPrefs;
+  const photos = (doc.photos ?? []) as Photo[];
+  const firstArt = ((doc.fursonas ?? []) as { art_links?: string[]; art_link?: string }[]).flatMap((f) => f.art_links ?? (f.art_link ? [f.art_link] : [])).find((l) => /^https:\/\/.+\.(png|jpe?g|gif|webp)(\?|$)/i.test(String(l)) || String(l).startsWith("/api/dating/media/"));
+  const created = doc.created_at instanceof Date ? doc.created_at : null;
+  return {
+    id: String(doc._id),
+    name: String(display(doc, "name")?.text ?? "Member"),
+    age: web.hideAge ? null : typeof doc.age === "number" ? doc.age : Number(doc.age) || null,
+    headline: web.headline || null,
+    photo: photos[0] ? photoUrl(photos[0]) : firstArt ? String(firstArt) : null,
+    photoCount: photos.length,
+    accent: accentFor(String(doc._id), web.accent),
+    location: display(doc, "location")?.text ?? null,
+    gender: display(doc, "gender")?.text ?? null,
+    pronouns: display(doc, "pronouns")?.text ?? null,
+    lookingFor: getList(doc, "looking_for_relationship_type").join(", ") || null,
+    bio: bioPreview(doc),
+    score: compat?.score ?? null,
+    tier: compat?.tier ?? null,
+    emoji: compat?.emoji ?? null,
+    shared: (compat?.pairs ?? []).slice(0, 3).map((p) => (p.a === p.b ? p.a : `${p.a} ↔ ${p.b}`)),
+    datingFit: Boolean(compat && !compat.blocked),
+    lastActive: web.showOnline === false ? null : doc.last_active instanceof Date ? doc.last_active.toISOString() : null,
+    isNew: Boolean(created && Date.now() - created.getTime() < 14 * 86_400_000),
+    liked,
+  };
+}
+
+async function candidates(me: string) {
+  const pool = await datingPool();
+  const blocked = await blockedIds(me);
+  const mine = pool.profiles.get(me) ?? null;
+  const others = Array.from(pool.profiles.values()).filter((p) => {
+    const id = String(p._id);
+    if (id === me || blocked.has(id)) return false;
+    if (((p.web ?? {}) as WebPrefs).paused) return false;
+    if (pool.inServer && !pool.inServer.has(id)) return false;
+    return true;
+  });
+  const side = (d: ProfileDoc) => ({ doc: d, vec: pool.vectors.get(String(d._id)) ?? null });
+  return { pool, mine, others, side };
+}
+
+/** The Discover queue: dating matches you haven't liked or passed, best first. */
+export async function discoverQueue(me: string, limit = 20) {
+  const { mine, others, side } = await candidates(me);
+  if (!mine) return { needsProfile: true as const, cards: [] as Card[] };
+  if (mine.is_looking !== "Yes") return { notLooking: true as const, cards: [] as Card[] };
+  const [liked, passed] = await Promise.all([likedIds(me), passedIds(me)]);
+  const ranked = others
+    .filter((o) => !liked.has(String(o._id)) && !passed.has(String(o._id)) && !blockedReason(mine, o))
+    .map((o) => ({ o, c: compatibility(side(mine), side(o)) }))
+    .filter((x) => x.c.score >= MIN_SCORE_SHOWN)
+    .sort((a, b) => b.c.score - a.c.score);
+  return { cards: ranked.slice(0, limit).map((x) => card(x.o, x.c, false)), total: ranked.length };
+}
+
+export type BrowseQuery = {
+  q?: string;
+  genders?: string[];
+  ageMin?: number;
+  ageMax?: number;
+  datingOnly?: boolean;
+  photosOnly?: boolean;
+  activeDays?: number;
+  newOnly?: boolean;
+  lookingFor?: string[];
+  sort?: "best" | "active" | "new" | "age-asc" | "age-desc" | "name";
+  page?: number;
+};
+
+/** Everyone you can see, with filters and sorting (friends-only profiles included unless datingOnly). */
+export async function browse(me: string, query: BrowseQuery) {
+  const { mine, others, side } = await candidates(me);
+  const liked = await likedIds(me);
+  const q = (query.q ?? "").trim().toLowerCase();
+  const rows = others
+    .filter((o) => {
+      const age = typeof o.age === "number" ? o.age : Number(o.age) || null;
+      if (query.genders?.length && !query.genders.includes(String(o.gender ?? ""))) return false;
+      if (query.ageMin && (!age || age < query.ageMin)) return false;
+      if (query.ageMax && (!age || age > query.ageMax)) return false;
+      if (query.photosOnly && !((o.photos ?? []) as unknown[]).length) return false;
+      if (query.newOnly && !(o.created_at instanceof Date && Date.now() - o.created_at.getTime() < 14 * 86_400_000)) return false;
+      if (query.activeDays && !(o.last_active instanceof Date && Date.now() - o.last_active.getTime() < query.activeDays * 86_400_000)) return false;
+      if (query.lookingFor?.length && !getList(o, "looking_for_relationship_type").some((t) => query.lookingFor!.includes(t))) return false;
+      if (q) {
+        const hay = ["name", "bio", "location", "likes", "hobbies_interests", "favorite_games", "fun_fact"].map((k) => String(o[k] ?? "")).join(" ").toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    })
+    .map((o) => {
+      const c = mine ? compatibility(side(mine), side(o)) : null;
+      return { o, c };
+    })
+    .filter((x) => !query.datingOnly || (x.c && !x.c.blocked));
+  const time = (d: unknown) => (d instanceof Date ? d.getTime() : 0);
+  const ageOf = (o: ProfileDoc) => (typeof o.age === "number" ? o.age : Number(o.age) || 0);
+  const sort = query.sort ?? (mine ? "best" : "active");
+  rows.sort((a, b) => {
+    switch (sort) {
+      case "active":
+        return time(b.o.last_active) - time(a.o.last_active);
+      case "new":
+        return time(b.o.created_at) - time(a.o.created_at);
+      case "age-asc":
+        return ageOf(a.o) - ageOf(b.o);
+      case "age-desc":
+        return ageOf(b.o) - ageOf(a.o);
+      case "name":
+        return String(a.o.name ?? "").localeCompare(String(b.o.name ?? ""));
+      default:
+        // Dating fits first, then by score
+        return Number(Boolean(b.c && !b.c.blocked)) - Number(Boolean(a.c && !a.c.blocked)) || (b.c?.score ?? 0) - (a.c?.score ?? 0);
+    }
+  });
+  const page = Math.max(0, query.page ?? 0);
+  const size = 24;
+  return { total: rows.length, page, pages: Math.ceil(rows.length / size), cards: rows.slice(page * size, page * size + size).map((x) => card(x.o, x.c, liked.has(String(x.o._id)))) };
+}
+
+/** Cards for a list of ids (likes, matches, friends...), in the given order. */
+export async function cardsFor(me: string, ids: string[]) {
+  const { pool, mine, side } = await candidates(me);
+  const liked = await likedIds(me);
+  return ids
+    .map((id) => pool.profiles.get(id))
+    .filter((d): d is ProfileDoc => Boolean(d))
+    .map((d) => card(d, mine ? compatibility(side(mine), side(d)) : null, liked.has(String(d._id))));
+}
+
+/** Compatibility of one member from my point of view (for their profile page). */
+export async function compatWith(me: string, other: string) {
+  const pool = await datingPool();
+  const mine = pool.profiles.get(me);
+  const theirs = pool.profiles.get(other);
+  if (!mine || !theirs) return null;
+  return compatibility({ doc: mine, vec: pool.vectors.get(me) ?? null }, { doc: theirs, vec: pool.vectors.get(other) ?? null });
+}
+
+// ---------- Featured this hour ----------
+function seeded(seed: number) {
+  let s = seed >>> 0;
+  return () => {
+    s = (s + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** The featured member for an hour (same for everyone), weighted by profile_weight like the bot's draw. */
+export async function featured(hoursAgo = 0) {
+  const pool = await datingPool();
+  const hour = Math.floor(Date.now() / 3_600_000) - hoursAgo;
+  const eligible = Array.from(pool.profiles.values())
+    .filter((p) => p.is_looking === "Yes" && !((p.web ?? {}) as WebPrefs).paused && (!pool.inServer || pool.inServer.has(String(p._id))) && isFilled(p.bio))
+    .sort((a, b) => String(a._id).localeCompare(String(b._id)));
+  if (!eligible.length) return null;
+  const weights = eligible.map((p) => Math.max(0.1, Number(p.profile_weight ?? 1)));
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = seeded(hour * 2654435761)() * total;
+  let pick = eligible[0];
+  for (let i = 0; i < eligible.length; i++) {
+    r -= weights[i];
+    if (r <= 0) {
+      pick = eligible[i];
+      break;
+    }
+  }
+  const weight = Math.max(0.1, Number(pick.profile_weight ?? 1));
+  return { hour, until: new Date((hour + 1) * 3_600_000).toISOString(), card: card(pick, null, false), pool: eligible.length, chance: weight / total };
+}

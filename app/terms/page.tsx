@@ -3,7 +3,7 @@ import { LegalShell, type LegalSection } from "../legal/legal-shell";
 
 export const metadata = { title: "Terms of Service | Kitty Kingdom" };
 
-const UPDATED = "September 27, 2026";
+const UPDATED = "September 28, 2026";
 
 const sections: LegalSection[] = [
   {
@@ -154,11 +154,23 @@ const sections: LegalSection[] = [
     id: "features",
     title: "Dating and social features",
     body: (
-      <p>
-        Dating, matching and statistics features (such as your &quot;server bestie&quot;) are for entertainment. We do not screen members, verify what they
-        say about themselves, or guarantee compatibility or behaviour. Use good judgement, be careful about sharing personal information, and report anything
-        that makes you uncomfortable. Any interaction with other members, online or offline, is at your own risk.
-      </p>
+      <>
+        <p>
+          Dating, matching and statistics features (such as your &quot;server bestie&quot;) are for entertainment. We do not screen members, verify what they
+          say about themselves, or guarantee compatibility or behaviour. Use good judgement, be careful about sharing personal information, and report anything
+          that makes you uncomfortable. Any interaction with other members, online or offline, is at your own risk.
+        </p>
+        <p>Dating is only for members 18 or older who hold the 18+ Verified role. When you use it:</p>
+        <ul>
+          <li>photos and art must be safe for work (no nudity or sexual content), must be of you or art you have the right to share, and must not show anyone else without their permission;</li>
+          <li>do not harass, pressure or keep messaging someone who hasn&apos;t replied or has declined your request, and do not use Dating to advertise, scam or collect people&apos;s personal information;</li>
+          <li>you may not share another member&apos;s photos or messages outside Dating without their permission.</li>
+        </ul>
+        <p>
+          Staff may remove photos, pause profiles, or restrict or remove access to Dating (and take action in the Server) for breaking these rules or the
+          community conduct rules. Automatic filters may block messages that contain banned words or unsafe links.
+        </p>
+      </>
     ),
   },
   {
