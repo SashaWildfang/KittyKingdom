@@ -3,6 +3,7 @@ import { accountGreeting } from "../../lib/greeting";
 import { Backpack, ChevronDown, Gift, ShieldCheck, Check, CircleAlert, ClipboardList, KeyRound, Link2, Lock, MessageCircle, Sparkles, TriangleAlert, UserRound } from "lucide-react";
 import { LeafEmote } from "../ui-icons";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { isStaffDiscordId } from "../../lib/admin";
 import { getCurrentUser } from "../../lib/auth";
 import { DiscordUnlinkForm } from "../discord-unlink-form";
@@ -134,6 +135,8 @@ export default async function AccountPage({
   const shownName = accountName(user, roles);
   // Greets them by their own time of day (their time zone)
   const greeting = accountGreeting(shownName, userTimeZone());
+  // Sections they folded (saved in a cookie so the page is drawn that way from the start)
+  const collapsed = new Set((cookies().get("kk_collapsed")?.value ?? "").split(",").map((v) => decodeURIComponent(v)).filter(Boolean));
   const heading = displayName || user.discordId ? greeting.title : "My Account";
   const discordLinked = Boolean(user.discordId);
   const twoFactor = twoFactorStatus(user);
@@ -249,7 +252,7 @@ export default async function AccountPage({
             )}
           </section>
 
-          <CollapsibleCard id="overview" title={"Overview"} description={"Your account details. Age and birthday come from your Discord join application."}>
+          <CollapsibleCard id="overview" defaultOpen={!collapsed.has("overview")} title={"Overview"} description={"Your account details. Age and birthday come from your Discord join application."}>
             <dl className="acct-info-grid">
               <div>
                 <dt>Email</dt>
@@ -281,6 +284,7 @@ export default async function AccountPage({
           {discordLinked ? (
             <CollapsibleCard
               id="roles"
+              defaultOpen={!collapsed.has("roles")}
               title="Server roles"
               description="Pick your roles here and they update in Discord instantly, just like the role selector."
               summary={
@@ -294,18 +298,18 @@ export default async function AccountPage({
           ) : null}
 
           {discordLinked ? (
-            <CollapsibleCard id="daily" title="Daily Reward" description="Claim free leaves once a day. Claim every day to build your streak.">
+            <CollapsibleCard id="daily" defaultOpen={!collapsed.has("daily")} title="Daily Reward" description="Claim free leaves once a day. Claim every day to build your streak.">
               <DailyCard initial={dailyStatus} guildId={serverId} />
             </CollapsibleCard>
           ) : null}
 
           {discordLinked ? (
-            <CollapsibleCard id="inventory" title="Inventory" description="Everything you've bought or been gifted. Equip roles, use boosters and send gifts right here.">
+            <CollapsibleCard id="inventory" defaultOpen={!collapsed.has("inventory")} title="Inventory" description="Everything you've bought or been gifted. Equip roles, use boosters and send gifts right here.">
               <AccountInventory />
             </CollapsibleCard>
           ) : null}
 
-          <CollapsibleCard id="profile" title={"Profile"} description={"How you appear around the site."}>
+          <CollapsibleCard id="profile" defaultOpen={!collapsed.has("profile")} title={"Profile"} description={"How you appear around the site."}>
             <div className="acct-form-grid">
               <form className="acct-form" action="/api/account/name" method="post" autoComplete="off">
                 <label>
@@ -357,7 +361,7 @@ export default async function AccountPage({
             </div>
           </CollapsibleCard>
 
-          <CollapsibleCard id="contact" title={"Contact & socials"} description={"All optional. Paste a link or type your @handle — leave a box empty to remove it."}>
+          <CollapsibleCard id="contact" defaultOpen={!collapsed.has("contact")} title={"Contact & socials"} description={"All optional. Paste a link or type your @handle — leave a box empty to remove it."}>
             <form className="acct-form" action="/api/account/contact" method="post" autoComplete="off">
               <label>
                 Phone number
@@ -387,7 +391,7 @@ export default async function AccountPage({
           </CollapsibleCard>
 
 
-          <CollapsibleCard id="security" title={"Security"} description={"Your password and two-factor authentication."} summary={twoFactor.enabled ? "Two-factor on" : "Two-factor off"}>
+          <CollapsibleCard id="security" defaultOpen={!collapsed.has("security")} title={"Security"} description={"Your password and two-factor authentication."} summary={twoFactor.enabled ? "Two-factor on" : "Two-factor off"}>
             <h3 className="acct-subhead">Password</h3>
             <ChangePasswordForm />
             <div className="acct-divider" />

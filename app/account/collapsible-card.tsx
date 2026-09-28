@@ -10,6 +10,7 @@ export function CollapsibleCard({
   description,
   summary,
   children,
+  defaultOpen = true,
 }: {
   id: string;
   title: string;
@@ -17,20 +18,27 @@ export function CollapsibleCard({
   /** Shown next to the title while folded, e.g. "12 roles picked" */
   summary?: string;
   children: ReactNode;
+  /** From the kk_collapsed cookie, so the page is drawn folded or open from the start (no flash) */
+  defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(defaultOpen);
   const bodyId = useId();
 
+  // Older choices were only saved in this browser: carry them over to the cookie once
   useEffect(() => {
     try {
-      if (window.localStorage.getItem(`kk-collapse:${id}`) === "closed") setOpen(false);
+      if (defaultOpen && window.localStorage.getItem(`kk-collapse:${id}`) === "closed") {
+        setOpen(false);
+        remember(id, false);
+      }
     } catch {
-      // storage blocked: stay open
+      // storage blocked
     }
-  }, [id]);
+  }, [id, defaultOpen]);
 
   function toggle() {
     setOpen((v) => {
+      remember(id, !v);
       try {
         window.localStorage.setItem(`kk-collapse:${id}`, v ? "closed" : "open");
       } catch {
@@ -60,4 +68,17 @@ export function CollapsibleCard({
       </div>
     </section>
   );
+}
+
+/** Folded sections are kept in a cookie the server can read. */
+function remember(id: string, open: boolean) {
+  const current = new Set(
+    (document.cookie.match(/(?:^|;\s*)kk_collapsed=([^;]*)/)?.[1] ?? "")
+      .split(",")
+      .filter(Boolean)
+      .map(decodeURIComponent),
+  );
+  if (open) current.delete(id);
+  else current.add(id);
+  document.cookie = `kk_collapsed=${Array.from(current).map(encodeURIComponent).join(",")}; path=/; max-age=31536000; samesite=lax`;
 }

@@ -9,6 +9,7 @@ import { userTimeZone } from "../../lib/timezone";
 import { FallingLeaves } from "../fall-effects";
 import { SiteNav } from "../site-nav";
 import { NewsSeen } from "./news-seen";
+import { NewsReadControls, UnreadDot } from "./news-read-controls";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "News | Kitty Kingdom", description: "Updates, events and announcements from the Kitty Kingdom team." };
@@ -49,13 +50,14 @@ export default async function NewsPage({ searchParams }: { searchParams: { tag?:
     <main className="site-shell news-shell">
       <FallingLeaves foreground={false} />
       <SiteNav signedIn={Boolean(user)} discordOnline={discord.online} />
-      <NewsSeen latest={all[0]?.publishedAt ?? null} />
+      <NewsSeen latest={null} />
 
       <div className="nw">
         <header className="nw-head">
           <p className="home-eyebrow">News</p>
           <h1>What&apos;s happening in the kingdom</h1>
           <p>Updates, events and announcements from the Kitty Kingdom team.</p>
+          <NewsReadControls items={all.slice(0, 30).map((p) => ({ id: p.id, at: p.publishedAt }))} />
         </header>
 
         <div className="nw-layout">
@@ -87,6 +89,7 @@ export default async function NewsPage({ searchParams }: { searchParams: { tag?:
                           {p.tag}
                         </span>
                         {isNew(p) ? <span className="nw-new">New</span> : null}
+                        <UnreadDot id={p.id} at={p.publishedAt} />
                         {p.pinned ? (
                           <span className="nw-pin">
                             <Pin size={12} aria-hidden="true" />
@@ -183,6 +186,7 @@ function FeaturedCard({ post, date, isNew }: { post: NewsPost; date: string; isN
       <div className="nw-featured-body">
         <div className="nw-meta">
           <span className="nw-latest">Latest</span>
+          <UnreadDot id={post.id} at={post.publishedAt} />
           <span className="news-tag" style={{ "--tag": post.tagColor } as CSSProperties}>
             {post.tag}
           </span>
