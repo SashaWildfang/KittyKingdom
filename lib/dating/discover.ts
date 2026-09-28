@@ -1,6 +1,8 @@
 // Discover (one great match at a time), Browse (everyone, with filters and sorting), profile pages
 // and the hourly featured draw. All work off the cached pool (lib/dating/pool.ts).
 
+import { ObjectId } from "mongodb";
+import { getPresenceCollection, getUsersCollection } from "../mongodb";
 import { blockedIds } from "./db";
 import { MIN_SCORE_SHOWN, blockedReason, compatibility, type Compat } from "./matching";
 import { datingPool } from "./pool";
@@ -209,6 +211,8 @@ export async function compatWith(me: string, other: string) {
 }
 
 // ---------- Featured this hour ----------
+const BOOSTER_WEIGHT = 2;
+const LEFT_WEIGHT = 0.25;
 function seeded(seed: number) {
   let s = seed >>> 0;
   return () => {
@@ -224,10 +228,17 @@ export async function featured(hoursAgo = 0) {
   const pool = await datingPool();
   const hour = Math.floor(Date.now() / 3_600_000) - hoursAgo;
   const eligible = Array.from(pool.profiles.values())
-    .filter((p) => p.is_looking === "Yes" && !((p.web ?? {}) as WebPrefs).paused && (!pool.inServer || pool.inServer.has(String(p._id))) && isFilled(p.bio))
+    .filter((p) => p.is_looking === "Yes" && !((p.web ?? {}) as WebPrefs).paused && isFilled(p.bio))
     .sort((a, b) => String(a._id).localeCompare(String(b._id)));
   if (!eligible.length) return null;
-  const weights = eligible.map((p) => Math.max(0.1, Number(p.profile_weight ?? 1)));
+  // Weight: the store's Profile Booster (profile_weight), doubled for server boosters, and a much
+  // smaller chance for members who left the server
+  const weightOf = (p: ProfileDoc) => {
+    const id = String(p._id);
+    const left = pool.inServer ? !pool.inServer.has(id) : pool.who.get(id)?.inServer === false;
+    return Math.max(0.1, Number(p.profile_weight ?? 1)) * (pool.who.get(id)?.boosting ? BOOSTER_WEIGHT : 1) * (left ? LEFT_WEIGHT : 1);
+  };
+  const weights = eligible.map(weightOf);
   const total = weights.reduce((a, b) => a + b, 0);
   let r = seeded(hour * 2654435761)() * total;
   let pick = eligible[0];
@@ -238,11 +249,21 @@ export async function featured(hoursAgo = 0) {
       break;
     }
   }
-  const weight = Math.max(0.1, Number(pick.profile_weight ?? 1));
+  const weight = weightOf(pick);
   return { hour, until: new Date((hour + 1) * 3_600_000).toISOString(), card: card(pick, null, false, pool), pool: eligible.length, chance: weight / total };
 }
 
 // ---------- Home widgets ----------
+const ONLINE_WINDOW_MS = 2 * 60_000;
+
+/** Discord ids of signed-in members with a website tab open right now. */
+async function onlineDiscordIds(): Promise<Set<string>> {
+  const presence = await getPresenceCollection();
+  const userIds = (await presence.distinct("userId", { lastSeen: { $gte: new Date(Date.now() - ONLINE_WINDOW_MS) }, userId: { $ne: null } } as never)).map(String).filter((id) => ObjectId.isValid(id));
+  if (!userIds.length) return new Set();
+  const users = await (await getUsersCollection()).find({ _id: { $in: userIds.map((id) => new ObjectId(id)) } }, { projection: { discordId: 1 } }).toArray();
+  return new Set(users.map((u) => String(u.discordId ?? "")).filter(Boolean));
+}
 const PROMPT_EPOCH = Date.UTC(2026, 0, 1);
 
 /** Everything the Dating home shows besides the featured draw: community pulse, new and active
@@ -253,6 +274,15 @@ export async function homeWidgets(me: string) {
   const now = Date.now();
   const time = (d: unknown) => (d instanceof Date ? d.getTime() : 0);
   const cardOf = (d: ProfileDoc) => card(d, mine ? compatibility(side(mine), side(d)) : null, liked.has(String(d._id)), pool);
+
+  // Online now: on the website this minute (live tab presence) or active in Dating in the last few
+  // minutes. Members who hide their activity never show.
+  const onlineIds = await onlineDiscordIds().catch(() => new Set<string>());
+  const online = others
+    .filter((o) => ((o.web ?? {}) as WebPrefs).showOnline !== false && (onlineIds.has(String(o._id)) || now - time(o.last_active) < 5 * 60_000))
+    .sort((a, b) => time(b.last_active) - time(a.last_active))
+    .slice(0, 24)
+    .map((o) => ({ ...cardOf(o), lastActive: new Date().toISOString() }));
 
   const newest = [...others].sort((a, b) => time(b.created_at) - time(a.created_at)).slice(0, 8).map(cardOf);
   const active = others
@@ -320,5 +350,5 @@ export async function homeWidgets(me: string) {
     activeToday: all.filter((p) => now - time(p.last_active) < 86_400_000).length,
     withPhotos: all.filter((p) => ((p.photos ?? []) as unknown[]).length).length,
   };
-  return { newest, active, top, interests, spotlight, community, looking: mine?.is_looking === "Yes" };
+  return { newest, active, online, top, interests, spotlight, community, looking: mine?.is_looking === "Yes" };
 }
