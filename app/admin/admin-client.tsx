@@ -72,6 +72,12 @@ export function AdminClient({ adminName, level }: { adminName: string; level: Le
   useEffect(() => {
     if (tab === "automod") setAutomodUnread(0);
   }, [tab]);
+  // Open tickets right now (admins), for the bubble on the Tickets tab
+  const openTicketsPoll = useLive<{ count: number }>(isAdmin ? "/api/admin/tickets/open?count=1" : null, 15_000);
+  const openTickets = openTicketsPoll.data?.count ?? 0;
+  // News posts waiting for review (admins)
+  const newsPoll = useLive<{ pending: number }>(isAdmin && tab !== "news" ? "/api/admin/news?status=pending" : null, 30_000);
+  const pendingNews = newsPoll.data?.pending ?? 0;
   const tabsRef = useRef<HTMLElement>(null);
 
   // On narrow screens the tab strip scrolls sideways; keep the open tab in view
@@ -157,7 +163,17 @@ export function AdminClient({ adminName, level }: { adminName: string; level: Le
                 {automodUnread > 999 ? "999+" : automodUnread}
               </span>
             ) : null}
-            {t.key === "join" && joinCount.data ? (
+            {t.key === "news" && pendingNews > 0 && tab !== "news" ? (
+              <span className="adm-tab-bubble" aria-label={`${pendingNews} waiting for review`}>
+                {pendingNews}
+              </span>
+            ) : null}
+            {t.key === "tickets" && openTickets > 0 ? (
+              <span className="adm-tab-bubble is-hot" aria-label={`${openTickets} open`}>
+                {openTickets}
+              </span>
+            ) : null}
+            {t.key === "join" && pendingApps > 0 ? (
               <span className={`adm-tab-bubble${pendingApps > 0 ? " is-hot" : ""}`} aria-label={`${pendingApps} pending`}>
                 {pendingApps}
               </span>

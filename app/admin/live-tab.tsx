@@ -826,15 +826,17 @@ export function LiveTab({ onOpenMember, onUnread }: { onOpenMember: (id: string)
     setPaused(false);
   }
 
+  const clearedAt = prefs?.baseline ?? null;
   const shown = useMemo(() => {
     const q = search.trim().toLowerCase();
     return messages.filter(
       (m) =>
+        (!clearedAt || m.ts > clearedAt) &&
         (!hideBots || !m.bot) &&
         (!mediaOnly || m.attachments.length || m.embeds.some((e) => e.image || e.thumbnail || e.video)) &&
         (!q || m.content.toLowerCase().includes(q) || m.displayName.toLowerCase().includes(q) || m.authorName.toLowerCase().includes(q) || m.channelName.toLowerCase().includes(q)),
     );
-  }, [messages, search, hideBots, mediaOnly]);
+  }, [messages, search, hideBots, mediaOnly, clearedAt]);
 
   // Follow new messages while scrolled to the bottom; otherwise count what arrived
   const lastCount = useRef(0);
@@ -887,6 +889,19 @@ export function LiveTab({ onOpenMember, onUnread }: { onOpenMember: (id: string)
   }, [snap, known, onOpenMember]);
 
   async function savePrefs(patch: Partial<Pick<LivePrefs, "hidden" | "autoFollow">>) {
+    // Channels coming back from hidden start "read" as of now, so their backlog doesn't pin them
+    // to the list forever; they fall off like any other channel unless something new is said
+    const unhidden = patch.hidden ? (prefs?.hidden ?? []).filter((id) => !patch.hidden!.includes(id)) : [];
+    if (unhidden.length) {
+      const nowIso = new Date().toISOString();
+      await fetch("/api/admin/live/read", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channels: Object.fromEntries(unhidden.map((id) => [id, nowIso])) }),
+      }).catch(() => undefined);
+      for (const id of unhidden) lastUnread.current[id] = 0;
+      setSnap((s) => (s ? { ...s, categories: s.categories.map((c) => ({ ...c, channels: c.channels.map((ch) => (unhidden.includes(ch.id) ? { ...ch, unread: 0 } : ch)) })) } : s));
+    }
     setPrefs((p) => (p ? { ...p, ...patch } : p));
     if (patch.autoFollow !== undefined) {
       setShowEarlier(false);
@@ -907,6 +922,8 @@ export function LiveTab({ onOpenMember, onUnread }: { onOpenMember: (id: string)
 
   async function clearAll() {
     await fetch("/api/admin/live/read", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ all: true }) }).catch(() => undefined);
+    // Cleared messages stay gone, even when the feed reloads for another channel (same time the server saved)
+    setPrefs((p) => (p ? { ...p, baseline: new Date().toISOString() } : p));
     readQueue.current = {};
     pending.current = [];
     setWaiting(0);

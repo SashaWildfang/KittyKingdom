@@ -19,8 +19,8 @@ export async function PATCH(request: Request, { params }: { params: { newsId: st
   const input = await cleanNewsInput(body);
   if (typeof input === "string") return NextResponse.json({ ok: false, error: input }, { status: 400 });
   if (!(await updateNews(params.newsId, input))) return NextResponse.json({ ok: false, error: "Post not found." }, { status: 404 });
-  await audit("news-edit", params.newsId, admin, input.title);
-  return NextResponse.json({ ok: true, message: "Post saved." });
+  await audit(input.status === "published" ? "news-publish" : "news-edit", params.newsId, admin, input.title);
+  return NextResponse.json({ ok: true, message: input.status === "published" ? "Post saved and live." : input.status === "pending" ? "Saved. It's waiting for review." : "Draft saved." });
 }
 
 export async function DELETE(request: Request, { params }: { params: { newsId: string } }) {

@@ -1,3 +1,4 @@
+import { LayoutDashboard } from "lucide-react";
 import { getPanelUser } from "../lib/admin";
 import { canViewStaffPage, getCurrentUser } from "../lib/auth";
 import { OnlineStatus } from "./online-status";
@@ -36,7 +37,7 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
         <img className="brand-logo-img" src="/logo.png" alt="Kitty Kingdom logo" />
         <span className="brand-copy">
           <strong>Kitty Kingdom</strong>
-          <OnlineStatus initialOnline={discordOnline} />
+          <OnlineStatus initialOnline={discordOnline} visitorsHref={panel?.level === "admin" ? "/admin?tab=accounts#online" : null} />
         </span>
       </a>
       <div className="tabs">
@@ -49,13 +50,13 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
         {staffPage ? <a href="/staff">Staff</a> : null}
         {linked ? <a href="/store">Store</a> : null}
         {linked ? <a href="/leaderboards">Leaderboards</a> : null}
-        {panel ? (
-          <a className="nav-admin-tab" href="/admin">
-            {panel.level === "admin" ? "Admin" : "Staff Panel"}
-          </a>
-        ) : null}
       </div>
       <div className="nav-actions">
+        {panel ? (
+          <a className="nav-panel-btn" href="/admin" title={panel.level === "admin" ? "Admin panel" : "Staff panel"} aria-label={panel.level === "admin" ? "Admin panel" : "Staff panel"}>
+            <LayoutDashboard size={19} aria-hidden="true" />
+          </a>
+        ) : null}
         <ThemeToggle />
         {signedIn ? (
           <a className="login-link logged-in-link" href="/account">

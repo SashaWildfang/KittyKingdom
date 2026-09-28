@@ -141,7 +141,7 @@ export const TOPICS: Topic[] = [
               <b>Color roles</b> from <Leaf n="2,500" /> to <Leaf n="15,000" />. Some are always in stock; others rotate daily or weekly, so check back often.
             </li>
             <li>
-              <b>Boosters</b> for <Leaf n="5,000" />: the <b>2x XP Booster</b> doubles your XP for a while, and the <b>Profile Booster</b> doubles how often your dating profile is shown for a day (one of each per day).
+              <b>Boosters</b> for <Leaf n="5,000" />: the <b>2x XP Booster</b> doubles your XP for a day, and the <b>Profile Booster</b> doubles how often your dating profile is shown for a day (one of each per day).
             </li>
             <li>
               <b>Gifts</b> for friends from <Leaf n="100" /> to <Leaf n="750" />: Coffee, Cookie, Single Rose, Boba Tea, Pumpkin Spice Latte, Love Letter (with your own message), Box of Chocolates, Bouquet, Birthday Cake and Teddy Bear.

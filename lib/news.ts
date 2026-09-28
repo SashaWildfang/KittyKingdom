@@ -20,6 +20,8 @@ export class NewsError extends Error {
   }
 }
 
+export type NewsStatus = "published" | "draft" | "pending";
+
 export type NewsPost = {
   id: string;
   title: string;
@@ -28,6 +30,8 @@ export type NewsPost = {
   tagColor: string;
   pinned: boolean;
   published: boolean;
+  /** published = live on the site · draft = unfinished · pending = written and waiting for an admin to approve */
+  status: NewsStatus;
   publishedAt: string;
   updatedAt: string | null;
   authorName: string | null;
@@ -151,7 +155,8 @@ function toPost(d: Document, colors: Map<string, string>): NewsPost {
     tag: String(d.tag ?? "Update"),
     tagColor: colors.get(String(d.tag)) ?? "#8b8d98",
     pinned: Boolean(d.pinned),
-    published: d.published !== false,
+    published: d.published !== false && d.status !== "pending" && d.status !== "draft",
+    status: d.status === "pending" ? "pending" : d.published === false || d.status === "draft" ? "draft" : "published",
     publishedAt: (d.publishedAt instanceof Date ? d.publishedAt : new Date()).toISOString(),
     updatedAt: d.updatedAt instanceof Date ? d.updatedAt.toISOString() : null,
     authorName: d.authorName ? String(d.authorName) : null,
@@ -162,7 +167,7 @@ function toPost(d: Document, colors: Map<string, string>): NewsPost {
 export async function publishedNews(opts: { limit?: number; tag?: string } = {}) {
   try {
     const [col, colors] = await Promise.all([collection(), tagColors()]);
-    const filter: Document = { published: { $ne: false }, publishedAt: { $lte: new Date() } };
+    const filter: Document = { published: { $ne: false }, status: { $nin: ["pending", "draft"] }, publishedAt: { $lte: new Date() } };
     if (opts.tag && colors.has(opts.tag)) filter.tag = opts.tag;
     const docs = await col.find(filter).sort({ pinned: -1, publishedAt: -1 }).limit(opts.limit ?? 100).toArray();
     return docs.map((d) => toPost(d, colors));
@@ -177,8 +182,9 @@ const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$
 export async function adminNews(q: { sort?: string; status?: string; search?: string; tag?: string }) {
   const [col, colors] = await Promise.all([collection(), tagColors()]);
   const filter: Document = {};
-  if (q.status === "published") filter.published = { $ne: false };
-  if (q.status === "draft") filter.published = false;
+  if (q.status === "published") Object.assign(filter, { published: { $ne: false }, status: { $nin: ["pending", "draft"] } });
+  if (q.status === "draft") Object.assign(filter, { published: false, status: { $ne: "pending" } });
+  if (q.status === "pending") filter.status = "pending";
   if (q.status === "pinned") filter.pinned = true;
   if (q.tag && colors.has(q.tag)) filter.tag = q.tag;
   if (q.search?.trim()) {
@@ -191,7 +197,7 @@ export async function adminNews(q: { sort?: string; status?: string; search?: st
   return docs.map((d) => toPost(d, colors));
 }
 
-export type NewsInput = { title: string; body: string; tag: string; pinned: boolean; published: boolean; publishedAt: Date };
+export type NewsInput = { title: string; body: string; tag: string; pinned: boolean; published: boolean; status: NewsStatus; publishedAt: Date };
 
 /** Checks and cleans an admin's post form. */
 export async function cleanNewsInput(raw: Record<string, unknown>): Promise<NewsInput | string> {
@@ -202,9 +208,12 @@ export async function cleanNewsInput(raw: Record<string, unknown>): Promise<News
   if (!tag) return "Pick a tag for the post.";
   if (!title || title.length > 120) return "Give the post a title (up to 120 characters).";
   if (!body || body.length > 8000) return "Write the post (up to 8,000 characters).";
+  const bad = badMedia(body);
+  if (bad) return bad;
   const date = typeof raw.publishedAt === "string" && raw.publishedAt ? new Date(raw.publishedAt) : new Date();
   if (Number.isNaN(date.getTime())) return "That publish date isn't valid.";
-  return { title, body, tag, pinned: raw.pinned === true, published: raw.published !== false, publishedAt: date };
+  const status: NewsStatus = raw.status === "pending" ? "pending" : raw.status === "draft" ? "draft" : raw.status === "published" ? "published" : raw.published === false ? "draft" : "published";
+  return { title, body, tag, pinned: raw.pinned === true, published: status === "published", status, publishedAt: date };
 }
 
 export async function createNews(input: NewsInput, author: { name: string; discordId: string }) {
@@ -224,4 +233,18 @@ export async function deleteNews(id: string) {
   if (!ObjectId.isValid(id)) return false;
   const col = await collection();
   return (await col.deleteOne({ _id: new ObjectId(id) })).deletedCount > 0;
+}
+
+/** Posts waiting for review (the bubble on the News tab). */
+export async function pendingNewsCount() {
+  return (await collection()).countDocuments({ status: "pending" });
+}
+
+/** Media lines (![caption](url)) may only point at https links or our own uploads. */
+function badMedia(body: string): string | null {
+  for (const m of Array.from(body.matchAll(/^\s*!\[[^\]]*\]\(([^)\s]+)\)\s*$/gm))) {
+    const url = m[1];
+    if (!/^https:\/\/[^\s]+$/.test(url) && !/^\/api\/news-media\/[a-f0-9]{24}\.[a-z0-9]{2,5}$/.test(url)) return "Images and videos need an https:// link (or use the upload button).";
+  }
+  return null;
 }
