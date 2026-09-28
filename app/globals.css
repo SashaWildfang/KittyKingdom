@@ -20496,3 +20496,163 @@ button.st-emoji-chip.is-on {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* ---- Topic map ---- */
+.st-topics {
+  display: grid;
+  gap: 0.9rem;
+}
+.st-topic-svg {
+  display: block;
+  width: 100%;
+  max-height: 480px;
+}
+.st-topic-bubble {
+  cursor: pointer;
+  opacity: 0;
+  animation: st-node-in 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards, st-node-float 6s ease-in-out infinite;
+  animation-delay: var(--d), var(--f);
+  transition: opacity 0.2s ease, filter 0.2s ease;
+}
+.st-topic-bubble:hover,
+.st-topic-bubble.is-on {
+  filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.35));
+}
+.st-topic-bubble.is-dim {
+  opacity: 0.35 !important;
+}
+.st-topic-label {
+  fill: #fff;
+  font-size: 13px;
+  font-weight: 900;
+  paint-order: stroke;
+  stroke: rgba(0, 0, 0, 0.25);
+  stroke-width: 2px;
+}
+.st-topic-share {
+  fill: rgba(255, 255, 255, 0.85);
+  font-size: 12px;
+  font-weight: 800;
+}
+.st-topic-detail {
+  padding: 0.9rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--hue) 55%, transparent);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--hue) 8%, transparent);
+  animation: st-in 0.25s ease;
+}
+.st-topic-detail header {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 0.7rem;
+}
+.st-topic-detail header div {
+  flex: 1;
+  min-width: 0;
+}
+.st-topic-detail header b {
+  display: block;
+  color: var(--text);
+  font-size: 1.05rem;
+}
+.st-topic-detail header small {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.st-topic-dot {
+  display: grid;
+  place-items: center;
+  width: 2.3rem;
+  height: 2.3rem;
+  border-radius: 50%;
+  background: var(--hue);
+  color: #fff;
+}
+.st-topic-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 0.45rem;
+}
+.st-topic-list button {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.7rem;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 0.8rem;
+  background: color-mix(in srgb, var(--text) 3%, transparent);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+  animation: st-rise 0.35s ease both;
+  animation-delay: var(--d);
+}
+.st-topic-list button i {
+  position: absolute;
+  inset: auto auto 0 0;
+  width: var(--w);
+  height: 3px;
+  background: var(--hue);
+}
+.st-topic-list button.is-on,
+.st-topic-list button:hover {
+  border-color: var(--hue);
+}
+.st-topic-list b {
+  color: var(--hue);
+  filter: brightness(1.25);
+}
+.st-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.25rem 0.7rem;
+  padding: 0.6rem;
+}
+.st-cloud button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--hue);
+  font-family: inherit;
+  font-weight: 900;
+  line-height: 1.2;
+  cursor: pointer;
+  filter: brightness(1.2);
+  animation: st-rise 0.4s ease both;
+  animation-delay: var(--d);
+  transition: transform 0.15s ease;
+}
+.st-cloud button:hover {
+  transform: scale(1.12);
+}
+
+/* ---- Friendship map bands ---- */
+.st-map-band {
+  transition: fill-opacity 0.2s ease;
+}
+.st-map-ring-tag text {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+.st-sub {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .st-topic-bubble,
+  .st-topic-list button,
+  .st-cloud button {
+    animation: none;
+    opacity: 1;
+  }
+}

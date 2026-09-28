@@ -3,7 +3,7 @@ import { LegalShell, type LegalSection } from "../legal/legal-shell";
 
 export const metadata = { title: "Privacy Policy | Kitty Kingdom" };
 
-const UPDATED = "September 27, 2026";
+const UPDATED = "September 28, 2026";
 
 const sections: LegalSection[] = [
   {
@@ -94,8 +94,11 @@ const sections: LegalSection[] = [
           <li>
             <b>Activity statistics (My stats):</b> counts of how many messages you send in each channel and at what hours and days, how many words, emojis,
             images, links and stickers you post, how often you reply to, mention, chat back-and-forth with or react to other members, and how long you spend
-            in each voice channel and with whom. <b>We do not store the text of your messages for these statistics</b>, only counts. They power your My stats
-            page (including your &quot;server bestie&quot;), which only you can open.
+            in each voice channel and with whom, and which topics your messages touch. For topics, only words from a fixed list of topic words (such as
+            &quot;minecraft&quot;, &quot;pizza&quot; or &quot;anime&quot;) are counted; nothing else in the message is kept. <b>We do not store the text of your
+            messages for these statistics</b>, only counts. Voice statistics also use the server&apos;s voice-channel logs (joins, leaves, camera and mute
+            changes) and the VC reward messages the bot posts (session length, rewards and who was in the call). They power your My stats page
+            (including your &quot;server bestie&quot;, friendship map and topic map), which only you can open.
           </li>
           <li>
             <b>Dating profiles:</b> if you use the dating bot, the profile you create (which can include sensitive details such as gender, sexuality and
