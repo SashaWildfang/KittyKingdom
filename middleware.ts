@@ -24,9 +24,19 @@ export function middleware(request: NextRequest) {
     return NextResponse.json({ ok: false, error: message }, { status: 403 });
   }
 
+  // Growth: remember where a visitor first came from (?ref= / ?utm_source=) for 30 days, so a
+  // sign-up or Discord invite click can be credited to the ad or site that sent them
+  const source = (request.nextUrl.searchParams.get("ref") ?? request.nextUrl.searchParams.get("utm_source") ?? "").toLowerCase();
+  if (source && /^[a-z0-9._-]{1,40}$/.test(source) && !request.cookies.has(SOURCE_COOKIE)) {
+    const res = NextResponse.next();
+    res.cookies.set(SOURCE_COOKIE, source, { maxAge: 30 * 86_400, httpOnly: true, sameSite: "lax", secure: true, path: "/" });
+    return res;
+  }
+
   return NextResponse.next();
 }
 
+const SOURCE_COOKIE = "kk_src";
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 // Switching/exiting the view, and the page-view counter and online count
 const VIEW_AS_ALLOWED = ["/api/admin/view-as", "/api/track", "/api/presence", "/api/account/logout"];
