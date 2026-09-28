@@ -256,7 +256,7 @@ export default async function Home({ searchParams }: { searchParams?: { register
                 <a className="home-btn home-btn--primary" href="/register" data-leaf-burst>
                   Create your account
                 </a>
-                <a className="home-btn home-btn--ghost" href={DISCORD_INVITE} data-leaf-burst>
+                <a className="home-btn home-btn--ghost" href="/join?via=website" data-leaf-burst>
                   Join the Discord
                 </a>
               </>
@@ -464,13 +464,27 @@ export default async function Home({ searchParams }: { searchParams?: { register
               kingdom.
             </p>
           </div>
-          <a className="home-btn home-btn--discord" href={DISCORD_INVITE} data-leaf-burst>
+          <a className="home-btn home-btn--discord" href="/join?via=website" data-leaf-burst>
             <DiscordLogo size={22} />
             Join the Discord
             {discord.online !== null ? <small>{discord.online.toLocaleString()} online</small> : null}
           </a>
         </div>
       </section>
+
+      {/* What search engines read about the community */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@graph": [
+              { "@type": "Organization", name: "Kitty Kingdom", url: "https://www.kittykingdom.net", logo: "https://www.kittykingdom.net/logo.png", sameAs: [DISCORD_INVITE, "https://www.patreon.com/c/thekittykingdom"] },
+              { "@type": "WebSite", name: "Kitty Kingdom", url: "https://www.kittykingdom.net", description: "A cozy 18+ furry Discord community with dating profiles, matchmaking, events and an economy." },
+            ],
+          }),
+        }}
+      />
 
       {/* Footer */}
       <footer className="home-footer" aria-label="Footer navigation">

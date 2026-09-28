@@ -23820,3 +23820,7 @@ button.adm-format-media {
 .mobile-sheet-links a .nav-news-badge {
   margin-left: auto;
 }
+.gs-table td,
+.gs-table th {
+  white-space: nowrap;
+}
