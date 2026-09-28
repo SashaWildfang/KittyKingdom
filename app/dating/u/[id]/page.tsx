@@ -1,8 +1,8 @@
 "use client";
 
-import { Ban, Check, ChevronLeft, ChevronRight, Clock, Heart, HeartOff, MessageCircle, MoreHorizontal, PenLine, Sparkles, ThumbsDown, TriangleAlert, UserCheck, UserMinus, UserPlus, X } from "lucide-react";
+import { Ban, Check, Eye, EyeOff, ChevronLeft, ChevronRight, Clock, Heart, HeartOff, MessageCircle, MoreHorizontal, PenLine, Sparkles, ThumbsDown, TriangleAlert, UserCheck, UserMinus, UserPlus, X } from "lucide-react";
 import { useEffect, useState, type CSSProperties } from "react";
-import { Empty, ReportButton, ago, post, useApi } from "../../ui";
+import { Empty, Photo, ReportButton, ago, post, useApi } from "../../ui";
 
 type View = {
   id: string;
@@ -10,6 +10,7 @@ type View = {
   discordName: string | null;
   avatar: string | null;
   inServer: boolean;
+  partners: { id: string; name: string; avatar: string | null; hasProfile: boolean }[];
   age: number | null;
   headline: string | null;
   accent: string;
@@ -25,7 +26,8 @@ type View = {
   isNew: boolean;
 };
 type Compat = { score: number; tier: string; emoji: string; parts: Record<string, number | null>; pairs: { a: string; b: string }[]; agreements: string[]; conflicts: string[]; blocked: string | null; starter: string; ai: boolean };
-type Data = { own: boolean; profile: View; compat: Compat | null; relation: { iLiked: boolean; likesMe: boolean; match: boolean; friend: "none" | "friends" | "sent" | "received"; blockedByMe: boolean } };
+type Views = { total: number; week: number; theyViewedMe: string | null; iViewedBefore: boolean } | null;
+type Data = { own: boolean; profile: View; compat: Compat | null; views: Views; relation: { iLiked: boolean; likesMe: boolean; match: boolean; friend: "none" | "friends" | "sent" | "received"; blockedByMe: boolean } };
 
 const PART_LABELS: Record<string, [string, string]> = {
   interests: ["Interests", "🎮"],
@@ -261,6 +263,42 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
               {p.paused ? <span className="dt-badge dt-badge--muted">Paused</span> : null}
               {!p.lookingFor.open ? <span className="dt-badge">🫂 Here for friends</span> : null}
               {!p.inServer ? <span className="dt-badge dt-badge--muted" title="They left the Discord server but kept their dating profile">Left the server</span> : null}
+              {p.partners.length ? (
+                <div className="dt-partners">
+                  <span>💞 {p.partners.length === 1 ? "Partner" : "Partners"}:</span>
+                  {p.partners.map((pt) =>
+                    pt.hasProfile ? (
+                      <a key={pt.id} href={`/dating/u/${pt.id}`} className="dt-partner-chip">
+                        <Photo src={pt.avatar} name={pt.name} accent={p.accent} />
+                        {pt.name}
+                      </a>
+                    ) : (
+                      <span key={pt.id} className="dt-partner-chip" title="Linked and confirmed">
+                        <Photo src={pt.avatar} name={pt.name} accent={p.accent} />
+                        {pt.name}
+                      </span>
+                    ),
+                  )}
+                </div>
+              ) : null}
+              {data.views ? (
+                <div className="dt-viewstats">
+                  <span title={`${data.views.week} this week`}>
+                    <Eye size={12} aria-hidden="true" /> {data.views.total} profile view{data.views.total === 1 ? "" : "s"}
+                  </span>
+                  {!data.own ? (
+                    data.views.theyViewedMe ? (
+                      <span className="is-yes">
+                        <Eye size={12} aria-hidden="true" /> Viewed your profile {ago(data.views.theyViewedMe)?.replace("active ", "").replace("online now", "just now")}
+                      </span>
+                    ) : (
+                      <span>
+                        <EyeOff size={12} aria-hidden="true" /> Hasn&apos;t viewed your profile yet
+                      </span>
+                    )
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           </header>
 

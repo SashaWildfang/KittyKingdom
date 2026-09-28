@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { blockedIds, datingCols, isSnowflake, toLong } from "../../../../../lib/dating/db";
 import { compatWith } from "../../../../../lib/dating/discover";
 import { getProfile, profileView } from "../../../../../lib/dating/profiles";
-import { recordView } from "../../../../../lib/dating/views";
+import { recordView, viewStats } from "../../../../../lib/dating/views";
 import { getCurrentBans } from "../../../../../lib/moderation";
 import { requireDating } from "../../../../../lib/dating/route-helpers";
 import { friendState, hasLiked, isMatch, likesReceived } from "../../../../../lib/dating/social";
@@ -34,12 +34,14 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   const theyLike = received.find((l) => l.id === params.id);
   // Let them know someone looked (unless you browse anonymously or they turned it off)
   if (!own) await recordView(me.discordId, params.id, String((await getProfile(me.discordId))?.name ?? me.name)).catch(() => undefined);
+  const views = await viewStats(params.id, me.discordId).catch(() => null);
   return NextResponse.json(
     {
       ok: true,
       own,
       profile: view,
       compat,
+      views,
       relation: {
         iLiked,
         // They liked you (only shown when your likes list would show them by name)

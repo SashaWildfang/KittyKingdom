@@ -5,7 +5,7 @@ import { ObjectId, type Collection, type Document } from "mongodb";
 import { getSettings } from "./dating/settings";
 import { getMongoClient } from "./mongodb";
 
-export type NotificationType = "like" | "match" | "message" | "request" | "friend-request" | "friend-accepted" | "view" | "system";
+export type NotificationType = "like" | "match" | "message" | "request" | "friend-request" | "friend-accepted" | "view" | "partner" | "system";
 
 let ready: Promise<unknown> | null = null;
 

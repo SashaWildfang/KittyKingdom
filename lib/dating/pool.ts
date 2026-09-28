@@ -8,9 +8,10 @@ import { datingCols } from "./db";
 import { decodeVector, type Vectors } from "./matching";
 import type { ProfileDoc } from "./schema";
 import { mentionIds } from "./text";
+import { applyLiveAges } from "./age";
 
 /** What the site knows about a member from Discord: name, avatar and whether they're still in the server. */
-export type Who = { name: string; username: string | null; avatar: string | null; inServer: boolean };
+export type Who = { name: string; username: string | null; avatar: string | null; inServer: boolean; boosting: boolean };
 
 type Pool = { at: number; profiles: Map<string, ProfileDoc>; vectors: Map<string, Vectors>; inServer: Set<string> | null; who: Map<string, Who>; names: Map<string, string>; banned: Set<string> };
 let cache: Pool | null = null;
@@ -28,6 +29,8 @@ async function load(): Promise<Pool> {
   // Members banned from the server never show anywhere in Dating
   const banned = bans ?? new Set<string>();
   const profiles = new Map(docs.filter((d) => !banned.has(String(d._id))).map((d) => [String(d._id), d as ProfileDoc]));
+  // Ages come from birthdays, so they tick over on their own
+  await applyLiveAges(Array.from(profiles.values())).catch(() => undefined);
   const vectors = new Map<string, Vectors>();
   for (const v of vecs) {
     const id = String(v._id);
@@ -52,7 +55,7 @@ async function load(): Promise<Pool> {
   const who = new Map<string, Who>();
   const names = new Map<string, string>();
   for (const [id, p] of Object.entries(found)) {
-    who.set(id, { name: p.name, username: p.username, avatar: p.avatar, inServer: inServer ? inServer.has(id) : p.inServer });
+    who.set(id, { name: p.name, username: p.username, avatar: p.avatar, inServer: inServer ? inServer.has(id) : p.inServer, boosting: Boolean(p.boosting) });
     if (p.username || p.name !== "Unknown user") names.set(id, p.username ?? p.name);
   }
   return { at: Date.now(), profiles, vectors, inServer, who, names, banned };

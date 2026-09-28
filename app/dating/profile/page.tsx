@@ -3,10 +3,10 @@
 import { Eye, Loader2, Save, Sparkles, Trash2, TriangleAlert, Wand2 } from "lucide-react";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { SECTIONS } from "../../../lib/dating/schema";
-import { FieldInput, FursonaEditor, LooksEditor, PhotoManager, PromptsEditor, changed, clearDraft, readDraft, saveMe, writeDraft, type Own } from "../profile-form";
+import { AgeField, FieldInput, FursonaEditor, PartnerManager, type Birth, LooksEditor, PhotoManager, PromptsEditor, changed, clearDraft, readDraft, saveMe, writeDraft, type Own } from "../profile-form";
 import { Empty, useApi } from "../ui";
 
-type Me = { booster: boolean; profile: Own | null; view: { id: string } | null };
+type Me = { booster: boolean; profile: Own | null; view: { id: string } | null; birth: Birth };
 
 const EXTRA = [
   { id: "photos", label: "Photos", emoji: "📸" },
@@ -14,6 +14,7 @@ const EXTRA = [
   { id: "prompts", label: "Prompts", emoji: "💬" },
 ];
 const TAIL = [
+  { id: "partners", label: "Partners", emoji: "💞" },
   { id: "fursonas", label: "Fursonas", emoji: "🐾" },
   { id: "privacy", label: "Privacy", emoji: "🔒" },
   { id: "danger", label: "Delete", emoji: "🗑️" },
@@ -189,12 +190,21 @@ export default function EditProfile() {
             </h2>
             {s.id === "targets" ? <p className="dt-help">Only used for dating matches. Friends can find you either way.</p> : null}
             <div className="dt-edit-fields">
-              {s.keys.map((k) => (
-                <FieldInput key={k} k={k} value={values[k]} flagged={flagged.has(k)} legacy={own.legacy[k]} onChange={(v) => setValues((x) => ({ ...x, [k]: v }))} />
-              ))}
+              {s.keys.map((k) =>
+                k === "age" ? (
+                  <AgeField key={k} value={values.age} locked={Boolean(own.ageLocked)} birth={data.birth} onChange={(v) => setValues((x) => ({ ...x, age: v }))} />
+                ) : (
+                  <FieldInput key={k} k={k} value={values[k]} flagged={flagged.has(k)} legacy={own.legacy[k]} onChange={(v) => setValues((x) => ({ ...x, [k]: v }))} />
+                ),
+              )}
             </div>
           </section>
         ))}
+
+        <section id="partners" className="dt-card dt-edit-section">
+          <h2>💞 Partners</h2>
+          <PartnerManager />
+        </section>
 
         <section id="fursonas" className="dt-card dt-edit-section">
           <h2>🐾 Fursonas</h2>

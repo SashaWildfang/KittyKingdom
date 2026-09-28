@@ -1,22 +1,18 @@
-// Likes, passes, matches, friends and blocks. Likes/passes/matches use the dating bot's collections
-// and rules (3 new likes a day unless boosting; non-boosters see their 3 most recent likers).
+// Likes, passes, matches, friends and blocks. Likes/passes/matches use the dating bot's collections.
+// Dating on the website is free and open: unlimited likes and everyone sees who liked them. (Server
+// boosters get extra weight in the hourly featured draw instead; see discover.ts.)
 
 import { Long } from "mongodb";
 import { notify } from "../notifications";
 import { blockedIds, datingCols, pairId, toLong } from "./db";
 
-export const DAILY_LIKE_LIMIT = 3;
-export const VISIBLE_LIKERS = 3;
 
 const today = () => new Date().toISOString().slice(0, 10);
 const idStr = (v: unknown) => String(v);
 
-export async function likesLeftToday(me: string, booster: boolean): Promise<number | null> {
-  if (booster) return null;
-  const { activity } = await datingCols();
-  const act = await activity.findOne({ _id: toLong(me) } as never);
-  const used = act?.last_like_date === today() ? Number(act.likes_given_today ?? 0) : 0;
-  return Math.max(DAILY_LIKE_LIMIT - used, 0);
+/** Likes are unlimited for everyone (null = no limit). Kept so callers and the API shape stay the same. */
+export async function likesLeftToday(_me: string, _booster: boolean): Promise<number | null> {
+  return null;
 }
 
 export async function hasLiked(liker: string, target: string) {
@@ -44,11 +40,10 @@ export async function like(me: string, target: string, booster: boolean, myName:
   const c = await datingCols();
   const targetDoc = await c.likes.findOne({ _id: toLong(target) } as never, { projection: { historical_likers: 1 } });
   const firstTime = !((targetDoc?.historical_likers ?? []) as unknown[]).some((x) => idStr(x) === me);
-  // Re-liking someone you liked before doesn't use a daily like (same as the bot)
-  if (firstTime && !booster) {
+  // Still counted (the bot shows it), but never limited on the website
+  if (firstTime) {
     const act = await c.activity.findOne({ _id: toLong(me) } as never);
     const used = act?.last_like_date === today() ? Number(act.likes_given_today ?? 0) : 0;
-    if (used >= DAILY_LIKE_LIMIT) return { status: "limit", mutual: false, left: 0 };
     await c.activity.updateOne({ _id: toLong(me) } as never, { $set: { last_like_date: today(), likes_given_today: used + 1 } }, { upsert: true });
   }
   const now = new Date();
@@ -88,7 +83,7 @@ export async function setPass(me: string, target: string, passed: boolean) {
 }
 
 /** People who like me, newest first. Non-boosters see only the most recent few by name. */
-export async function likesReceived(me: string, booster: boolean) {
+export async function likesReceived(me: string, _booster?: boolean) {
   const { likes } = await datingCols();
   const doc = await likes.findOne({ _id: toLong(me) } as never);
   const blocked = await blockedIds(me);
@@ -96,7 +91,8 @@ export async function likesReceived(me: string, booster: boolean) {
     .map((l) => ({ id: idStr(l.liker_id), at: l.timestamp instanceof Date ? l.timestamp.toISOString() : null }))
     .filter((l) => !blocked.has(l.id))
     .sort((a, b) => String(b.at).localeCompare(String(a.at)));
-  return list.map((l, i) => ({ ...l, hidden: !booster && i >= VISIBLE_LIKERS }));
+  // Everyone sees everyone who liked them
+  return list.map((l) => ({ ...l, hidden: false }));
 }
 
 export async function matchesOf(me: string) {

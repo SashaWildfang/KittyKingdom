@@ -2,10 +2,10 @@
 
 import { ArrowLeft, ArrowRight, Check, Loader2, PartyPopper, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { FieldInput, LooksEditor, PhotoManager, PromptsEditor, changed, clearDraft, readDraft, saveMe, writeDraft, type Own } from "../profile-form";
+import { AgeField, FieldInput, LooksEditor, type Birth, PhotoManager, PromptsEditor, changed, clearDraft, readDraft, saveMe, writeDraft, type Own } from "../profile-form";
 import { useApi } from "../ui";
 
-type Me = { profile: Own | null; view: { id: string } | null };
+type Me = { profile: Own | null; view: { id: string } | null; birth: Birth };
 type Step = { id: string; title: string; intro: string; keys?: string[]; required?: string[]; datingOnly?: boolean };
 
 const STEPS: Step[] = [
@@ -75,7 +75,8 @@ export default function Setup() {
 
   const next = async () => {
     setErr(null);
-    const missing = (cur.required ?? []).filter((k) => values[k] === null || values[k] === undefined || values[k] === "");
+    // Age is filled from their birthday when we have it
+    const missing = (cur.required ?? []).filter((k) => !(k === "age" && (data.birth?.age || own?.ageLocked)) && (values[k] === null || values[k] === undefined || values[k] === ""));
     if (missing.length) return setErr("Please fill in the required fields (marked with *).");
     if (typeof values.age === "number" && values.age < 18) return setErr("Dating is for members 18 and over.");
     const body: Record<string, unknown> = {};
@@ -194,7 +195,11 @@ export default function Setup() {
           <div className="dt-edit-fields">
             {cur.keys!.map((k) => (
               <div key={k} className={cur.required?.includes(k) ? "is-required" : undefined}>
-                <FieldInput k={k} value={values[k]} flagged={cur.id === "review"} legacy={own?.legacy[k]} onChange={(v) => setValues((x) => ({ ...x, [k]: v }))} />
+                {k === "age" ? (
+                  <AgeField value={values.age} locked={Boolean(own?.ageLocked)} birth={data.birth} onChange={(v) => setValues((x) => ({ ...x, age: v }))} />
+                ) : (
+                  <FieldInput k={k} value={values[k]} flagged={cur.id === "review"} legacy={own?.legacy[k]} onChange={(v) => setValues((x) => ({ ...x, [k]: v }))} />
+                )}
               </div>
             ))}
           </div>
