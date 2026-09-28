@@ -4,13 +4,15 @@ import { Heart, Home, LogIn, LogOut, Menu, MessageCircle, Newspaper, Shield, Sho
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ThemeToggle } from "./theme-toggle";
+import { useUnreadNews } from "./news-nav-badge";
 
 type NavLink = { href: string; label: string; icon: "home" | "news" | "discord" | "patreon" | "staff" | "store" | "leaderboards" | "admin"; external?: boolean };
 
 const ICONS = { home: Home, news: Newspaper, discord: MessageCircle, patreon: Heart, staff: Users, store: ShoppingBag, leaderboards: Trophy, admin: Shield };
 
 /** Phone navigation: a slim bar with the theme switch and a menu that opens a sheet of big, tappable links. */
-export function MobileMenu({ links, signedIn }: { links: NavLink[]; signedIn: boolean }) {
+export function MobileMenu({ links, signedIn, newsStamps = [] }: { links: NavLink[]; signedIn: boolean; newsStamps?: { id: string; at: string }[] }) {
+  const unreadNews = useUnreadNews(newsStamps);
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
@@ -37,6 +39,7 @@ export function MobileMenu({ links, signedIn }: { links: NavLink[]; signedIn: bo
       <ThemeToggle />
       <button type="button" className={`mobile-nav-button${open ? " is-open" : ""}`} onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-controls="mobile-sheet" aria-label={open ? "Close menu" : "Open menu"}>
         {open ? <X size={22} /> : <Menu size={22} />}
+        {!open && unreadNews ? <span className="nav-news-badge nav-news-badge--dot" aria-label={`${unreadNews} unread news`}>{unreadNews > 9 ? "9+" : unreadNews}</span> : null}
       </button>
 
       {open ? <div className="mobile-sheet-backdrop" onClick={() => setOpen(false)} aria-hidden="true" /> : null}
@@ -50,6 +53,7 @@ export function MobileMenu({ links, signedIn }: { links: NavLink[]; signedIn: bo
                   <Icon size={19} aria-hidden="true" />
                 </span>
                 {link.label}
+                {link.icon === "news" && unreadNews ? <span className="nav-news-badge">{unreadNews > 9 ? "9+" : unreadNews}</span> : null}
               </a>
             );
           })}
