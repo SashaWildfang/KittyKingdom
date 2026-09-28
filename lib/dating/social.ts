@@ -4,6 +4,7 @@
 
 import { Long } from "mongodb";
 import { notify } from "../notifications";
+import { getSettings } from "./settings";
 import { blockedIds, datingCols, pairId, toLong } from "./db";
 
 
@@ -59,12 +60,12 @@ export async function like(me: string, target: string, booster: boolean, myName:
     if (res.upsertedCount) {
       const targetName = String((await c.profiles.findOne({ _id: toLong(target) } as never, { projection: { name: 1 } }))?.name ?? "Someone");
       await Promise.all([
-        notify(target, { type: "match", actor: me, title: `💞 It's a match with ${myName}!`, body: "You like each other. Say hi!", link: `/dating/u/${me}` }),
-        notify(me, { type: "match", actor: target, title: `💞 It's a match with ${targetName}!`, body: "You like each other. Say hi!", link: `/dating/u/${target}` }),
+        notify(target, { type: "match", actor: me, title: `It's a match with ${myName}!`, body: "You like each other. Say hi!", link: `/social/u/${me}` }),
+        notify(me, { type: "match", actor: target, title: `It's a match with ${targetName}!`, body: "You like each other. Say hi!", link: `/social/u/${target}` }),
       ]);
     }
   } else if (firstTime) {
-    await notify(target, { type: "like", actor: me, title: "💚 Someone new liked your profile", body: "See who in Likes, and like them back to match.", link: "/dating/likes", key: "likes" });
+    await notify(target, { type: "like", actor: me, title: "Someone new liked your profile", body: "See who in Likes, and like them back to match.", link: "/social/likes", key: "likes" });
   }
   return { status: "liked", mutual, left: await likesLeftToday(me, booster) };
 }
@@ -129,14 +130,18 @@ export async function friendAction(me: string, other: string, action: "request" 
   if (action === "request") {
     if (state === "received") return friendAction(me, other, "accept", myName);
     if (state !== "none") return state;
+    // Their choice of who may send friend requests (Social settings)
+    const allowFrom = (await getSettings(other)).friendRequestsFrom;
+    if (allowFrom === "nobody") return "They aren't taking friend requests right now.";
+    if (allowFrom === "matches" && !(await isMatch(me, other))) return "They only take friend requests from people they've matched with.";
     await friends.insertOne({ _id, users: [me, other], from: me, to: other, status: "pending", at: new Date() } as never);
-    await notify(other, { type: "friend-request", actor: me, title: `🤝 ${myName} sent you a friend request`, link: "/dating/friends" });
+    await notify(other, { type: "friend-request", actor: me, title: `${myName} sent you a friend request`, link: "/social/friends" });
     return "sent";
   }
   if (action === "accept") {
     if (state !== "received") return state;
     await friends.updateOne({ _id } as never, { $set: { status: "accepted", accepted_at: new Date() } });
-    await notify(other, { type: "friend-accepted", actor: me, title: `🤝 ${myName} accepted your friend request`, link: `/dating/u/${me}` });
+    await notify(other, { type: "friend-accepted", actor: me, title: `${myName} accepted your friend request`, link: `/social/u/${me}` });
     return "friends";
   }
   await friends.deleteOne({ _id } as never);

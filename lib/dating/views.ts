@@ -26,7 +26,7 @@ export async function recordView(viewer: string, viewed: string, viewerName: str
   );
   const last = before?.at instanceof Date ? before.at.getTime() : 0;
   if (anon || Date.now() - last < RENOTIFY_MS) return;
-  await notify(viewed, { type: "view", actor: viewer, title: `👀 ${viewerName} viewed your profile`, body: "Take a look at theirs?", link: `/dating/u/${viewer}`, key: `view:${viewer}` });
+  await notify(viewed, { type: "view", actor: viewer, title: `${viewerName} viewed your profile`, body: "Take a look at theirs?", link: `/social/u/${viewer}`, key: `view:${viewer}` });
 }
 
 /** People who viewed your profile, newest first (anonymous views only count). */

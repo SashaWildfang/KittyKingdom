@@ -20,6 +20,13 @@ const frameProtection = [
 
 const nextConfig = {
   poweredByHeader: false,
+  // Dating became "Social" (dates and friends): old links keep working
+  async redirects() {
+    return [
+      { source: "/dating", destination: "/social", permanent: true },
+      { source: "/dating/:path*", destination: "/social/:path*", permanent: true },
+    ];
+  },
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },

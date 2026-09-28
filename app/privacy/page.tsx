@@ -104,15 +104,18 @@ const sections: LegalSection[] = [
             (including your &quot;server bestie&quot;, friendship map and topic map), which only you can open.
           </li>
           <li>
-            <b>Dating profiles:</b> if you use Dating (on the Site or the dating bot), the profile you create (which can include sensitive details such as
+            <b>Social (dating and friends) profiles:</b> if you use Social on the Site (or the dating bot), the profile you create (which can include sensitive details such as
             gender, sexuality and relationship preferences), any photos or art you upload, your prompts and display choices, and your likes, passes,
             matches, friends and blocks. Photos have location and other hidden metadata removed when you upload them. To match people by meaning, the dating
             bot turns the interests, dislikes, bio and location in your profile into numbers (&quot;vectors&quot;) with a small model that runs on our own bot host;
-            nothing is sent to an outside AI service. You control your profile and can edit, pause or delete it at any time on the Dating page.
+            nothing is sent to an outside AI service. Your age there is worked out from the date of birth on your join application (or account) so it
+            stays current; your birthday itself is never shown. If you link a partner, the link only appears on profiles after they confirm it, and either
+            of you can remove it. We record who viewed a profile and when, so members can see who viewed theirs; you can browse anonymously in Social
+            settings. You control your profile and settings and can edit, pause or delete it at any time on the Social page.
           </li>
           <li>
-            <b>Dating messages and notifications:</b> private messages you send or receive in Dating, message requests, whether a conversation has been read,
-            and notifications (the bell on the Site) about likes, matches, messages and friend requests.
+            <b>Social messages and notifications:</b> private messages you send or receive in Social, message requests, whether a conversation has been read,
+            and notifications (the bell on the Site) about likes, matches, messages, friend and partner requests and profile views.
           </li>
         </ul>
       </>
@@ -359,7 +362,7 @@ const sections: LegalSection[] = [
           <li>unlink Discord at any time (Discord-only features stop working until you link again);</li>
           <li>delete your Site account from My Account. This deletes your account and sign-in sessions. Staff accounts must first have their staff role removed;</li>
           <li>turn off Site statistics for yourself by enabling Do Not Track or Global Privacy Control in your browser; and</li>
-          <li>edit, pause or delete your dating profile, hide your age or activity, unsend your messages, and block members on the Dating page.</li>
+          <li>edit, pause or delete your dating profile, hide your age or activity, unsend your messages, and block members on the Social page.</li>
         </ul>
         <p>
           Depending on where you live (for example under the EU or UK GDPR, or California and other US state privacy laws), you may also have the right to

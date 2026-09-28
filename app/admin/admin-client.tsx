@@ -28,7 +28,7 @@ const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean }[] = [
   { key: "automod", label: "AutoMod", icon: ShieldCheck },
   { key: "join", label: "Join Apps", icon: ClipboardCheck },
   { key: "logs", label: "Logs", icon: ScrollText },
-  { key: "dating", label: "Dating", icon: HeartHandshake },
+  { key: "dating", label: "Social", icon: HeartHandshake },
   { key: "live", label: "Live Chat", icon: MessagesSquare },
   { key: "tickets", label: "Tickets", icon: Ticket, admin: true },
   { key: "accounts", label: "Website", icon: Users, admin: true },
