@@ -33,7 +33,9 @@ import { accountName } from "../../lib/names";
 
 const statusMessages: Record<string, string> = {
   "contact-saved": "Contact details and social links saved.",
-  "invalid-phone": "That phone number doesn't look right. Include your country code, e.g. +1 555 123 4567.",
+  "invalid-phone": "That phone number doesn't look right. Include your country code, e.g. +44 for the UK or +1 for the US and Canada.",
+  "fake-phone": "That phone number doesn't look real. Enter your actual number, or leave it blank.",
+  "spam-name": "That display name looks like keyboard spam or isn't allowed. Try your real nickname.",
   "invalid-twitter": "That Twitter / X handle isn't valid. Use @handle or an x.com link.",
   "invalid-telegram": "That Telegram username isn't valid. Use @username (5+ characters) or a t.me link.",
   "invalid-youtube": "That YouTube channel isn't valid. Use @channel or a youtube.com link.",
