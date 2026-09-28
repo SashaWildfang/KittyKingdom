@@ -163,6 +163,15 @@ export async function memberRolesChecked(discordId: string): Promise<{ roles: st
   return { roles: null, definitive: false };
 }
 
+/** A member's role ids, cached for two minutes (for checks that run on every page, like the Dating tab). */
+export async function memberRoleIdsCached(discordId: string): Promise<string[] | null> {
+  const token = botToken();
+  const guild = await guildId();
+  if (!guild || !token) return null;
+  const member = await discordGet<{ roles?: string[] }>(`/guilds/${guild}/members/${discordId}`, token, 120);
+  return member?.roles ?? null;
+}
+
 export async function getMemberRoleIds(discordId: string): Promise<string[] | null> {
   const guild = await guildId();
   if (!guild) return null;

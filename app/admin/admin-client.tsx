@@ -1,10 +1,11 @@
 "use client";
 
-import { Activity, BarChart3, ClipboardCheck, MessagesSquare, Gavel, Newspaper, ScrollText, ShieldCheck, Ticket, Users, type LucideIcon } from "lucide-react";
+import { Activity, BarChart3, HeartHandshake, ClipboardCheck, MessagesSquare, Gavel, Newspaper, ScrollText, ShieldCheck, Ticket, Users, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AccountsTab } from "./accounts-tab";
 import { AutoModTab } from "./automod-tab";
+import { DatingTab } from "./dating-tab";
 import { MemberSearch, useLive, useStored } from "./admin-shared";
 import { DrillPanel, type Drill } from "./drill-panel";
 import { JoinAppsTab } from "./join-apps";
@@ -18,7 +19,7 @@ import { DEFAULT_PUNISHMENT_FILTERS, PunishmentsTab, type PunishmentFilters } fr
 import { TicketsTab } from "./tickets-tab";
 import { TranscriptViewer } from "./transcript-viewer";
 
-type Tab = "overview" | "punishments" | "automod" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live" | "join";
+type Tab = "overview" | "punishments" | "automod" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live" | "join" | "dating";
 type Level = "admin" | "staff";
 
 const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean }[] = [
@@ -27,6 +28,7 @@ const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean }[] = [
   { key: "automod", label: "AutoMod", icon: ShieldCheck },
   { key: "join", label: "Join Apps", icon: ClipboardCheck },
   { key: "logs", label: "Logs", icon: ScrollText },
+  { key: "dating", label: "Dating", icon: HeartHandshake },
   { key: "live", label: "Live Chat", icon: MessagesSquare },
   { key: "tickets", label: "Tickets", icon: Ticket, admin: true },
   { key: "accounts", label: "Website", icon: Users, admin: true },
@@ -78,6 +80,9 @@ export function AdminClient({ adminName, level }: { adminName: string; level: Le
   // News posts waiting for review (admins)
   const newsPoll = useLive<{ pending: number }>(isAdmin && tab !== "news" ? "/api/admin/news?status=pending" : null, 30_000);
   const pendingNews = newsPoll.data?.pending ?? 0;
+  // Open dating reports
+  const datingPoll = useLive<{ reports: unknown[] }>(tab !== "dating" ? "/api/admin/dating/reports?status=open" : null, 60_000);
+  const datingReports = datingPoll.data?.reports.length ?? 0;
   const tabsRef = useRef<HTMLElement>(null);
 
   // On narrow screens the tab strip scrolls sideways; keep the open tab in view
@@ -168,6 +173,11 @@ export function AdminClient({ adminName, level }: { adminName: string; level: Le
                 {pendingNews}
               </span>
             ) : null}
+            {t.key === "dating" && datingReports > 0 && tab !== "dating" ? (
+              <span className="adm-tab-bubble is-hot" aria-label={`${datingReports} open reports`}>
+                {datingReports}
+              </span>
+            ) : null}
             {t.key === "tickets" && openTickets > 0 ? (
               <span className="adm-tab-bubble is-hot" aria-label={`${openTickets} open`}>
                 {openTickets}
@@ -200,6 +210,7 @@ export function AdminClient({ adminName, level }: { adminName: string; level: Le
       {tab === "join" ? <JoinAppsTab onOpenMember={openMember} /> : null}
       {tab === "live" ? <LiveTab onOpenMember={openMember} onUnread={setLiveUnread} /> : null}
       {tab === "logs" ? <LogsTab onOpenMember={openMember} /> : null}
+      {tab === "dating" ? <DatingTab onOpenMember={openMember} /> : null}
       {isAdmin && tab === "tickets" ? <TicketsTab typesAvailable={meta?.ticketTypes ?? []} onOpenMember={openMember} onOpenTranscript={openTranscript} /> : null}
       {isAdmin && tab === "accounts" ? <AccountsTab onOpenMember={openMember} /> : null}
       {isAdmin && tab === "news" ? <NewsTab /> : null}
