@@ -3,7 +3,7 @@
 // Shared pieces for the Dating pages: data loading, profile cards, option chips, avatars and the
 // report dialog. Keeping them here keeps every page consistent and easy to extend.
 
-import { Flag, Heart, MapPin, Sparkles, Users, X } from "lucide-react";
+import { Flag, Heart, HeartHandshake, MapPin, Sparkles, Users, X } from "lucide-react";
 import { Score } from "./icons";
 import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
@@ -34,6 +34,8 @@ export type Card = {
   openToDating: boolean;
   username?: string | null;
   online?: boolean;
+  partnered?: boolean;
+  myPartner?: boolean;
 };
 
 /** GET a dating API route; `reload()` fetches again. */
@@ -149,6 +151,15 @@ export function ProfileTile({ card, extra, onLike }: { card: Card; extra?: React
           {!card.openToDating ? (
             <span className="dt-chip-mini is-friends">
               <Users size={10} aria-hidden="true" /> Friends
+            </span>
+          ) : null}
+          {card.myPartner ? (
+            <span className="dt-chip-mini is-partner">
+              <HeartHandshake size={10} aria-hidden="true" /> Your partner
+            </span>
+          ) : card.partnered ? (
+            <span className="dt-chip-mini is-partner" title="Has a linked partner">
+              <HeartHandshake size={10} aria-hidden="true" /> Partnered
             </span>
           ) : null}
           {!card.inServer ? <span className="dt-chip-mini is-left">Left server</span> : null}

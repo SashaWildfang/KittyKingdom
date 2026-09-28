@@ -1,6 +1,6 @@
 "use client";
 
-import { Compass, Eye, Heart, RotateCcw, Sparkles, UserPlus, Users, X } from "lucide-react";
+import { Compass, Eye, Heart, HeartHandshake, RotateCcw, Sparkles, UserPlus, Users, X } from "lucide-react";
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { Score } from "../icons";
 import { Empty, Photo, ago, post, useApi, type Card } from "../ui";
@@ -169,6 +169,11 @@ export default function Discover() {
               <Score score={card.score} fit={!friends} /> · {friends ? "Get-along score" : card.tier}
             </span>
             {!card.inServer ? <span className="dt-deck-left">Left the server</span> : null}
+            {card.myPartner || card.partnered ? (
+              <span className="dt-deck-partner">
+                <HeartHandshake size={13} aria-hidden="true" /> {card.myPartner ? "Your partner" : "Partnered"}
+              </span>
+            ) : null}
           </a>
           <div className="dt-deck-body">
             <h2>

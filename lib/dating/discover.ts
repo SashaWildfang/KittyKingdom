@@ -41,13 +41,15 @@ export type Card = {
   openToDating: boolean;
   /** Their Discord @name */
   username: string | null;
+  partnered: boolean;
+  myPartner: boolean;
   /** On the site right now (only filled in where asked for, and only if their settings allow) */
   online?: boolean;
 };
 
 type Pool = Awaited<ReturnType<typeof datingPool>>;
 
-function card(doc: ProfileDoc, compat: Compat | null, liked: boolean, pool: Pool): Card {
+function card(doc: ProfileDoc, compat: Compat | null, liked: boolean, pool: Pool, me?: string): Card {
   const id = String(doc._id);
   const who = pool.who.get(id);
   const web = (doc.web ?? {}) as WebPrefs;
@@ -83,6 +85,9 @@ function card(doc: ProfileDoc, compat: Compat | null, liked: boolean, pool: Pool
     inServer: who ? who.inServer : true,
     openToDating: doc.is_looking === "Yes",
     username: who?.username ?? null,
+    // They've linked a partner (hidden if they chose not to show partners)
+    partnered: (pool.partners.get(id)?.size ?? 0) > 0 && pool.settings.get(id)?.showPartners !== false,
+    myPartner: Boolean(me && pool.partners.get(me)?.has(id)),
   };
 }
 
@@ -113,7 +118,7 @@ export async function discoverQueue(me: string, limit = 20) {
     .map((o) => ({ o, c: compatibility(side(mine), side(o)) }))
     .filter((x) => x.c.score >= Math.max(MIN_SCORE_SHOWN, settings.discoverMinScore))
     .sort((a, b) => b.c.score - a.c.score);
-  return { cards: ranked.slice(0, limit).map((x) => card(x.o, x.c, false, pool)), total: ranked.length };
+  return { cards: ranked.slice(0, limit).map((x) => card(x.o, x.c, false, pool, me)), total: ranked.length };
 }
 
 /** Discover → Friends: people you'd get along with (dating preferences don't matter), best first. */
@@ -126,7 +131,7 @@ export async function friendQueue(me: string, limit = 20) {
     .filter((o) => !known.has(String(o._id)) && !skipped.has(String(o._id)))
     .map((o) => ({ o, c: compatibility(side(mine), side(o)) }))
     .sort((a, b) => b.c.score - a.c.score);
-  return { cards: ranked.slice(0, limit).map((x) => card(x.o, x.c, false, pool)), total: ranked.length };
+  return { cards: ranked.slice(0, limit).map((x) => card(x.o, x.c, false, pool, me)), total: ranked.length };
 }
 
 export type BrowseQuery = {
@@ -196,7 +201,7 @@ export async function browse(me: string, query: BrowseQuery) {
   });
   const page = Math.max(0, query.page ?? 0);
   const size = 24;
-  return { total: rows.length, page, pages: Math.ceil(rows.length / size), cards: rows.slice(page * size, page * size + size).map((x) => card(x.o, x.c, liked.has(String(x.o._id)), pool)) };
+  return { total: rows.length, page, pages: Math.ceil(rows.length / size), cards: rows.slice(page * size, page * size + size).map((x) => card(x.o, x.c, liked.has(String(x.o._id)), pool, me)) };
 }
 
 /** Cards for a list of ids (likes, matches, friends...), in the given order. `online` also works
@@ -208,7 +213,7 @@ export async function cardsFor(me: string, ids: string[], opts: { online?: boole
     .map((id) => pool.profiles.get(id))
     .filter((d): d is ProfileDoc => Boolean(d))
     .map((d) => {
-      const c = card(d, mine ? compatibility(side(mine), side(d)) : null, liked.has(String(d._id)), pool);
+      const c = card(d, mine ? compatibility(side(mine), side(d)) : null, liked.has(String(d._id)), pool, me);
       if (onlineIds) {
         const id = String(d._id);
         const visible = ((d.web ?? {}) as WebPrefs).showOnline !== false && pool.settings.get(id)?.showInOnline !== false;
@@ -290,7 +295,7 @@ export async function homeWidgets(me: string) {
   const liked = await likedIds(me);
   const now = Date.now();
   const time = (d: unknown) => (d instanceof Date ? d.getTime() : 0);
-  const cardOf = (d: ProfileDoc) => card(d, mine ? compatibility(side(mine), side(d)) : null, liked.has(String(d._id)), pool);
+  const cardOf = (d: ProfileDoc) => card(d, mine ? compatibility(side(mine), side(d)) : null, liked.has(String(d._id)), pool, me);
 
   // Online now: on the website this minute (live tab presence) or active in Dating in the last few
   // minutes. Members who hide their activity never show.
@@ -317,7 +322,7 @@ export async function homeWidgets(me: string) {
       .filter((x) => !looking || !x.c.blocked)
       .sort((a, b) => b.c.score - a.c.score)
       .slice(0, 6)
-      .map((x) => card(x.o, x.c, liked.has(String(x.o._id)), pool));
+      .map((x) => card(x.o, x.c, liked.has(String(x.o._id)), pool, me));
   }
 
   // Interests lots of members share

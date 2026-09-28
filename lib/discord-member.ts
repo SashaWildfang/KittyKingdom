@@ -259,7 +259,7 @@ export async function searchMembers(query: string, limit = 10): Promise<MemberSe
 }
 
 /** Sends a message to a channel as the bot. Mentions never ping unless listed in allowUsers. */
-export async function postChannelMessage(channelId: string, payload: { content?: string; embeds?: unknown[] }, allowUsers: string[] = []) {
+export async function postChannelMessage(channelId: string, payload: { content?: string; embeds?: unknown[]; components?: unknown[] }, allowUsers: string[] = []) {
   return (await discordRequest("POST", `/channels/${channelId}/messages`, {
     ...payload,
     allowed_mentions: { parse: [], users: allowUsers },
@@ -267,7 +267,7 @@ export async function postChannelMessage(channelId: string, payload: { content?:
 }
 
 /** DMs a member as the bot (fails quietly if their DMs are closed). */
-export async function sendDirectMessage(discordId: string, payload: { content?: string; embeds?: unknown[] }) {
+export async function sendDirectMessage(discordId: string, payload: { content?: string; embeds?: unknown[]; components?: unknown[] }) {
   const dm = await discordRequest<{ id: string }>("POST", "/users/@me/channels", { recipient_id: discordId });
   return dm.ok && dm.data?.id ? postChannelMessage(dm.data.id, payload) : false;
 }

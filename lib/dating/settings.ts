@@ -18,6 +18,8 @@ export type NotifyKey = (typeof NOTIFY_TYPES)[number]["key"];
 
 export type DatingSettings = {
   notify: Record<NotifyKey, boolean>;
+  /** Which notifications the bot also sends as a Discord DM (all off unless they turn them on). */
+  dm: Record<NotifyKey, boolean>;
   /** Look at profiles without them being told. */
   anonymousViews: boolean;
   /** Who can start a chat: anyone (as a request) or only matches and friends. */
@@ -48,6 +50,7 @@ export type DatingSettings = {
 
 export const DEFAULTS: DatingSettings = {
   notify: { like: true, partner: true, match: true, message: true, request: true, "friend-request": true, "friend-accepted": true, view: true },
+  dm: { like: false, partner: false, match: false, message: false, request: false, "friend-request": false, "friend-accepted": false, view: false },
   anonymousViews: false,
   messagesFrom: "everyone",
   showLeft: true,
@@ -68,7 +71,7 @@ async function col() {
 }
 
 function merge(doc: Partial<DatingSettings> | null | undefined): DatingSettings {
-  return { ...DEFAULTS, ...(doc ?? {}), notify: { ...DEFAULTS.notify, ...(doc?.notify ?? {}) } };
+  return { ...DEFAULTS, ...(doc ?? {}), notify: { ...DEFAULTS.notify, ...(doc?.notify ?? {}) }, dm: { ...DEFAULTS.dm, ...(doc?.dm ?? {}) } };
 }
 
 /** Everyone's settings at once (for the pool: Online now, featured draw). */
@@ -88,6 +91,8 @@ export async function saveSettings(discordId: string, patch: unknown): Promise<D
   const $set: Record<string, unknown> = {};
   const notify = (p.notify ?? {}) as Record<string, unknown>;
   for (const t of NOTIFY_TYPES) if (typeof notify[t.key] === "boolean") $set[`notify.${t.key}`] = notify[t.key];
+  const dm = (p.dm ?? {}) as Record<string, unknown>;
+  for (const t of NOTIFY_TYPES) if (typeof dm[t.key] === "boolean") $set[`dm.${t.key}`] = dm[t.key];
   if (typeof p.anonymousViews === "boolean") $set.anonymousViews = p.anonymousViews;
   if (p.messagesFrom === "everyone" || p.messagesFrom === "connections") $set.messagesFrom = p.messagesFrom;
   if (typeof p.showLeft === "boolean") $set.showLeft = p.showLeft;
