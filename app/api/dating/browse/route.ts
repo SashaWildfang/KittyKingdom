@@ -24,6 +24,8 @@ export async function GET(request: Request) {
     activeDays: num(p.get("active")),
     newOnly: p.get("new") === "1",
     lookingFor: list(p.get("looking")),
+    open: p.get("open") === "dating" || p.get("open") === "friends" ? (p.get("open") as "dating" | "friends") : undefined,
+    inServer: p.get("inServer") === "1",
     sort,
     page: num(p.get("page")),
   };

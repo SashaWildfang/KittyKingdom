@@ -6,7 +6,7 @@ import { FIELD_LIST } from "../../../lib/dating/schema-data";
 import { Chips, Empty, ProfileTile, post, useApi, type Card } from "../ui";
 
 type Result = { total: number; page: number; pages: number; cards: Card[] };
-type Filters = { q: string; genders: string[]; ageMin: string; ageMax: string; dating: boolean; photos: boolean; active: string; isNew: boolean; looking: string[]; sort: string };
+type Filters = { q: string; genders: string[]; ageMin: string; ageMax: string; dating: boolean; photos: boolean; active: string; isNew: boolean; looking: string[]; sort: string; open: string; inServer: boolean };
 
 const GENDERS = FIELD_LIST.find((f) => f.key === "gender")!.options;
 const REL_TYPES = FIELD_LIST.find((f) => f.key === "looking_for_relationship_type")!.options.filter((o) => o.value !== "Any");
@@ -18,7 +18,7 @@ const SORTS = [
   ["age-desc", "Oldest"],
   ["name", "Name A–Z"],
 ];
-const EMPTY: Filters = { q: "", genders: [], ageMin: "", ageMax: "", dating: false, photos: false, active: "", isNew: false, looking: [], sort: "best" };
+const EMPTY: Filters = { q: "", genders: [], ageMin: "", ageMax: "", dating: false, photos: false, active: "", isNew: false, looking: [], sort: "best", open: "", inServer: false };
 const KEY = "kk_dating_browse";
 
 export default function Browse() {
@@ -33,10 +33,11 @@ export default function Browse() {
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(KEY) ?? "null");
-      if (saved) {
-        setF({ ...EMPTY, ...saved });
-        setQ(saved.q ?? "");
-      }
+      // A link like /dating/browse?q=hiking (from Home's popular interests) wins over saved filters
+      const linked = new URLSearchParams(window.location.search).get("q");
+      const next = { ...EMPTY, ...(saved ?? {}), ...(linked !== null ? { q: linked.slice(0, 60) } : {}) };
+      setF(next);
+      setQ(next.q ?? "");
     } catch {}
   }, []);
   useEffect(() => {
@@ -64,12 +65,14 @@ export default function Browse() {
     if (f.active) p.set("active", f.active);
     if (f.isNew) p.set("new", "1");
     if (f.looking.length) p.set("looking", f.looking.join(","));
+    if (f.open) p.set("open", f.open);
+    if (f.inServer) p.set("inServer", "1");
     p.set("sort", f.sort);
     p.set("page", String(page));
     return `/api/dating/browse?${p}`;
   }, [f, page]);
   const { data, error } = useApi<Result>(url);
-  const activeCount = [f.genders.length, f.ageMin, f.ageMax, f.dating, f.photos, f.active, f.isNew, f.looking.length].filter(Boolean).length;
+  const activeCount = [f.genders.length, f.ageMin, f.ageMax, f.dating, f.photos, f.active, f.isNew, f.looking.length, f.open, f.inServer].filter(Boolean).length;
   const set = <K extends keyof Filters>(k: K, v: Filters[K]) => setF((x) => ({ ...x, [k]: v }));
 
   const like = async (c: Card) => {
@@ -106,6 +109,20 @@ export default function Browse() {
       {open ? (
         <div className="dt-filters">
           <div>
+            <b>Here for</b>
+            <div className="dt-chips" role="radiogroup">
+              {[
+                ["", "Anyone"],
+                ["dating", "💘 Open to dating"],
+                ["friends", "🫂 Friends only"],
+              ].map(([v, l]) => (
+                <button key={v} type="button" role="radio" aria-checked={f.open === v} className={f.open === v ? "is-on" : undefined} onClick={() => set("open", v)}>
+                  {l}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
             <b>Gender</b>
             <Chips options={GENDERS} value={f.genders} multi onChange={(v) => set("genders", (v as string[]) ?? [])} />
           </div>
@@ -141,6 +158,9 @@ export default function Browse() {
             </label>
             <label>
               <input type="checkbox" checked={f.isNew} onChange={(e) => set("isNew", e.target.checked)} /> New this fortnight
+            </label>
+            <label>
+              <input type="checkbox" checked={f.inServer} onChange={(e) => set("inServer", e.target.checked)} /> Still in the server
             </label>
           </div>
           {activeCount ? (

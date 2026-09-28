@@ -247,6 +247,93 @@ export function PromptsEditor({ value, onChange }: { value: Own["prompts"]; onCh
 }
 
 // ---------- Fursonas ----------
+const MAX_ART = 6;
+const isImageLink = (l: string) => /\.(png|jpe?g|gif|webp)(\?|$)/i.test(l) || l.startsWith("/api/dating/media/");
+
+/** One fursona's art: uploaded images or links, shown as thumbnails. */
+function ArtPicker({ links, onChange }: { links: string[]; onChange: (links: string[]) => void }) {
+  const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [link, setLink] = useState("");
+  const [dead, setDead] = useState<Set<string>>(new Set());
+  const upload = async (files: FileList | null) => {
+    if (!files?.length) return;
+    setBusy(true);
+    setErr(null);
+    let next = [...links];
+    for (const file of Array.from(files).slice(0, MAX_ART - links.length)) {
+      const form = new FormData();
+      form.append("file", await shrink(file), file.name);
+      const res = await fetch("/api/dating/art", { method: "POST", body: form }).then((r) => r.json()).catch(() => ({ ok: false, error: "Upload failed." }));
+      if (!res.ok) {
+        setErr(res.error ?? "Upload failed.");
+        break;
+      }
+      next = [...next, res.url];
+      onChange(next);
+    }
+    setBusy(false);
+    if (input.current) input.current.value = "";
+  };
+  const addLink = () => {
+    const l = link.trim();
+    if (!/^https:\/\/[^\s"'<>]+$/.test(l)) return setErr("Links must start with https://");
+    onChange([...links, l]);
+    setLink("");
+    setErr(null);
+  };
+  return (
+    <div className="dt-art">
+      <div className="dt-art-grid">
+        {links.map((l, n) => (
+          <figure key={`${l}-${n}`}>
+            {isImageLink(l) && !dead.has(l) ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={l} alt="" referrerPolicy="no-referrer" onError={() => setDead((d) => new Set(d).add(l))} />
+            ) : (
+              <a href={l} target="_blank" rel="noopener noreferrer nofollow" className="dt-art-link">
+                🔗 {l.replace(/^https:\/\/(www\.)?/, "").slice(0, 28)}
+              </a>
+            )}
+            <button type="button" className="dt-art-remove" onClick={() => onChange(links.filter((_, k) => k !== n))} aria-label="Remove art">
+              <X size={13} />
+            </button>
+          </figure>
+        ))}
+        {links.length < MAX_ART ? (
+          <button type="button" className="dt-photo-add dt-art-add" onClick={() => input.current?.click()} disabled={busy}>
+            {busy ? <Loader2 size={18} className="dt-spin" aria-hidden="true" /> : <ImagePlus size={18} aria-hidden="true" />}
+            <span>{busy ? "Uploading…" : "Upload art"}</span>
+          </button>
+        ) : null}
+      </div>
+      <input ref={input} type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden onChange={(e) => void upload(e.target.files)} />
+      {links.length < MAX_ART ? (
+        <div className="dt-prompt-edit-head">
+          <input
+            className="dt-input"
+            placeholder="…or paste a link (https://)"
+            value={link}
+            onChange={(e) => setLink(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addLink();
+              }
+            }}
+            aria-label="Art link"
+          />
+          <button type="button" className="dt-btn dt-btn--ghost dt-btn--small" onClick={addLink} disabled={!link.trim()}>
+            Add link
+          </button>
+        </div>
+      ) : null}
+      {err ? <p className="dt-error">{err}</p> : null}
+    </div>
+  );
+}
+
 export function FursonaEditor({ value, onChange }: { value: Own["fursonas"]; onChange: (v: Own["fursonas"]) => void }) {
   const set = (i: number, patch: Partial<Own["fursonas"][number]>) => onChange(value.map((x, n) => (n === i ? { ...x, ...patch } : x)));
   return (
@@ -260,14 +347,8 @@ export function FursonaEditor({ value, onChange }: { value: Own["fursonas"]; onC
             </button>
           </div>
           <textarea className="dt-input" rows={3} maxLength={800} placeholder="Species, personality, colors…" value={s.description} onChange={(e) => set(i, { description: e.target.value })} />
-          <label className="dt-help">Art links (one per line, https:// only)</label>
-          <textarea
-            className="dt-input"
-            rows={2}
-            placeholder="https://…"
-            value={s.art_links.join("\n")}
-            onChange={(e) => set(i, { art_links: e.target.value.split("\n").slice(0, 6) })}
-          />
+          <label className="dt-help">Art (up to {MAX_ART}, SFW). Uploads are kept when you save.</label>
+          <ArtPicker links={s.art_links.filter(Boolean)} onChange={(art_links) => set(i, { art_links })} />
         </div>
       ))}
       {value.length < MAX_FURSONAS ? (

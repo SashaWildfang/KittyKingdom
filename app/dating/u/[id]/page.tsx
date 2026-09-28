@@ -9,12 +9,13 @@ type View = {
   name: string;
   discordName: string | null;
   avatar: string | null;
+  inServer: boolean;
   age: number | null;
   headline: string | null;
   accent: string;
   photos: { url: string; caption: string | null }[];
   facts: { label: string; value: string; key: string }[];
-  sections: { id: string; label: string; emoji: string; items: { key: string; label: string; value: string; legacy: boolean; long: boolean }[] }[];
+  sections: { id: string; label: string; emoji: string; items: { key: string; label: string; value: string; legacy: boolean; long: boolean; href: string | null }[] }[];
   prompts: { q: string; a: string }[];
   fursonas: { name: string; description: string; art_links: string[] }[];
   lookingFor: { open: boolean; genders: string[]; relTypes: string[]; ages: string | null };
@@ -160,7 +161,7 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
             <div className="dt-gallery dt-gallery--empty">
               {p.avatar ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={p.avatar} alt="" />
+                <img src={p.avatar} alt={`${p.name}'s Discord avatar`} referrerPolicy="no-referrer" />
               ) : (
                 <span>{p.name.charAt(0).toUpperCase()}</span>
               )}
@@ -258,6 +259,8 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
               {r.match ? <span className="dt-badge dt-badge--match">💞 You matched</span> : r.likesMe ? <span className="dt-badge">💌 Likes you</span> : null}
               {r.friend === "friends" ? <span className="dt-badge">🫂 Friends</span> : null}
               {p.paused ? <span className="dt-badge dt-badge--muted">Paused</span> : null}
+              {!p.lookingFor.open ? <span className="dt-badge">🫂 Here for friends</span> : null}
+              {!p.inServer ? <span className="dt-badge dt-badge--muted" title="They left the Discord server but kept their dating profile">Left the server</span> : null}
             </div>
           </header>
 
@@ -367,7 +370,15 @@ export default function ProfilePage({ params }: { params: { id: string } }) {
                 {s.items.map((it) => (
                   <div key={it.key} className={it.long ? "is-long" : undefined}>
                     <small>{it.label}</small>
-                    <p>{it.value}</p>
+                    {it.href ? (
+                      <p>
+                        <a className="dt-social" href={it.href} target="_blank" rel="noopener noreferrer nofollow">
+                          {it.value}
+                        </a>
+                      </p>
+                    ) : (
+                      <p>{it.value}</p>
+                    )}
                   </div>
                 ))}
               </div>

@@ -4,9 +4,11 @@
 import { blockedIds } from "./db";
 import { MIN_SCORE_SHOWN, blockedReason, compatibility, type Compat } from "./matching";
 import { datingPool } from "./pool";
+import { bigAvatar, cleanMentions } from "./text";
 import { bioPreview, photoUrl, type Photo, type WebPrefs } from "./profiles";
-import { accentFor, display, getList, isFilled, type ProfileDoc } from "./schema";
-import { likedIds, passedIds } from "./social";
+import { PROMPTS, accentFor, display, getList, isFilled, type ProfileDoc } from "./schema";
+import { extractPhrases } from "./matching";
+import { friendSkipIds, friendsOf, likedIds, passedIds } from "./social";
 
 export type Card = {
   id: string;
@@ -29,26 +31,37 @@ export type Card = {
   lastActive: string | null;
   isNew: boolean;
   liked: boolean;
+  /** Still in the Discord server (people who left keep their profiles). */
+  inServer: boolean;
+  openToDating: boolean;
 };
 
-function card(doc: ProfileDoc, compat: Compat | null, liked: boolean): Card {
+type Pool = Awaited<ReturnType<typeof datingPool>>;
+
+function card(doc: ProfileDoc, compat: Compat | null, liked: boolean, pool: Pool): Card {
+  const id = String(doc._id);
+  const who = pool.who.get(id);
   const web = (doc.web ?? {}) as WebPrefs;
   const photos = (doc.photos ?? []) as Photo[];
-  const firstArt = ((doc.fursonas ?? []) as { art_links?: string[]; art_link?: string }[]).flatMap((f) => f.art_links ?? (f.art_link ? [f.art_link] : [])).find((l) => /^https:\/\/.+\.(png|jpe?g|gif|webp)(\?|$)/i.test(String(l)) || String(l).startsWith("/api/dating/media/"));
+  const art = ((doc.fursonas ?? []) as { art_links?: string[]; art_link?: string }[]).flatMap((f) => f.art_links ?? (f.art_link ? [f.art_link] : [])).map(String);
+  // Uploaded art is reliable; outside links (often dead image hosts) come after their Discord avatar
+  const uploadedArt = art.find((l) => l.startsWith("/api/dating/media/"));
+  const linkedArt = art.find((l) => /^https:\/\/.+\.(png|jpe?g|gif|webp)(\?|$)/i.test(l));
   const created = doc.created_at instanceof Date ? doc.created_at : null;
   return {
     id: String(doc._id),
     name: String(display(doc, "name")?.text ?? "Member"),
     age: web.hideAge ? null : typeof doc.age === "number" ? doc.age : Number(doc.age) || null,
     headline: web.headline || null,
-    photo: photos[0] ? photoUrl(photos[0]) : firstArt ? String(firstArt) : null,
+    // Their first photo, else fursona art, else their Discord avatar
+    photo: photos[0] ? photoUrl(photos[0]) : uploadedArt ?? bigAvatar(who?.avatar, 512) ?? linkedArt ?? null,
     photoCount: photos.length,
     accent: accentFor(String(doc._id), web.accent),
     location: display(doc, "location")?.text ?? null,
     gender: display(doc, "gender")?.text ?? null,
     pronouns: display(doc, "pronouns")?.text ?? null,
     lookingFor: getList(doc, "looking_for_relationship_type").join(", ") || null,
-    bio: bioPreview(doc),
+    bio: cleanMentions(bioPreview(doc), pool.names),
     score: compat?.score ?? null,
     tier: compat?.tier ?? null,
     emoji: compat?.emoji ?? null,
@@ -57,6 +70,8 @@ function card(doc: ProfileDoc, compat: Compat | null, liked: boolean): Card {
     lastActive: web.showOnline === false ? null : doc.last_active instanceof Date ? doc.last_active.toISOString() : null,
     isNew: Boolean(created && Date.now() - created.getTime() < 14 * 86_400_000),
     liked,
+    inServer: who ? who.inServer : true,
+    openToDating: doc.is_looking === "Yes",
   };
 }
 
@@ -67,8 +82,8 @@ async function candidates(me: string) {
   const others = Array.from(pool.profiles.values()).filter((p) => {
     const id = String(p._id);
     if (id === me || blocked.has(id)) return false;
+    // Paused profiles are hidden; members who left the server still show (with a badge)
     if (((p.web ?? {}) as WebPrefs).paused) return false;
-    if (pool.inServer && !pool.inServer.has(id)) return false;
     return true;
   });
   const side = (d: ProfileDoc) => ({ doc: d, vec: pool.vectors.get(String(d._id)) ?? null });
@@ -77,7 +92,7 @@ async function candidates(me: string) {
 
 /** The Discover queue: dating matches you haven't liked or passed, best first. */
 export async function discoverQueue(me: string, limit = 20) {
-  const { mine, others, side } = await candidates(me);
+  const { pool, mine, others, side } = await candidates(me);
   if (!mine) return { needsProfile: true as const, cards: [] as Card[] };
   if (mine.is_looking !== "Yes") return { notLooking: true as const, cards: [] as Card[] };
   const [liked, passed] = await Promise.all([likedIds(me), passedIds(me)]);
@@ -86,7 +101,20 @@ export async function discoverQueue(me: string, limit = 20) {
     .map((o) => ({ o, c: compatibility(side(mine), side(o)) }))
     .filter((x) => x.c.score >= MIN_SCORE_SHOWN)
     .sort((a, b) => b.c.score - a.c.score);
-  return { cards: ranked.slice(0, limit).map((x) => card(x.o, x.c, false)), total: ranked.length };
+  return { cards: ranked.slice(0, limit).map((x) => card(x.o, x.c, false, pool)), total: ranked.length };
+}
+
+/** Discover → Friends: people you'd get along with (dating preferences don't matter), best first. */
+export async function friendQueue(me: string, limit = 20) {
+  const { pool, mine, others, side } = await candidates(me);
+  if (!mine) return { needsProfile: true as const, cards: [] as Card[] };
+  const [friends, skipped] = await Promise.all([friendsOf(me), friendSkipIds(me)]);
+  const known = new Set(friends.map((f) => f.id));
+  const ranked = others
+    .filter((o) => !known.has(String(o._id)) && !skipped.has(String(o._id)))
+    .map((o) => ({ o, c: compatibility(side(mine), side(o)) }))
+    .sort((a, b) => b.c.score - a.c.score);
+  return { cards: ranked.slice(0, limit).map((x) => card(x.o, x.c, false, pool)), total: ranked.length };
 }
 
 export type BrowseQuery = {
@@ -99,13 +127,15 @@ export type BrowseQuery = {
   activeDays?: number;
   newOnly?: boolean;
   lookingFor?: string[];
+  open?: "dating" | "friends";
+  inServer?: boolean;
   sort?: "best" | "active" | "new" | "age-asc" | "age-desc" | "name";
   page?: number;
 };
 
 /** Everyone you can see, with filters and sorting (friends-only profiles included unless datingOnly). */
 export async function browse(me: string, query: BrowseQuery) {
-  const { mine, others, side } = await candidates(me);
+  const { pool, mine, others, side } = await candidates(me);
   const liked = await likedIds(me);
   const q = (query.q ?? "").trim().toLowerCase();
   const rows = others
@@ -117,6 +147,9 @@ export async function browse(me: string, query: BrowseQuery) {
       if (query.photosOnly && !((o.photos ?? []) as unknown[]).length) return false;
       if (query.newOnly && !(o.created_at instanceof Date && Date.now() - o.created_at.getTime() < 14 * 86_400_000)) return false;
       if (query.activeDays && !(o.last_active instanceof Date && Date.now() - o.last_active.getTime() < query.activeDays * 86_400_000)) return false;
+      if (query.open === "dating" && o.is_looking !== "Yes") return false;
+      if (query.open === "friends" && o.is_looking === "Yes") return false;
+      if (query.inServer && pool.inServer && !pool.inServer.has(String(o._id))) return false;
       if (query.lookingFor?.length && !getList(o, "looking_for_relationship_type").some((t) => query.lookingFor!.includes(t))) return false;
       if (q) {
         const hay = ["name", "bio", "location", "likes", "hobbies_interests", "favorite_games", "fun_fact"].map((k) => String(o[k] ?? "")).join(" ").toLowerCase();
@@ -151,7 +184,7 @@ export async function browse(me: string, query: BrowseQuery) {
   });
   const page = Math.max(0, query.page ?? 0);
   const size = 24;
-  return { total: rows.length, page, pages: Math.ceil(rows.length / size), cards: rows.slice(page * size, page * size + size).map((x) => card(x.o, x.c, liked.has(String(x.o._id)))) };
+  return { total: rows.length, page, pages: Math.ceil(rows.length / size), cards: rows.slice(page * size, page * size + size).map((x) => card(x.o, x.c, liked.has(String(x.o._id)), pool)) };
 }
 
 /** Cards for a list of ids (likes, matches, friends...), in the given order. */
@@ -161,7 +194,7 @@ export async function cardsFor(me: string, ids: string[]) {
   return ids
     .map((id) => pool.profiles.get(id))
     .filter((d): d is ProfileDoc => Boolean(d))
-    .map((d) => card(d, mine ? compatibility(side(mine), side(d)) : null, liked.has(String(d._id))));
+    .map((d) => card(d, mine ? compatibility(side(mine), side(d)) : null, liked.has(String(d._id)), pool));
 }
 
 /** Compatibility of one member from my point of view (for their profile page). */
@@ -204,5 +237,86 @@ export async function featured(hoursAgo = 0) {
     }
   }
   const weight = Math.max(0.1, Number(pick.profile_weight ?? 1));
-  return { hour, until: new Date((hour + 1) * 3_600_000).toISOString(), card: card(pick, null, false), pool: eligible.length, chance: weight / total };
+  return { hour, until: new Date((hour + 1) * 3_600_000).toISOString(), card: card(pick, null, false, pool), pool: eligible.length, chance: weight / total };
+}
+
+// ---------- Home widgets ----------
+const PROMPT_EPOCH = Date.UTC(2026, 0, 1);
+
+/** Everything the Dating home shows besides the featured draw: community pulse, new and active
+ *  members, your top matches, popular interests and today's prompt spotlight. */
+export async function homeWidgets(me: string) {
+  const { pool, mine, others, side } = await candidates(me);
+  const liked = await likedIds(me);
+  const now = Date.now();
+  const time = (d: unknown) => (d instanceof Date ? d.getTime() : 0);
+  const cardOf = (d: ProfileDoc) => card(d, mine ? compatibility(side(mine), side(d)) : null, liked.has(String(d._id)), pool);
+
+  const newest = [...others].sort((a, b) => time(b.created_at) - time(a.created_at)).slice(0, 8).map(cardOf);
+  const active = others
+    .filter((o) => ((o.web ?? {}) as WebPrefs).showOnline !== false && now - time(o.last_active) < 24 * 3_600_000)
+    .sort((a, b) => time(b.last_active) - time(a.last_active))
+    .slice(0, 10)
+    .map(cardOf);
+
+  // Your best matches (dating fits if you're looking, otherwise people you'd get along with)
+  let top: Card[] = [];
+  if (mine) {
+    const looking = mine.is_looking === "Yes";
+    top = others
+      .map((o) => ({ o, c: compatibility(side(mine), side(o)) }))
+      .filter((x) => !looking || !x.c.blocked)
+      .sort((a, b) => b.c.score - a.c.score)
+      .slice(0, 6)
+      .map((x) => card(x.o, x.c, liked.has(String(x.o._id)), pool));
+  }
+
+  // Interests lots of members share
+  const counts = new Map<string, number>();
+  for (const p of Array.from(pool.profiles.values())) {
+    const seen = new Set<string>();
+    for (const ph of extractPhrases(p.hobbies_interests, p.likes, p.favorite_games)) {
+      const key = ph;
+      if (key.length > 2 && key.length <= 24 && !seen.has(key)) {
+        seen.add(key);
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+      }
+    }
+  }
+  const mineSet = new Set(mine ? extractPhrases(mine.hobbies_interests, mine.likes, mine.favorite_games) : []);
+  const interests = Array.from(counts.entries())
+    .filter(([, n]) => n >= 2)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 18)
+    .map(([name, n]) => ({ name, count: n, mine: mineSet.has(name) }));
+
+  // Prompt of the day, with a few members' answers
+  const day = Math.floor((now - PROMPT_EPOCH) / 86_400_000);
+  let prompt = PROMPTS[((day % PROMPTS.length) + PROMPTS.length) % PROMPTS.length];
+  let answers = others.filter((o) => ((o.prompts ?? []) as { q: string }[]).some((x) => x.q === prompt));
+  if (!answers.length) {
+    // Fall back to whichever prompt has answers
+    const any = others.find((o) => ((o.prompts ?? []) as unknown[]).length);
+    if (any) {
+      prompt = ((any.prompts ?? []) as { q: string }[])[0].q;
+      answers = others.filter((o) => ((o.prompts ?? []) as { q: string }[]).some((x) => x.q === prompt));
+    }
+  }
+  const spotlight = {
+    prompt,
+    answers: answers.slice(0, 3).map((o) => ({ card: cardOf(o), answer: cleanMentions(((o.prompts ?? []) as { q: string; a: string }[]).find((x) => x.q === prompt)?.a ?? "", pool.names) })),
+    mineAnswered: Boolean(mine && ((mine.prompts ?? []) as { q: string }[]).some((x) => x.q === prompt)),
+  };
+
+  const all = Array.from(pool.profiles.values());
+  const week = now - 7 * 86_400_000;
+  const community = {
+    profiles: all.length,
+    openToDating: all.filter((p) => p.is_looking === "Yes").length,
+    friendsOnly: all.filter((p) => p.is_looking !== "Yes").length,
+    newThisWeek: all.filter((p) => time(p.created_at) > week).length,
+    activeToday: all.filter((p) => now - time(p.last_active) < 86_400_000).length,
+    withPhotos: all.filter((p) => ((p.photos ?? []) as unknown[]).length).length,
+  };
+  return { newest, active, top, interests, spotlight, community, looking: mine?.is_looking === "Yes" };
 }
