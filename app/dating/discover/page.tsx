@@ -4,22 +4,23 @@ import { Compass, Eye, Heart, RotateCcw, Sparkles, UserPlus, Users, X } from "lu
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { Empty, Photo, ago, post, useApi, type Card } from "../ui";
 
-type Queue = { cards: Card[]; total?: number; likesLeft: number | null; booster: boolean; needsProfile?: boolean; notLooking?: boolean };
+type Queue = { mode?: "dating" | "friends"; cards: Card[]; total?: number; likesLeft: number | null; booster: boolean; needsProfile?: boolean; notLooking?: boolean };
 
 type Mode = "dating" | "friends";
 
 export default function Discover() {
-  const [mode, setMode] = useState<Mode | null>(null);
-  // ?mode=friends opens Friends directly
+  // "auto" uses the default from Settings; ?mode= or the switch picks one
+  const [mode, setMode] = useState<Mode | "auto" | null>(null);
   useEffect(() => {
-    setMode(new URLSearchParams(window.location.search).get("mode") === "friends" ? "friends" : "dating");
+    const m = new URLSearchParams(window.location.search).get("mode");
+    setMode(m === "friends" || m === "dating" ? m : "auto");
   }, []);
-  const friends = mode === "friends";
-  const { data, error, reload } = useApi<Queue>(mode ? `/api/dating/discover${friends ? "?mode=friends" : ""}` : null);
+  const { data, error, reload } = useApi<Queue>(mode ? `/api/dating/discover${mode === "auto" ? "" : `?mode=${mode}`}` : null);
+  const friends = (mode === "auto" ? data?.mode : mode) === "friends";
   const switchMode = (m: Mode) => {
     setMode(m);
     setLast(null);
-    window.history.replaceState(null, "", m === "friends" ? "?mode=friends" : window.location.pathname);
+    window.history.replaceState(null, "", `?mode=${m}`);
   };
   const [index, setIndex] = useState(0);
   const [left, setLeft] = useState<number | null>(null);

@@ -2,9 +2,10 @@
 //   { to, type, actor?, title, body?, link, at, read, key? }   key = dedupe (one unread per key)
 
 import { ObjectId, type Collection, type Document } from "mongodb";
+import { getSettings } from "./dating/settings";
 import { getMongoClient } from "./mongodb";
 
-export type NotificationType = "like" | "match" | "message" | "request" | "friend-request" | "friend-accepted" | "system";
+export type NotificationType = "like" | "match" | "message" | "request" | "friend-request" | "friend-accepted" | "view" | "system";
 
 let ready: Promise<unknown> | null = null;
 
@@ -17,6 +18,8 @@ async function col(): Promise<Collection<Document>> {
 
 /** Adds a notification. With a key, an unread one with the same key is refreshed instead of duplicated. */
 export async function notify(to: string, n: { type: NotificationType; actor?: string | null; title: string; body?: string; link: string; key?: string }) {
+  // Members choose which kinds they get (Dating → Settings); system notices always go through
+  if (n.type !== "system" && (await getSettings(to).catch(() => null))?.notify[n.type] === false) return;
   const c = await col();
   const doc = { to, type: n.type, actor: n.actor ?? null, title: n.title.slice(0, 140), body: (n.body ?? "").slice(0, 200), link: n.link, at: new Date(), read: false };
   if (n.key) {

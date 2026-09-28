@@ -1,0 +1,243 @@
+"use client";
+
+import { Ban, Bell, Check, Compass, Eye, Loader2, Lock, MessageCircle, PenLine, Trash2, UserRound } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { Empty, useApi } from "../ui";
+
+type Settings = {
+  notify: Record<string, boolean>;
+  anonymousViews: boolean;
+  messagesFrom: "everyone" | "connections";
+  showLeft: boolean;
+  discoverMode: "dating" | "friends";
+};
+type Web = { accent?: string; headline?: string; paused?: boolean; pausedByStaff?: boolean; hideAge?: boolean; showOnline?: boolean };
+
+function Toggle({ label, hint, checked, disabled, onChange }: { label: string; hint?: string; checked: boolean; disabled?: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="dt-switch">
+      <input type="checkbox" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
+      <span>
+        <b>{label}</b>
+        {hint ? <small>{hint}</small> : null}
+      </span>
+    </label>
+  );
+}
+
+function Choice<T extends string>({ value, options, onChange }: { value: T; options: [T, string, string][]; onChange: (v: T) => void }) {
+  return (
+    <div className="dt-choices" role="radiogroup">
+      {options.map(([v, label, hint]) => (
+        <button key={v} type="button" role="radio" aria-checked={value === v} className={value === v ? "is-on" : undefined} onClick={() => onChange(v)}>
+          <b>{label}</b>
+          <small>{hint}</small>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function Section({ id, icon, title, intro, children }: { id: string; icon: ReactNode; title: string; intro?: string; children: ReactNode }) {
+  return (
+    <section id={id} className="dt-card dt-settings-section">
+      <h2>
+        <span className="dt-widget-icon" aria-hidden="true">
+          {icon}
+        </span>
+        {title}
+      </h2>
+      {intro ? <p className="dt-help">{intro}</p> : null}
+      <div className="dt-switches">{children}</div>
+    </section>
+  );
+}
+
+/** Dating → Settings: notifications, privacy and Discover. Every change saves right away. */
+export default function SettingsPage() {
+  const settingsApi = useApi<{ settings: Settings; types: { key: string; label: string; hint?: string }[] }>("/api/dating/settings");
+  const meApi = useApi<{ profile: { web: Web } | null }>("/api/dating/me");
+  const [s, setS] = useState<Settings | null>(null);
+  const [web, setWeb] = useState<Web | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (settingsApi.data) setS(settingsApi.data.settings);
+  }, [settingsApi.data]);
+  useEffect(() => {
+    if (meApi.data?.profile) setWeb(meApi.data.profile.web);
+  }, [meApi.data]);
+  useEffect(() => {
+    if (!saved) return;
+    const t = window.setTimeout(() => setSaved(null), 2200);
+    return () => window.clearTimeout(t);
+  }, [saved]);
+
+  if (settingsApi.error) return <p className="dt-error">{settingsApi.error}</p>;
+  if (!s || !settingsApi.data) return <div className="dt-loading" aria-busy="true" />;
+
+  const save = async (patch: Partial<Settings> | { notify: Record<string, boolean> }) => {
+    setSaving(true);
+    const res = await fetch("/api/dating/settings", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) }).then((r) => r.json()).catch(() => null);
+    setSaving(false);
+    if (res?.ok) {
+      setS(res.settings);
+      setSaved("Saved");
+    } else setSaved("Couldn't save. Try again.");
+  };
+  const set = <K extends keyof Settings>(k: K, v: Settings[K]) => {
+    setS({ ...s, [k]: v });
+    void save({ [k]: v } as Partial<Settings>);
+  };
+  const saveWeb = async (patch: Partial<Web>) => {
+    if (!web) return;
+    const next = { ...web, ...patch };
+    setWeb(next);
+    setSaving(true);
+    const res = await fetch("/api/dating/me", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ web: next }) }).then((r) => r.json()).catch(() => null);
+    setSaving(false);
+    if (res?.ok) {
+      setWeb(res.profile.web);
+      setSaved("Saved");
+    } else setSaved(res?.error ?? "Couldn't save. Try again.");
+  };
+  const allOn = settingsApi.data.types.every((t) => s.notify[t.key] !== false);
+
+  return (
+    <div className="dt-settings">
+      <aside className="dt-editor-nav">
+        <nav aria-label="Settings sections">
+          <a href="#notifications">
+            <Bell size={15} aria-hidden="true" /> Notifications
+          </a>
+          <a href="#privacy">
+            <Lock size={15} aria-hidden="true" /> Privacy
+          </a>
+          <a href="#messages">
+            <MessageCircle size={15} aria-hidden="true" /> Messages
+          </a>
+          <a href="#discover">
+            <Compass size={15} aria-hidden="true" /> Discover
+          </a>
+          <a href="#account">
+            <UserRound size={15} aria-hidden="true" /> Profile &amp; account
+          </a>
+        </nav>
+        <p className={`dt-saved${saved ? " is-shown" : ""}`} role="status">
+          {saving ? <Loader2 size={13} className="dt-spin" aria-hidden="true" /> : <Check size={13} aria-hidden="true" />} {saving ? "Saving…" : saved ?? "Changes save automatically"}
+        </p>
+      </aside>
+
+      <div className="dt-editor-main">
+        <Section id="notifications" icon={<Bell size={16} />} title="Notifications" intro="Choose what shows up in the bell next to My Account.">
+          <Toggle
+            label="All notifications"
+            hint={allOn ? "Everything is on" : "Some are off"}
+            checked={allOn}
+            onChange={(v) => {
+              const notify = Object.fromEntries(settingsApi.data!.types.map((t) => [t.key, v]));
+              setS({ ...s, notify });
+              void save({ notify });
+            }}
+          />
+          <div className="dt-switches dt-switches--nested">
+            {settingsApi.data.types.map((t) => (
+              <Toggle
+                key={t.key}
+                label={t.label}
+                hint={t.hint}
+                checked={s.notify[t.key] !== false}
+                onChange={(v) => {
+                  setS({ ...s, notify: { ...s.notify, [t.key]: v } });
+                  void save({ notify: { [t.key]: v } });
+                }}
+              />
+            ))}
+          </div>
+        </Section>
+
+        <Section id="privacy" icon={<Lock size={16} />} title="Privacy">
+          <Toggle label="Browse anonymously" hint="People aren't told when you view their profile, and you won't appear in their 'Viewed you' list." checked={s.anonymousViews} onChange={(v) => set("anonymousViews", v)} />
+          {web ? (
+            <>
+              {web.pausedByStaff ? <p className="dt-error">Staff paused your profile after a report. Open a ticket in the Discord server if you think this was a mistake.</p> : null}
+              <Toggle label="Pause my profile" hint="Hide from Discover, Browse and the hourly draw. Your matches, friends and chats stay." checked={!!web.paused} disabled={!!web.pausedByStaff} onChange={(v) => void saveWeb({ paused: v })} />
+              <Toggle label="Hide my age" hint="Still used for matching, just not shown." checked={!!web.hideAge} onChange={(v) => void saveWeb({ hideAge: v })} />
+              <Toggle label="Show when I was last active" hint={'Like "online now" or "active 2h ago".'} checked={web.showOnline !== false} onChange={(v) => void saveWeb({ showOnline: v })} />
+            </>
+          ) : (
+            <p className="dt-muted">Profile privacy options appear once you&apos;ve made a profile.</p>
+          )}
+        </Section>
+
+        <section id="messages" className="dt-card dt-settings-section">
+          <h2>
+            <span className="dt-widget-icon" aria-hidden="true">
+              <MessageCircle size={16} />
+            </span>
+            Who can message me
+          </h2>
+          <Choice
+            value={s.messagesFrom}
+            onChange={(v) => set("messagesFrom", v)}
+            options={[
+              ["everyone", "Anyone", "People who aren't matches or friends send a request first (up to 3 messages)."],
+              ["connections", "Matches & friends only", "Nobody else can start a chat with you."],
+            ]}
+          />
+        </section>
+
+        <section id="discover" className="dt-card dt-settings-section">
+          <h2>
+            <span className="dt-widget-icon" aria-hidden="true">
+              <Compass size={16} />
+            </span>
+            Discover &amp; Browse
+          </h2>
+          <p className="dt-help">Which Discover opens in</p>
+          <Choice
+            value={s.discoverMode}
+            onChange={(v) => set("discoverMode", v)}
+            options={[
+              ["dating", "💘 Dating", "Your best dating matches."],
+              ["friends", "🫂 Friends", "People you'd get along with."],
+            ]}
+          />
+          <div className="dt-switches">
+            <Toggle label="Show members who left the server" hint="Their profiles are marked 'Left server'. Banned members never show." checked={s.showLeft} onChange={(v) => set("showLeft", v)} />
+          </div>
+        </section>
+
+        <section id="account" className="dt-card dt-settings-section">
+          <h2>
+            <span className="dt-widget-icon" aria-hidden="true">
+              <UserRound size={16} />
+            </span>
+            Profile &amp; account
+          </h2>
+          <div className="dt-linkrows">
+            <a href="/dating/profile">
+              <PenLine size={15} aria-hidden="true" /> Edit my profile
+            </a>
+            {meApi.data?.profile ? null : (
+              <a href="/dating/setup">
+                <PenLine size={15} aria-hidden="true" /> Create my profile
+              </a>
+            )}
+            <a href="/dating/likes?tab=views">
+              <Eye size={15} aria-hidden="true" /> Who viewed my profile
+            </a>
+            <a href="/dating/friends?tab=blocked">
+              <Ban size={15} aria-hidden="true" /> Blocked members
+            </a>
+            <a href="/dating/profile#danger" className="is-danger">
+              <Trash2 size={15} aria-hidden="true" /> Delete my dating profile
+            </a>
+          </div>
+        </section>
+        {meApi.error && !meApi.data ? <Empty icon={<UserRound size={24} />} title="Couldn't load your profile" /> : null}
+      </div>
+    </div>
+  );
+}

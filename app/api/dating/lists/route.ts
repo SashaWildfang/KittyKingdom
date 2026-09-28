@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cardsFor } from "../../../../lib/dating/discover";
 import { requireDating } from "../../../../lib/dating/route-helpers";
+import { viewersOf } from "../../../../lib/dating/views";
 import { blockList, friendsOf, likedIds, likesReceived, matchesOf } from "../../../../lib/dating/social";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +17,11 @@ export async function GET(request: Request) {
     const visible = received.filter((r) => !r.hidden);
     const cards = await cardsFor(id, visible.map((r) => r.id));
     return NextResponse.json({ ok: true, booster: me.booster, received: cards.map((c) => ({ ...c, at: visible.find((v) => v.id === c.id)?.at ?? null })), hidden: received.length - visible.length, sent: await cardsFor(id, Array.from(sent)) });
+  }
+  if (list === "views") {
+    const v = await viewersOf(id);
+    const cards = await cardsFor(id, v.views.map((x) => x.id));
+    return NextResponse.json({ ok: true, weekCount: v.weekCount, cards: cards.map((c) => ({ ...c, at: v.views.find((x) => x.id === c.id)?.at ?? null })) });
   }
   if (list === "matches") {
     const m = await matchesOf(id);
