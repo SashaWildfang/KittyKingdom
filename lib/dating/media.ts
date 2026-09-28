@@ -40,6 +40,13 @@ export async function readPhoto(id: string) {
   return { data: Buffer.concat(chunks), type: String(file.metadata?.contentType ?? "application/octet-stream"), owner: String(file.metadata?.owner ?? "") };
 }
 
+/** Who uploaded a file (without downloading it). */
+export async function photoOwner(id: string): Promise<string | null> {
+  if (!ObjectId.isValid(id)) return null;
+  const file = (await (await bucket()).find({ _id: new ObjectId(id) }).limit(1).toArray())[0];
+  return file ? String(file.metadata?.owner ?? "") : null;
+}
+
 export async function deletePhoto(id: string) {
   if (!ObjectId.isValid(id)) return;
   await (await bucket()).delete(new ObjectId(id)).catch(() => undefined);

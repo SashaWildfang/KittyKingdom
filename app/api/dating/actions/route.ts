@@ -3,12 +3,12 @@ import { isSnowflake } from "../../../../lib/dating/db";
 import { invalidatePool } from "../../../../lib/dating/pool";
 import { getProfile } from "../../../../lib/dating/profiles";
 import { requireDating, sameOrigin } from "../../../../lib/dating/route-helpers";
-import { block, friendAction, like, setPass, unblock, unlike } from "../../../../lib/dating/social";
+import { block, friendAction, like, setFriendSkip, setPass, unblock, unlike } from "../../../../lib/dating/social";
 import { MINUTE, allow } from "../../../../lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
-const ACTIONS = ["like", "unlike", "pass", "unpass", "friend", "accept", "decline", "unfriend", "block", "unblock"] as const;
+const ACTIONS = ["like", "unlike", "pass", "unpass", "friend", "accept", "decline", "unfriend", "block", "unblock", "skip", "unskip"] as const;
 
 /** { action, target }: likes, passes, friends and blocks. */
 export async function POST(request: Request) {
@@ -37,6 +37,10 @@ export async function POST(request: Request) {
     case "pass":
     case "unpass":
       await setPass(me.discordId, target, action === "pass");
+      return NextResponse.json({ ok: true });
+    case "skip":
+    case "unskip":
+      await setFriendSkip(me.discordId, target, action === "skip");
       return NextResponse.json({ ok: true });
     case "block":
       await block(me.discordId, target);

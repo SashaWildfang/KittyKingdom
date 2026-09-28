@@ -163,13 +163,43 @@ export async function memberRolesChecked(discordId: string): Promise<{ roles: st
   return { roles: null, definitive: false };
 }
 
+// In-memory copy of recent role lookups. A page full of dating photos checks access once per image, so
+// lookups for the same member share one request, and a failed request (e.g. rate limited) falls back
+// to the last known roles instead of locking them out.
+const roleCache = new Map<string, { at: number; roles: string[] | null }>();
+const roleInflight = new Map<string, Promise<string[] | null>>();
+const ROLE_TTL_MS = 120_000;
+
 /** A member's role ids, cached for two minutes (for checks that run on every page, like the Dating tab). */
 export async function memberRoleIdsCached(discordId: string): Promise<string[] | null> {
-  const token = botToken();
-  const guild = await guildId();
-  if (!guild || !token) return null;
-  const member = await discordGet<{ roles?: string[] }>(`/guilds/${guild}/members/${discordId}`, token, 120);
-  return member?.roles ?? null;
+  const hit = roleCache.get(discordId);
+  if (hit && Date.now() - hit.at < ROLE_TTL_MS) return hit.roles;
+  const pending = roleInflight.get(discordId);
+  if (pending) return pending;
+  const job = (async () => {
+    const token = botToken();
+    const guild = await guildId();
+    if (!guild || !token) return null;
+    try {
+      const res = await fetch(`${DISCORD_API}/guilds/${guild}/members/${discordId}`, { headers: { Authorization: `Bot ${token}` }, next: { revalidate: 120 } });
+      if (res.ok) {
+        const roles = ((await res.json()) as { roles?: string[] }).roles ?? [];
+        roleCache.set(discordId, { at: Date.now(), roles });
+        return roles;
+      }
+      // Not in the server: a definite answer
+      if (res.status === 404) {
+        roleCache.set(discordId, { at: Date.now(), roles: null });
+        return null;
+      }
+    } catch {
+      // network trouble: fall through to the last known answer
+    }
+    return hit?.roles ?? null;
+  })().finally(() => roleInflight.delete(discordId));
+  roleInflight.set(discordId, job);
+  if (roleCache.size > 5000) roleCache.clear();
+  return job;
 }
 
 export async function getMemberRoleIds(discordId: string): Promise<string[] | null> {

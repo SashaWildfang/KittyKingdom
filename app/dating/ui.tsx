@@ -27,6 +27,8 @@ export type Card = {
   lastActive: string | null;
   isNew: boolean;
   liked: boolean;
+  inServer: boolean;
+  openToDating: boolean;
 };
 
 /** GET a dating API route; `reload()` fetches again. */
@@ -78,10 +80,25 @@ export function ago(iso: string | null) {
 
 /** A photo, or a soft gradient with their initial in their accent color. */
 export function Photo({ src, name, accent, className = "" }: { src: string | null; name: string; accent: string; className?: string }) {
-  const [broken, setBroken] = useState(false);
-  if (src && !broken) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img className={`dt-photo ${className}`} src={src} alt="" loading="lazy" onError={() => setBroken(true)} />;
+  // One quiet retry before falling back (a busy first load can fail a request or two)
+  const [tries, setTries] = useState(0);
+  useEffect(() => {
+    setTries(0);
+  }, [src]);
+  if (src && tries < 2) {
+    const url = tries ? `${src}${src.includes("?") ? "&" : "?"}retry=1` : src;
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        className={`dt-photo ${className}`}
+        src={url}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        referrerPolicy="no-referrer"
+        onError={() => window.setTimeout(() => setTries((t) => t + 1), tries ? 0 : 900)}
+      />
+    );
   }
   return (
     <span className={`dt-photo dt-photo--empty ${className}`} style={{ "--acc": accent } as CSSProperties} aria-hidden="true">
@@ -104,6 +121,10 @@ export function ProfileTile({ card, extra, onLike }: { card: Card; extra?: React
             </span>
           ) : null}
           {card.isNew ? <span className="dt-new">New</span> : null}
+        </span>
+        <span className="dt-tile-tags">
+          {!card.openToDating ? <span className="dt-chip-mini is-friends">🫂 Friends</span> : null}
+          {!card.inServer ? <span className="dt-chip-mini is-left">Left server</span> : null}
         </span>
         <span className="dt-tile-body">
           <b>

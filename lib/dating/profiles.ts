@@ -7,6 +7,24 @@ import { newsPlainText } from "../news-format";
 import { datingCols, toLong } from "./db";
 import { ACCENTS, FIELDS, accentFor, MAX_FURSONAS, MAX_PHOTOS, MAX_PROMPTS, PROMPTS, SECTIONS, cleanField, display, getList, isFilled, profileStrength, reviewFields, type ProfileDoc } from "./schema";
 import { SCHEMA_VERSION } from "./schema-data";
+import { deletePhoto, photoOwner } from "./media";
+import { bigAvatar, cleanMentions, mentionIds } from "./text";
+
+// Social handles become links to the profile on that site (only for plain handles, never free text)
+const SOCIAL_URLS: Record<string, (h: string) => string> = {
+  twitter: (h) => `https://x.com/${h}`,
+  instagram: (h) => `https://instagram.com/${h}`,
+  furaffinity: (h) => `https://www.furaffinity.net/user/${h}`,
+  telegram: (h) => `https://t.me/${h}`,
+};
+function socialLink(key: string, value: string): string | null {
+  const make = SOCIAL_URLS[key];
+  if (!make) return null;
+  const url = value.trim().match(/^https:\/\/(www\.)?(x|twitter|instagram|furaffinity|t)\.(com|net|me)\/[\w./-]+$/i);
+  if (url) return value.trim();
+  const handle = value.trim().replace(/^@/, "");
+  return /^[A-Za-z0-9_.-]{2,32}$/.test(handle) ? make(handle) : null;
+}
 
 export type Photo = { id: string; ext: string; caption?: string };
 export type Prompt = { q: string; a: string };
@@ -36,6 +54,7 @@ export async function saveProfile(discordId: string, patch: ProfilePatch): Promi
   const $set: Document = {};
   const $unset: Document = {};
   const pull: string[] = [];
+  const removedArt: string[] = [];
 
   for (const [key, value] of Object.entries(patch.fields ?? {})) {
     const res = cleanField(key, value);
@@ -71,6 +90,14 @@ export async function saveProfile(discordId: string, patch: ProfilePatch): Promi
       if (links.some((l) => !/^https:\/\/[^\s"'<>]+$/.test(l) && !/^\/api\/dating\/media\/[a-f0-9]{24}\.[a-z0-9]{2,5}$/.test(l))) return "Art links must start with https://";
       sonas.push({ name, description: cleanText(s?.description, 800), art_links: links });
     }
+    // Uploaded art must be your own upload; art you removed is deleted
+    const mediaId = (l: string) => l.match(/^\/api\/dating\/media\/([a-f0-9]{24})\./)?.[1] ?? null;
+    const newArt = new Set(sonas.flatMap((s) => s.art_links.map(mediaId)).filter((x): x is string => Boolean(x)));
+    for (const id of Array.from(newArt)) if ((await photoOwner(id)) !== discordId) return "One of those images isn't yours.";
+    const before = await getProfile(discordId);
+    const oldArt = ((before?.fursonas ?? []) as Fursona[]).flatMap((s) => (Array.isArray(s.art_links) ? s.art_links : []).map(mediaId)).filter((x): x is string => Boolean(x));
+    const inPhotos = new Set(((before?.photos ?? []) as Photo[]).map((p) => p.id));
+    removedArt.push(...oldArt.filter((id) => !newArt.has(id) && !inPhotos.has(id)));
     $set.fursonas = sonas;
   }
 
@@ -134,6 +161,7 @@ export async function saveProfile(discordId: string, patch: ProfilePatch): Promi
   if (Object.keys($unset).length) update.$unset = $unset;
   if (pull.length && !patch.confirmReview) update.$pull = { needs_review: { $in: pull } };
   await profiles.updateOne({ _id } as never, update);
+  for (const id of removedArt) await deletePhoto(id);
   return null;
 }
 
@@ -143,12 +171,13 @@ export type ProfileView = {
   name: string;
   discordName: string | null;
   avatar: string | null;
+  inServer: boolean;
   age: number | null;
   headline: string | null;
   accent: string;
   photos: { url: string; caption: string | null }[];
   facts: { label: string; value: string; key: string }[];
-  sections: { id: string; label: string; emoji: string; items: { key: string; label: string; value: string; legacy: boolean; long: boolean }[] }[];
+  sections: { id: string; label: string; emoji: string; items: { key: string; label: string; value: string; legacy: boolean; long: boolean; href: string | null }[] }[];
   prompts: Prompt[];
   fursonas: Fursona[];
   lookingFor: { open: boolean; genders: string[]; relTypes: string[]; ages: string | null };
@@ -164,7 +193,11 @@ const SKIP_IN_SECTIONS = new Set(["name", "age", "bio", ...FACT_KEYS, "is_lookin
 
 export async function profileView(doc: ProfileDoc, opts: { viewerIsOwner?: boolean } = {}): Promise<ProfileView> {
   const id = String(doc._id);
-  const who = (await people([id]).catch(() => ({})))[id as keyof object] as { name?: string; username?: string | null; avatar?: string | null } | undefined;
+  // Their Discord name/avatar, plus names for any Discord mentions in their answers
+  const found = await people([id, ...mentionIds(doc)]).catch(() => ({}) as Awaited<ReturnType<typeof people>>);
+  const who = found[id] as { name?: string; username?: string | null; avatar?: string | null; inServer?: boolean } | undefined;
+  const names = Object.fromEntries(Object.entries(found).map(([k, v]) => [k, v.username ?? v.name]));
+  const clean = (t: string) => cleanMentions(t, names);
   const web = (doc.web ?? {}) as WebPrefs;
   const photos = ((doc.photos ?? []) as Photo[]).map((p) => ({ url: photoUrl(p), caption: p.caption ?? null }));
   const age = typeof doc.age === "number" ? doc.age : Number(doc.age) || null;
@@ -176,13 +209,16 @@ export async function profileView(doc: ProfileDoc, opts: { viewerIsOwner?: boole
       .filter((k) => !SKIP_IN_SECTIONS.has(k))
       .map((k) => {
         const d = display(doc, k);
-        return d ? { key: k, label: FIELDS[k].label, value: d.text, legacy: d.legacy, long: FIELDS[k].paragraph } : null;
+        if (!d) return null;
+        const value = clean(d.text);
+        // A pasted Discord mention isn't a handle on another site, so it never becomes a link
+        return { key: k, label: FIELDS[k].label, value, legacy: d.legacy, long: FIELDS[k].paragraph, href: /<[@#]/.test(d.text) ? null : socialLink(k, value) };
       })
       .filter((x): x is NonNullable<typeof x> => Boolean(x)),
   })).filter((s) => s.items.length);
   // The bio leads the first section, which reads as "About me"
   const bio = display(doc, "bio");
-  const bioItem = bio ? [{ key: "bio", label: "Bio", value: bio.text, legacy: bio.legacy, long: true }] : [];
+  const bioItem = bio ? [{ key: "bio", label: "Bio", value: clean(bio.text), legacy: bio.legacy, long: true, href: null }] : [];
   const basics = sections.find((s) => s.id === "basics");
   if (basics) Object.assign(basics, { label: "About me", emoji: "📖", items: [...bioItem, ...basics.items] });
   else if (bio) sections.unshift({ id: "basics", label: "About me", emoji: "📖", items: bioItem });
@@ -191,17 +227,18 @@ export async function profileView(doc: ProfileDoc, opts: { viewerIsOwner?: boole
     id,
     name: String(display(doc, "name")?.text ?? who?.name ?? "Member"),
     discordName: who?.username ?? null,
-    avatar: who?.avatar ?? null,
+    avatar: bigAvatar(who?.avatar, 1024),
+    inServer: who?.inServer ?? true,
     age: web.hideAge && !opts.viewerIsOwner ? null : age,
     headline: web.headline || null,
     accent: accentFor(id, web.accent),
     photos,
-    facts: FACT_KEYS.map((k) => ({ key: k, label: FIELDS[k].label, value: display(doc, k)?.text ?? "" })).filter((f) => f.value),
+    facts: FACT_KEYS.map((k) => ({ key: k, label: FIELDS[k].label, value: clean(display(doc, k)?.text ?? "") })).filter((f) => f.value),
     sections,
-    prompts: (doc.prompts ?? []) as Prompt[],
+    prompts: ((doc.prompts ?? []) as Prompt[]).map((p) => ({ q: p.q, a: clean(p.a) })),
     fursonas: ((doc.fursonas ?? []) as (Fursona & { art_link?: string })[]).map((f) => ({
-      name: String(f.name ?? "Fursona"),
-      description: String(f.description ?? ""),
+      name: clean(String(f.name ?? "Fursona")),
+      description: clean(String(f.description ?? "")),
       art_links: (Array.isArray(f.art_links) && f.art_links.length ? f.art_links : f.art_link ? [f.art_link] : []).map(String).filter((l) => /^https?:\/\//.test(l) || l.startsWith("/api/dating/media/")),
     })),
     lookingFor: {

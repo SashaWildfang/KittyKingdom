@@ -98,8 +98,8 @@ export default function Setup() {
           </p>
         ) : null}
         <div className="dt-row dt-row--center">
-          <a className="dt-btn dt-btn--big" href={values.is_looking === "Yes" ? "/dating/discover" : "/dating/browse"}>
-            {values.is_looking === "Yes" ? "Start discovering" : "Browse members"} <ArrowRight size={16} aria-hidden="true" />
+          <a className="dt-btn dt-btn--big" href={values.is_looking === "Yes" ? "/dating/discover" : "/dating/discover?mode=friends"}>
+            {values.is_looking === "Yes" ? "Start discovering" : "Find friends"} <ArrowRight size={16} aria-hidden="true" />
           </a>
           <a className="dt-btn dt-btn--ghost" href="/dating/profile">
             Fine-tune my profile
