@@ -91,19 +91,19 @@ async function candidates(me: string) {
     return true;
   });
   const side = (d: ProfileDoc) => ({ doc: d, vec: pool.vectors.get(String(d._id)) ?? null });
-  return { pool, mine, others, side };
+  return { pool, mine, others, side, settings };
 }
 
 /** The Discover queue: dating matches you haven't liked or passed, best first. */
 export async function discoverQueue(me: string, limit = 20) {
-  const { pool, mine, others, side } = await candidates(me);
+  const { pool, mine, others, side, settings } = await candidates(me);
   if (!mine) return { needsProfile: true as const, cards: [] as Card[] };
   if (mine.is_looking !== "Yes") return { notLooking: true as const, cards: [] as Card[] };
   const [liked, passed] = await Promise.all([likedIds(me), passedIds(me)]);
   const ranked = others
     .filter((o) => !liked.has(String(o._id)) && !passed.has(String(o._id)) && !blockedReason(mine, o))
     .map((o) => ({ o, c: compatibility(side(mine), side(o)) }))
-    .filter((x) => x.c.score >= MIN_SCORE_SHOWN)
+    .filter((x) => x.c.score >= Math.max(MIN_SCORE_SHOWN, settings.discoverMinScore))
     .sort((a, b) => b.c.score - a.c.score);
   return { cards: ranked.slice(0, limit).map((x) => card(x.o, x.c, false, pool)), total: ranked.length };
 }
@@ -139,7 +139,7 @@ export type BrowseQuery = {
 
 /** Everyone you can see, with filters and sorting (friends-only profiles included unless datingOnly). */
 export async function browse(me: string, query: BrowseQuery) {
-  const { pool, mine, others, side } = await candidates(me);
+  const { pool, mine, others, side, settings } = await candidates(me);
   const liked = await likedIds(me);
   const q = (query.q ?? "").trim().toLowerCase();
   const rows = others
@@ -168,7 +168,7 @@ export async function browse(me: string, query: BrowseQuery) {
     .filter((x) => !query.datingOnly || (x.c && !x.c.blocked));
   const time = (d: unknown) => (d instanceof Date ? d.getTime() : 0);
   const ageOf = (o: ProfileDoc) => (typeof o.age === "number" ? o.age : Number(o.age) || 0);
-  const sort = query.sort ?? (mine ? "best" : "active");
+  const sort = query.sort ?? (mine ? settings.browseSort : "active");
   rows.sort((a, b) => {
     switch (sort) {
       case "active":
@@ -228,7 +228,7 @@ export async function featured(hoursAgo = 0) {
   const pool = await datingPool();
   const hour = Math.floor(Date.now() / 3_600_000) - hoursAgo;
   const eligible = Array.from(pool.profiles.values())
-    .filter((p) => p.is_looking === "Yes" && !((p.web ?? {}) as WebPrefs).paused && isFilled(p.bio))
+    .filter((p) => p.is_looking === "Yes" && !((p.web ?? {}) as WebPrefs).paused && pool.settings.get(String(p._id))?.featured !== false && isFilled(p.bio))
     .sort((a, b) => String(a._id).localeCompare(String(b._id)));
   if (!eligible.length) return null;
   // Weight: the store's Profile Booster (profile_weight), doubled for server boosters, and a much
@@ -279,7 +279,7 @@ export async function homeWidgets(me: string) {
   // minutes. Members who hide their activity never show.
   const onlineIds = await onlineDiscordIds().catch(() => new Set<string>());
   const online = others
-    .filter((o) => ((o.web ?? {}) as WebPrefs).showOnline !== false && (onlineIds.has(String(o._id)) || now - time(o.last_active) < 5 * 60_000))
+    .filter((o) => ((o.web ?? {}) as WebPrefs).showOnline !== false && pool.settings.get(String(o._id))?.showInOnline !== false && (onlineIds.has(String(o._id)) || now - time(o.last_active) < 5 * 60_000))
     .sort((a, b) => time(b.last_active) - time(a.last_active))
     .slice(0, 24)
     .map((o) => ({ ...cardOf(o), lastActive: new Date().toISOString() }));
