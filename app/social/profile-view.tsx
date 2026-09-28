@@ -42,6 +42,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
+import { BrandIcon } from "./brand-icons";
 import { SectionIcon, TierIcon } from "./icons";
 import { Empty, Photo, ReportButton, ago, cropStyle, post, useApi, type Crop } from "./ui";
 
@@ -84,6 +85,12 @@ const PART_LABELS: Record<string, [string, LucideIcon]> = {
 };
 const FACT_ICONS: Record<string, LucideIcon> = { gender: UserRound, pronouns: UserRound, sexuality: Sparkles, location: MapPin, timezone: Clock, relationship_status: HeartHandshake };
 // The matcher prefixes agreements with an emoji; the list already has its own icon
+/** Dark or light text, whichever reads better on the member's color. */
+const inkFor = (hex: string) => {
+  const n = parseInt(hex.replace("#", ""), 16);
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c) => c / 255);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.6 ? "#1d0f08" : "#ffffff";
+};
 const noEmoji = (t: string) => t.replace(/^[^A-Za-z0-9(]+/, "");
 const photoId = (url: string) => url.match(/\/media\/([a-f0-9]{24})\./)?.[1];
 const isImage = (l: string) => /\.(png|jpe?g|gif|webp)(\?|$)/i.test(l) || l.startsWith("/api/dating/media/");
@@ -144,6 +151,39 @@ function Gallery({ photos, name, owner }: { photos: View["photos"]; name: string
   );
 }
 
+/** Socials and gaming tags as logo chips: links open the site; IDs (friend codes, gamertags) copy. */
+function SocialChips({ items }: { items: { key: string; label: string; value: string; href: string | null }[] }) {
+  const [copied, setCopied] = useState<string | null>(null);
+  // A pasted link shows as just the handle (steamcommunity.com/id/kitty -> kitty)
+  const shown = (v: string) => (/^https?:\/\//.test(v) ? v.replace(/^https?:\/\/(www\.)?[^/]+\/((id|profiles|user)\/)?/, "").replace(/\/+$/, "") || v : v);
+  return (
+    <div className="dt-socials">
+      {items.map((it) =>
+        it.href ? (
+          <a key={it.key} className={`dt-social-chip is-${it.key}`} href={it.href} target="_blank" rel="noopener noreferrer nofollow" title={`${it.label}: ${it.value}`}>
+            <BrandIcon k={it.key} /> <span>{shown(it.value)}</span>
+          </a>
+        ) : (
+          <button
+            key={it.key}
+            type="button"
+            className={`dt-social-chip is-${it.key}`}
+            title={`${it.label}: ${it.value} (click to copy)`}
+            onClick={() => {
+              void navigator.clipboard?.writeText(it.value).then(() => {
+                setCopied(it.key);
+                window.setTimeout(() => setCopied(null), 1500);
+              });
+            }}
+          >
+            <BrandIcon k={it.key} /> <span>{copied === it.key ? "Copied!" : it.value}</span>
+          </button>
+        ),
+      )}
+    </div>
+  );
+}
+
 /** A fursona with its art as a gallery (click to view full size, arrows between pieces). */
 function FursonaCard({ sona }: { sona: View["fursonas"][number] }) {
   const images = sona.art_links.filter(isImage);
@@ -159,31 +199,46 @@ function FursonaCard({ sona }: { sona: View["fursonas"][number] }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, images.length]);
+  const [main, ...more] = images;
   return (
-    <article className="dt-sona">
+    <article className={`dt-sona${main ? " has-art" : ""}`}>
+      {main ? (
+        <div className="dt-sona-art">
+          <button type="button" className="dt-sona-main" onClick={() => setOpen(0)} aria-label={`View ${sona.name} art`}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={main} alt="" loading="lazy" referrerPolicy="no-referrer" />
+          </button>
+          {more.length ? (
+            <div className="dt-sona-thumbs">
+              {more.slice(0, 4).map((l, i) => (
+                <button key={l} type="button" onClick={() => setOpen(i + 1)} aria-label={`View ${sona.name} art ${i + 2}`}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={l} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                  {i === 3 && more.length > 4 ? <span className="dt-sona-more">+{more.length - 4}</span> : null}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
       <div className="dt-sona-text">
         <b>{sona.name}</b>
         {sona.description ? <p>{sona.description}</p> : null}
+        {images.length ? (
+          <small className="dt-muted">
+            {images.length} piece{images.length === 1 ? "" : "s"} of art · click to view
+          </small>
+        ) : null}
+        {links.length ? (
+          <div className="dt-sona-links">
+            {links.map((l) => (
+              <a key={l} href={l} target="_blank" rel="noopener noreferrer nofollow">
+                <Link2 size={13} aria-hidden="true" /> {l.replace(/^https?:\/\/(www\.)?/, "").split("/")[0]}
+              </a>
+            ))}
+          </div>
+        ) : null}
       </div>
-      {images.length ? (
-        <div className="dt-sona-art" data-count={Math.min(images.length, 4)}>
-          {images.map((l, i) => (
-            <button key={l} type="button" onClick={() => setOpen(i)} aria-label={`View ${sona.name} art ${i + 1}`}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={l} alt="" loading="lazy" referrerPolicy="no-referrer" />
-            </button>
-          ))}
-        </div>
-      ) : null}
-      {links.length ? (
-        <div className="dt-sona-links">
-          {links.map((l) => (
-            <a key={l} href={l} target="_blank" rel="noopener noreferrer nofollow">
-              <Link2 size={13} aria-hidden="true" /> {l.replace(/^https?:\/\/(www\.)?/, "").split("/")[0]}
-            </a>
-          ))}
-        </div>
-      ) : null}
       {open !== null
         ? createPortal(
             <div className="dt-lightbox" onClick={() => setOpen(null)} role="dialog" aria-modal="true" aria-label={`${sona.name} art`}>
@@ -259,9 +314,12 @@ export function ProfileScreen({ id }: { id: string }) {
   const cover = p.photos[0]?.url ?? p.avatar;
   const coverCrop = p.photos[0]?.crop ?? null;
   const facts = p.facts.map((f) => ({ ...f, Icon: FACT_ICONS[f.key] ?? Sparkles }));
+  // Socials and gaming tags live in the header; everything else goes in the columns
+  const socials = p.sections.filter((s) => s.id === "socials" || s.id === "gaming").flatMap((s) => s.items);
+  const sections = p.sections.filter((s) => s.id !== "socials" && s.id !== "gaming");
 
   return (
-    <div className="dt-profile dt-profile--v2" style={{ "--acc": p.accent } as CSSProperties}>
+    <div className="dt-profile dt-profile--v2" style={{ "--acc": p.accent, "--acc-ink": inkFor(p.accent) } as CSSProperties}>
       {data.own ? (
         <div className="dt-banner dt-banner--soft">
           <Eye size={16} aria-hidden="true" />
@@ -348,6 +406,7 @@ export function ProfileScreen({ id }: { id: string }) {
                 )
               ) : null}
             </div>
+            {socials.length ? <SocialChips items={socials} /> : null}
             {p.partners.length ? (
               <div className="dt-partners">
                 <span>
@@ -543,7 +602,17 @@ export function ProfileScreen({ id }: { id: string }) {
             </div>
           ) : null}
 
+
           <div className="dt-masonry">
+            {/* Each fursona gets its own card, first in the columns */}
+            {p.fursonas.map((f, n) => (
+              <section key={`${f.name}-${n}`} className="dt-card dt-sonas-card">
+                <h3 className="dt-h-icon">
+                  <SectionIcon id="fursonas" /> Fursona
+                </h3>
+                <FursonaCard sona={f} />
+              </section>
+            ))}
             <section className="dt-card">
               <h3 className="dt-h-icon">
                 <SectionIcon id="targets" /> Looking for
@@ -574,7 +643,7 @@ export function ProfileScreen({ id }: { id: string }) {
               )}
             </section>
 
-            {p.sections.map((s) => (
+            {sections.map((s) => (
               <section key={s.id} className="dt-card">
                 <h3 className="dt-h-icon">
                   <SectionIcon id={s.id} /> {s.label}
@@ -599,18 +668,6 @@ export function ProfileScreen({ id }: { id: string }) {
             ))}
           </div>
 
-          {p.fursonas.length ? (
-            <section className="dt-card dt-sonas-card">
-              <h3 className="dt-h-icon">
-                <SectionIcon id="fursonas" /> {p.fursonas.length === 1 ? "Fursona" : "Fursonas"}
-              </h3>
-              <div className="dt-sonas">
-                {p.fursonas.map((f, n) => (
-                  <FursonaCard key={`${f.name}-${n}`} sona={f} />
-                ))}
-              </div>
-            </section>
-          ) : null}
         </div>
       </div>
 
