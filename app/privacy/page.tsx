@@ -3,7 +3,7 @@ import { LegalShell, type LegalSection } from "../legal/legal-shell";
 
 export const metadata = { title: "Privacy Policy | Kitty Kingdom" };
 
-const UPDATED = "September 28, 2026";
+const UPDATED = "September 29, 2026";
 
 const sections: LegalSection[] = [
   {
@@ -104,6 +104,11 @@ const sections: LegalSection[] = [
             (including your &quot;server bestie&quot;, friendship map and topic map), which only you can open.
           </li>
           <li>
+            <b>Badges:</b> the badges worked out from your statistics, which ones you pin or use as a title, and when you earned or changed tier on each
+            (saved when you open My stats). Your pinned badges and title are shown on your profile card and your Social profile; the rest only you can see.
+            Deleting your Site account deletes these dates.
+          </li>
+          <li>
             <b>Social (dating and friends) profiles:</b> if you use Social on the Site (including a profile you made with our former dating bot), the profile you create (which can include sensitive details such as
             gender, sexuality and relationship preferences), any photos or art you upload, your prompts and display choices, and your likes, passes,
             matches, friends and blocks. Photos have location and other hidden metadata removed when you upload them. To match people by meaning, our main
@@ -149,8 +154,9 @@ const sections: LegalSection[] = [
           <li>
             <b>Support tickets:</b> ticket conversations are recorded. When a ticket is closed, a transcript is created containing every message,
             attachment, image, video, sticker and reaction, the participants&apos; names and avatars, and any messages that were edited, deleted or had
-            attachments removed while the ticket was open. The staff copy is stored in a private staff-only channel. The member who opened the ticket is
-            sent a copy with images, videos and files removed, and without deleted or edited messages.
+            attachments removed while the ticket was open. The staff copy is stored in a private staff-only channel. The member who opened the ticket can read
+            their own copy on the Site (My Account → Transcripts, which needs a Site account with that Discord account linked). That copy has images,
+            videos, files and stickers removed, and only they and staff can open it.
           </li>
           <li>
             <b>Audit log:</b> actions administrators take on Site accounts (for example resetting a password or changing roles) are logged with who did it
