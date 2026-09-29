@@ -3,7 +3,7 @@
 import { Sparkles } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
 import type { BadgeEarned } from "../../lib/badge-history";
-import { TIER_NAMES, badgeById, type BadgeShowcase } from "../../lib/badges";
+import { TIER_NAMES, badgeAbout, badgeById, type BadgeShowcase } from "../../lib/badges";
 import { BadgeMedal } from "./badge-medal";
 
 const dateFmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -13,11 +13,17 @@ export function tierLabel(tiers: number[], tier: number) {
   return tiers.length === 1 ? "Special" : TIER_NAMES[Math.min(tier, 4) - 1];
 }
 
-/** "Earned Sep 29, 2026", "Reached Gold Oct 2, 2026", or "Earned by …" for badges from before tracking. */
+/** "today", "yesterday" or "on Sep 29, 2026" (in the viewer's own calendar). */
+function onDay(iso: string) {
+  const day = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const diff = Math.round((day(new Date()) - day(new Date(iso))) / 86_400_000);
+  return diff === 0 ? "today" : diff === 1 ? "yesterday" : `on ${dateFmt.format(new Date(iso))}`;
+}
+
+/** "Earned today", "Reached Gold yesterday", "Earned on Sep 29, 2026". */
 export function earnedText(earned: BadgeEarned | null | undefined, tiers: number[]) {
   if (!earned) return null;
-  const when = dateFmt.format(new Date(earned.at));
-  if (earned.baseline) return `Earned by ${when}`;
+  const when = onDay(earned.at);
   return tiers.length > 1 && earned.tier > 1 ? `Reached ${TIER_NAMES[Math.min(earned.tier, 4) - 1]} ${when}` : `Earned ${when}`;
 }
 
@@ -26,13 +32,14 @@ export function BadgeTip({ id, tier, earned, children, className }: { id: string
   const def = badgeById(id);
   if (!def) return <>{children}</>;
   const when = earnedText(earned, def.tiers);
+  const about = badgeAbout(id);
   return (
-    <span className={`badge-tip-wrap ${className ?? ""}`} tabIndex={0} aria-label={`${def.name}, ${tierLabel(def.tiers, tier)}. ${def.desc}.${when ? ` ${when}.` : ""}`}>
+    <span className={`badge-tip-wrap ${className ?? ""}`} tabIndex={0} aria-label={`${def.name}, ${tierLabel(def.tiers, tier)}. ${about}${when ? ` ${when}.` : ""}`}>
       {children}
       <span className="badge-tip" role="tooltip" style={{ "--hue": def.hue } as CSSProperties}>
         <b>{def.name}</b>
         <span className={`badge-tip-tier badge-tip-tier--${def.tiers.length === 1 ? "special" : tier}`}>{tierLabel(def.tiers, tier)}</span>
-        <span className="badge-tip-desc">{def.desc}</span>
+        <span className="badge-tip-desc">{about}</span>
         {when ? <span className="badge-tip-when">{when}</span> : null}
       </span>
     </span>

@@ -373,6 +373,8 @@ export function ProfileScreen({ id }: { id: string }) {
               {active === "online now" ? <span className="dt-face-dot" title="Online now" /> : null}
             </div>
             {socials.length ? <SocialChips items={socials} /> : null}
+            {/* Their badge title and pinned badges from the website (hover for details) */}
+            {p.badges ? <ShowcaseBadges showcase={p.badges.showcase} earned={p.badges.earned} size={34} className="dt-hero-showcase" /> : null}
           </div>
           <div className="dt-hero-info">
             <h1>
@@ -382,8 +384,6 @@ export function ProfileScreen({ id }: { id: string }) {
             </h1>
             {p.headline ? <p className="dt-headline">{p.headline}</p> : null}
             {p.discordName ? <p className="dt-muted dt-hero-handle">@{p.discordName}</p> : null}
-            {/* Their badge title and pinned badges from the website (hover for details) */}
-            {p.badges ? <ShowcaseBadges showcase={p.badges.showcase} earned={p.badges.earned} size={34} className="dt-hero-showcase" /> : null}
             <ul className="dt-hero-facts">
               {facts.map((f) => (
                 <li key={f.key} title={f.label} className={`is-${f.key}`}>
