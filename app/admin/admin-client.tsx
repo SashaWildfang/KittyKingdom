@@ -1,5 +1,6 @@
 "use client";
 
+import { TicketDeletePermissions } from "./delete-ticket-button";
 import { Activity, BarChart3, HeartHandshake, ClipboardCheck, MessagesSquare, Gavel, Newspaper, ScrollText, ShieldCheck, Ticket, Users, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -45,7 +46,7 @@ const ACTION_GROUPS: Record<string, string[]> = {
   unban: ["unban"],
 };
 
-export function AdminClient({ adminName, level }: { adminName: string; level: Level }) {
+export function AdminClient({ adminName, level, canDeleteNsfw = false }: { adminName: string; level: Level; canDeleteNsfw?: boolean }) {
   const isAdmin = level === "admin";
   const tabs = TABS.filter((t) => isAdmin || !t.admin);
   const [tab, setTab] = useState<Tab>("overview");
@@ -131,6 +132,7 @@ export function AdminClient({ adminName, level }: { adminName: string; level: Le
   }
 
   return (
+    <TicketDeletePermissions.Provider value={canDeleteNsfw}>
     <div className="adm">
       <header className="adm-head">
         <div className="adm-head-copy">
@@ -240,5 +242,6 @@ export function AdminClient({ adminName, level }: { adminName: string; level: Le
         ? createPortal(<TranscriptViewer ticketId={transcript} onClose={() => setTranscript(null)} onOpenMember={openMember} />, document.body)
         : null}
     </div>
+    </TicketDeletePermissions.Provider>
   );
 }
