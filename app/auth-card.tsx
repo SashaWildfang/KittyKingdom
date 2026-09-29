@@ -3,6 +3,7 @@
 import { ArrowBigUpDash, Check, Circle, CircleCheck, MailCheck, MessageCircle, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { ChangeEmailForm } from "./change-email-form";
 import { ResendVerificationLink } from "./resend-verification-link";
 
 type Mode = "login" | "register";
@@ -123,6 +124,7 @@ function StatusBox({ status, identifier }: { status: AuthStatus; identifier: str
           </>
         ) : null}
       </p>
+      {status.unverified ? <ChangeEmailForm identifier={identifier} className="kk-change-email" /> : null}
     </div>
   );
 }
@@ -137,7 +139,7 @@ function SubmitButton({ busy, disabled, children }: { busy: boolean; disabled?: 
   );
 }
 
-function LoginForm({ identifier: initialIdentifier, active }: { identifier: string; active: boolean }) {
+function LoginForm({ identifier: initialIdentifier, active, next }: { identifier: string; active: boolean; next?: string }) {
   const [identifier, setIdentifier] = useState(initialIdentifier);
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -150,6 +152,7 @@ function LoginForm({ identifier: initialIdentifier, active }: { identifier: stri
 
   return (
     <form className="kk-form" action="/api/account/login" method="post" onSubmit={() => setBusy(true)}>
+      {next ? <input type="hidden" name="next" value={next} /> : null}
       <div className="kk-field">
         <label className="kk-label" htmlFor={id}>
           Email or username <span className="kk-required">*</span>
@@ -271,7 +274,7 @@ function RegisterForm({ active }: { active: boolean }) {
           <MessageCircle size={16} />
         </span>
         <p>
-          <strong>Members only.</strong> Accounts are for verified members of the Kitty Kingdom Discord. Next, you&apos;ll get a code to use with{" "}
+          <strong>Members only.</strong> Accounts are for verified members of the Kitty Kingdom Discord. Next, you&apos;ll confirm your email, then get a code to use with{" "}
           <code>/link</code> in the server.
         </p>
       </div>
@@ -293,11 +296,14 @@ export function AuthCard({
   loginStatus,
   registerStatus,
   identifier,
+  next,
 }: {
   initialMode: Mode;
   loginStatus: AuthStatus;
   registerStatus: AuthStatus;
   identifier: string;
+  /** Page to return to after logging in */
+  next?: string;
 }) {
   const [mode, setMode] = useState<Mode>(initialMode);
   const [height, setHeight] = useState<number | null>(null);
@@ -352,7 +358,7 @@ export function AuthCard({
           <div className="kk-panel" ref={(el) => void (panels.current.login = el)} aria-hidden={mode !== "login"}>
             <p className="kk-intro">Welcome back! Log in to your Kitty Kingdom account.</p>
             <StatusBox status={loginStatus} identifier={identifier} />
-            <LoginForm identifier={identifier} active={mode === "login"} />
+            <LoginForm identifier={identifier} active={mode === "login"} next={next} />
             <p className="kk-switch">
               New here?{" "}
               <button type="button" onClick={() => switchTo("register")}>
@@ -361,7 +367,7 @@ export function AuthCard({
             </p>
           </div>
           <div className="kk-panel" ref={(el) => void (panels.current.register = el)} aria-hidden={mode !== "register"}>
-            <p className="kk-intro">Create your account in three quick steps: your details, link your Discord, then confirm your email.</p>
+            <p className="kk-intro">Create your account in three quick steps: your details, confirm your email, then link your Discord.</p>
             <StatusBox status={registerStatus} identifier={identifier} />
             <RegisterForm active={mode === "register"} />
             <p className="kk-switch">

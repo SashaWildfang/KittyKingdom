@@ -40,8 +40,8 @@ export async function POST(request: Request) {
   try {
     const users = await getUsersCollection();
     const user = await users.findOne({ $or: [{ email: identifier }, { username: identifier }] });
-    // Unfinished sign-ups get their email link once their Discord is linked, not before
-    if (user && !user.emailVerified && !user.registration?.pending && typeof user.email === "string") {
+    // Unfinished sign-ups confirm their email first, so they can ask for a new link too
+    if (user && !user.emailVerified && typeof user.email === "string") {
       const { token, entry } = createVerificationTokenEntry();
       await users.updateOne(
         { _id: user._id },
@@ -53,6 +53,7 @@ export async function POST(request: Request) {
       );
       const result = await sendVerificationEmail(user.email, `${origin}/api/account/verify-email?token=${token}`, {
         discordName: user.discord?.globalName ?? user.discord?.username ?? null,
+        newAccount: Boolean(user.registration?.pending),
       });
       if (!result.sent) console.error("Verification resend failed", result.reason);
     }

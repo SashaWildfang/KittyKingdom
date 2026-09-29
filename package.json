@@ -12,6 +12,7 @@
     "lucide-react": "^1.48.0",
     "mongodb": "^6.20.0",
     "next": "^14.2.5",
+    "node-html-parser": "^7.1.0",
     "qrcode": "^1.5.4",
     "react": "^18",
     "react-dom": "^18"

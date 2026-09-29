@@ -1,6 +1,6 @@
 import { userTimeZone } from "../../lib/timezone";
 import { accountGreeting } from "../../lib/greeting";
-import { Backpack, ChevronDown, Gift, ShieldCheck, Check, CircleAlert, ClipboardList, KeyRound, Link2, Lock, MessageCircle, Sparkles, TriangleAlert, UserRound } from "lucide-react";
+import { Backpack, ChevronDown, Gift, ShieldCheck, Check, CircleAlert, ClipboardList, FileText, KeyRound, Link2, Lock, Mail, MessageCircle, Sparkles, TriangleAlert, UserRound } from "lucide-react";
 import { LeafEmote } from "../ui-icons";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -25,6 +25,9 @@ import { DailyCard } from "./daily-card";
 import { getDailyStatus } from "../../lib/daily";
 import { AccountInventory } from "./account-inventory";
 import { DiscordLinkCode } from "./discord-link-code";
+import { memberTranscripts, ticketTypeLabel } from "../../lib/member-transcripts";
+
+const shortDate = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Denver" });
 import { RoleManager } from "./role-manager";
 import { AccountViews, StatsButton } from "./account-views";
 import { ProfileBadges } from "./profile-badges";
@@ -118,13 +121,14 @@ export default async function AccountPage({
     searchParams.discord ??
     searchParams.verify ??
     searchParams.login;
-  const [application, roles, roleState, dailyStatus, serverId, staffAccount] = await Promise.all([
+  const [application, roles, roleState, dailyStatus, serverId, staffAccount, transcripts] = await Promise.all([
     getJoinApplication(user.discordId),
     getMemberRoleSummary(user.discordId),
     user.discordId ? getRoleState(String(user.discordId)).catch(() => null) : Promise.resolve(null),
     user.discordId ? getDailyStatus(String(user.discordId)).catch(() => null) : Promise.resolve(null),
     user.discordId ? guildId().catch(() => null) : Promise.resolve(null),
     isStaffDiscordId(user.discordId).catch(() => false),
+    user.discordId ? memberTranscripts(String(user.discordId)).catch(() => null) : Promise.resolve(null),
   ]);
   const socials = (user.socials ?? {}) as Partial<Record<string, SocialLink>>;
   const phone = typeof user.phone === "string" ? user.phone : null;
@@ -220,6 +224,7 @@ export default async function AccountPage({
             {discordLinked ? <a href="#roles"><Sparkles size={16} aria-hidden="true" /> Server roles</a> : null}
             {discordLinked ? <a href="#daily"><Gift size={16} aria-hidden="true" /> Daily Reward</a> : null}
             {discordLinked ? <a href="#inventory"><Backpack size={16} aria-hidden="true" /> Inventory</a> : null}
+            {discordLinked ? <a href="#transcripts"><FileText size={16} aria-hidden="true" /> Transcripts</a> : null}
             <a href="#profile"><UserRound size={16} aria-hidden="true" /> Profile</a>
             <a href="#contact"><Link2 size={16} aria-hidden="true" /> Contact &amp; socials</a>
             <a href="#security"><Lock size={16} aria-hidden="true" /> Security{twoFactor.enabled ? null : <span className="acct-nav-dot" title="Two-factor is off" />}</a>
@@ -249,6 +254,10 @@ export default async function AccountPage({
               <div className="acct-discord-actions">
                 <DiscordUnlinkForm />
               </div>
+            ) : user.emailVerified !== true ? (
+              <p className="acct-discord-needs-email">
+                <Mail size={16} aria-hidden="true" /> Confirm your email address first (see the banner above), then you can link Discord.
+              </p>
             ) : (
               <DiscordLinkCode />
             )}
@@ -308,6 +317,44 @@ export default async function AccountPage({
           {discordLinked ? (
             <CollapsibleCard id="inventory" defaultOpen={!collapsed.has("inventory")} title="Inventory" description="Everything you've bought or been gifted. Equip roles, use boosters and send gifts right here.">
               <AccountInventory />
+            </CollapsibleCard>
+          ) : null}
+
+          {discordLinked ? (
+            <CollapsibleCard
+              id="transcripts"
+              defaultOpen={!collapsed.has("transcripts")}
+              title="Transcripts"
+              description="Your closed tickets. Images, videos and files are removed from your copy for privacy."
+              summary={transcripts ? `${transcripts.length} ticket${transcripts.length === 1 ? "" : "s"}` : undefined}
+            >
+              {transcripts === null ? (
+                <p className="acct-muted">Your transcripts couldn&apos;t be loaded right now. Please try again in a moment.</p>
+              ) : transcripts.length === 0 ? (
+                <p className="acct-muted">No transcripts yet. When a ticket you opened is closed, it shows up here.</p>
+              ) : (
+                <ul className="acct-transcripts">
+                  {transcripts.map((t) => (
+                    <li key={t.ticketId}>
+                      <a href={`/account/transcripts/${t.ticketId}`}>
+                        <span className="acct-transcript-icon" aria-hidden="true">
+                          <FileText size={17} />
+                        </span>
+                        <span className="acct-transcript-main">
+                          <strong>
+                            Ticket #{t.ticketId} · {ticketTypeLabel(t.type)}
+                          </strong>
+                          <small>
+                            {t.created ? `Opened ${shortDate.format(new Date(t.created))}` : "Opened —"}
+                            {t.resolvedAt ? ` · Closed ${shortDate.format(new Date(t.resolvedAt))}` : ""}
+                          </small>
+                        </span>
+                        <span className="acct-transcript-open">View →</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </CollapsibleCard>
           ) : null}
 

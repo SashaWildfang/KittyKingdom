@@ -246,3 +246,10 @@ export async function ticketTypes(): Promise<string[]> {
   const col = await getBotCollection("resolvedTickets");
   return ((await col.distinct("ticket_type")) as string[]).filter(Boolean).sort();
 }
+
+/** The ticket a transcript upload belongs to. */
+export async function getTicketByTranscript(transcriptId: string): Promise<Ticket | null> {
+  if (!/^\d{15,21}$/.test(transcriptId)) return null;
+  const doc = await (await getBotCollection("resolvedTickets")).findOne({ transcript_id: transcriptId });
+  return doc ? toTicket(doc) : null;
+}
