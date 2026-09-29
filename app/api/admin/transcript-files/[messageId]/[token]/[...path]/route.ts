@@ -1,5 +1,6 @@
 import { verifyTranscriptToken } from "../../../../../../../lib/admin";
-import { LOCAL_TIMES_SCRIPT } from "../../../../../../../lib/transcript-local-times";
+import { LOCAL_TIMES_SCRIPT, localizeTranscriptTimes } from "../../../../../../../lib/transcript-local-times";
+import { requestTimeZone } from "../../../../../../../lib/timezone";
 import { openTranscriptFile } from "../../../../../../../lib/transcript-store";
 
 export const dynamic = "force-dynamic";
@@ -76,6 +77,8 @@ export async function GET(
     const bytes = await file.read(0, Math.max(0, file.size - 1)).catch(() => null);
     if (!bytes) return new Response("This file couldn't be loaded from Discord right now. Try again.", { status: 502 });
     let page = new TextDecoder().decode(bytes instanceof Uint8Array ? bytes : new Uint8Array(await new Response(bytes).arrayBuffer()));
+    page = localizeTranscriptTimes(page, requestTimeZone(request));
+    headers["Cache-Control"] = "private, no-store";
     if (!page.includes("data-kk-local-times")) page = page.includes("</body>") ? page.replace("</body>", `${LOCAL_TIMES_SCRIPT}</body>`) : page + LOCAL_TIMES_SCRIPT;
     delete headers["Accept-Ranges"];
     return new Response(page, { headers });
