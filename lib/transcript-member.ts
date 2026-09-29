@@ -10,7 +10,9 @@
 import { parse, type HTMLElement, type Node } from "node-html-parser";
 import { openTranscriptFile } from "./transcript-store";
 
-const RENDER_VERSION = 1;
+const RENDER_VERSION = 2;
+/** The current transcript stylesheet, served by both viewers (old zips carry an old style.css) */
+export const TRANSCRIPT_CSS_FILE = "kk-transcript.css";
 
 export type MemberTicketMeta = {
   ticketId: number;
@@ -51,6 +53,23 @@ const MEDIA_LINK = /^(?:https?:\/\/(?:cdn\.discordapp\.com|media\.discordapp\.ne
 
 export const redactedNote = (what: string) => `<div class="redacted-media">⚠️ [${what} Redacted for Privacy]</div>`;
 
+// Staff copies (Admin viewer) keep every image, video and file; member copies redact them. The build
+// is synchronous, so this is set for the length of one build.
+let staffCopy = false;
+// Media staff copies may show: files inside the transcript, or https links
+const SAFE_MEDIA_SRC = /^(?:(?:attachments|embeds|stickers|avatars|emojis)\/(?!.*\.\.)[^"<>\s]{1,200}|https:\/\/[^"<>\s]{1,600})$/i;
+
+function staffMedia(node: HTMLElement, tag: string) {
+  const src = (node.getAttribute("src") ?? node.querySelector("source")?.getAttribute("src") ?? "").trim();
+  if (!SAFE_MEDIA_SRC.test(src)) return "";
+  const cls = classes(node.getAttribute("class"));
+  const c = cls ? ` class="${cls}"` : "";
+  if (tag === "img") return `<img${c} src="${escapeHtml(src)}" alt="${escapeHtml((node.getAttribute("alt") ?? "").slice(0, 80))}" loading="lazy">`;
+  if (tag === "video") return `<video${c} src="${escapeHtml(src)}" controls preload="metadata" playsinline${node.getAttribute("autoplay") !== undefined ? " autoplay loop muted" : ""}></video>`;
+  if (tag === "audio") return `<audio${c} src="${escapeHtml(src)}" controls preload="metadata"></audio>`;
+  return "";
+}
+
 function classes(value: string | undefined) {
   return (value ?? "")
     .split(/\s+/)
@@ -76,6 +95,7 @@ export function safeInner(el: HTMLElement): string {
 const MEDIA_URL_TEXT = /https?:\/\/(?:cdn\.discordapp\.com|media\.discordapp\.net)\/(?:attachments|ephemeral-attachments)\/\S+/gi;
 
 function safeText(text: string) {
+  if (staffCopy) return escapeHtml(text);
   return escapeHtml(text).replace(MEDIA_URL_TEXT, '<span class="redacted-link">[media link removed]</span>');
 }
 
@@ -84,20 +104,28 @@ function safeNode(node: Node): string {
   const tag = (node.rawTagName ?? "").toLowerCase();
   if (!tag) return safeInner(node);
   if (DROP.has(tag)) return "";
-  if (MEDIA.has(tag)) return redactedNote(tag === "audio" ? "Audio" : tag === "video" ? "Video" : "Media");
+  if (MEDIA.has(tag)) {
+    if (staffCopy) return tag === "video" || tag === "audio" ? staffMedia(node, tag) : "";
+    return redactedNote(tag === "audio" ? "Audio" : tag === "video" ? "Video" : "Media");
+  }
   if (tag === "img") {
     const src = (node.getAttribute("src") ?? "").trim();
     if (EMOJI_SRC.test(src)) {
       const alt = escapeHtml((node.getAttribute("alt") ?? "").slice(0, 60));
       return `<img class="chat-emoji" src="${escapeHtml(src)}" alt="${alt}" title="${alt}">`;
     }
-    return redactedNote("Image");
+    return staffCopy ? staffMedia(node, "img") : redactedNote("Image");
   }
   // Whole attachment / media-embed / sticker blocks from either format
-  if (hasClass(node, "attachment") || hasClass(node, "missing-media") || hasClass(node, "redacted-media")) return redactedNote(mediaKind(node));
+  if (hasClass(node, "attachment") || hasClass(node, "missing-media") || hasClass(node, "redacted-media")) {
+    return staffCopy ? `<div class="${classes(node.getAttribute("class"))}">${safeInner(node)}</div>` : redactedNote(mediaKind(node));
+  }
   if (tag === "a") {
     const href = (node.getAttribute("href") ?? "").trim();
-    if (MEDIA_LINK.test(href)) return `<span class="redacted-link">[media link removed]</span>`;
+    if (MEDIA_LINK.test(href)) {
+      if (!staffCopy) return `<span class="redacted-link">[media link removed]</span>`;
+      if (SAFE_MEDIA_SRC.test(href)) return `<a href="${escapeHtml(href)}" class="${classes(node.getAttribute("class"))}" target="_blank" rel="noopener noreferrer">${safeInner(node)}</a>`;
+    }
     const inner = safeInner(node);
     if (/^#user-\d{5,25}$/.test(href)) return `<a href="${href}" class="mention">${inner}</a>`;
     if (/^https?:\/\/[^\s"<>]{1,500}$/i.test(href)) return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer nofollow">${inner}</a>`;
@@ -160,17 +188,17 @@ function parseMessage(msg: HTMLElement): Message {
   const media: string[] = [];
   for (const el of body.querySelectorAll(".attachment, .missing-media, .redacted-media")) {
     if (el.closest(".embed-box") || el.closest(".content") || el.closest(".forwarded")) continue;
-    media.push(redactedNote(mediaKind(el)));
+    media.push(staffCopy ? safeNode(el) : redactedNote(mediaKind(el)));
   }
   for (const el of body.querySelectorAll("video, audio")) {
     if (el.closest(".attachment") || el.closest(".embed-box") || el.closest(".content")) continue;
-    media.push(redactedNote(el.rawTagName.toLowerCase() === "audio" ? "Audio" : "Video"));
+    media.push(staffCopy ? safeNode(el) : redactedNote(el.rawTagName.toLowerCase() === "audio" ? "Audio" : "Video"));
   }
   // Loose images (not the avatar, not inside something already handled)
   for (const el of body.querySelectorAll("img")) {
     if (el.closest(".attachment") || el.closest(".embed-box") || el.closest(".content") || el.closest(".forwarded") || el.closest(".reactions") || el.closest(".author") || el.closest(".reply-line")) continue;
     if (hasClass(el, "avatar") || EMOJI_SRC.test((el.getAttribute("src") ?? "").trim())) continue;
-    media.push(redactedNote("Image"));
+    media.push(staffCopy ? `<div class="attachment">${safeNode(el)}</div>` : redactedNote("Image"));
   }
 
   const buttons = body.querySelectorAll(".discord-button, .button-row button").map((b) => ({
@@ -313,14 +341,14 @@ function renderPage(meta: MemberTicketMeta, messages: Message[], people: { opene
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Transcript ${meta.ticketId}</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="${TRANSCRIPT_CSS_FILE}">
 </head>
 <body>
 <div class="layout-container">
     <div class="main-content">
         <h1>Transcript — #${meta.ticketId}</h1>
         <div class="header-times">Opened: ${created} MT &nbsp;&nbsp;|&nbsp;&nbsp; Closed: ${closed} MT &nbsp;&nbsp;|&nbsp;&nbsp; Resolution Time: ${duration(meta.created, meta.resolvedAt)}</div>
-        <div class="member-note">🔒 This is your copy of the ticket. Images, videos, files and stickers are removed for privacy.</div>
+        ${staffCopy ? "" : '<div class="member-note">🔒 This is your copy of the ticket. Images, videos, files and stickers are removed for privacy.</div>'}
 `);
 
   if (fallbackBody !== null) out.push(`<div class="fallback-body">${fallbackBody}</div>`);
@@ -391,6 +419,26 @@ ${localTimesScript}
 // ------------------------------------------------------------------
 /** Turns a staff transcript page (old or new format) into the member's redacted copy. */
 export function buildMemberTranscript(staffHtml: string, meta: MemberTicketMeta, localTimesScript = "") {
+  staffCopy = false;
+  return buildTranscript(staffHtml, meta, localTimesScript);
+}
+
+/** An old-format staff transcript redrawn in the current layout, with all its media (Admin viewer). */
+export function buildStaffTranscript(staffHtml: string, meta: MemberTicketMeta, localTimesScript = "") {
+  staffCopy = true;
+  try {
+    return buildTranscript(staffHtml, meta, localTimesScript);
+  } finally {
+    staffCopy = false;
+  }
+}
+
+/** Pages the bot made before the sidebar layout (August 2026). */
+export function isOldTranscript(html: string) {
+  return !html.includes("layout-container");
+}
+
+function buildTranscript(staffHtml: string, meta: MemberTicketMeta, localTimesScript: string) {
   const root = parse(staffHtml, { comment: false, blockTextElements: { script: false, style: false, noscript: false, pre: true } });
   const messages = root.querySelectorAll(".msg").map(parseMessage);
   const people = { opener: metaValue(root, /opened by/i), closer: metaValue(root, /(deleted|closed) by/i) };
