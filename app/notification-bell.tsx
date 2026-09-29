@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Eye, Heart, HeartHandshake, Inbox, MessageCircle, Settings, Sparkles, UserCheck, UserPlus } from "lucide-react";
+import { Bell, ChevronDown, Eye, Heart, HeartHandshake, Inbox, MessageCircle, Settings, Sparkles, Trash2, UserCheck, UserPlus } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type Item = { id: string; type: string; title: string; body: string; link: string; at: string; read: boolean; count: number };
@@ -16,6 +16,9 @@ const ICONS: Record<string, typeof Bell> = {
   partner: HeartHandshake,
 };
 
+// The panel starts with a few; "Show more" adds this many at a time
+const PAGE = 5;
+
 function when(iso: string) {
   const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
   if (m < 1) return "now";
@@ -30,6 +33,9 @@ export function NotificationBell() {
   const [unread, setUnread] = useState(0);
   const [items, setItems] = useState<Item[] | null>(null);
   const [open, setOpen] = useState(false);
+  const [shown, setShown] = useState(PAGE);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [clearing, setClearing] = useState(false);
   const box = useRef<HTMLDivElement>(null);
 
   const poll = useCallback(async () => {
@@ -59,6 +65,8 @@ export function NotificationBell() {
   }, [poll]);
   useEffect(() => {
     if (!open) return;
+    setShown(PAGE);
+    setConfirmClear(false);
     void load();
     const onDown = (e: MouseEvent) => !box.current?.contains(e.target as Node) && setOpen(false);
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
@@ -70,6 +78,16 @@ export function NotificationBell() {
     };
   }, [open, load]);
 
+  const clearAll = async () => {
+    setClearing(true);
+    const r = await fetch("/api/notifications", { method: "DELETE" }).then((x) => x.json()).catch(() => null);
+    setClearing(false);
+    setConfirmClear(false);
+    if (r?.ok) {
+      setItems([]);
+      setUnread(0);
+    }
+  };
   const mark = (body: object) => fetch("/api/notifications", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);
 
   return (
@@ -82,12 +100,29 @@ export function NotificationBell() {
         <div className="nb-panel" role="dialog" aria-label="Notifications">
           <header>
             <b>Notifications</b>
+            {items && items.length ? (
+              confirmClear ? (
+                <span className="nb-clear-confirm">
+                  Clear all?
+                  <button type="button" className="nb-clear-yes" onClick={() => void clearAll()} disabled={clearing}>
+                    {clearing ? "Clearing…" : "Yes"}
+                  </button>
+                  <button type="button" onClick={() => setConfirmClear(false)} disabled={clearing}>
+                    No
+                  </button>
+                </span>
+              ) : (
+                <button type="button" onClick={() => setConfirmClear(true)}>
+                  <Trash2 size={13} aria-hidden="true" /> Clear all
+                </button>
+              )
+            ) : null}
           </header>
           {!items ? (
             <p className="nb-empty">Loading…</p>
           ) : items.length ? (
             <ul>
-              {items.map((n) => {
+              {items.slice(0, shown).map((n) => {
                 const Icon = ICONS[n.type] ?? Bell;
                 return (
                   <li key={n.id}>
@@ -110,11 +145,19 @@ export function NotificationBell() {
                   </li>
                 );
               })}
+              {items.length > shown ? (
+                <li className="nb-more">
+                  <button type="button" onClick={() => setShown((v) => v + PAGE)}>
+                    <ChevronDown size={14} aria-hidden="true" /> Show {Math.min(PAGE, items.length - shown)} more
+                    {items.length - shown > PAGE ? <small> ({items.length - shown} left)</small> : null}
+                  </button>
+                </li>
+              ) : null}
             </ul>
           ) : (
             <p className="nb-empty">You&apos;re all caught up.</p>
           )}
-          <a className="nb-foot" href="/social/settings#notifications">
+          <a className="nb-foot" href="/settings#notifications">
             <Settings size={13} aria-hidden="true" /> Notification settings
           </a>
         </div>

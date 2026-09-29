@@ -50,7 +50,7 @@ export default function Likes() {
           <>
             <p className="dt-muted dt-count">
               {views.data.weekCount} profile view{views.data.weekCount === 1 ? "" : "s"} this week · people browsing anonymously aren&apos;t listed ·{" "}
-              <a className="dt-textlink" href="/social/settings#privacy">
+              <a className="dt-textlink" href="/settings#privacy">
                 Browse anonymously yourself
               </a>
             </p>

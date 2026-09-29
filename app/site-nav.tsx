@@ -1,4 +1,4 @@
-import { UserStar } from "lucide-react";
+import { Settings, UserStar } from "lucide-react";
 import { AccountMenu } from "./account-menu";
 import { getPanelUser } from "../lib/admin";
 import { canViewStaffPage, getCurrentUser } from "../lib/auth";
@@ -39,6 +39,7 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
     ...(dating ? [{ href: "/social", label: "Social", icon: "dating" as const }] : []),
     ...(linked ? [{ href: "/store", label: "Store", icon: "store" as const }, { href: "/leaderboards", label: "Leaderboards", icon: "leaderboards" as const }] : []),
     ...(panel ? [{ href: "/admin", label: panel.level === "admin" ? "Admin" : "Staff Panel", icon: "admin" as const }] : []),
+    ...(signedIn ? [{ href: "/settings", label: "Settings", icon: "settings" as const }] : []),
   ];
   return (
     <nav className="topbar" aria-label="Main navigation">
@@ -72,6 +73,12 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
         {panel ? (
           <a className="nav-panel-btn" href="/admin" title={panel.level === "admin" ? "Admin panel" : "Staff panel"} aria-label={panel.level === "admin" ? "Admin panel" : "Staff panel"}>
             <UserStar size={19} strokeWidth={2.1} aria-hidden="true" />
+          </a>
+        ) : null}
+        {/* Settings (gear), then the bell */}
+        {signedIn ? (
+          <a className="nav-gear" href="/settings" title="Settings" aria-label="Settings">
+            <Settings size={19} strokeWidth={2.1} aria-hidden="true" />
           </a>
         ) : null}
         {linked ? <NotificationBell /> : null}

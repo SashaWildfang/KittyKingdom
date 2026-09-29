@@ -461,7 +461,7 @@ export function ProfileScreen({ id }: { id: string }) {
               <a className="dt-btn" href="/social/profile/edit">
                 <PenLine size={15} aria-hidden="true" /> Edit profile
               </a>
-              <a className="dt-btn dt-btn--ghost" href="/social/settings">
+              <a className="dt-btn dt-btn--ghost" href="/settings">
                 <Settings2 size={15} aria-hidden="true" /> Settings
               </a>
             </div>
