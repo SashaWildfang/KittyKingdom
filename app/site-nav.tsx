@@ -8,6 +8,7 @@ import { recentNewsStamps } from "../lib/news";
 import { canSeeDating } from "../lib/dating/access";
 import { NotificationBell } from "./notification-bell";
 import { MobileMenu } from "./mobile-menu";
+import { MessagesNavBadge } from "./messages-nav-badge";
 
 const PATREON_URL = "https://www.patreon.com/c/thekittykingdom/membership";
 
@@ -36,7 +37,7 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
     { href: "https://discord.com/invite/M9XKHFdYQV", label: "Discord", icon: "discord" as const, external: true },
     { href: PATREON_URL, label: "Patreon", icon: "patreon" as const, external: true },
     ...(staffPage ? [{ href: "/staff", label: "Staff", icon: "staff" as const }] : []),
-    ...(dating ? [{ href: "/social", label: "Social", icon: "dating" as const }] : []),
+    ...(dating ? [{ href: "/social", label: "Social", icon: "dating" as const }, { href: "/social/messages", label: "Messages", icon: "messages" as const }] : []),
     ...(linked ? [{ href: "/store", label: "Store", icon: "store" as const }, { href: "/leaderboards", label: "Leaderboards", icon: "leaderboards" as const }] : []),
     ...(panel ? [{ href: "/admin", label: panel.level === "admin" ? "Admin" : "Staff Panel", icon: "admin" as const }] : []),
     ...(signedIn ? [{ href: "/settings", label: "Settings", icon: "settings" as const }] : []),
@@ -66,6 +67,12 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
             Social
           </a>
         ) : null}
+        {dating ? (
+          <a href="/social/messages" className="nav-messages-tab">
+            Messages
+            <MessagesNavBadge />
+          </a>
+        ) : null}
         {linked ? <a href="/store">Store</a> : null}
         {linked ? <a href="/leaderboards">Leaderboards</a> : null}
       </div>
@@ -75,13 +82,13 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
             <UserStar size={19} strokeWidth={2.1} aria-hidden="true" />
           </a>
         ) : null}
-        {/* Settings (gear), then the bell */}
+        {/* The bell, then Settings (gear) */}
+        {linked ? <NotificationBell /> : null}
         {signedIn ? (
           <a className="nav-gear" href="/settings" title="Settings" aria-label="Settings">
             <Settings size={19} strokeWidth={2.1} aria-hidden="true" />
           </a>
         ) : null}
-        {linked ? <NotificationBell /> : null}
         {/* Theme lives in the account menu, the footer and the phone menu */}
         {signedIn ? (
           <AccountMenu social={dating} />

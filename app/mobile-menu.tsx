@@ -1,20 +1,22 @@
 "use client";
 
-import { Heart, HeartHandshake, Home, LogIn, LogOut, Menu, MessageCircle, Newspaper, Settings, ShoppingBag, Trophy, UserPlus, UserRound, UserStar, Users, X } from "lucide-react";
+import { Heart, HeartHandshake, Home, LogIn, LogOut, Menu, MessageCircle, MessagesSquare, Newspaper, Settings, ShoppingBag, Trophy, UserPlus, UserRound, UserStar, Users, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ThemeSwitch } from "./theme-switch";
 import { ThemeToggle } from "./theme-toggle";
+import { useUnreadMessages } from "./messages-nav-badge";
 import { useUnreadNews } from "./news-nav-badge";
 import { NotificationBell } from "./notification-bell";
 
-type NavLink = { href: string; label: string; icon: "home" | "news" | "discord" | "patreon" | "staff" | "store" | "leaderboards" | "admin" | "dating" | "settings"; external?: boolean };
+type NavLink = { href: string; label: string; icon: "home" | "news" | "discord" | "patreon" | "staff" | "store" | "leaderboards" | "admin" | "dating" | "settings" | "messages"; external?: boolean };
 
-const ICONS = { home: Home, news: Newspaper, discord: MessageCircle, patreon: Heart, staff: Users, store: ShoppingBag, leaderboards: Trophy, admin: UserStar, dating: HeartHandshake, settings: Settings };
+const ICONS = { home: Home, news: Newspaper, discord: MessageCircle, patreon: Heart, staff: Users, store: ShoppingBag, leaderboards: Trophy, admin: UserStar, dating: HeartHandshake, settings: Settings, messages: MessagesSquare };
 
 /** Phone navigation: a slim bar with the theme switch and a menu that opens a sheet of big, tappable links. */
 export function MobileMenu({ links, signedIn, newsStamps = [], bell = false }: { links: NavLink[]; signedIn: boolean; newsStamps?: { id: string; at: string }[]; bell?: boolean }) {
   const unreadNews = useUnreadNews(newsStamps);
+  const unreadMessages = useUnreadMessages(links.some((l) => l.icon === "messages"));
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
@@ -57,6 +59,7 @@ export function MobileMenu({ links, signedIn, newsStamps = [], bell = false }: {
                 </span>
                 {link.label}
                 {link.icon === "news" && unreadNews ? <span className="nav-news-badge">{unreadNews > 9 ? "9+" : unreadNews}</span> : null}
+                {link.icon === "messages" && unreadMessages ? <span className="nav-news-badge nav-msg-badge">{unreadMessages > 99 ? "99+" : unreadMessages}</span> : null}
               </a>
             );
           })}

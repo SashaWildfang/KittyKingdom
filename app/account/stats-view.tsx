@@ -59,7 +59,6 @@ import type { BadgeShowcase, EarnedBadge } from "../../lib/badges";
 import type { MemberStats } from "../../lib/member-stats";
 import { LeafEmote } from "../ui-icons";
 import { BadgeMedal } from "./badge-medal";
-import { BadgeTip } from "./badge-tip";
 import { BadgeCollection } from "./stats-badges";
 import { FriendshipMap, PeopleExplorer } from "./stats-social";
 import { TopicMap } from "./stats-topics";
@@ -258,7 +257,7 @@ function LevelOrb({ s, onOpen }: { s: MemberStats; onOpen: () => void }) {
   );
 }
 
-function LevelHero({ s, pinned, title }: { s: MemberStats; pinned: EarnedBadge[]; title: EarnedBadge | null }) {
+function LevelHero({ s }: { s: MemberStats }) {
   const { level } = s;
   const progress = Math.min(1, level.needed ? level.xp / level.needed : 0);
   const [fill, setFill] = useState(reducedMotion() ? progress : 0);
@@ -276,25 +275,11 @@ function LevelHero({ s, pinned, title }: { s: MemberStats; pinned: EarnedBadge[]
           <div>
             <p className="st-eyebrow" style={level.color?.[0] ? { color: level.color[0] } : undefined}>
               {level.role ?? "Rank"}
-              {title ? (
-                <span className="st-title-pill st-hero-title" style={{ "--hue": title.hue } as CSSProperties}>
-                  <Sparkles size={11} aria-hidden="true" /> {title.name}
-                </span>
-              ) : null}
             </p>
             <h2>
               <Count value={level.xp} /> <small>/ {fmt(level.needed)} XP</small>
             </h2>
           </div>
-          {pinned.length ? (
-            <div className="st-hero-badges" aria-label="Pinned badges">
-              {pinned.map((b) => (
-                <BadgeTip key={b.id} id={b.id} tier={b.tier}>
-                  <BadgeMedal icon={b.icon} shape={b.shape} hue={b.hue} tier={b.tier} size={34} />
-                </BadgeTip>
-              ))}
-            </div>
-          ) : null}
           <div className="st-hero-rank" title="Your level rank among current members">
             <Trophy size={16} aria-hidden="true" /> #{fmt(level.rank)} <small>of {fmt(level.of)}</small>
           </div>
@@ -666,8 +651,6 @@ export function StatsView({ onBack }: { onBack: () => void }) {
       {top}
       <LevelHero
         s={s}
-        pinned={showcase.pinned.map((p) => badges.find((b) => b.id === p.id)).filter((b): b is EarnedBadge => Boolean(b && b.tier))}
-        title={showcase.title ? badges.find((b) => b.id === showcase.title!.id) ?? null : null}
       />
 
       <div className="st-tabs" role="tablist" aria-label="Stats sections" ref={tabsRef}>
