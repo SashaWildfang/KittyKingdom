@@ -1,11 +1,13 @@
 "use client";
 
-import { Check, Copy, ExternalLink, Mail, RefreshCw, ShieldAlert } from "lucide-react";
+import { Check, Copy, ExternalLink, Mail, MailCheck, RefreshCw, ShieldAlert } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { ChangeEmailForm } from "../change-email-form";
 
 type State =
+  | { state: "verify-email"; email: string }
   | { state: "waiting" | "not-member"; code: string | null; expiresAt: string | null; email: string }
-  | { state: "done"; discordName: string; email: string; emailSent: boolean }
+  | { state: "done"; discordName: string; email: string; signedIn: boolean }
   | { state: "gone" };
 
 const DISCORD_INVITE = "https://discord.com/invite/M9XKHFdYQV";
@@ -16,8 +18,9 @@ function mmss(ms: number) {
 }
 
 /**
- * Step 2 of signing up: link a verified Discord account with /link CODE. The page checks every
- * couple of seconds and moves on by itself the moment the bot links it.
+ * Steps 2 and 3 of signing up: confirm the email (the link can be opened on any device), then link
+ * a verified Discord account with /link CODE. The page checks every couple of seconds and moves on
+ * by itself.
  */
 export function RegisterLink() {
   const [data, setData] = useState<State | null>(null);
@@ -43,17 +46,18 @@ export function RegisterLink() {
     return () => window.clearInterval(tick);
   }, [check]);
 
-  const waiting = data?.state === "waiting" || data?.state === "not-member";
+  const waiting = data?.state === "waiting" || data?.state === "not-member" || data?.state === "verify-email";
+  const slow = data?.state === "verify-email";
   useEffect(() => {
     if (!waiting) return;
-    const poll = window.setInterval(() => document.visibilityState === "visible" && void check(), 2000);
+    const poll = window.setInterval(() => document.visibilityState === "visible" && void check(), slow ? 4000 : 2000);
     const onFocus = () => void check();
     window.addEventListener("focus", onFocus);
     return () => {
       window.clearInterval(poll);
       window.removeEventListener("focus", onFocus);
     };
-  }, [waiting, check]);
+  }, [waiting, slow, check]);
 
   async function newCode() {
     setBusy(true);
@@ -83,7 +87,7 @@ export function RegisterLink() {
     });
   }
 
-  const step = data?.state === "done" ? 3 : 2;
+  const step = data?.state === "done" ? 4 : data?.state === "verify-email" || !data ? 2 : 3;
 
   return (
     <div className="reg">
@@ -91,7 +95,7 @@ export function RegisterLink() {
         <img src="/logo.png" alt="" width={56} height={56} />
         <div>
           <p className="reg-kicker">Create your account</p>
-          <h1>{step === 3 ? "You're verified!" : "Verify you're in the server"}</h1>
+          <h1>{step === 4 ? "You're all set!" : step === 2 ? "Confirm your email" : "Verify you're in the server"}</h1>
         </div>
       </header>
 
@@ -103,10 +107,10 @@ export function RegisterLink() {
           Account details
         </li>
         <li className={step === 2 ? "is-current" : "is-done"}>
-          <span>{step > 2 ? <Check size={14} strokeWidth={3} /> : "2"}</span> Link Discord
+          <span>{step > 2 ? <Check size={14} strokeWidth={3} /> : "2"}</span> Confirm email
         </li>
-        <li className={step === 3 ? "is-current" : undefined}>
-          <span>3</span> Confirm email
+        <li className={step === 3 ? "is-current" : step > 3 ? "is-done" : undefined}>
+          <span>{step > 3 ? <Check size={14} strokeWidth={3} /> : "3"}</span> Link Discord
         </li>
       </ol>
 
@@ -126,6 +130,34 @@ export function RegisterLink() {
         </div>
       ) : null}
 
+      {data?.state === "verify-email" ? (
+        <div className="reg-card">
+          <span className="reg-mail-icon" aria-hidden="true">
+            <MailCheck size={26} />
+          </span>
+          <p className="reg-lead">
+            We sent a confirmation link to <b>{data.email}</b>. Open it (on any device) and this page will move on to linking your Discord by itself.
+          </p>
+          <div className="reg-actions">
+            <button type="button" className="reg-btn reg-btn--primary" onClick={() => void resend(data.email)}>
+              <Mail size={15} aria-hidden="true" /> Resend email
+            </button>
+          </div>
+          {resent ? <p className="reg-note">{resent}</p> : <p className="reg-note">Can&apos;t find it? Check your spam or promotions folder.</p>}
+          <ChangeEmailForm
+            className="reg-change-email"
+            onChanged={(email) => {
+              setResent(null);
+              setData({ state: "verify-email", email });
+            }}
+          />
+          <p className="reg-wait" aria-live="polite">
+            <i aria-hidden="true" />
+            <span>Waiting for you to confirm… this page updates by itself.</span>
+          </p>
+        </div>
+      ) : null}
+
       {data && (data.state === "waiting" || data.state === "not-member") ? (
         (() => {
           const expires = data.expiresAt ? new Date(data.expiresAt).getTime() : 0;
@@ -134,7 +166,7 @@ export function RegisterLink() {
           return (
             <div className="reg-card">
               <p className="reg-lead">
-                Only members of the Kitty Kingdom Discord can make an account. Use your code with <code>/link</code> <b>in the server</b> to prove it&apos;s you,
+                <b>Email confirmed.</b> Only members of the Kitty Kingdom Discord can make an account. Use your code with <code>/link</code> <b>in the server</b> to prove it&apos;s you,
                 and this page will move on by itself.
               </p>
 
@@ -207,17 +239,19 @@ export function RegisterLink() {
             <Check size={30} strokeWidth={3} />
           </span>
           <p className="reg-lead">
-            Linked to <b>{data.discordName}</b>. One last step: we sent a confirmation link to <b>{data.email}</b>. Open it, then log in.
+            Linked to <b>{data.discordName}</b> and your email is confirmed. Welcome to Kitty Kingdom!
           </p>
           <div className="reg-actions">
-            <a className="reg-btn reg-btn--primary" href="/login">
-              Go to log in
-            </a>
-            <button type="button" className="reg-btn" onClick={() => void resend(data.email)}>
-              <Mail size={15} aria-hidden="true" /> Resend email
-            </button>
+            {data.signedIn ? (
+              <a className="reg-btn reg-btn--primary" href="/account?login=success">
+                Go to My Account
+              </a>
+            ) : (
+              <a className="reg-btn reg-btn--primary" href="/login">
+                Go to log in
+              </a>
+            )}
           </div>
-          {resent ? <p className="reg-note">{resent}</p> : !data.emailSent ? <p className="reg-note">Didn&apos;t get it? Check spam, or press Resend email.</p> : null}
         </div>
       ) : null}
     </div>

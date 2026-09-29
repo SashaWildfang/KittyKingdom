@@ -40,3 +40,11 @@ export function hasOperatorKeys(value: unknown, depth = 0): boolean {
   if (depth > 6 || value === null || typeof value !== "object") return false;
   return Object.entries(value as Record<string, unknown>).some(([k, v]) => k.startsWith("$") || k.includes(".") || hasOperatorKeys(v, depth + 1));
 }
+
+/** A page on this site to go back to after logging in ("/account/transcripts/12"), or null. */
+export function safeNext(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const next = value.trim();
+  if (next.length > 200 || !/^\/(?![/\\])[A-Za-z0-9/_\-.?=&#%]*$/.test(next)) return null;
+  return next;
+}

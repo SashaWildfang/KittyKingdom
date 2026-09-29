@@ -12,7 +12,7 @@ const statusMessages: Record<string, string> = {
   "password-requirements":
     "Password must be 8+ characters and include at least one number and one symbol.",
   "email-exists": "An account already exists for that email.",
-  "discord-required": "Accounts are for members of the Kitty Kingdom Discord. You'll link yours with /link in the next step.",
+  "discord-required": "Accounts are for members of the Kitty Kingdom Discord. After confirming your email, you'll link yours with /link.",
   "email-required": "Enter a valid email address.",
   "too-many": "Too many sign-ups from your network. Please try again in an hour.",
   "email-provider-needed":
@@ -28,7 +28,7 @@ export default async function RegisterPage({
 }: {
   searchParams: { register?: string; step?: string };
 }) {
-  // Step 2: link Discord with /link (only verified server members can finish signing up)
+  // Steps 2 and 3: confirm the email, then link Discord with /link (only verified server members can finish signing up)
   if (searchParams.step === "link" && (await pendingRegistration().catch(() => null))) {
     return (
       <main className="auth-screen">

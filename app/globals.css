@@ -24934,3 +24934,259 @@ body.live-fullscreen .view-as-bar {
   font-weight: 800;
   color: var(--muted);
 }
+
+/* ---------- "Typed your email wrong?" (sign-up and login) ---------- */
+.change-email-toggle {
+  justify-self: start;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+.change-email-toggle:hover {
+  color: var(--text);
+}
+.change-email-form {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  background: rgba(255, 255, 255, 0.03);
+  text-align: left;
+}
+.change-email-form label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--muted);
+}
+.change-email-form input {
+  width: 100%;
+  min-height: 2.6rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.7rem;
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.95rem;
+}
+:root[data-theme="light"] .change-email-form input {
+  background: #fff;
+}
+.change-email-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.change-email-submit,
+.change-email-cancel {
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 800;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}
+.change-email-submit {
+  border: 0;
+  background: linear-gradient(135deg, #f7a53a, #e0701e);
+  color: #1d0b05;
+}
+.change-email-submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.change-email-cancel {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+}
+.change-email-msg {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #ff8a80;
+}
+.change-email-msg.is-ok {
+  color: #3ddc84;
+}
+:root[data-theme="light"] .change-email-msg {
+  color: #c62828;
+}
+:root[data-theme="light"] .change-email-msg.is-ok {
+  color: #1b7a3d;
+}
+.kk-alert .kk-change-email {
+  margin-top: 0.55rem;
+}
+.kk-alert:has(.kk-change-email) {
+  flex-wrap: wrap;
+}
+.kk-alert .change-email-form {
+  flex-basis: 100%;
+}
+.reg-mail-icon {
+  display: grid;
+  place-items: center;
+  width: 3.2rem;
+  height: 3.2rem;
+  border-radius: 1rem;
+  background: rgba(245, 155, 42, 0.14);
+  color: var(--ember);
+}
+.acct-discord-needs-email {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+/* ---------- My Account → Transcripts ---------- */
+.acct-transcripts {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.acct-transcripts a {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  transition: border-color 0.15s, transform 0.15s;
+}
+.acct-transcripts a:hover {
+  border-color: var(--ember);
+  transform: translateY(-1px);
+}
+.acct-transcript-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.3rem;
+  height: 2.3rem;
+  border-radius: 0.7rem;
+  background: rgba(245, 155, 42, 0.14);
+  color: var(--ember);
+}
+.acct-transcript-main {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+  flex: 1;
+}
+.acct-transcript-main strong {
+  font-size: 0.95rem;
+}
+.acct-transcript-main small {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.acct-transcript-open {
+  flex: none;
+  color: var(--ember);
+  font-weight: 800;
+  font-size: 0.88rem;
+}
+
+/* ---------- Transcript viewer page ---------- */
+.tx-page {
+  min-height: 100vh;
+}
+.tx-head {
+  display: grid;
+  gap: 0.7rem;
+  width: min(1320px, calc(100% - 2rem));
+  margin: 1.4rem auto 1rem;
+}
+.tx-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  justify-self: start;
+  color: var(--muted);
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+.tx-back:hover {
+  color: var(--text);
+}
+.tx-title {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+.tx-title h1 {
+  margin: 0;
+  font-size: clamp(1.4rem, 3vw, 1.9rem);
+}
+.tx-title p {
+  margin: 0.15rem 0 0;
+  color: var(--muted);
+  font-weight: 700;
+}
+.tx-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.8rem;
+  height: 2.8rem;
+  border-radius: 0.9rem;
+  background: rgba(245, 155, 42, 0.14);
+  color: var(--ember);
+}
+.tx-privacy {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+.tx-frame {
+  width: min(1320px, calc(100% - 2rem));
+  margin: 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  overflow: hidden;
+  background: #313338;
+}
+.tx-frame iframe {
+  display: block;
+  width: 100%;
+  height: min(82vh, 1100px);
+  border: 0;
+}
+.tx-empty {
+  display: grid;
+  justify-items: start;
+  gap: 0.6rem;
+  width: min(720px, calc(100% - 2rem));
+  margin: 1rem auto 3rem;
+  padding: 1.4rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--panel);
+}
+.tx-empty h2 {
+  margin: 0;
+}
+.tx-empty p {
+  margin: 0;
+  color: var(--muted);
+}
