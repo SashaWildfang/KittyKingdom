@@ -217,13 +217,15 @@ export function MemberDrawer({
                         {prettyAction(t.type)}
                       </span>
                       <span className="adm-muted">{timeAgo(t.created)}</span>
-                      {t.transcriptId ? (
-                        <button type="button" className="adm-btn adm-btn--small" onClick={() => onOpenTranscript(t.ticketId)}>
-                          <FileText size={14} aria-hidden="true" /> View
-                        </button>
-                      ) : null}
-                      {/* Admins only; the server checks too */}
-                      {canEditRoles ? <DeleteTicketButton ticket={t} onDeleted={() => reload()} /> : null}
+                      <span className="adm-drawer-ticket-actions">
+                        {t.transcriptId ? (
+                          <button type="button" className="adm-btn adm-btn--tiny" onClick={() => onOpenTranscript(t.ticketId)}>
+                            <FileText size={13} aria-hidden="true" /> View
+                          </button>
+                        ) : null}
+                        {/* Admins only; the server checks too */}
+                        {canEditRoles ? <DeleteTicketButton ticket={t} onDeleted={() => reload()} /> : null}
+                      </span>
                     </li>
                   ))}
                 </ul>

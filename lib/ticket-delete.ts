@@ -1,7 +1,7 @@
 // Admins deleting a closed ticket from the website (Admin → Tickets, or a member's profile):
 // the ticket record and its transcript upload (zip + media parts) in the transcript log channel.
-// NSFW tickets can never be deleted, and open tickets are closed in Discord instead. Every
-// deletion is saved to admin_audit and posted in the bot logs channel.
+// NSFW tickets can only ever be deleted by the owner, and open tickets are closed in Discord
+// instead. Every deletion is saved to admin_audit and posted in the bot logs channel.
 
 import type { PanelUser } from "./admin";
 import { deleteChannelMessage, postChannelMessage } from "./discord-member";
@@ -10,6 +10,12 @@ import { TRANSCRIPT_CHANNEL_ID } from "./transcript-store";
 
 const STAFF_LOG_CHANNEL_ID = "1360344042705256660";
 const NSFW = /nsfw/i;
+// Sasha (server owner): the only account that may delete NSFW verification tickets
+export const OWNER_DISCORD_ID = "164577223162986498";
+
+export function canDeleteNsfwTickets(discordId: string | null | undefined) {
+  return discordId === OWNER_DISCORD_ID;
+}
 
 export class TicketDeleteError extends Error {
   constructor(message: string, public status = 400) {
@@ -17,10 +23,6 @@ export class TicketDeleteError extends Error {
   }
 }
 
-/** Whether a ticket of this type may be deleted from the website at all. */
-export function ticketDeletable(type: string, status?: string) {
-  return !NSFW.test(type) && status !== "Open";
-}
 
 const snowflake = (v: unknown) => (typeof v === "string" && /^\d{15,21}$/.test(v) ? v : null);
 
@@ -36,7 +38,8 @@ export async function deleteTicket(actor: PanelUser, ticketId: number) {
       : new TicketDeleteError("Ticket not found. It may already be deleted.", 404);
   }
   const type = String(doc.ticket_type ?? "support");
-  if (NSFW.test(type)) throw new TicketDeleteError("NSFW verification tickets can never be deleted.", 403);
+  const nsfw = NSFW.test(type);
+  if (nsfw && !canDeleteNsfwTickets(actor.discordId)) throw new TicketDeleteError("Only the owner can delete NSFW verification tickets.", 403);
 
   // The transcript upload first: if Discord refuses, nothing is deleted and it can be retried
   const messageIds = [snowflake(doc.transcript_id), ...((Array.isArray(doc.transcript_parts) ? doc.transcript_parts : []) as unknown[]).map(snowflake)].filter(
@@ -50,8 +53,8 @@ export async function deleteTicket(actor: PanelUser, ticketId: number) {
     }
   }
 
-  // Never an NSFW ticket, even if the type changed in between
-  const removed = await resolved.deleteOne({ _id: doc._id, ticket_type: { $not: NSFW } });
+  // Never an NSFW ticket unless it's the owner, even if the type changed in between
+  const removed = await resolved.deleteOne(canDeleteNsfwTickets(actor.discordId) ? { _id: doc._id } : { _id: doc._id, ticket_type: { $not: NSFW } });
   if (!removed.deletedCount) throw new TicketDeleteError("That ticket couldn't be deleted.", 409);
 
   const client = await getMongoClient();
@@ -72,7 +75,7 @@ export async function deleteTicket(actor: PanelUser, ticketId: number) {
   await postChannelMessage(STAFF_LOG_CHANNEL_ID, {
     embeds: [
       {
-        title: "🗑️ Ticket deleted from the website",
+        title: nsfw ? "🗑️ NSFW ticket deleted from the website (owner)" : "🗑️ Ticket deleted from the website",
         color: 0xe5484d,
         fields: [
           { name: "Ticket", value: `#${ticketId} · ${label}`, inline: true },

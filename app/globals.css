@@ -8319,7 +8319,13 @@ input[type="submit"] {
   padding: 0.45rem 0.7rem;
 }
 
-.adm-drawer-tickets li button {
+/* View / Delete sit together at the right of each ticket */
+.adm-drawer-ticket-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.3rem;
   margin-left: auto;
 }
 
@@ -25222,7 +25228,8 @@ body.live-fullscreen .view-as-bar {
 }
 .adm-ticket-confirm {
   display: inline-flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  white-space: nowrap;
   align-items: center;
   gap: 0.35rem;
   padding: 0.3rem 0.45rem;
@@ -25232,9 +25239,15 @@ body.live-fullscreen .view-as-bar {
   cursor: default;
 }
 .adm-ticket-confirm-text {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 800;
   color: var(--text);
+}
+.adm-ticket-confirm-nsfw {
+  color: #ff6b6b;
+}
+.adm-ticket-confirm:has(.adm-ticket-confirm-error) {
+  flex-wrap: wrap;
   white-space: normal;
 }
 .adm-ticket-confirm-error {
@@ -25245,4 +25258,18 @@ body.live-fullscreen .view-as-bar {
 }
 :root[data-theme="light"] .adm-ticket-confirm-error {
   color: #c62828;
+}
+
+.adm-btn--tiny {
+  gap: 0.25rem;
+  border-radius: 0.55rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.74rem;
+  line-height: 1.3;
+}
+.adm-btn--tiny.adm-ticket-delete {
+  padding: 0.2rem 0.35rem;
+}
+.adm-drawer-tickets li {
+  flex-wrap: wrap;
 }
