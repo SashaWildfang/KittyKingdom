@@ -25,6 +25,8 @@ const nextConfig = {
     return [
       { source: "/dating", destination: "/social", permanent: true },
       { source: "/dating/:path*", destination: "/social/:path*", permanent: true },
+      // Social settings moved to Settings (the gear next to the bell)
+      { source: "/social/settings", destination: "/settings", permanent: false },
     ];
   },
   async headers() {
