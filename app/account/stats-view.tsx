@@ -54,10 +54,12 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import type { BadgeHistory } from "../../lib/badge-history";
 import type { BadgeShowcase, EarnedBadge } from "../../lib/badges";
 import type { MemberStats } from "../../lib/member-stats";
 import { LeafEmote } from "../ui-icons";
 import { BadgeMedal } from "./badge-medal";
+import { BadgeTip } from "./badge-tip";
 import { BadgeCollection } from "./stats-badges";
 import { FriendshipMap, PeopleExplorer } from "./stats-social";
 import { TopicMap } from "./stats-topics";
@@ -287,7 +289,9 @@ function LevelHero({ s, pinned, title }: { s: MemberStats; pinned: EarnedBadge[]
           {pinned.length ? (
             <div className="st-hero-badges" aria-label="Pinned badges">
               {pinned.map((b) => (
-                <BadgeMedal key={b.id} icon={b.icon} shape={b.shape} hue={b.hue} tier={b.tier} size={34} title={b.name} />
+                <BadgeTip key={b.id} id={b.id} tier={b.tier}>
+                  <BadgeMedal icon={b.icon} shape={b.shape} hue={b.hue} tier={b.tier} size={34} />
+                </BadgeTip>
               ))}
             </div>
           ) : null}
@@ -551,6 +555,7 @@ export function StatsView({ onBack }: { onBack: () => void }) {
   const [stats, setStats] = useState<MemberStats | null>(null);
   const [badges, setBadges] = useState<EarnedBadge[]>([]);
   const [showcase, setShowcase] = useState<BadgeShowcase>({ pinned: [], title: null });
+  const [history, setHistory] = useState<BadgeHistory>({ earned: {}, events: [] });
   const [openPerson, setOpenPerson] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("overview");
@@ -573,6 +578,7 @@ export function StatsView({ onBack }: { onBack: () => void }) {
           setStats(body.stats);
           setBadges(body.badges ?? []);
           if (body.showcase) setShowcase(body.showcase);
+          if (body.history) setHistory(body.history);
           setError(null);
         } else setError(body.error ?? "Your stats couldn't be loaded.");
       } catch {
@@ -1321,7 +1327,7 @@ export function StatsView({ onBack }: { onBack: () => void }) {
       {tab === "badges" ? (
         <div className="st-tab" key="badges">
           <Card title="Badges" icon={<Award size={17} />}>
-            <BadgeCollection badges={badges} showcase={showcase} onSaved={setShowcase} />
+            <BadgeCollection badges={badges} showcase={showcase} history={history} onSaved={setShowcase} />
           </Card>
         </div>
       ) : null}

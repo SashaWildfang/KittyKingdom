@@ -3,6 +3,9 @@
 
 import type { Document } from "mongodb";
 import { people } from "../admin-people";
+import { badgeHistory, type BadgeEarned } from "../badge-history";
+import { badgeById, type BadgeShowcase } from "../badges";
+import { getUsersCollection } from "../mongodb";
 import { newsPlainText } from "../news-format";
 import { datingCols, toLong } from "./db";
 import { ACCENTS, FIELDS, accentFor, isHexColor, MAX_FURSONAS, MAX_PHOTOS, MAX_PROMPTS, PROMPTS, SECTIONS, cleanField, display, getList, isFilled, profileStrength, reviewFields, type ProfileDoc } from "./schema";
@@ -255,7 +258,24 @@ export type ProfileView = {
   strength: number;
   paused: boolean;
   isNew: boolean;
+  /** Their badge title and pinned badges from the website (with when each was earned) */
+  badges: { showcase: BadgeShowcase; earned: Record<string, BadgeEarned> } | null;
 };
+
+/** The badge showcase a member picked on their stats page, for their Social profile. */
+async function profileBadges(discordId: string): Promise<ProfileView["badges"]> {
+  const account = await (await getUsersCollection()).findOne({ discordId }, { projection: { badgeShowcase: 1 } });
+  const showcase = account?.badgeShowcase as BadgeShowcase | undefined;
+  if (!showcase || (!showcase.title && !(showcase.pinned ?? []).length)) return null;
+  const clean: BadgeShowcase = {
+    title: showcase.title && badgeById(showcase.title.id) ? { id: showcase.title.id, tier: Number(showcase.title.tier) || 1 } : null,
+    pinned: (showcase.pinned ?? []).filter((p) => badgeById(p.id)).slice(0, 3).map((p) => ({ id: p.id, tier: Number(p.tier) || 1 })),
+  };
+  const history = await badgeHistory(discordId).catch(() => null);
+  const shown = new Set([...(clean.title ? [clean.title.id] : []), ...clean.pinned.map((p) => p.id)]);
+  const earned = Object.fromEntries(Object.entries(history?.earned ?? {}).filter(([k]) => shown.has(k)));
+  return { showcase: clean, earned };
+}
 
 const FACT_KEYS = ["gender", "pronouns", "sexuality", "location", "timezone", "relationship_status"];
 // Shown in the header facts or as their own blocks, so they're left out of the section lists
@@ -333,6 +353,7 @@ export async function profileView(doc: ProfileDoc, opts: { viewerIsOwner?: boole
     strength: profileStrength(doc).score,
     paused: web.paused === true,
     isNew: Boolean(created && Date.now() - created.getTime() < 14 * 86_400_000),
+    badges: await profileBadges(id).catch(() => null),
   };
 }
 
