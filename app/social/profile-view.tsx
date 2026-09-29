@@ -42,6 +42,9 @@ import {
 } from "lucide-react";
 import { useEffect, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
+import type { BadgeEarned } from "../../lib/badge-history";
+import type { BadgeShowcase } from "../../lib/badges";
+import { ShowcaseBadges } from "../account/badge-tip";
 import { BrandIcon } from "./brand-icons";
 import { SectionIcon, TierIcon } from "./icons";
 import { Empty, Photo, ReportButton, ago, cropStyle, post, useApi, type Crop } from "./ui";
@@ -68,6 +71,7 @@ type View = {
   strength: number;
   paused: boolean;
   isNew: boolean;
+  badges: { showcase: BadgeShowcase; earned: Record<string, BadgeEarned> } | null;
 };
 type Compat = { partnered?: boolean; score: number; tier: string; parts: Record<string, number | null>; pairs: { a: string; b: string }[]; agreements: string[]; conflicts: string[]; blocked: string | null; starter: string; ai: boolean };
 type Views = { total: number; week: number; theyViewedMe: string | null; iViewedBefore: boolean } | null;
@@ -378,6 +382,8 @@ export function ProfileScreen({ id }: { id: string }) {
             </h1>
             {p.headline ? <p className="dt-headline">{p.headline}</p> : null}
             {p.discordName ? <p className="dt-muted dt-hero-handle">@{p.discordName}</p> : null}
+            {/* Their badge title and pinned badges from the website (hover for details) */}
+            {p.badges ? <ShowcaseBadges showcase={p.badges.showcase} earned={p.badges.earned} size={34} className="dt-hero-showcase" /> : null}
             <ul className="dt-hero-facts">
               {facts.map((f) => (
                 <li key={f.key} title={f.label} className={`is-${f.key}`}>

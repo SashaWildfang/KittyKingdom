@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser, getViewAs } from "../../../../lib/auth";
 import { computeBadges, type BadgeShowcase } from "../../../../lib/badges";
+import { badgeHistory, recordBadges } from "../../../../lib/badge-history";
 import { siteContext } from "../../../../lib/badge-site";
 import { getUsersCollection } from "../../../../lib/mongodb";
 import { memberStats } from "../../../../lib/member-stats";
@@ -34,7 +35,9 @@ export async function GET(request: Request) {
     if (JSON.stringify(showcase) !== JSON.stringify({ pinned: saved.pinned ?? [], title: saved.title ?? null }) && !viewing) {
       await (await getUsersCollection()).updateOne({ _id: user._id }, { $set: { badgeShowcase: showcase } }).catch(() => undefined);
     }
-    return NextResponse.json({ ok: true, stats, badges, showcase }, { headers: { "Cache-Control": "no-store" } });
+    // When each badge was earned (an admin viewing as the member only reads it)
+    const history = viewing ? await badgeHistory(String(user.discordId)) : await recordBadges(String(user.discordId), badges).catch(() => badgeHistory(String(user.discordId)));
+    return NextResponse.json({ ok: true, stats, badges, showcase, history }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Member stats failed", error);
     return NextResponse.json({ ok: false, error: "Your stats couldn't be loaded right now." }, { status: 500 });

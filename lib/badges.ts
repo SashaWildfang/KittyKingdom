@@ -117,7 +117,7 @@ export const BADGES: BadgeDef[] = [
   { id: "cuddlebug", name: "Cuddle Bug", category: "social", icon: "HeartHandshake", shape: "hex", hue: "#fb7185", desc: "Hugs given with /hug", tiers: [5, 25, 100, 300], value: (s) => cmd(s, "hug") },
   { id: "booper", name: "Booper", category: "social", icon: "Hand", shape: "hex", hue: "#f9a8d4", desc: "Boops given with /boop", tiers: [5, 25, 100, 300], value: (s) => cmd(s, "boop") },
   { id: "pingpong", name: "Ping Pong", category: "social", icon: "ArrowLeftRight", shape: "hex", hue: "#e11d48", desc: "Replies you received for every reply you sent (×100)", tiers: [50, 80, 100, 150], value: (s) => Math.round((s.social.replyRatio ?? 0) * 100) },
-  { id: "speedy", name: "Speedy Replier", category: "social", icon: "Gauge", shape: "hex", hue: "#06b6d4", desc: "Replies on average within this many minutes (lower is better)", tiers: [1], value: (s) => (s.social.avgReplySeconds !== null && s.social.avgReplySeconds <= 120 && s.messages.repliesSent >= 25 ? 1 : 0) },
+  { id: "speedy", name: "Speedy Replier", category: "social", icon: "Gauge", shape: "hex", hue: "#06b6d4", desc: "Replies to people within 2 minutes on average (over 25+ replies)", tiers: [1], value: (s) => (s.social.avgReplySeconds !== null && s.social.avgReplySeconds <= 120 && s.messages.repliesSent >= 25 ? 1 : 0) },
 
   // Voice (more)
   { id: "nightcaller", name: "Night Caller", category: "voice", icon: "MoonStar", shape: "squircle", hue: "#4338ca", desc: "Share of your voice joins between 10 PM and 5 AM", tiers: [25, 35, 50, 65], unit: "percent", value: (s) => s.activity.voiceNightShare },
