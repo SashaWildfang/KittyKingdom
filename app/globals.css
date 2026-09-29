@@ -24570,7 +24570,7 @@ body.live-fullscreen .view-as-bar {
 }
 .topbar .tabs a {
   padding: 0.5rem 0.7rem;
-  font-size: 0.9rem;
+  font-size: 1rem;
   white-space: nowrap;
 }
 .topbar .nav-actions {
@@ -24594,7 +24594,7 @@ body.live-fullscreen .view-as-bar {
 @media (min-width: 1101px) and (max-width: 1320px) {
   .topbar .tabs a {
     padding: 0.45rem 0.55rem;
-    font-size: 0.85rem;
+    font-size: 0.93rem;
   }
 }
 @media (min-width: 1101px) and (max-width: 1200px) {
