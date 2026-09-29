@@ -1,6 +1,7 @@
 import { verifyMemberTranscriptToken } from "../../../../../../lib/member-transcripts";
 import { getTicketByTranscript } from "../../../../../../lib/tickets";
-import { LOCAL_TIMES_SCRIPT } from "../../../../../../lib/transcript-local-times";
+import { LOCAL_TIMES_SCRIPT, localizeTranscriptTimes } from "../../../../../../lib/transcript-local-times";
+import { requestTimeZone } from "../../../../../../lib/timezone";
 import { TRANSCRIPT_CSS } from "../../../../../../lib/transcript-member-css";
 import { memberMayLoad, memberTranscriptPage } from "../../../../../../lib/transcript-member";
 import { openTranscriptFile } from "../../../../../../lib/transcript-store";
@@ -29,7 +30,7 @@ const PAGE_CSP = [
 const base = { "Cache-Control": "private, max-age=3600", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer" };
 
 /** A member's redacted transcript: the page, its stylesheet, and the avatars/emojis it shows. */
-export async function GET(_request: Request, { params }: { params: { messageId: string; token: string; path: string[] } }) {
+export async function GET(request: Request, { params }: { params: { messageId: string; token: string; path: string[] } }) {
   if (!verifyMemberTranscriptToken(params.messageId, params.token)) {
     return new Response("This transcript link has expired. Open it again from My Account → Transcripts.", { status: 403 });
   }
@@ -43,7 +44,8 @@ export async function GET(_request: Request, { params }: { params: { messageId: 
       return null;
     });
     if (!page) return new Response("This transcript couldn't be loaded from Discord right now. Please try again in a minute.", { status: 502 });
-    return new Response(page, { headers: { ...base, "Content-Type": "text/html; charset=utf-8", "Content-Security-Policy": PAGE_CSP } });
+    // Times in the viewer's own time zone (the site's kk_tz cookie, same as everywhere else)
+    return new Response(localizeTranscriptTimes(page, requestTimeZone(request)), { headers: { ...base, "Cache-Control": "private, no-store", "Content-Type": "text/html; charset=utf-8", "Content-Security-Policy": PAGE_CSP } });
   }
 
   if (name === "style.css") {
