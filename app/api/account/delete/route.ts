@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { clearSession, getSessionUserId, verifyPassword } from "../../../../lib/auth";
 import { isStaffDiscordId } from "../../../../lib/admin";
+import { deleteBadgeHistory } from "../../../../lib/badge-history";
+import { getMongoClient } from "../../../../lib/mongodb";
 import { getUsersCollection } from "../../../../lib/mongodb";
 import { sessionsCollection } from "../../../../lib/sessions";
 
@@ -46,6 +48,9 @@ export async function POST(request: Request) {
     await users.deleteOne({ _id: userId });
     await clearSession();
     await (await sessionsCollection()).deleteMany({ userId });
+    // Site-only extras tied to the account
+    const website = (await getMongoClient()).db(process.env.MONGODB_DB ?? "website");
+    await Promise.all([website.collection("link_codes").deleteMany({ userId }), deleteBadgeHistory(user.discordId)]).catch(() => undefined);
     return NextResponse.redirect(`${origin}/home?account=deleted`, 303);
   } catch (error) {
     console.error("Account deletion failed", error);

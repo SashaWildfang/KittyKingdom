@@ -1,4 +1,4 @@
-// Discord DMs for Social notifications, for members who turn them on (Social → Settings → Discord
+// Discord DMs for Social notifications, for members who turn them on (Settings → Notifications → Discord
 // DMs; all off by default). Each one is a small embed about the other member in their profile color,
 // with a button back to the website. Dating photos are only served to signed-in 18+ members, so the
 // embed uses their Discord avatar instead.
@@ -68,7 +68,7 @@ export async function sendDatingDm(to: string, settings: DatingSettings, n: { ty
           color,
           fields,
           thumbnail: who?.avatar ? { url: bigAvatar(who.avatar, 256)! } : undefined,
-          footer: { text: "Kitty Kingdom Social · change these DMs in Social → Settings" },
+          footer: { text: "Kitty Kingdom Social · change these DMs in Settings → Notifications" },
           timestamp: new Date().toISOString(),
         },
       ],
