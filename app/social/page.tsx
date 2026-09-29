@@ -270,7 +270,7 @@ export default function DatingHome() {
             </div>
           ) : null}
           <p className="dt-fine">
-            <Gem size={12} aria-hidden="true" /> Server boosters get double the chance in the draw.
+            <Gem size={12} aria-hidden="true" /> Server boosters, patrons and Store Profile Boosters get a bigger chance in the draw.
           </p>
         </section>
         {data.newest.length ? (

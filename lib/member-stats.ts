@@ -24,7 +24,7 @@ const LEVEL_ROLES: [number, string][] = [
 ];
 const PATREON = [
   { id: "1362502871639396362", name: "Legendary Neko", bonus: 0.4 },
-  { id: "1362502662721114245", name: "Feral Guardian", bonus: 0.2 },
+  { id: "1362502662721114245", name: "Kitten Guardian", bonus: 0.2 },
   { id: "1362102163693633818", name: "Royal Kitten", bonus: 0.1 },
 ];
 const BOOSTER_ROLE = "1360260086500561237";

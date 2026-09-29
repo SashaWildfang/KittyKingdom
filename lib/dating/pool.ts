@@ -2,7 +2,7 @@
 // whole pool is instant. The pool is small (hundreds), so scoring everyone per request is fine.
 
 import { people } from "../admin-people";
-import { getMongoClient } from "../mongodb";
+import { getBotCollection, getMongoClient } from "../mongodb";
 import { inServerIds } from "../member-directory";
 import { getCurrentBans } from "../moderation";
 import { datingCols } from "./db";
@@ -15,21 +15,24 @@ import { allSettings, type DatingSettings } from "./settings";
 /** What the site knows about a member from Discord: name, avatar and whether they're still in the server. */
 export type Who = { name: string; username: string | null; avatar: string | null; inServer: boolean; boosting: boolean };
 
-type Pool = { at: number; profiles: Map<string, ProfileDoc>; vectors: Map<string, Vectors>; inServer: Set<string> | null; who: Map<string, Who>; names: Map<string, string>; banned: Set<string>; settings: Map<string, DatingSettings>; partners: Map<string, Set<string>> };
+type Pool = { at: number; profiles: Map<string, ProfileDoc>; vectors: Map<string, Vectors>; inServer: Set<string> | null; who: Map<string, Who>; names: Map<string, string>; banned: Set<string>; settings: Map<string, DatingSettings>; partners: Map<string, Set<string>>; profileBoosted: Set<string> };
 let cache: Pool | null = null;
 let loading: Promise<Pool> | null = null;
 const TTL_MS = 30_000;
 
 async function load(): Promise<Pool> {
   const c = await datingCols();
-  const [docs, vecs, members, bans, settings, links] = await Promise.all([
+  const [docs, vecs, members, bans, settings, links, boosters] = await Promise.all([
     c.profiles.find({}).toArray(),
     c.vectors.find({}).toArray(),
     inServerIds().catch(() => null),
     getCurrentBans().catch(() => null),
     allSettings().catch(() => new Map<string, DatingSettings>()),
     getMongoClient().then((m) => m.db(process.env.MONGODB_DB ?? "website").collection("dating_partners").find({ status: "accepted" }, { projection: { users: 1 } }).toArray()).catch(() => []),
+    // Store Profile Boosters that are running right now
+    getBotCollection("temporary_boosters").then((c) => c.find({ item_id: "booster_profile", end_time: { $gt: new Date() } }, { projection: { discordId: 1 } }).toArray()).catch(() => []),
   ]);
+  const profileBoosted = new Set(boosters.map((b) => String(b.discordId)));
   // Confirmed partner links, both ways
   const partners = new Map<string, Set<string>>();
   for (const l of links) {
@@ -70,7 +73,7 @@ async function load(): Promise<Pool> {
     who.set(id, { name: p.name, username: p.username, avatar: p.avatar, inServer: inServer ? inServer.has(id) : p.inServer, boosting: Boolean(p.boosting) });
     if (p.username || p.name !== "Unknown user") names.set(id, p.username ?? p.name);
   }
-  return { at: Date.now(), profiles, vectors, inServer, who, names, banned, settings, partners };
+  return { at: Date.now(), profiles, vectors, inServer, who, names, banned, settings, partners, profileBoosted };
 }
 
 export async function datingPool(fresh = false): Promise<Pool> {
