@@ -25460,3 +25460,172 @@ body.live-fullscreen .view-as-bar {
 .st-bdetail-yours b {
   color: var(--text);
 }
+
+/* ---------- Notifications: clear all, show more ---------- */
+.nb-clear-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+.nb-panel header .nb-clear-yes {
+  color: #ff6b6b;
+}
+:root[data-theme="light"] .nb-panel header .nb-clear-yes {
+  color: #c62828;
+}
+.nb-more button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  width: 100%;
+  padding: 0.6rem;
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: transparent;
+  color: var(--ember);
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.nb-more button:hover {
+  background: rgba(245, 155, 42, 0.08);
+}
+.nb-more small {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* ---------- Settings gear (left of the bell) ---------- */
+.nav-gear {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.nav-gear:hover {
+  transform: translateY(-1px);
+  border-color: var(--ember);
+}
+.nav-gear svg {
+  transition: transform 0.4s ease;
+}
+.nav-gear:hover svg {
+  transform: rotate(60deg);
+}
+
+/* ---------- Settings page ---------- */
+.set-head {
+  margin: 1.4rem 0 1.2rem;
+}
+.set-head h1 {
+  margin: 0.2rem 0 0.3rem;
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
+}
+.set-head p:last-child {
+  margin: 0;
+  color: var(--muted);
+}
+.set-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+}
+.set-row > span {
+  display: grid;
+  gap: 0.15rem;
+}
+.set-row b {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.set-row small {
+  color: var(--muted);
+}
+
+/* ---------- Admin: grouped navigation (groups, then that group's tabs) ---------- */
+.adm-groups {
+  display: flex;
+  gap: 0.3rem;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  padding: 0.3rem;
+  scrollbar-width: none;
+}
+.adm-groups button {
+  display: inline-flex;
+  flex: 1 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  padding: 0.65rem 1.1rem;
+  white-space: nowrap;
+}
+.adm-groups button:hover {
+  color: var(--text);
+}
+.adm-groups button.is-active {
+  background: var(--ember);
+  color: #1d0b05;
+}
+/* The group's own tabs: a lighter row underneath */
+.adm-groups + .adm-tabs {
+  justify-content: flex-start;
+  margin-top: 0.5rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0 0 0.1rem;
+  border-bottom: 1px solid var(--line);
+}
+.adm-groups + .adm-tabs button {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 0.6rem 0.6rem 0 0;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.9rem;
+  border-bottom: 2px solid transparent;
+}
+.adm-groups + .adm-tabs button.is-active {
+  background: transparent;
+  color: var(--text);
+  border-bottom-color: var(--ember);
+}
+.adm-groups + .adm-tabs button:hover {
+  color: var(--text);
+}
+@media (min-width: 761px) {
+  .adm-groups + .adm-tabs {
+    flex-wrap: wrap;
+    border-radius: 0;
+  }
+  .adm-groups + .adm-tabs button {
+    flex: 0 0 auto;
+  }
+}

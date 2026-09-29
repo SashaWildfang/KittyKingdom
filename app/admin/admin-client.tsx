@@ -1,7 +1,7 @@
 "use client";
 
 import { TicketDeletePermissions } from "./delete-ticket-button";
-import { Activity, BarChart3, HeartHandshake, ClipboardCheck, MessagesSquare, Gavel, Newspaper, ScrollText, ShieldCheck, Ticket, Users, type LucideIcon } from "lucide-react";
+import { Activity, BarChart3, Globe, HeartHandshake, ClipboardCheck, MessagesSquare, Gavel, Newspaper, ScrollText, ShieldCheck, Ticket, Users, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AccountsTab } from "./accounts-tab";
@@ -23,6 +23,15 @@ import { TranscriptViewer } from "./transcript-viewer";
 type Tab = "overview" | "punishments" | "automod" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live" | "join" | "dating";
 type Level = "admin" | "staff";
 
+// Tabs are grouped so the bar stays short: pick a group, then one of its tabs
+type Group = "overview" | "moderation" | "members" | "website";
+const GROUPS: { key: Group; label: string; icon: LucideIcon; tabs: Tab[] }[] = [
+  { key: "overview", label: "Overview", icon: BarChart3, tabs: ["overview"] },
+  { key: "moderation", label: "Moderation", icon: Gavel, tabs: ["punishments", "automod", "logs", "live"] },
+  { key: "members", label: "Members", icon: Users, tabs: ["join", "tickets", "dating"] },
+  { key: "website", label: "Website", icon: Globe, tabs: ["accounts", "news", "traffic"] },
+];
+
 const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean }[] = [
   { key: "overview", label: "Overview", icon: BarChart3 },
   { key: "punishments", label: "Punishments", icon: Gavel },
@@ -32,7 +41,7 @@ const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean }[] = [
   { key: "dating", label: "Social", icon: HeartHandshake },
   { key: "live", label: "Live Chat", icon: MessagesSquare },
   { key: "tickets", label: "Tickets", icon: Ticket, admin: true },
-  { key: "accounts", label: "Website", icon: Users, admin: true },
+  { key: "accounts", label: "Accounts", icon: Users, admin: true },
   { key: "news", label: "News", icon: Newspaper, admin: true },
   { key: "traffic", label: "Traffic", icon: Activity, admin: true },
 ];
@@ -85,6 +94,31 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false }: { admin
   const datingPoll = useLive<{ reports: unknown[] }>(tab !== "dating" ? "/api/admin/dating/reports?status=open" : null, 60_000);
   const datingReports = datingPoll.data?.reports.length ?? 0;
   const tabsRef = useRef<HTMLElement>(null);
+
+  // Bubbles on tabs (and added up on their group)
+  const alert = (k: Tab): { count: number; hot?: boolean; live?: boolean; label: string } | null => {
+    if (k === "live" && liveUnread) return { count: liveUnread, live: true, label: `${liveUnread} unread` };
+    if (k === "automod" && automodUnread) return { count: automodUnread, hot: true, label: `${automodUnread} new` };
+    if (k === "news" && pendingNews > 0 && tab !== "news") return { count: pendingNews, label: `${pendingNews} waiting for review` };
+    if (k === "dating" && datingReports > 0 && tab !== "dating") return { count: datingReports, hot: true, label: `${datingReports} open reports` };
+    if (k === "tickets" && openTickets > 0) return { count: openTickets, hot: true, label: `${openTickets} open` };
+    if (k === "join" && pendingApps > 0) return { count: pendingApps, hot: true, label: `${pendingApps} pending` };
+    return null;
+  };
+  const groups = GROUPS.map((g) => ({ ...g, tabs: g.tabs.filter((k) => tabs.some((t) => t.key === k)) })).filter((g) => g.tabs.length);
+  const group = (groups.find((g) => g.tabs.includes(tab)) ?? groups[0]).key;
+  const groupTabs = tabs.filter((t) => groups.find((g) => g.key === group)?.tabs.includes(t.key));
+  // Each group remembers the tab you last had open in it
+  const lastInGroup = useRef<Partial<Record<Group, Tab>>>({});
+  useEffect(() => {
+    lastInGroup.current[group] = tab;
+  }, [group, tab]);
+  const openGroup = (g: Group) => {
+    const found = groups.find((x) => x.key === g);
+    if (!found) return;
+    const last = lastInGroup.current[g];
+    setTab(last && found.tabs.includes(last) ? last : found.tabs[0]);
+  };
 
   // On narrow screens the tab strip scrolls sideways; keep the open tab in view
   useEffect(() => {
@@ -156,43 +190,37 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false }: { admin
         />
       </header>
 
-      <nav className="adm-tabs" role="tablist" ref={tabsRef}>
-        {tabs.map((t) => (
-          <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} className={tab === t.key ? "is-active" : undefined} onClick={() => setTab(t.key)}>
-            <t.icon size={16} aria-hidden="true" /> {t.label}
-            {t.key === "live" && liveUnread ? (
-              <span className="adm-tab-bubble is-live" aria-label={`${liveUnread} unread`}>
-                {liveUnread > 999 ? "999+" : liveUnread}
-              </span>
-            ) : null}
-            {t.key === "automod" && automodUnread ? (
-              <span className="adm-tab-bubble is-hot" aria-label={`${automodUnread} new`}>
-                {automodUnread > 999 ? "999+" : automodUnread}
-              </span>
-            ) : null}
-            {t.key === "news" && pendingNews > 0 && tab !== "news" ? (
-              <span className="adm-tab-bubble" aria-label={`${pendingNews} waiting for review`}>
-                {pendingNews}
-              </span>
-            ) : null}
-            {t.key === "dating" && datingReports > 0 && tab !== "dating" ? (
-              <span className="adm-tab-bubble is-hot" aria-label={`${datingReports} open reports`}>
-                {datingReports}
-              </span>
-            ) : null}
-            {t.key === "tickets" && openTickets > 0 ? (
-              <span className="adm-tab-bubble is-hot" aria-label={`${openTickets} open`}>
-                {openTickets}
-              </span>
-            ) : null}
-            {t.key === "join" && pendingApps > 0 ? (
-              <span className={`adm-tab-bubble${pendingApps > 0 ? " is-hot" : ""}`} aria-label={`${pendingApps} pending`}>
-                {pendingApps}
-              </span>
-            ) : null}
-          </button>
-        ))}
+      {/* Groups first, then the chosen group's tabs */}
+      <nav className="adm-groups" aria-label="Admin sections">
+        {groups.map((g) => {
+          const count = g.tabs.reduce((n, k) => n + (alert(k)?.count ?? 0), 0);
+          const hot = g.tabs.some((k) => alert(k)?.hot);
+          const on = g.key === group;
+          return (
+            <button key={g.key} type="button" className={on ? "is-active" : undefined} aria-pressed={on} onClick={() => openGroup(g.key)}>
+              <g.icon size={16} aria-hidden="true" /> {g.label}
+              {count > 0 && !on ? <span className={`adm-tab-bubble${hot ? " is-hot" : ""}`}>{count > 999 ? "999+" : count}</span> : null}
+            </button>
+          );
+        })}
       </nav>
+      {groupTabs.length > 1 ? (
+        <nav className="adm-tabs" role="tablist" ref={tabsRef}>
+          {groupTabs.map((t) => {
+            const a = alert(t.key);
+            return (
+              <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} className={tab === t.key ? "is-active" : undefined} onClick={() => setTab(t.key)}>
+                <t.icon size={16} aria-hidden="true" /> {t.label}
+                {a ? (
+                  <span className={`adm-tab-bubble${a.hot ? " is-hot" : ""}${a.live ? " is-live" : ""}`} aria-label={a.label}>
+                    {a.count > 999 ? "999+" : a.count}
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
+        </nav>
+      ) : null}
 
       {tab === "overview" ? (
         <OverviewTab

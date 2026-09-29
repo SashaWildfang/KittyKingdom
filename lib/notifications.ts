@@ -65,3 +65,9 @@ export async function markRead(to: string, ids: string[] | "all") {
 export async function markReadByKey(to: string, key: string) {
   await (await col()).updateMany({ to, key, read: false }, { $set: { read: true } });
 }
+
+/** Clears (deletes) all of a member's notifications. */
+export async function clearNotifications(to: string) {
+  const r = await (await col()).deleteMany({ to });
+  return r.deletedCount;
+}
