@@ -379,28 +379,35 @@ export const TOPICS: Topic[] = [
   },
   {
     id: "dating",
-    title: "Dating & profiles",
+    title: "Social (dating & friends)",
     icon: "HeartHandshake",
-    blurb: "Profiles, matching and likes.",
+    blurb: "Profiles, matching, friends and messages on the website.",
     faqs: [
       {
         q: "How do I make a dating profile?",
         a: (
           <>
-            You need the <b>18+ Verified</b> role. Then run <Cmd>/startprofile</Cmd> and the bot walks you through it in DMs. Edit it any time with <Cmd>/editprofile</Cmd> and <Cmd>/editfursona</Cmd>.
+            Dating lives on the website now, in <b>Social</b>. You need the <b>18+ Verified</b> role, a website account and your Discord linked (My Account → Discord → Get code, then <Cmd>/link</Cmd> in the server). Then open Social and follow the guided setup. It fills in what it can from your roles.
           </>
         ),
-        keywords: "profile startprofile",
+        keywords: "profile startprofile social dating setup",
+      },
+      {
+        q: "I had a profile on the old dating bot. Is it gone?",
+        a: "No, it moved to the website with you. Open Social and it's already there. Take a moment to check any answers we converted, then add photos, prompts and your colors.",
+        keywords: "old profile migrate dating bot",
       },
       {
         q: "How does matching work?",
-        a: (
-          <>
-            <Cmd>/findmatch</Cmd> ranks profiles that fit what you&apos;re looking for (and who&apos;s looking for you). <Cmd>/filter</Cmd> narrows things down and <Cmd>/randomprofile</Cmd> shows someone new.
-          </>
-        ),
+        a: "Discover shows your best matches one at a time (or people you'd get along with in Friends mode), and Browse lets you search and filter everyone. Our AI compares interests by meaning, and every profile shows what you have in common.",
+        keywords: "findmatch discover browse match",
       },
-      { q: "Is there a limit on likes?", a: "You can like 3 profiles a day. Server boosters get unlimited likes and can see everyone who liked them." },
+      { q: "Is there a limit on likes?", a: "No, likes are unlimited for everyone, and you can see everyone who liked you. Server boosters get a bigger chance in the hourly Featured draw." },
+      {
+        q: "Can I get Social notifications in Discord?",
+        a: "Yes. Turn on Discord DMs in Social → Settings and pick which ones you want (likes, matches, messages, profile views and more). They're all off until you turn them on.",
+        keywords: "dm notifications discord",
+      },
     ],
   },
   {
@@ -490,7 +497,6 @@ export const TOPICS: Topic[] = [
 export const COMMANDS: { group: string; items: [string, string][] }[] = [
   { group: "Economy", items: [["/daily", "Claim your Daily Reward"], ["/pay", "Send Leaves to someone"], ["/stats", "Your level, XP and multipliers"], ["/leaderboard", "Rankings"], ["/milestones", "Milestone rewards"], ["/wordle", "Daily Wordle"], ["/patreon", "Patreon link and perks"], ["/store view", "Browse the Store"]] },
   { group: "Casino", items: [["/blackjack", "Blackjack (3:2)"], ["/slots", "Slots and jackpot"], ["/mines", "Mines"], ["/crash", "Crash (up to 100x)"], ["/scratchoff", "Scratch-off tickets"], ["/casinostats", "Casino stats"]] },
-  { group: "Dating", items: [["/startprofile", "Create a profile"], ["/editprofile", "Edit your profile"], ["/editfursona", "Edit your fursona"], ["/findmatch", "Matches for you"], ["/filter", "Search profiles"], ["/randomprofile", "Someone new"], ["/profile", "View a profile"]] },
   { group: "Fun & info", items: [["/help", "Every command"], ["/hug", "Hug someone"], ["/boop", "Boop someone"], ["/8ball", "Ask the Magic 8-Ball"], ["/dice", "Roll a die"], ["/avatar", "See a profile picture"], ["/serverinfo", "About the server"], ["/staff", "Who's on staff"]] },
   { group: "Account", items: [["/link", "Link the website"], ["/punishments", "Your record"], ["/muteduration", "Mute time left"], ["/settings", "Privacy settings"]] },
 ];
