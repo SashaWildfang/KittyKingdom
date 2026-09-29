@@ -1,6 +1,8 @@
 "use client";
 
-import { Check, Pencil, Pin, Sparkles, Type, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, History, Pencil, Pin, Sparkles, Type, X } from "lucide-react";
+import type { BadgeEarned, BadgeHistory } from "../../lib/badge-history";
+import { earnedText } from "./badge-tip";
 import { useMemo, useState, type CSSProperties } from "react";
 import { MAX_SHOWCASE, TIER_NAMES, type BadgeCategory, type BadgeShowcase, type EarnedBadge } from "../../lib/badges";
 import { BadgeMedal } from "./badge-medal";
@@ -42,8 +44,9 @@ function unit(b: EarnedBadge, n: number) {
 }
 const tierName = (b: EarnedBadge) => (b.tiers.length === 1 ? (b.tier ? "Special" : "Locked") : b.tier ? TIER_NAMES[b.tier - 1] : "Locked");
 
-function Detail({ b, onClose }: { b: EarnedBadge; onClose: () => void }) {
+function Detail({ b, earned, onClose }: { b: EarnedBadge; earned?: BadgeEarned | null; onClose: () => void }) {
   const special = b.tiers.length === 1;
+  const when = b.tier ? earnedText(earned, b.tiers) : null;
   return (
     <div className="st-bdetail" style={{ "--hue": b.hue } as CSSProperties}>
       <button type="button" className="st-x" onClick={onClose} aria-label="Close">
@@ -53,9 +56,15 @@ function Detail({ b, onClose }: { b: EarnedBadge; onClose: () => void }) {
       <div className="st-bdetail-copy">
         <p className="st-eyebrow">{tierName(b)}</p>
         <h4>{b.name}</h4>
-        <p>
-          {b.desc}: <b>{unit(b, b.value)}</b>
-        </p>
+        {/* One-off badges are done or not done, so there's no number to show */}
+        {special ? (
+          <p>{b.desc}</p>
+        ) : (
+          <p>
+            {b.desc}: <b>{unit(b, b.value)}</b>
+          </p>
+        )}
+        {when ? <p className="st-bdetail-when">{when}</p> : null}
         {special ? (
           <p className="adm-muted">{b.tier ? "You've got it!" : "A special badge. Earn it and it's yours."}</p>
         ) : (
@@ -79,7 +88,72 @@ function Detail({ b, onClose }: { b: EarnedBadge; onClose: () => void }) {
   );
 }
 
-export function BadgeCollection({ badges, showcase, onSaved }: { badges: EarnedBadge[]; showcase: BadgeShowcase; onSaved: (s: BadgeShowcase) => void }) {
+const agoFmt = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+function ago(iso: string) {
+  const s = (Date.parse(iso) - Date.now()) / 1000;
+  const steps: [number, Intl.RelativeTimeFormatUnit][] = [
+    [60, "second"],
+    [3600, "minute"],
+    [86400, "hour"],
+    [604800, "day"],
+    [2629800, "week"],
+    [31557600, "month"],
+  ];
+  for (let i = 0; i < steps.length; i++) {
+    if (Math.abs(s) < steps[i][0]) return agoFmt.format(Math.round(s / (i ? steps[i - 1][0] : 1)), steps[i][1]);
+  }
+  return agoFmt.format(Math.round(s / 31557600), "year");
+}
+
+/** Newly earned badges, tier-ups and badges lost (like a streak ending), newest first. */
+function RecentBadges({ history, byId, onOpen }: { history: BadgeHistory; byId: Map<string, EarnedBadge>; onOpen: (id: string) => void }) {
+  const events = history.events.filter((e) => byId.has(e.id)).slice(0, 8);
+  return (
+    <section className="st-brecent" aria-label="Recent badge activity">
+      <p className="st-eyebrow">
+        <History size={13} aria-hidden="true" /> Recent badge activity
+      </p>
+      {events.length ? (
+        <ul>
+          {events.map((e, i) => {
+            const b = byId.get(e.id)!;
+            const tier = (t: number) => (b.tiers.length === 1 ? "Special" : TIER_NAMES[t - 1]);
+            const up = e.to > e.from;
+            const text = e.from === 0 ? (
+              <>
+                Earned <b>{b.name}</b>
+                {b.tiers.length > 1 ? ` · ${tier(e.to)}` : ""}
+              </>
+            ) : e.to === 0 ? (
+              <>
+                Lost <b>{b.name}</b>
+              </>
+            ) : (
+              <>
+                <b>{b.name}</b> {up ? "moved up to" : "dropped to"} {tier(e.to)}
+              </>
+            );
+            return (
+              <li key={`${e.id}-${e.at}-${i}`}>
+                <button type="button" onClick={() => onOpen(e.id)} className={up ? "is-up" : "is-down"}>
+                  <BadgeMedal icon={b.icon} shape={b.shape} hue={b.hue} tier={e.to || b.tier} size={30} />
+                  <span className="st-brecent-text">{text}</span>
+                  <span className="st-brecent-when">
+                    {up ? <ArrowUp size={12} aria-hidden="true" /> : <ArrowDown size={12} aria-hidden="true" />} {ago(e.at)}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="adm-muted">Nothing new yet. When you earn a badge or reach a new tier, it shows up here.</p>
+      )}
+    </section>
+  );
+}
+
+export function BadgeCollection({ badges, showcase, history, onSaved }: { badges: EarnedBadge[]; showcase: BadgeShowcase; history?: BadgeHistory; onSaved: (s: BadgeShowcase) => void }) {
   const [cat, setCat] = useState<BadgeCategory | "all">("all");
   const [sort, setSort] = useState<"progress" | "tier" | "name">("tier");
   const [hideLocked, setHideLocked] = useState(false);
@@ -234,6 +308,8 @@ export function BadgeCollection({ badges, showcase, onSaved }: { badges: EarnedB
         {error ? <p className="tfa-error">{error}</p> : null}
       </div>
 
+      {history ? <RecentBadges history={history} byId={byId} onOpen={setOpen} /> : null}
+
       <div className="st-bfilters">
         <div className="st-seg st-seg--small" role="tablist" aria-label="Category">
           {CATEGORIES.map((c) => (
@@ -260,7 +336,7 @@ export function BadgeCollection({ badges, showcase, onSaved }: { badges: EarnedB
         </label>
       </div>
 
-      {detail ? <Detail b={detail} onClose={() => setOpen(null)} /> : null}
+      {detail ? <Detail b={detail} earned={history?.earned[detail.id]} onClose={() => setOpen(null)} /> : null}
 
       <div className="st-badges">
         {list.map((b, i) => {

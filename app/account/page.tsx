@@ -26,6 +26,7 @@ import { getDailyStatus } from "../../lib/daily";
 import { AccountInventory } from "./account-inventory";
 import { DiscordLinkCode } from "./discord-link-code";
 import { memberTranscripts, ticketTypeLabel } from "../../lib/member-transcripts";
+import { badgeHistory } from "../../lib/badge-history";
 
 const shortDate = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Denver" });
 import { RoleManager } from "./role-manager";
@@ -121,7 +122,7 @@ export default async function AccountPage({
     searchParams.discord ??
     searchParams.verify ??
     searchParams.login;
-  const [application, roles, roleState, dailyStatus, serverId, staffAccount, transcripts] = await Promise.all([
+  const [application, roles, roleState, dailyStatus, serverId, staffAccount, transcripts, badgeDates] = await Promise.all([
     getJoinApplication(user.discordId),
     getMemberRoleSummary(user.discordId),
     user.discordId ? getRoleState(String(user.discordId)).catch(() => null) : Promise.resolve(null),
@@ -129,6 +130,7 @@ export default async function AccountPage({
     user.discordId ? guildId().catch(() => null) : Promise.resolve(null),
     isStaffDiscordId(user.discordId).catch(() => false),
     user.discordId ? memberTranscripts(String(user.discordId)).catch(() => null) : Promise.resolve(null),
+    user.discordId ? badgeHistory(String(user.discordId)).catch(() => null) : Promise.resolve(null),
   ]);
   const socials = (user.socials ?? {}) as Partial<Record<string, SocialLink>>;
   const phone = typeof user.phone === "string" ? user.phone : null;
@@ -196,7 +198,7 @@ export default async function AccountPage({
             </div>
             <h2>{shownName}</h2>
             {user.username ? <p className="acct-handle">@{user.username}</p> : null}
-            {discordLinked ? <ProfileBadges initial={(user.badgeShowcase as BadgeShowcase | undefined) ?? null} /> : null}
+            {discordLinked ? <ProfileBadges initial={(user.badgeShowcase as BadgeShowcase | undefined) ?? null} earned={badgeDates?.earned} /> : null}
             <LiveServerStatus initial={roleState} discordLinked={discordLinked} fallbackStaff={roles.isStaff} />
             {SOCIALS.some((s) => socials[s.key]) ? (
               <div className="acct-social-icons">
