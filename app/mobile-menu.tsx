@@ -3,6 +3,7 @@
 import { Heart, HeartHandshake, Home, LogIn, LogOut, Menu, MessageCircle, Newspaper, Shield, ShoppingBag, Trophy, UserPlus, UserRound, Users, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { ThemeSwitch } from "./theme-switch";
 import { ThemeToggle } from "./theme-toggle";
 import { useUnreadNews } from "./news-nav-badge";
 import { NotificationBell } from "./notification-bell";
@@ -60,6 +61,10 @@ export function MobileMenu({ links, signedIn, newsStamps = [], bell = false }: {
             );
           })}
         </nav>
+        <div className="mobile-sheet-theme">
+          <span>Theme</span>
+          <ThemeSwitch />
+        </div>
         <div className="mobile-sheet-account">
           {signedIn ? (
             <>
