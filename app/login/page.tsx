@@ -1,4 +1,5 @@
 import { AuthCard, type AuthStatus } from "../auth-card";
+import { safeNext } from "../../lib/validate";
 
 const statusMessages: Record<string, string> = {
   invalid:
@@ -10,6 +11,7 @@ const statusMessages: Record<string, string> = {
   "email-provider-needed": "The verification email could not be sent. Please contact staff.",
   "missing-identifier": "Enter your email or username before requesting a new verification email.",
   "login-required": "Please log in before opening account settings.",
+  "transcript-login": "Log in to view your ticket transcript. It's linked to the Discord account on your website account.",
   "service-unavailable":
     "Login is temporarily unavailable. Please try again shortly.",
   "database-unreachable":
@@ -29,6 +31,7 @@ export default function LoginPage({
     discord?: string;
     verify?: string;
     identifier?: string;
+    next?: string;
   };
 }) {
   const status =
@@ -42,7 +45,7 @@ export default function LoginPage({
   const loginStatus: AuthStatus =
     status === "unverified"
       ? { text: "You haven't verified your email yet. Check your inbox or", tone: "info", unverified: true }
-      : status === "login-required"
+      : status === "login-required" || status === "transcript-login"
         ? { text: statusMessages[status], tone: "info" }
         : status && statusMessages[status]
           ? { text: statusMessages[status], tone }
@@ -51,7 +54,7 @@ export default function LoginPage({
   return (
     <main className="auth-screen">
       <div className="auth-backdrop" />
-      <AuthCard initialMode="login" loginStatus={loginStatus} registerStatus={null} identifier={identifier} />
+      <AuthCard initialMode="login" loginStatus={loginStatus} registerStatus={null} identifier={identifier} next={safeNext(searchParams.next) ?? undefined} />
     </main>
   );
 }

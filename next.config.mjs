@@ -30,9 +30,9 @@ const nextConfig = {
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },
-      // Everything except the admin transcript viewer, which the Admin tab frames itself
-      // (that route sends its own stricter, sandboxed policy)
-      { source: "/((?!api/admin/transcript-files/).*)", headers: frameProtection },
+      // Everything except the transcript viewers (Admin's, and members' on My Account), which the
+      // site frames itself (those routes send their own stricter, sandboxed policy)
+      { source: "/((?!api/admin/transcript-files/|api/transcripts/).*)", headers: frameProtection },
     ];
   },
 };

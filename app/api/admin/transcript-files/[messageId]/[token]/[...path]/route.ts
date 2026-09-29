@@ -1,14 +1,11 @@
 import { verifyTranscriptToken } from "../../../../../../../lib/admin";
+import { LOCAL_TIMES_SCRIPT } from "../../../../../../../lib/transcript-local-times";
 import { openTranscriptFile } from "../../../../../../../lib/transcript-store";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const RANGE_PIECE = 8 * 1024 * 1024;
-
-// Transcripts print times in Mountain Time; this rewrites them into the viewer's time zone
-// (older transcripts don't include it themselves).
-const LOCAL_TIMES_SCRIPT = `<script data-kk-local-times>${"(function () {\n  // Transcript times are written in Mountain Time (\"09/27/2026 \u2022 04:05 PM MT\"); show them in the viewer's time zone.\n  var RE = /(\\d{2})\\/(\\d{2})\\/(\\d{4}) \u2022 (\\d{2}):(\\d{2}) (AM|PM)( MT)?/g;\n  var partsFmt = new Intl.DateTimeFormat(\"en-US\", { timeZone: \"America/Denver\", hourCycle: \"h23\", year: \"numeric\", month: \"2-digit\", day: \"2-digit\", hour: \"2-digit\", minute: \"2-digit\" });\n  var out = new Intl.DateTimeFormat(undefined, { month: \"short\", day: \"numeric\", year: \"numeric\", hour: \"numeric\", minute: \"2-digit\", timeZoneName: \"short\" });\n  function fromMountain(y, mo, d, h, mi) {\n    var want = Date.UTC(y, mo - 1, d, h, mi);\n    var guess = want;\n    for (var i = 0; i < 3; i++) {\n      var p = {};\n      partsFmt.formatToParts(new Date(guess)).forEach(function (x) { p[x.type] = +x.value; });\n      guess += want - Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute);\n    }\n    return new Date(guess);\n  }\n  function convert(text) {\n    return text.replace(RE, function (_, mo, d, y, h, mi, ap) {\n      var hour = (+h % 12) + (ap === \"PM\" ? 12 : 0);\n      return out.format(fromMountain(+y, +mo, +d, hour, +mi));\n    });\n  }\n  var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);\n  var nodes = [];\n  while (walker.nextNode()) nodes.push(walker.currentNode);\n  nodes.forEach(function (n) {\n    if (RE.test(n.nodeValue)) n.nodeValue = convert(n.nodeValue);\n    RE.lastIndex = 0;\n  });\n})();"}</script>`;
 
 const TYPES: Record<string, string> = {
   html: "text/html; charset=utf-8",

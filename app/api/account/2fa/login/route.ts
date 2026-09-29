@@ -1,9 +1,10 @@
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { setSession } from "../../../../../lib/auth";
 import { getUsersCollection } from "../../../../../lib/mongodb";
 import { TwoFactorError, checkSecondFactor } from "../../../../../lib/two-factor-account";
 import { clearTwoFactorLogin, pendingTwoFactorUser } from "../../../../../lib/two-factor-login";
-import { isFormPost } from "../../../../../lib/validate";
+import { isFormPost, safeNext } from "../../../../../lib/validate";
 
 export const maxDuration = 10;
 
@@ -25,6 +26,13 @@ export async function POST(request: Request) {
     await setSession(user._id, typeof user.sessionVersion === "number" ? user.sessionVersion : 0);
     // A backup code was used: show how many are left on the Security section
     if (how === "backup") return NextResponse.redirect(`${origin}/account?login=backup-used#security`, 303);
+    // Came from a link that needed logging in (see the login route)
+    const jar = await cookies();
+    const next = safeNext(jar.get("kk_next")?.value);
+    if (next) {
+      jar.delete("kk_next");
+      return NextResponse.redirect(`${origin}${next}`, 303);
+    }
     return NextResponse.redirect(user.username ? `${origin}/home?login=success` : `${origin}/account?login=success`, 303);
   } catch (error) {
     if (error instanceof TwoFactorError && error.status === 429) return NextResponse.redirect(`${origin}/login/2fa?error=locked&mode=${mode}`, 303);

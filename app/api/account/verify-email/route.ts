@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import type { Document, UpdateFilter } from "mongodb";
 import { hashToken, setSession } from "../../../../lib/auth";
 import { isDatabaseConnectionError } from "../../../../lib/db-errors";
+import { activeLinkCode, createLinkCode } from "../../../../lib/link-codes";
 import { getUsersCollection } from "../../../../lib/mongodb";
+import { setRegistrationCookie } from "../../../../lib/registration";
 
 export const maxDuration = 10;
 
@@ -35,6 +37,22 @@ export async function GET(request: Request) {
         `${origin}/login?verify=invalid-or-expired`,
         303,
       );
+    }
+
+    // Sign-up in progress: email confirmed, so on to linking Discord (they can't log in until that's done)
+    if (user.registration?.pending) {
+      if (!user.emailVerified) {
+        await users.updateOne(
+          { _id: user._id },
+          {
+            $set: { emailVerified: true, emailVerifiedAt: now, updatedAt: now },
+            $pull: { emailVerificationTokens: { expiresAt: { $lte: now } } } as unknown as UpdateFilter<Document>["$pull"],
+          },
+        );
+      }
+      if (!user.discordId && !(await activeLinkCode(user._id))) await createLinkCode(user._id);
+      await setRegistrationCookie(user._id);
+      return NextResponse.redirect(`${origin}/register?step=link`, 303);
     }
 
     // Email security scanners often open links before the person does. The link stays valid,
