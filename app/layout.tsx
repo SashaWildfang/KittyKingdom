@@ -41,7 +41,8 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var t=localStorage.getItem("kitty-theme")||"light";document.documentElement.dataset.theme=t;}catch(e){}`,
+            // Saved "light"/"dark", or follow the device (the default, "System")
+            __html: `(function(){var t;try{t=localStorage.getItem("kitty-theme")}catch(e){}if(t!=="light"&&t!=="dark"){t=window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}document.documentElement.dataset.theme=t})()`,
           }}
         />
       </head>
