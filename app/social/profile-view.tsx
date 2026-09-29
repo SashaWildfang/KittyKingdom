@@ -380,12 +380,12 @@ export function ProfileScreen({ id }: { id: string }) {
             {p.discordName ? <p className="dt-muted dt-hero-handle">@{p.discordName}</p> : null}
             <ul className="dt-hero-facts">
               {facts.map((f) => (
-                <li key={f.key} title={f.label}>
+                <li key={f.key} title={f.label} className={`is-${f.key}`}>
                   <f.Icon size={14} aria-hidden="true" /> {f.value}
                 </li>
               ))}
               {active ? (
-                <li className={active === "online now" ? "is-online" : undefined}>
+                <li className={`is-active${active === "online now" ? " is-online" : ""}`}>
                   <Activity size={14} aria-hidden="true" /> {active}
                 </li>
               ) : null}
