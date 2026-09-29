@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ThemeSwitch } from "./theme-switch";
 import { ThemeToggle } from "./theme-toggle";
-import { useUnreadMessages } from "./messages-nav-badge";
+import { MessagesButton } from "./messages-nav-badge";
 import { useUnreadNews } from "./news-nav-badge";
 import { NotificationBell } from "./notification-bell";
 
@@ -14,9 +14,8 @@ type NavLink = { href: string; label: string; icon: "home" | "news" | "discord" 
 const ICONS = { home: Home, news: Newspaper, discord: MessageCircle, patreon: Heart, staff: Users, store: ShoppingBag, leaderboards: Trophy, admin: UserStar, dating: HeartHandshake, settings: Settings, messages: MessagesSquare };
 
 /** Phone navigation: a slim bar with the theme switch and a menu that opens a sheet of big, tappable links. */
-export function MobileMenu({ links, signedIn, newsStamps = [], bell = false }: { links: NavLink[]; signedIn: boolean; newsStamps?: { id: string; at: string }[]; bell?: boolean }) {
+export function MobileMenu({ links, signedIn, newsStamps = [], bell = false, messages = false }: { links: NavLink[]; signedIn: boolean; newsStamps?: { id: string; at: string }[]; bell?: boolean; messages?: boolean }) {
   const unreadNews = useUnreadNews(newsStamps);
-  const unreadMessages = useUnreadMessages(links.some((l) => l.icon === "messages"));
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
@@ -40,6 +39,7 @@ export function MobileMenu({ links, signedIn, newsStamps = [], bell = false }: {
 
   return (
     <div className="mobile-nav">
+      {messages ? <MessagesButton /> : null}
       {bell ? <NotificationBell /> : null}
       <ThemeToggle />
       <button type="button" className={`mobile-nav-button${open ? " is-open" : ""}`} onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-controls="mobile-sheet" aria-label={open ? "Close menu" : "Open menu"}>
@@ -59,7 +59,6 @@ export function MobileMenu({ links, signedIn, newsStamps = [], bell = false }: {
                 </span>
                 {link.label}
                 {link.icon === "news" && unreadNews ? <span className="nav-news-badge">{unreadNews > 9 ? "9+" : unreadNews}</span> : null}
-                {link.icon === "messages" && unreadMessages ? <span className="nav-news-badge nav-msg-badge">{unreadMessages > 99 ? "99+" : unreadMessages}</span> : null}
               </a>
             );
           })}
