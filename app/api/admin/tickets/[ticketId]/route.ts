@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin, transcriptToken } from "../../../../../lib/admin";
 import { people } from "../../../../../lib/admin-people";
+import { TicketDeleteError, deleteTicket } from "../../../../../lib/ticket-delete";
 import { getTicket } from "../../../../../lib/tickets";
 import { warmTranscript } from "../../../../../lib/transcript-store";
 
@@ -20,4 +21,18 @@ export async function GET(request: Request, { params }: { params: { ticketId: st
     : null;
   const who = await people([ticket.openedBy, ticket.claimedBy, ticket.resolvedBy]);
   return NextResponse.json({ ok: true, ticket, viewer, download, people: who });
+}
+
+/** Deletes a closed ticket and its transcript (never NSFW tickets). Admins only; logged. */
+export async function DELETE(request: Request, { params }: { params: { ticketId: string } }) {
+  const admin = await requireAdmin(request);
+  if (admin instanceof NextResponse) return admin;
+  try {
+    const result = await deleteTicket(admin, Number(params.ticketId));
+    return NextResponse.json({ ok: true, ...result });
+  } catch (error) {
+    if (error instanceof TicketDeleteError) return NextResponse.json({ ok: false, error: error.message }, { status: error.status });
+    console.error("Ticket delete failed", error);
+    return NextResponse.json({ ok: false, error: "That didn't work right now. Please try again." }, { status: 500 });
+  }
 }

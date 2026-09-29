@@ -25190,3 +25190,59 @@ body.live-fullscreen .view-as-bar {
   margin: 0;
   color: var(--muted);
 }
+
+/* ---------- Admin: deleting tickets ---------- */
+.adm-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.adm-ticket-actions {
+  width: 1%;
+  white-space: nowrap;
+}
+.adm-ticket-delete {
+  color: #e5484d;
+}
+.adm-ticket-delete:hover {
+  border-color: rgba(229, 72, 77, 0.5);
+  background: rgba(229, 72, 77, 0.1);
+}
+.adm-ticket-locked {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  opacity: 0.7;
+  cursor: help;
+}
+.adm-ticket-confirm {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.45rem;
+  border: 1px solid rgba(229, 72, 77, 0.45);
+  border-radius: 0.6rem;
+  background: rgba(229, 72, 77, 0.08);
+  cursor: default;
+}
+.adm-ticket-confirm-text {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--text);
+  white-space: normal;
+}
+.adm-ticket-confirm-error {
+  flex-basis: 100%;
+  font-size: 0.8rem;
+  color: #ff6b6b;
+  white-space: normal;
+}
+:root[data-theme="light"] .adm-ticket-confirm-error {
+  color: #c62828;
+}

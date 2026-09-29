@@ -22,6 +22,7 @@ import {
   type Punishment,
   type Ticket,
 } from "./admin-shared";
+import { DeleteTicketButton } from "./delete-ticket-button";
 import { ViewAsButton } from "./view-as-button";
 
 type Result = {
@@ -55,6 +56,14 @@ export function MemberDrawer({
   onOpenTranscript: (ticketId: number) => void;
 }) {
   const { data, error, loading, reload } = useLive<Result>(`/api/admin/user/${userId}`, 20_000);
+  // A ticket deleted anywhere else in Admin drops off this profile too
+  const reloadRef = useRef(reload);
+  reloadRef.current = reload;
+  useEffect(() => {
+    const refresh = () => reloadRef.current();
+    window.addEventListener("kk-ticket-deleted", refresh);
+    return () => window.removeEventListener("kk-ticket-deleted", refresh);
+  }, []);
   // Anything this member did as staff (punishments they issued)
   const issued = useLive<{ rows: Punishment[]; total: number; people: People; mentions: Mentions }>(
     `/api/admin/punishments?issuerId=${userId}&pageSize=10`,
@@ -213,6 +222,8 @@ export function MemberDrawer({
                           <FileText size={14} aria-hidden="true" /> View
                         </button>
                       ) : null}
+                      {/* Admins only; the server checks too */}
+                      {canEditRoles ? <DeleteTicketButton ticket={t} onDeleted={() => reload()} /> : null}
                     </li>
                   ))}
                 </ul>

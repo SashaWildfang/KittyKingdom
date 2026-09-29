@@ -3,6 +3,7 @@
 import { Download, ExternalLink, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { PersonLink, TICKET_COLORS, formatDate, formatMs, prettyAction, type People, type Ticket } from "./admin-shared";
+import { DeleteTicketButton } from "./delete-ticket-button";
 
 type Result = {
   ticket: Ticket;
@@ -84,6 +85,7 @@ export function TranscriptViewer({ ticketId, onClose, onOpenMember }: { ticketId
               <Download size={14} aria-hidden="true" /> Zip ({(data.download.size / 1024 / 1024).toFixed(1)} MB)
             </a>
           ) : null}
+          {t ? <DeleteTicketButton ticket={t} onDeleted={onClose} label /> : null}
           <button type="button" className="adm-btn" onClick={onClose} aria-label="Close transcript">
             <X size={15} aria-hidden="true" /> Close
           </button>
