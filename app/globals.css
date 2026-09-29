@@ -19728,8 +19728,8 @@ button.st-emoji-chip.is-on {
 .acct-pinned-badges .bm {
   animation: st-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
-.acct-pinned-badges .bm:nth-child(2) { animation-delay: 0.08s; }
-.acct-pinned-badges .bm:nth-child(3) { animation-delay: 0.16s; }
+.acct-pinned-badges > :nth-child(2) .bm { animation-delay: 0.08s; }
+.acct-pinned-badges > :nth-child(3) .bm { animation-delay: 0.16s; }
 @keyframes st-pop {
   from { opacity: 0; transform: scale(0.4) rotate(-12deg); }
 }
@@ -25270,6 +25270,180 @@ body.live-fullscreen .view-as-bar {
 .adm-btn--tiny.adm-ticket-delete {
   padding: 0.2rem 0.35rem;
 }
-.adm-drawer-tickets li {
-  flex-wrap: wrap;
+/* Confirming a delete stays on the same line: the time and View step aside meanwhile */
+.adm-drawer-tickets li:has(.adm-ticket-confirm) > .adm-muted,
+.adm-drawer-ticket-actions:has(.adm-ticket-confirm) > .adm-btn {
+  display: none;
+}
+
+/* ---------- Badge tooltips (profile card, stats, Social profiles) ---------- */
+.acct-badges-showcase,
+.st-hero-badges {
+  position: relative;
+}
+.badge-tip-wrap {
+  display: inline-flex;
+  border-radius: 0.6rem;
+  outline: none;
+  cursor: help;
+}
+.badge-tip-wrap:focus-visible {
+  box-shadow: 0 0 0 2px var(--ember);
+}
+/* Centered on the whole row of badges, so it never runs off a narrow card */
+.badge-tip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  z-index: 30;
+  display: grid;
+  gap: 0.2rem;
+  width: max-content;
+  max-width: min(15rem, 92vw);
+  padding: 0.6rem 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--hue) 55%, var(--line));
+  border-radius: 0.8rem;
+  background: var(--panel-strong);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
+  color: var(--text);
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
+  text-shadow: none;
+  white-space: normal;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 4px);
+  transition: opacity 0.14s ease, transform 0.14s ease;
+}
+.badge-tip-wrap:hover .badge-tip,
+.badge-tip-wrap:focus-visible .badge-tip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+.badge-tip b {
+  font-size: 0.9rem;
+  color: var(--hue);
+}
+.badge-tip-tier {
+  justify-self: start;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.badge-tip-tier--1 { color: #d08a52; }
+.badge-tip-tier--2 { color: #c7ccd6; }
+.badge-tip-tier--3 { color: #f5c542; }
+.badge-tip-tier--4 { color: #7fe3f5; }
+.badge-tip-tier--special { color: var(--hue); }
+.badge-tip-desc {
+  color: var(--muted);
+}
+.badge-tip-when {
+  color: var(--text);
+  font-weight: 800;
+}
+:root[data-theme="light"] .badge-tip {
+  box-shadow: 0 14px 30px rgba(109, 55, 22, 0.18);
+}
+:root[data-theme="light"] .badge-tip-tier {
+  background: rgba(109, 55, 22, 0.08);
+}
+:root[data-theme="light"] .badge-tip-tier--2 { color: #6b7280; }
+:root[data-theme="light"] .badge-tip-tier--3 { color: #b7791f; }
+:root[data-theme="light"] .badge-tip-tier--4 { color: #0e7490; }
+@media (hover: none) {
+  .badge-tip-wrap:focus .badge-tip {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+/* Detail panel: when it was earned */
+.st-bdetail-when {
+  margin: 0.2rem 0 0;
+  font-weight: 800;
+  color: var(--ember);
+}
+
+/* ---------- Recent badge activity (stats → Badges) ---------- */
+.st-brecent {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+}
+.st-brecent .st-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+}
+.st-brecent ul {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.st-brecent li button {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.35rem 0.5rem;
+  border: 0;
+  border-radius: 0.7rem;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.88rem;
+  text-align: left;
+  cursor: pointer;
+}
+.st-brecent li button:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+.st-brecent-text {
+  flex: 1;
+  min-width: 0;
+}
+.st-brecent-when {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  flex: none;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.st-brecent .is-up .st-brecent-when svg {
+  color: #3ddc84;
+}
+.st-brecent .is-down .st-brecent-when svg {
+  color: #ff6b6b;
+}
+.st-brecent .adm-muted {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+/* ---------- Social profile: badge title + pinned badges ---------- */
+.dt-hero-showcase {
+  justify-items: start;
+  width: fit-content;
+  margin: 0.35rem 0 0.1rem;
+}
+.dt-hero-showcase .acct-pinned-badges {
+  gap: 0.35rem;
 }
