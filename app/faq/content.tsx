@@ -405,7 +405,7 @@ export const TOPICS: Topic[] = [
       { q: "Is there a limit on likes?", a: "No, likes are unlimited for everyone, and you can see everyone who liked you. Server boosters get a bigger chance in the hourly Featured draw." },
       {
         q: "Can I get Social notifications in Discord?",
-        a: "Yes. Turn on Discord DMs in Social → Settings and pick which ones you want (likes, matches, messages, profile views and more). They're all off until you turn them on.",
+        a: "Yes. Open Settings (the gear at the top) → Notifications and switch on the Discord DM column for the ones you want (likes, matches, messages and more). They're all off until you turn them on.",
         keywords: "dm notifications discord",
       },
     ],
@@ -449,6 +449,36 @@ export const TOPICS: Topic[] = [
           </>
         ),
         keywords: "verify email confirm",
+      },
+      {
+        q: "I typed my email wrong when I signed up",
+        a: (
+          <>
+            No problem. On the sign-up page (or when you <a href="/login">log in</a>), press <b>Typed your email wrong? Fix it</b>, enter the right address and we&apos;ll
+            send a new link there. You confirm your email before linking Discord, so nothing gets stuck.
+          </>
+        ),
+        keywords: "wrong email typo change email",
+      },
+      {
+        q: "Where can I read my ticket transcripts?",
+        a: (
+          <>
+            On <a href="/account#transcripts">My Account → Transcripts</a>, or with the <b>View transcript</b> button in the DM you get when a ticket closes. You
+            need a website account with the Discord that opened the ticket linked. Images, videos and files are removed from your copy for privacy.
+          </>
+        ),
+        keywords: "ticket transcript support copy",
+      },
+      {
+        q: "Where are my settings?",
+        a: (
+          <>
+            Press the <b>gear</b> at the top of the site (or <b>Settings</b> in the My Account menu). Theme, notifications, privacy, messages and Discover are all in
+            one place.
+          </>
+        ),
+        keywords: "settings notifications privacy theme dark mode",
       },
       {
         q: "How do I keep my account safe?",

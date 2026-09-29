@@ -1,5 +1,6 @@
 // Website accounts for the admin panel. Password hashes and token hashes never leave this file.
 
+import { deleteBadgeHistory } from "./badge-history";
 import { randomBytes, randomInt } from "crypto";
 import { ObjectId, type Document } from "mongodb";
 import { isStaffDiscordId, type PanelUser } from "./admin";
@@ -289,6 +290,7 @@ export async function accountAction(id: string, action: AccountAction, admin: Pa
     await Promise.all([
       (await sessionsCollection()).deleteMany({ userId: _id }),
       website.collection("link_codes").deleteMany({ userId: _id }),
+      deleteBadgeHistory(target.discordId).catch(() => undefined),
     ]);
     result = { message: `Deleted the website account for ${target.email}. Their Discord and bot data are untouched.` };
   } else if (action === "remind-verify" || action === "remind-link") {
