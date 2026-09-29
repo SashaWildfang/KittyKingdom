@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "../../../lib/auth";
-import { listNotifications, markRead } from "../../../lib/notifications";
+import { clearNotifications, listNotifications, markRead } from "../../../lib/notifications";
 import { getViewAs } from "../../../lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -21,5 +21,15 @@ export async function POST(request: Request) {
   if (!user?.discordId || (await getViewAs())) return NextResponse.json({ ok: false }, { status: 403 });
   const body = (await request.json().catch(() => null)) as { ids?: unknown; all?: unknown } | null;
   await markRead(String(user.discordId), body?.all === true ? "all" : Array.isArray(body?.ids) ? body!.ids.map(String).slice(0, 100) : []);
+  return NextResponse.json({ ok: true });
+}
+
+/** Clears all of your notifications. */
+export async function DELETE(request: Request) {
+  const origin = request.headers.get("origin");
+  if (!origin || origin !== new URL(request.url).origin) return NextResponse.json({ ok: false }, { status: 403 });
+  const user = await getCurrentUser();
+  if (!user?.discordId || (await getViewAs())) return NextResponse.json({ ok: false }, { status: 403 });
+  await clearNotifications(String(user.discordId));
   return NextResponse.json({ ok: true });
 }

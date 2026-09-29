@@ -32,15 +32,13 @@ export function AccountMenu({ social }: { social: boolean }) {
             <UserRound size={16} aria-hidden="true" /> My Account
           </a>
           {social ? (
-            <>
-              <a href="/social/profile" role="menuitem">
-                <HeartHandshake size={16} aria-hidden="true" /> My Social profile
-              </a>
-              <a href="/social/settings" role="menuitem">
-                <Settings size={16} aria-hidden="true" /> Social settings
-              </a>
-            </>
+            <a href="/social/profile" role="menuitem">
+              <HeartHandshake size={16} aria-hidden="true" /> My Social profile
+            </a>
           ) : null}
+          <a href="/settings" role="menuitem">
+            <Settings size={16} aria-hidden="true" /> Settings
+          </a>
           <div className="acct-menu-section">
             <span>
               <Palette size={14} aria-hidden="true" /> Appearance
