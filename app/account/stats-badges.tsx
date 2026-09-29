@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowUp, Check, History, Pencil, Pin, Sparkles, Type, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, History, Pencil, Pin, PinOff, Sparkles, Type, X } from "lucide-react";
 import type { BadgeEarned, BadgeHistory } from "../../lib/badge-history";
 import { earnedText } from "./badge-tip";
 import { useMemo, useState, type CSSProperties } from "react";
@@ -44,7 +44,25 @@ function unit(b: EarnedBadge, n: number) {
 }
 const tierName = (b: EarnedBadge) => (b.tiers.length === 1 ? (b.tier ? "Special" : "Locked") : b.tier ? TIER_NAMES[b.tier - 1] : "Locked");
 
-function Detail({ b, earned, onClose }: { b: EarnedBadge; earned?: BadgeEarned | null; onClose: () => void }) {
+function Detail({
+  b,
+  earned,
+  onClose,
+  pinned,
+  isTitle,
+  onUnpin,
+  onRemoveTitle,
+  busy,
+}: {
+  b: EarnedBadge;
+  earned?: BadgeEarned | null;
+  onClose: () => void;
+  pinned: boolean;
+  isTitle: boolean;
+  onUnpin: () => void;
+  onRemoveTitle: () => void;
+  busy: boolean;
+}) {
   const special = b.tiers.length === 1;
   const when = b.tier ? earnedText(earned, b.tiers) : null;
   return (
@@ -64,12 +82,27 @@ function Detail({ b, earned, onClose }: { b: EarnedBadge; earned?: BadgeEarned |
           </p>
         )}
         {when ? <p className="st-bdetail-when">{when}</p> : null}
+        {pinned || isTitle ? (
+          <div className="st-bdetail-actions">
+            {pinned ? (
+              <button type="button" className="acct-button acct-button--small acct-button--ghost" onClick={onUnpin} disabled={busy}>
+                <PinOff size={14} aria-hidden="true" /> {busy ? "Saving…" : "Unpin"}
+              </button>
+            ) : null}
+            {isTitle ? (
+              <button type="button" className="acct-button acct-button--small acct-button--ghost" onClick={onRemoveTitle} disabled={busy}>
+                <X size={14} aria-hidden="true" /> {busy ? "Saving…" : "Remove as title"}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
         {special ? (
           <p className="adm-muted">{b.tier ? "You've got it!" : "A special badge. Earn it and it's yours."}</p>
         ) : (
           <ol className="st-tiers">
             {b.tiers.map((t, i) => (
-              <li key={t} className={b.tier > i ? "is-done" : b.tier === i ? "is-next" : undefined}>
+              <li key={t} className={`${b.tier === i + 1 ? "is-current " : ""}${b.tier > i ? "is-done" : b.tier === i ? "is-next" : ""}`}>
+                {b.tier === i + 1 ? <span className="st-tier-you">Your tier</span> : null}
                 <span className={`st-tier-dot st-tier-dot--${i + 1}`}>{b.tier > i ? <Check size={12} strokeWidth={3} /> : i + 1}</span>
                 <b>{TIER_NAMES[i]}</b>
                 <small>{unit(b, t)}</small>
@@ -198,21 +231,37 @@ export function BadgeCollection({ badges, showcase, history, onSaved }: { badges
     const empty = next.indexOf(null);
     setSlot(typeof slot === "number" && empty >= 0 ? empty : null);
   };
-  const save = async () => {
+  const store = async (nextPinned: (string | null)[], nextTitle: string | null) => {
     setBusy(true);
     setError(null);
     const res = await fetch("/api/account/badges", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pinned: pinned.filter(Boolean), title }),
+      body: JSON.stringify({ pinned: nextPinned.filter(Boolean), title: nextTitle }),
     });
     const body = await res.json().catch(() => ({}));
     setBusy(false);
-    if (!body.ok) return setError(body.error ?? "Couldn't save your badges.");
+    if (!body.ok) {
+      setError(body.error ?? "Couldn't save your badges.");
+      return false;
+    }
     onSaved(body.showcase);
     window.dispatchEvent(new CustomEvent(BADGES_EVENT, { detail: body.showcase }));
-    setEditing(false);
-    setSlot(null);
+    return true;
+  };
+  const save = async () => {
+    if (await store(pinned, title)) {
+      setEditing(false);
+      setSlot(null);
+    }
+  };
+  // Straight from a badge's details, without going into Customize
+  const unpin = async (id: string) => {
+    const next = pinned.map((x) => (x === id ? null : x));
+    if (await store(next, title)) setPinned(next);
+  };
+  const removeTitle = async () => {
+    if (await store(pinned, null)) setTitle(null);
   };
   const titleBadge = title ? byId.get(title) ?? null : null;
 
@@ -335,7 +384,18 @@ export function BadgeCollection({ badges, showcase, history, onSaved }: { badges
         </label>
       </div>
 
-      {detail ? <Detail b={detail} earned={history?.earned[detail.id]} onClose={() => setOpen(null)} /> : null}
+      {detail ? (
+        <Detail
+          b={detail}
+          earned={history?.earned[detail.id]}
+          onClose={() => setOpen(null)}
+          pinned={!editing && pinned.includes(detail.id)}
+          isTitle={!editing && title === detail.id}
+          onUnpin={() => void unpin(detail.id)}
+          onRemoveTitle={() => void removeTitle()}
+          busy={busy}
+        />
+      ) : null}
 
       <div className="st-badges">
         {list.map((b, i) => {
