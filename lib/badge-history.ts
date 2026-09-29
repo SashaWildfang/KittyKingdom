@@ -87,3 +87,9 @@ export async function recordBadges(discordId: string, badges: EarnedBadge[]): Pr
   );
   return toHistory(await c.findOne({ _id: discordId }));
 }
+
+/** Forgets when this member earned their badges (their website account was deleted). */
+export async function deleteBadgeHistory(discordId: string | null | undefined) {
+  if (!discordId || !/^\d{15,21}$/.test(String(discordId))) return;
+  await (await col()).deleteOne({ _id: String(discordId) });
+}

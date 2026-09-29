@@ -19,7 +19,7 @@ async function col(): Promise<Collection<Document>> {
 
 /** Adds a notification. With a key, an unread one with the same key is refreshed instead of duplicated. */
 export async function notify(to: string, n: { type: NotificationType; actor?: string | null; title: string; body?: string; link: string; key?: string }) {
-  // Members choose which kinds they get in the bell and which also come as Discord DMs (Social → Settings)
+  // Members choose which kinds they get in the bell and which also come as Discord DMs (Settings → Notifications)
   const settings = n.type === "system" ? null : await getSettings(to).catch(() => null);
   if (settings) await sendDatingDm(to, settings, n).catch(() => undefined);
   if (settings?.notify[n.type as keyof typeof settings.notify] === false) return;
