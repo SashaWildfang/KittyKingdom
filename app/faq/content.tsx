@@ -423,7 +423,7 @@ export const TOPICS: Topic[] = [
         body: (
           <ol className="kb-steps">
             <li>
-              <a href="/login">Log in</a> and open <a href="/account">My Account</a>.
+              <a href="/login">Log in</a> and open <a href="/account">My Account</a>. Your email has to be confirmed first.
             </li>
             <li>
               In the Discord section, press <b>Get code</b>.

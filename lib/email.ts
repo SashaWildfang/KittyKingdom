@@ -184,18 +184,29 @@ const stamp = () => {
 /** Step 3 of signing up (after /link): confirm the email address. Also used for "resend". */
 export function verificationEmail(email: string, verifyUrl: string, details: { discordName?: string | null; newAccount?: boolean } = {}) {
   const discord = details.discordName ? String(details.discordName) : null;
+  // New sign-ups confirm their email first, then link Discord in the server
+  const signup = Boolean(details.newAccount && !discord);
+  const intro = signup
+    ? "Confirm this email address, then link your Discord with <strong>/link</strong> in the server to finish setting up your Kitty Kingdom account."
+    : discord
+      ? `Your Discord account <strong style="color:${INK};">${escapeHtml(discord)}</strong> is linked. Confirm this email address to finish setting up your Kitty Kingdom account, then you can log in.`
+      : "Confirm this email address to finish setting up your Kitty Kingdom account, then you can log in.";
   const html = layout({
-    preheader: "One last step: confirm your email to finish your Kitty Kingdom account.",
+    preheader: signup ? "Confirm your email, then link your Discord to finish your Kitty Kingdom account." : "One last step: confirm your email to finish your Kitty Kingdom account.",
     eyebrow: "Account verification",
     title: "Confirm your email address",
-    intro: discord
-      ? `Your Discord account <strong style="color:${INK};">${escapeHtml(discord)}</strong> is linked. Confirm this email address to finish setting up your Kitty Kingdom account, then you can log in.`
-      : "Confirm this email address to finish setting up your Kitty Kingdom account, then you can log in.",
-    steps: [
-      { label: "Account details", state: "done" },
-      { label: "Discord linked", state: "done" },
-      { label: "Confirm email", state: "current" },
-    ],
+    intro,
+    steps: signup
+      ? [
+          { label: "Account details", state: "done" },
+          { label: "Confirm email", state: "current" },
+          { label: "Link Discord", state: "todo" },
+        ]
+      : [
+          { label: "Account details", state: "done" },
+          { label: "Discord linked", state: "done" },
+          { label: "Confirm email", state: "current" },
+        ],
     rows: [
       { label: "Email", value: email },
       ...(discord ? [{ label: "Discord", value: discord }] : []),
@@ -210,7 +221,9 @@ export function verificationEmail(email: string, verifyUrl: string, details: { d
     "Kitty Kingdom: confirm your email address",
     "",
     ...(discord ? [`Your Discord account ${discord} is linked.`] : []),
-    "Confirm this email address to finish setting up your Kitty Kingdom account, then you can log in.",
+    signup
+      ? "Confirm this email address, then link your Discord with /link in the server to finish setting up your Kitty Kingdom account."
+      : "Confirm this email address to finish setting up your Kitty Kingdom account, then you can log in.",
     "",
     `Confirm your email: ${verifyUrl}`,
     "This link expires in 72 hours.",

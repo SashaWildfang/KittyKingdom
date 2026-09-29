@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { hashPassword } from "../../../../lib/auth";
 import { isDatabaseConnectionError } from "../../../../lib/db-errors";
-import { createLinkCode } from "../../../../lib/link-codes";
 import { getUsersCollection } from "../../../../lib/mongodb";
 import { HOUR, allow, clientIp } from "../../../../lib/rate-limit";
-import { removeAbandonedRegistrations, setRegistrationCookie } from "../../../../lib/registration";
+import { removeAbandonedRegistrations, sendSignupVerification, setRegistrationCookie } from "../../../../lib/registration";
 import { cleanEmail, cleanPassword, isFormPost } from "../../../../lib/validate";
 
 export const maxDuration = 10;
@@ -59,8 +58,8 @@ export async function POST(request: Request) {
 
     const { salt, hash } = hashPassword(password);
     const now = new Date();
-    // The account stays unfinished until a verified server member links it with /link;
-    // the email-verification link is sent after that (lib/registration.ts)
+    // The account stays unfinished until the email is confirmed and then a verified server member
+    // links it with /link (lib/registration.ts)
     const { insertedId } = await users.insertOne({
       email,
       // No username field until one is chosen: the unique username index skips missing
@@ -75,7 +74,7 @@ export async function POST(request: Request) {
       createdAt: now,
       updatedAt: now,
     });
-    await createLinkCode(insertedId);
+    await sendSignupVerification({ _id: insertedId, email }, origin);
     await setRegistrationCookie(insertedId);
     return NextResponse.redirect(`${origin}/register?step=link`, 303);
   } catch (error) {
