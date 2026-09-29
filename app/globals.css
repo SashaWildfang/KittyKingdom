@@ -25439,11 +25439,24 @@ body.live-fullscreen .view-as-bar {
 }
 
 /* ---------- Social profile: badge title + pinned badges ---------- */
+/* Under the social links in the photo column */
 .dt-hero-showcase {
-  justify-items: start;
+  justify-items: center;
   width: fit-content;
-  margin: 0.35rem 0 0.1rem;
+  max-width: 168px;
+  margin: 0;
+}
+.dt-hero-showcase .st-title-pill {
+  max-width: 168px;
 }
 .dt-hero-showcase .acct-pinned-badges {
   gap: 0.35rem;
+}
+
+.st-bdetail-yours {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.st-bdetail-yours b {
+  color: var(--text);
 }
