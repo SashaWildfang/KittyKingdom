@@ -4342,3 +4342,149 @@ a.dt-partner-chip:hover {
     top: 4.6rem;
   }
 }
+
+/* ==========================================================================
+   Profile header on phones: one clean stacked column
+   (last in the file so it wins over the tablet rules above)
+   ========================================================================== */
+@media (max-width: 700px) {
+  .dt-profile--v2 .dt-hero-cover {
+    aspect-ratio: auto;
+    width: 100%;
+    height: 120px;
+    min-height: 0;
+    max-height: none;
+  }
+  .dt-profile--v2 .dt-hero-body {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    gap: 0.9rem;
+    padding: 0 1rem 1.1rem;
+    text-align: center;
+  }
+  .dt-profile--v2 .dt-hero-side {
+    gap: 0.6rem;
+  }
+  .dt-profile--v2 .dt-hero-photo {
+    width: 118px;
+    height: 118px;
+    margin-top: -60px;
+    border-radius: 24px;
+  }
+  .dt-hero-side .dt-socials {
+    max-width: none;
+  }
+  .dt-hero-side .dt-social-chip {
+    width: 34px;
+    height: 34px;
+  }
+  .dt-profile--v2 .dt-hero-info {
+    width: 100%;
+    padding-top: 0;
+    justify-items: center;
+    gap: 0.5rem;
+  }
+  .dt-profile--v2 .dt-hero-info h1 {
+    justify-content: center;
+    font-size: 1.7rem !important;
+  }
+  .dt-profile--v2 .dt-headline {
+    font-size: 0.95rem;
+    line-height: 1.35;
+  }
+  .dt-profile--v2 .dt-hero-handle {
+    margin-top: -0.2rem;
+  }
+  /* Facts in a tidy two-column panel instead of loose centered lines */
+  .dt-profile--v2 .dt-hero-facts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem 0.8rem;
+    width: 100%;
+    margin: 0.2rem 0 0;
+    padding: 0.75rem 0.85rem;
+    border-radius: 14px;
+    text-align: left;
+    font-size: 0.86rem;
+    background: color-mix(in srgb, var(--acc) 7%, var(--dt-well));
+    border: 1px solid color-mix(in srgb, var(--acc) 22%, var(--line));
+  }
+  .dt-profile--v2 .dt-hero-facts li {
+    align-items: flex-start;
+    min-width: 0;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+  }
+  .dt-profile--v2 .dt-hero-facts li svg {
+    flex: none;
+    margin-top: 0.1rem;
+  }
+  /* Short facts pair up; long ones (status, location) get a full row */
+  .dt-profile--v2 .dt-hero-facts li.is-relationship_status,
+  .dt-profile--v2 .dt-hero-facts li.is-location {
+    grid-column: 1 / -1;
+  }
+  .dt-profile--v2 .dt-hero-facts li.is-location {
+    order: 5;
+  }
+  .dt-profile--v2 .dt-hero-facts li.is-relationship_status {
+    order: 6;
+  }
+  .dt-profile--v2 .dt-hero-facts li.is-active {
+    order: 4;
+  }
+  .dt-profile--v2 .dt-hero-badges {
+    justify-content: center;
+  }
+  .dt-profile--v2 .dt-partners {
+    justify-content: center;
+  }
+  /* Actions: an even row across the card, "..." as a small square at the end */
+  .dt-profile--v2 .dt-hero-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+    gap: 0.45rem;
+    width: 100%;
+    padding: 0;
+    grid-column: auto;
+  }
+  .dt-profile--v2 .dt-hero-actions .dt-btn {
+    height: 2.5rem;
+    min-width: 0;
+    padding: 0 0.4rem;
+    font-size: 0.76rem;
+    gap: 0.25rem;
+  }
+  .dt-profile--v2 .dt-hero-actions .dt-btn span,
+  .dt-profile--v2 .dt-hero-actions .dt-btn {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dt-profile--v2 .dt-hero-actions .dt-more .dt-btn--icon {
+    width: 2.5rem;
+  }
+  /* Your own profile only has two buttons */
+  .dt-profile--v2 .dt-hero-actions:not(:has(.dt-more)) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dt-profile--v2 .dt-menu {
+    right: 0;
+    left: auto;
+  }
+  /* The rest of the profile */
+  .dt-profile--v2 .dt-gallery {
+    aspect-ratio: 4 / 4.4;
+  }
+  .dt-profile--v2::before {
+    inset: -40px 0 auto;
+  }
+}
+
+@media (max-width: 700px) {
+  .dt-profile--v2 .dt-hero-actions .dt-btn svg {
+    width: 14px;
+    height: 14px;
+    flex: none;
+  }
+}
