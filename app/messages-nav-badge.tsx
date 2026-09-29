@@ -1,5 +1,6 @@
 "use client";
 
+import { Mail } from "lucide-react";
 import { useEffect, useState } from "react";
 
 /** Unread Social messages (and requests), checked every 20 seconds while the page is visible. */
@@ -25,12 +26,13 @@ export function useUnreadMessages(enabled = true) {
   return unread;
 }
 
-/** The bubble on the Messages tab. */
-export function MessagesNavBadge() {
+/** The envelope next to the bell: opens Social messages, with a bubble for unread ones. */
+export function MessagesButton() {
   const unread = useUnreadMessages();
-  return unread ? (
-    <span className="nav-news-badge nav-msg-badge" aria-label={`${unread} unread`}>
-      {unread > 99 ? "99+" : unread}
-    </span>
-  ) : null;
+  return (
+    <a className={`nav-msg${unread ? " has-unread" : ""}`} href="/social/messages" title="Messages" aria-label={unread ? `Messages, ${unread} unread` : "Messages"}>
+      <Mail size={19} strokeWidth={2.1} aria-hidden="true" />
+      {unread ? <span className="nb-count nav-msg-count">{unread > 99 ? "99+" : unread}</span> : null}
+    </a>
+  );
 }

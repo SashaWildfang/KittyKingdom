@@ -30,9 +30,7 @@ export function DatingNav() {
   }, [path]);
   return (
     <nav className="dt-nav" aria-label="Social">
-      <a href="/social" className="dt-nav-brand">
-        <Heart size={18} fill="currentColor" aria-hidden="true" /> Social
-      </a>
+      {/* No "Social" title link here: the top bar already has Social */}
       <div className="dt-nav-tabs" ref={strip}>
         {TABS.map((t) => {
           const on = t.exact ? path === t.href : path.startsWith(t.href);
