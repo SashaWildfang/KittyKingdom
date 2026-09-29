@@ -233,7 +233,7 @@ export async function compatWith(me: string, other: string) {
 }
 
 // ---------- Featured this hour ----------
-const BOOSTER_WEIGHT = 2;
+const PROFILE_BOOSTER_WEIGHT = 2;
 const LEFT_WEIGHT = 0.25;
 function seeded(seed: number) {
   let s = seed >>> 0;
@@ -253,12 +253,13 @@ export async function featured(hoursAgo = 0) {
     .filter((p) => p.is_looking === "Yes" && !((p.web ?? {}) as WebPrefs).paused && pool.settings.get(String(p._id))?.featured !== false && isFilled(p.bio))
     .sort((a, b) => String(a._id).localeCompare(String(b._id)));
   if (!eligible.length) return null;
-  // Weight: the store's Profile Booster (profile_weight), doubled for server boosters, and a much
-  // smaller chance for members who left the server
+  // Weight: profile_weight (kept in sync by the economy bot from their roles: server booster and
+  // Patreon tier), doubled while a Store Profile Booster is running, and a much smaller chance for
+  // members who left the server
   const weightOf = (p: ProfileDoc) => {
     const id = String(p._id);
     const left = pool.inServer ? !pool.inServer.has(id) : pool.who.get(id)?.inServer === false;
-    return Math.max(0.1, Number(p.profile_weight ?? 1)) * (pool.who.get(id)?.boosting ? BOOSTER_WEIGHT : 1) * (left ? LEFT_WEIGHT : 1);
+    return Math.max(0.1, Number(p.profile_weight ?? 1)) * (pool.profileBoosted.has(id) ? PROFILE_BOOSTER_WEIGHT : 1) * (left ? LEFT_WEIGHT : 1);
   };
   const weights = eligible.map(weightOf);
   const total = weights.reduce((a, b) => a + b, 0);
