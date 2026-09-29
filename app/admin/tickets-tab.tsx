@@ -18,6 +18,7 @@ import {
   type People,
   type Ticket,
 } from "./admin-shared";
+import { DeleteTicketButton } from "./delete-ticket-button";
 import { OpenTickets } from "./ticket-live";
 
 type Result = { rows: Ticket[]; total: number; page: number; pageSize: number; people: People };
@@ -77,7 +78,20 @@ export function TicketsTab({
     pageSize: String(filters.pageSize),
     ...(filters.range !== "all" ? { range: filters.range } : {}),
   });
-  const { data, error, loading, updatedAt } = useLive<Result>(`/api/admin/tickets?${params}`, 15_000);
+  const { data, error, loading, updatedAt, reload } = useLive<Result>(`/api/admin/tickets?${params}`, 15_000);
+  // Tickets deleted here disappear straight away (the live refresh confirms it)
+  const [deleted, setDeleted] = useState<number[]>([]);
+  const [notice, setNotice] = useState<string | null>(null);
+  useEffect(() => {
+    const onAnyDelete = (e: Event) => setDeleted((d) => [...d, Number((e as CustomEvent).detail)]);
+    window.addEventListener("kk-ticket-deleted", onAnyDelete);
+    return () => window.removeEventListener("kk-ticket-deleted", onAnyDelete);
+  }, []);
+  const onDeleted = (id: number) => {
+    setDeleted((d) => [...d, id]);
+    setNotice(`Ticket #${id} and its transcript were deleted. It's logged in the bot logs channel.`);
+    reload();
+  };
 
   const update = (patch: Partial<Filters>) => {
     setFilters((f) => ({ ...f, ...patch }));
@@ -148,6 +162,11 @@ export function TicketsTab({
       </div>
 
       {error ? <p className="adm-error">{error}</p> : null}
+      {notice ? (
+        <p className="adm-notice" role="status">
+          {notice}
+        </p>
+      ) : null}
 
       <div className="adm-table-wrap">
         <table className="adm-table">
@@ -169,10 +188,13 @@ export function TicketsTab({
               </th>
               <th>Status</th>
               <th>Transcript</th>
+              <th>
+                <span className="adm-sr">Delete</span>
+              </th>
             </tr>
           </thead>
           <tbody>
-            {(data?.rows ?? []).map((t) => (
+            {(data?.rows ?? []).filter((t) => !deleted.includes(t.ticketId)).map((t) => (
               <tr key={t.ticketId} onClick={() => t.transcriptId && onOpenTranscript(t.ticketId)} className={t.transcriptId ? "is-clickable" : undefined}>
                 <td>
                   <strong>#{t.ticketId}</strong>
@@ -213,11 +235,14 @@ export function TicketsTab({
                     <span className="adm-muted">None</span>
                   )}
                 </td>
+                <td className="adm-ticket-actions">
+                  <DeleteTicketButton ticket={t} onDeleted={onDeleted} />
+                </td>
               </tr>
             ))}
             {!loading && data && !data.rows.length ? (
               <tr>
-                <td colSpan={8} className="adm-empty">
+                <td colSpan={9} className="adm-empty">
                   No tickets match these filters.
                 </td>
               </tr>
@@ -225,7 +250,7 @@ export function TicketsTab({
             {!data && loading
               ? Array.from({ length: 6 }, (_, i) => (
                   <tr key={i} className="adm-row-skeleton">
-                    <td colSpan={8} />
+                    <td colSpan={9} />
                   </tr>
                 ))
               : null}
