@@ -3,7 +3,7 @@ import { getTicketByTranscript } from "../../../../../../lib/tickets";
 import { LOCAL_TIMES_SCRIPT, localizeTranscriptTimes } from "../../../../../../lib/transcript-local-times";
 import { requestTimeZone } from "../../../../../../lib/timezone";
 import { TRANSCRIPT_CSS } from "../../../../../../lib/transcript-member-css";
-import { memberMayLoad, memberTranscriptPage } from "../../../../../../lib/transcript-member";
+import { TRANSCRIPT_CSS_FILE, memberMayLoad, memberTranscriptPage } from "../../../../../../lib/transcript-member";
 import { openTranscriptFile } from "../../../../../../lib/transcript-store";
 
 export const dynamic = "force-dynamic";
@@ -48,7 +48,7 @@ export async function GET(request: Request, { params }: { params: { messageId: s
     return new Response(localizeTranscriptTimes(page, requestTimeZone(request)), { headers: { ...base, "Cache-Control": "private, no-store", "Content-Type": "text/html; charset=utf-8", "Content-Security-Policy": PAGE_CSP } });
   }
 
-  if (name === "style.css") {
+  if (name === TRANSCRIPT_CSS_FILE || name === "style.css") {
     return new Response(TRANSCRIPT_CSS, { headers: { ...base, "Content-Type": "text/css; charset=utf-8" } });
   }
 
