@@ -25629,3 +25629,77 @@ body.live-fullscreen .view-as-bar {
     flex: 0 0 auto;
   }
 }
+
+/* ---------- Messages tab in the top bar ---------- */
+.nav-messages-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.nav-msg-badge {
+  background: #ff6b9a;
+}
+
+/* ---------- Badge showcase: names wrap instead of cutting off ---------- */
+.st-bslot small {
+  overflow: visible;
+  text-align: center;
+  text-overflow: clip;
+  white-space: normal;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+/* The title slot: roomier, with a full-size title */
+.st-bslot--title {
+  width: 11.5rem;
+}
+.st-bslot--title .st-title-pill {
+  max-width: 10.5rem;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.9rem;
+  line-height: 1.2;
+  text-align: center;
+  white-space: normal;
+}
+.st-bslot--title .st-title-pill svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ---------- Badge details: your tier, unpin ---------- */
+.st-tiers li {
+  position: relative;
+}
+.st-tiers li.is-current {
+  opacity: 1;
+  border-color: var(--hue);
+  background: color-mix(in srgb, var(--hue) 16%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--hue) 45%, transparent), 0 6px 18px color-mix(in srgb, var(--hue) 22%, transparent);
+}
+.st-tier-you {
+  position: absolute;
+  top: -0.55rem;
+  right: 0.45rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: var(--hue);
+  color: #1d0b05;
+  font-size: 0.6rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.st-bdetail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+
+/* Narrow desktops: the logo alone (no name text) so every tab still fits on one line */
+@media (min-width: 1101px) and (max-width: 1280px) {
+  .topbar .brand-copy {
+    display: none;
+  }
+}

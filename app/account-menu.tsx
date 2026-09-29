@@ -33,7 +33,7 @@ export function AccountMenu({ social }: { social: boolean }) {
           </a>
           {social ? (
             <a href="/social/profile" role="menuitem">
-              <HeartHandshake size={16} aria-hidden="true" /> My Social profile
+              <HeartHandshake size={16} aria-hidden="true" /> My Social Profile
             </a>
           ) : null}
           <a href="/settings" role="menuitem">

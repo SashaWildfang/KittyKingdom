@@ -116,7 +116,7 @@ export async function SiteFooter() {
                 </a>
                 {social ? (
                   <a href="/social/profile">
-                    <HeartHandshake size={13} aria-hidden="true" /> My Social profile
+                    <HeartHandshake size={13} aria-hidden="true" /> My Social Profile
                   </a>
                 ) : null}
                 <a href="/settings">
