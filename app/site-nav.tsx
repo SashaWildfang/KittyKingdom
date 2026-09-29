@@ -1,4 +1,5 @@
-import { Gauge } from "lucide-react";
+import { LayoutDashboard } from "lucide-react";
+import { AccountMenu } from "./account-menu";
 import { getPanelUser } from "../lib/admin";
 import { canViewStaffPage, getCurrentUser } from "../lib/auth";
 import { OnlineStatus } from "./online-status";
@@ -7,7 +8,6 @@ import { recentNewsStamps } from "../lib/news";
 import { canSeeDating } from "../lib/dating/access";
 import { NotificationBell } from "./notification-bell";
 import { MobileMenu } from "./mobile-menu";
-import { ThemeToggle } from "./theme-toggle";
 
 const PATREON_URL = "https://www.patreon.com/c/thekittykingdom/membership";
 
@@ -71,30 +71,22 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
       <div className="nav-actions">
         {panel ? (
           <a className="nav-panel-btn" href="/admin" title={panel.level === "admin" ? "Admin panel" : "Staff panel"} aria-label={panel.level === "admin" ? "Admin panel" : "Staff panel"}>
-            <Gauge size={20} strokeWidth={2.1} aria-hidden="true" />
+            <LayoutDashboard size={19} strokeWidth={2.1} aria-hidden="true" />
           </a>
         ) : null}
-        <ThemeToggle />
         {linked ? <NotificationBell /> : null}
+        {/* Theme lives in the account menu, the footer and the phone menu */}
         {signedIn ? (
-          <a className="login-link logged-in-link" href="/account">
-            My Account
-          </a>
+          <AccountMenu social={dating} />
         ) : (
-          <a className="login-link" href="/login">
-            Login
-          </a>
-        )}
-        {signedIn ? (
-          <form action="/api/account/logout" method="post">
-            <button className="primary-pill logout-pill" type="submit">
-              Logout
-            </button>
-          </form>
-        ) : (
-          <a className="primary-pill" href="/register">
-            Register
-          </a>
+          <>
+            <a className="login-link" href="/login">
+              Login
+            </a>
+            <a className="primary-pill" href="/register">
+              Register
+            </a>
+          </>
         )}
       </div>
       <MobileMenu links={mobileLinks} signedIn={signedIn} newsStamps={newsStamps} bell={linked} />

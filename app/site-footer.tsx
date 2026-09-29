@@ -1,7 +1,27 @@
-import { ArrowUp, BookOpen, Heart, HeartHandshake, LifeBuoy, Newspaper, ShoppingBag, Star, Trophy, UserRound } from "lucide-react";
+import {
+  ArrowUp,
+  BookOpen,
+  FileText,
+  Heart,
+  HeartHandshake,
+  Home,
+  LifeBuoy,
+  LogIn,
+  MessageCircle,
+  Newspaper,
+  Settings,
+  Shield,
+  ShoppingBag,
+  Star,
+  Trophy,
+  UserPlus,
+  UserRound,
+  Users,
+} from "lucide-react";
 import { canViewStaffPage, getCurrentUser } from "../lib/auth";
 import { canSeeDating } from "../lib/dating/access";
 import { REVIEWS_URL } from "../lib/reviews";
+import { ThemeSwitch } from "./theme-switch";
 
 const DISCORD_INVITE = "https://discord.com/invite/M9XKHFdYQV";
 const PATREON_URL = "https://www.patreon.com/c/thekittykingdom/membership";
@@ -32,26 +52,29 @@ export async function SiteFooter() {
               <small>A cozy 18+ furry community</small>
             </span>
           </a>
-          <div className="site-footer-socials" aria-label="Find us">
-            <a href={DISCORD_INVITE} aria-label="Join our Discord" title="Discord">
-              <DiscordLogo size={18} />
-            </a>
-            <a href={PATREON_URL} target="_blank" rel="noopener noreferrer" aria-label="Support us on Patreon" title="Patreon">
+          <div className="site-footer-actions">
+            <a className="site-footer-icon" href={PATREON_URL} target="_blank" rel="noopener noreferrer" aria-label="Support us on Patreon" title="Patreon">
               <Heart size={17} aria-hidden="true" />
             </a>
-            <a href={REVIEWS_URL} target="_blank" rel="noopener noreferrer" aria-label="Read our reviews" title="Reviews">
+            <a className="site-footer-icon" href={REVIEWS_URL} target="_blank" rel="noopener noreferrer" aria-label="Read our reviews" title="Reviews">
               <Star size={17} aria-hidden="true" />
             </a>
+            <a className="site-footer-join" href="/join">
+              <DiscordLogo size={16} /> Join the server
+            </a>
           </div>
-          <a className="site-footer-join" href="/join">
-            <DiscordLogo size={16} /> Join the server
-          </a>
+          <div className="site-footer-theme">
+            <span>Theme</span>
+            <ThemeSwitch />
+          </div>
         </div>
 
         <nav className="site-footer-cols" aria-label="Footer links">
           <div>
             <h3>Explore</h3>
-            <a href="/home">Home</a>
+            <a href="/home">
+              <Home size={13} aria-hidden="true" /> Home
+            </a>
             <a href="/news">
               <Newspaper size={13} aria-hidden="true" /> News
             </a>
@@ -69,13 +92,19 @@ export async function SiteFooter() {
           </div>
           <div>
             <h3>Community</h3>
-            <a href={DISCORD_INVITE}>Discord</a>
-            <a href={PATREON_URL} target="_blank" rel="noopener noreferrer">
-              Patreon
+            <a href={DISCORD_INVITE}>
+              <MessageCircle size={13} aria-hidden="true" /> Discord
             </a>
-            {canViewStaffPage(user) ? <a href="/staff">Staff</a> : null}
+            <a href={PATREON_URL} target="_blank" rel="noopener noreferrer">
+              <Heart size={13} aria-hidden="true" /> Patreon
+            </a>
+            {canViewStaffPage(user) ? (
+              <a href="/staff">
+                <Users size={13} aria-hidden="true" /> Staff
+              </a>
+            ) : null}
             <a href={REVIEWS_URL} target="_blank" rel="noopener noreferrer">
-              Reviews
+              <Star size={13} aria-hidden="true" /> Reviews
             </a>
           </div>
           <div>
@@ -85,13 +114,25 @@ export async function SiteFooter() {
                 <a href="/account">
                   <UserRound size={13} aria-hidden="true" /> My Account
                 </a>
-                {social ? <a href="/social/profile">My Social profile</a> : null}
-                {social ? <a href="/social/settings">Social settings</a> : null}
+                {social ? (
+                  <a href="/social/profile">
+                    <HeartHandshake size={13} aria-hidden="true" /> My Social profile
+                  </a>
+                ) : null}
+                {social ? (
+                  <a href="/social/settings">
+                    <Settings size={13} aria-hidden="true" /> Social settings
+                  </a>
+                ) : null}
               </>
             ) : (
               <>
-                <a href="/login">Log in</a>
-                <a href="/register">Create an account</a>
+                <a href="/login">
+                  <LogIn size={13} aria-hidden="true" /> Log in
+                </a>
+                <a href="/register">
+                  <UserPlus size={13} aria-hidden="true" /> Create an account
+                </a>
               </>
             )}
           </div>
@@ -103,8 +144,12 @@ export async function SiteFooter() {
             <a href="/support">
               <LifeBuoy size={13} aria-hidden="true" /> Support
             </a>
-            <a href="/privacy">Privacy Policy</a>
-            <a href="/terms">Terms of Service</a>
+            <a href="/privacy">
+              <Shield size={13} aria-hidden="true" /> Privacy Policy
+            </a>
+            <a href="/terms">
+              <FileText size={13} aria-hidden="true" /> Terms of Service
+            </a>
           </div>
         </nav>
       </div>

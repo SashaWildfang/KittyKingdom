@@ -1,36 +1,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { setChoice, useThemeChoice } from "./theme-switch";
 
-/** Day / night switch: the sun slides across a sunset sky and turns into a moon among stars. */
+/** Day / night switch (the phone bar): the sun slides across a sunset sky and turns into a moon among
+ *  stars. Flipping it picks Light or Dark; "System" lives in the menu's theme switch. */
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<"dark" | "light">("light");
+  const [choice] = useThemeChoice();
+  const [dark, setDark] = useState(false);
   // Only animate once the saved theme has been applied, so loading a page never plays the slide
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const saved = (document.documentElement.dataset.theme ?? window.localStorage.getItem("kitty-theme")) as "dark" | "light" | null;
-    const nextTheme = saved === "dark" ? "dark" : "light";
-    setTheme(nextTheme);
-    document.documentElement.dataset.theme = nextTheme;
+    setDark(document.documentElement.dataset.theme === "dark");
     const frame = window.requestAnimationFrame(() => window.requestAnimationFrame(() => setReady(true)));
     return () => window.cancelAnimationFrame(frame);
-  }, []);
+  }, [choice]);
 
   function toggleTheme() {
-    // The page's real theme is the source of truth (the switch's look comes from it via CSS)
-    const current = document.documentElement.dataset.theme === "light" ? "light" : "dark";
-    const nextTheme = current === "light" ? "dark" : "light";
-    setTheme(nextTheme);
-    document.documentElement.dataset.theme = nextTheme;
-    try {
-      window.localStorage.setItem("kitty-theme", nextTheme);
-    } catch {
-      // private mode: the switch still works for this visit
-    }
+    const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+    setChoice(next);
+    setDark(next === "dark");
   }
 
-  const dark = theme === "dark";
   return (
     <button
       className={`theme-switch${ready ? " is-ready" : ""}`}
