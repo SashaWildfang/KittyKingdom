@@ -4,7 +4,7 @@ import { ArrowDown, ArrowUp, Check, History, Pencil, Pin, Sparkles, Type, X } fr
 import type { BadgeEarned, BadgeHistory } from "../../lib/badge-history";
 import { earnedText } from "./badge-tip";
 import { useMemo, useState, type CSSProperties } from "react";
-import { MAX_SHOWCASE, TIER_NAMES, type BadgeCategory, type BadgeShowcase, type EarnedBadge } from "../../lib/badges";
+import { MAX_SHOWCASE, TIER_NAMES, badgeAbout, type BadgeCategory, type BadgeShowcase, type EarnedBadge } from "../../lib/badges";
 import { BadgeMedal } from "./badge-medal";
 import { BADGES_EVENT } from "./profile-badges";
 
@@ -56,11 +56,10 @@ function Detail({ b, earned, onClose }: { b: EarnedBadge; earned?: BadgeEarned |
       <div className="st-bdetail-copy">
         <p className="st-eyebrow">{tierName(b)}</p>
         <h4>{b.name}</h4>
+        <p>{badgeAbout(b.id)}</p>
         {/* One-off badges are done or not done, so there's no number to show */}
-        {special ? (
-          <p>{b.desc}</p>
-        ) : (
-          <p>
+        {special ? null : (
+          <p className="st-bdetail-yours">
             {b.desc}: <b>{unit(b, b.value)}</b>
           </p>
         )}
