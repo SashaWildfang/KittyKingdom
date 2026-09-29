@@ -3,6 +3,7 @@ import { getPanelUser } from "../../lib/admin";
 import { getCurrentUser } from "../../lib/auth";
 import { getDiscordInviteSummary } from "../../lib/discord";
 import { SiteNav } from "../site-nav";
+import { canDeleteNsfwTickets } from "../../lib/ticket-delete";
 import { AdminClient } from "./admin-client";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +18,7 @@ export default async function AdminPage() {
     <main className="site-shell admin-shell">
       <SiteNav signedIn discordOnline={discord.online} />
       {panel ? (
-        <AdminClient adminName={panel.name} level={panel.level} />
+        <AdminClient adminName={panel.name} level={panel.level} canDeleteNsfw={canDeleteNsfwTickets(panel.discordId)} />
       ) : (
         <section className="store-gate">
           <div className="store-gate-card">

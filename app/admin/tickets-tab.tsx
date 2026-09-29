@@ -223,13 +223,13 @@ export function TicketsTab({
                   {t.transcriptId ? (
                     <button
                       type="button"
-                      className="adm-btn adm-btn--small"
+                      className="adm-btn adm-btn--tiny"
                       onClick={(e) => {
                         e.stopPropagation();
                         onOpenTranscript(t.ticketId);
                       }}
                     >
-                      <FileText size={14} aria-hidden="true" /> View
+                      <FileText size={13} aria-hidden="true" /> View
                     </button>
                   ) : (
                     <span className="adm-muted">None</span>
