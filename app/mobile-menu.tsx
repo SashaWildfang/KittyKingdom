@@ -1,6 +1,6 @@
 "use client";
 
-import { Heart, HeartHandshake, Home, LogIn, LogOut, Menu, MessageCircle, Newspaper, Shield, ShoppingBag, Trophy, UserPlus, UserRound, Users, X } from "lucide-react";
+import { Heart, HeartHandshake, Home, LogIn, LogOut, Menu, MessageCircle, Newspaper, ShoppingBag, Trophy, UserPlus, UserRound, UserStar, Users, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ThemeSwitch } from "./theme-switch";
@@ -10,7 +10,7 @@ import { NotificationBell } from "./notification-bell";
 
 type NavLink = { href: string; label: string; icon: "home" | "news" | "discord" | "patreon" | "staff" | "store" | "leaderboards" | "admin" | "dating"; external?: boolean };
 
-const ICONS = { home: Home, news: Newspaper, discord: MessageCircle, patreon: Heart, staff: Users, store: ShoppingBag, leaderboards: Trophy, admin: Shield, dating: HeartHandshake };
+const ICONS = { home: Home, news: Newspaper, discord: MessageCircle, patreon: Heart, staff: Users, store: ShoppingBag, leaderboards: Trophy, admin: UserStar, dating: HeartHandshake };
 
 /** Phone navigation: a slim bar with the theme switch and a menu that opens a sheet of big, tappable links. */
 export function MobileMenu({ links, signedIn, newsStamps = [], bell = false }: { links: NavLink[]; signedIn: boolean; newsStamps?: { id: string; at: string }[]; bell?: boolean }) {
