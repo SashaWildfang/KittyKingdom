@@ -330,7 +330,7 @@ export async function activateItem(discordId: string, itemId: string) {
 
   if (itemId === "booster_profile") {
     const profile = await c.datingProfiles.findOne({ _id: { $in: [toLong(discordId), discordId] } as never });
-    if (!profile) throw new StoreError("You need a dating profile before using a Profile Booster. Create one with /startprofile in Discord.");
+    if (!profile) throw new StoreError("You need a Social profile before using a Profile Booster. Make one in Social on the website.");
   }
 
   // Consume the item first so a double-click can't use one item twice

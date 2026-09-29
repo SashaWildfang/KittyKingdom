@@ -20,7 +20,7 @@ const sections: LegalSection[] = [
         <ul>
           <li>the website at kittykingdom.net and its subdomains (the &quot;<b>Site</b>&quot;), including accounts, the Store, leaderboards, news, the staff page and My Account;</li>
           <li>the Kitty Kingdom Discord server (the &quot;<b>Server</b>&quot;); and</li>
-          <li>the Discord bots we operate in the Server, including the main bot, the ticket system and the dating bot (the &quot;<b>Bots</b>&quot;).</li>
+          <li>the Discord bots we operate in the Server, including the main bot, the moderation bot, the ticket system and the economy bot (the &quot;<b>Bots</b>&quot;). Dating profiles made with our former dating bot moved to Social on the Site.</li>
         </ul>
         <p>
           Discord itself is operated by Discord Inc. under its own{" "}
@@ -104,9 +104,9 @@ const sections: LegalSection[] = [
             (including your &quot;server bestie&quot;, friendship map and topic map), which only you can open.
           </li>
           <li>
-            <b>Social (dating and friends) profiles:</b> if you use Social on the Site (or the dating bot), the profile you create (which can include sensitive details such as
+            <b>Social (dating and friends) profiles:</b> if you use Social on the Site (including a profile you made with our former dating bot), the profile you create (which can include sensitive details such as
             gender, sexuality and relationship preferences), any photos or art you upload, your prompts and display choices, and your likes, passes,
-            matches, friends and blocks. Photos have location and other hidden metadata removed when you upload them. To match people by meaning, the dating
+            matches, friends and blocks. Photos have location and other hidden metadata removed when you upload them. To match people by meaning, our main
             bot turns the interests, dislikes, bio and location in your profile into numbers (&quot;vectors&quot;) with a small model that runs on our own bot host;
             nothing is sent to an outside AI service. Your age there is worked out from the date of birth on your join application (or account) so it
             stays current; your birthday itself is never shown. If you link a partner, the link only appears on profiles after they confirm it, and either

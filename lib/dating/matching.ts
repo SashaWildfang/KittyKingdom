@@ -3,8 +3,8 @@
 // 2. Soft score 0-100 from weighted parts (interests, lifestyle, logistics, habits, independence,
 //    completeness, recent activity); unknown parts are skipped, not guessed.
 // 3. Conflicts (dislikes vs their likes, habits vs tolerance, different plans) cost points.
-// Interest similarity uses the AI vectors the bot stores in dating_vectors (model2vec); if a profile
-// has none yet, the same keyword fallback the bot uses kicks in.
+// Interest similarity uses the AI vectors the main bot stores in dating_vectors (Main_Bot
+// events/social_vectors.py, model2vec); if a profile has none yet, a keyword fallback kicks in.
 
 import { ALIASES, CONFLICT_PENALTY, FALLBACK_STARTERS, FILLER_SOURCE, FUTURE, HABIT_FIT, MAX_CONFLICT_PENALTY, MIN_SCORE_SHOWN, SATISFIES, SLEEP, SPLIT_SOURCE, STARTERS, STOP_WORDS, TAGS, TIERS, WEIGHTS } from "./match-data";
 import { ANY, EVERYONE, FIELDS, asInt, getList, isFilled, profileStrength, utcOffset, type ProfileDoc } from "./schema";
