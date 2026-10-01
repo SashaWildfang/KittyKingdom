@@ -1,3 +1,4 @@
+import { requireTwoFactorForAction } from "../../../../../lib/admin-2fa";
 import { NextResponse } from "next/server";
 import { requirePanel } from "../../../../../lib/admin";
 import { people } from "../../../../../lib/admin-people";
@@ -23,6 +24,10 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as { id?: string; action?: string } | null;
   const action = (["dismiss", "remove-photo", "pause-profile"] as const).find((a) => a === body?.action);
   if (!body?.id || !action) return NextResponse.json({ ok: false, error: "Invalid action." }, { status: 400 });
+  if (action !== "dismiss") {
+    const twoFactor = await requireTwoFactorForAction();
+    if (twoFactor) return twoFactor;
+  }
   const err = await resolveReport(body.id, action, panel.name);
   if (err) return NextResponse.json({ ok: false, error: err }, { status: 400 });
   await (await getMongoClient()).db(process.env.MONGODB_DB ?? "website").collection("admin_audit").insertOne({ at: new Date(), action: `dating-report-${action}`, reportId: body.id, adminDiscordId: panel.discordId, adminName: panel.name });

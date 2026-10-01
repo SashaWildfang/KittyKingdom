@@ -1,3 +1,4 @@
+import { requireTwoFactorForAction } from "../../../../../../lib/admin-2fa";
 import { ObjectId } from "mongodb";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "../../../../../../lib/admin";
@@ -45,6 +46,8 @@ export async function GET(request: Request, { params }: { params: { accountId: s
 export async function POST(request: Request, { params }: { params: { accountId: string } }) {
   const admin = await requireAdmin(request);
   if (admin instanceof NextResponse) return admin;
+  const twoFactor = await requireTwoFactorForAction();
+  if (twoFactor) return twoFactor;
   const body = (await request.json().catch(() => ({}))) as { sessionId?: string };
   if (!ObjectId.isValid(params.accountId) || typeof body.sessionId !== "string") {
     return NextResponse.json({ ok: false, error: "Pick a device." }, { status: 400 });

@@ -26601,3 +26601,29 @@ body.live-fullscreen .view-as-bar {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Admin: 2FA needed for destructive actions */
+.adm-2fa-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  width: min(1320px, calc(100% - 2rem));
+  margin: 1rem auto 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(245, 155, 42, 0.5);
+  border-radius: 0.9rem;
+  background: rgba(245, 155, 42, 0.1);
+}
+.adm-2fa-banner svg {
+  flex: none;
+  margin-top: 0.1rem;
+  color: var(--ember);
+}
+.adm-2fa-banner p {
+  margin: 0;
+}
+.adm-2fa-banner a {
+  color: var(--ember);
+  font-weight: 800;
+  text-decoration: underline;
+}

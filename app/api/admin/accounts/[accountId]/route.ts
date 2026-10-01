@@ -1,3 +1,4 @@
+import { requireTwoFactorForAction } from "../../../../../lib/admin-2fa";
 import { NextResponse } from "next/server";
 import { accountAction, getAccount, type AccountAction, isAccountAction } from "../../../../../lib/accounts-admin";
 import { requireAdmin } from "../../../../../lib/admin";
@@ -23,6 +24,11 @@ export async function POST(request: Request, { params }: { params: { accountId: 
     return NextResponse.json({ ok: false, error: "Unknown action." }, { status: 400 });
   }
   // Deleting needs the typed confirmation too, not just a click
+  // Deleting, resetting a password or 2FA, signing out or unlinking needs your own 2FA on
+  if (["delete", "temp-password", "reset-2fa", "sign-out", "unlink-discord"].includes(String(body.action))) {
+    const twoFactor = await requireTwoFactorForAction();
+    if (twoFactor) return twoFactor;
+  }
   if (body.action === "delete" && body.confirm !== "CONFIRM") {
     return NextResponse.json({ ok: false, error: "Type CONFIRM to delete this account." }, { status: 400 });
   }

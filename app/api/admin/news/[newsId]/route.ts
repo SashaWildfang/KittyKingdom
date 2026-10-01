@@ -1,3 +1,4 @@
+import { requireTwoFactorForAction } from "../../../../../lib/admin-2fa";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "../../../../../lib/admin";
 import { cleanNewsInput, deleteNews, updateNews } from "../../../../../lib/news";
@@ -26,6 +27,8 @@ export async function PATCH(request: Request, { params }: { params: { newsId: st
 export async function DELETE(request: Request, { params }: { params: { newsId: string } }) {
   const admin = await requireAdmin(request);
   if (admin instanceof NextResponse) return admin;
+  const twoFactor = await requireTwoFactorForAction();
+  if (twoFactor) return twoFactor;
   if (!(await deleteNews(params.newsId))) return NextResponse.json({ ok: false, error: "Post not found." }, { status: 404 });
   await audit("news-delete", params.newsId, admin);
   return NextResponse.json({ ok: true, message: "Post deleted." });

@@ -1,3 +1,4 @@
+import { requireTwoFactorForAction } from "../../../../../lib/admin-2fa";
 import { NextResponse } from "next/server";
 import { requirePanel } from "../../../../../lib/admin";
 import { postChannelMessage } from "../../../../../lib/discord-member";
@@ -24,6 +25,8 @@ function allowed(id: string) {
 export async function POST(request: Request) {
   const panel = await requirePanel(request);
   if (panel instanceof NextResponse) return panel;
+  const twoFactor = await requireTwoFactorForAction();
+  if (twoFactor) return twoFactor;
   try {
     if (!allowed(panel.discordId)) throw new LiveChatError("Slow down a little and try again in a minute.", 429);
     const body = await readJson(request);
