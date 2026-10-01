@@ -29,6 +29,8 @@ import { memberTranscripts, ticketTypeLabel } from "../../lib/member-transcripts
 import { badgeHistory } from "../../lib/badge-history";
 import { serverJoinDate } from "../../lib/member-directory";
 import { myPunishments } from "../../lib/appeals";
+import { profileExtras } from "../../lib/store-perks";
+import { FlairBanner, FlairName, Framed } from "../cosmetic-flair";
 
 const shortDate = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Denver" });
 import { RoleManager } from "./role-manager";
@@ -116,7 +118,7 @@ export default async function AccountPage({
     searchParams.discord ??
     searchParams.verify ??
     searchParams.login;
-  const [application, roles, roleState, dailyStatus, serverId, staffAccount, transcripts, badgeDates, joinedServer, punishments] = await Promise.all([
+  const [application, roles, roleState, dailyStatus, serverId, staffAccount, transcripts, badgeDates, joinedServer, punishments, extras] = await Promise.all([
     getJoinApplication(user.discordId),
     getMemberRoleSummary(user.discordId),
     user.discordId ? getRoleState(String(user.discordId)).catch(() => null) : Promise.resolve(null),
@@ -127,6 +129,7 @@ export default async function AccountPage({
     user.discordId ? badgeHistory(String(user.discordId)).catch(() => null) : Promise.resolve(null),
     serverJoinDate(user.discordId ? String(user.discordId) : null).catch(() => null),
     user.discordId ? myPunishments(String(user.discordId)).catch(() => null) : Promise.resolve(null),
+    profileExtras(user.discordId ? String(user.discordId) : null).catch(() => null),
   ]);
   const tz = userTimeZone();
   const punDate = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", timeZone: tz });
@@ -190,17 +193,31 @@ export default async function AccountPage({
       <div className="acct-layout">
         {/* ---------- Sidebar: profile summary + section links ---------- */}
         <aside className="acct-sidebar">
-          <div className="acct-profile-card">
-            <div className="acct-avatar">
-              {discordLinked ? (
-                <img src={`/api/discord/avatar/${user.discordId}`} alt="" width="88" height="88" />
-              ) : (
-                <span aria-hidden="true">{shownName.charAt(0).toUpperCase()}</span>
-              )}
-            </div>
-            <h2>{shownName}</h2>
+          <div className={`acct-profile-card${extras?.flair.banner ? " has-cos-banner" : ""}`}>
+            <FlairBanner banner={extras?.flair.banner} />
+            <Framed frame={extras?.flair.frame} className="acct-avatar-frame">
+              <div className="acct-avatar">
+                {discordLinked ? (
+                  <img src={`/api/discord/avatar/${user.discordId}`} alt="" width="88" height="88" />
+                ) : (
+                  <span aria-hidden="true">{shownName.charAt(0).toUpperCase()}</span>
+                )}
+              </div>
+            </Framed>
+            <h2>
+              <FlairName nameplate={extras?.flair.nameplate} text={shownName}>
+                {shownName}
+              </FlairName>
+            </h2>
             {user.username ? <p className="acct-handle">@{user.username}</p> : null}
-            {discordLinked ? <ProfileBadges initial={(user.badgeShowcase as BadgeShowcase | undefined) ?? null} earned={badgeDates?.earned} /> : null}
+            {discordLinked ? (
+              <ProfileBadges
+                initial={(user.badgeShowcase as BadgeShowcase | undefined) ?? null}
+                earned={badgeDates?.earned}
+                customTitle={extras?.customTitle}
+                customBadges={extras?.customBadges}
+              />
+            ) : null}
             <LiveServerStatus initial={roleState} discordLinked={discordLinked} fallbackStaff={roles.isStaff} />
             {discordLinked ? <DailyReadyChip ready={dailyReady} /> : null}
             {memberSince ? <p className="acct-since"><LeafEmote size={16} /> Member since {memberSince}</p> : null}

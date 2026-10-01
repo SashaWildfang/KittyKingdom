@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     const [received, sent] = await Promise.all([likesReceived(id, me.booster), likedIds(id)]);
     const visible = received.filter((r) => !r.hidden);
     const cards = await cardsFor(id, visible.map((r) => r.id));
-    return NextResponse.json({ ok: true, booster: me.booster, received: cards.map((c) => ({ ...c, at: visible.find((v) => v.id === c.id)?.at ?? null })), hidden: received.length - visible.length, sent: await cardsFor(id, Array.from(sent)) });
+    return NextResponse.json({ ok: true, booster: me.booster, received: cards.map((c) => ({ ...c, at: visible.find((v) => v.id === c.id)?.at ?? null, super: visible.find((v) => v.id === c.id)?.super ?? false })), hidden: received.length - visible.length, sent: await cardsFor(id, Array.from(sent)) });
   }
   if (list === "passed" || list === "skipped") {
     const ids = Array.from(list === "passed" ? await passedIds(id) : await friendSkipIds(id)).reverse();

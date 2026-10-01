@@ -3,7 +3,8 @@
 import { Sparkles } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
 import type { BadgeEarned } from "../../lib/badge-history";
-import { TIER_NAMES, badgeAbout, badgeById, type BadgeShowcase } from "../../lib/badges";
+import { TIER_NAMES, badgeAbout, badgeById, type BadgeShape, type BadgeShowcase } from "../../lib/badges";
+import type { CustomBadge, CustomTitle } from "../../lib/cosmetics";
 import { BadgeMedal } from "./badge-medal";
 
 const dateFmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -46,26 +47,64 @@ export function BadgeTip({ id, tier, earned, children, className }: { id: string
   );
 }
 
+/** A badge a member designed themselves (store perk), with its tooltip. */
+export function CustomBadgeMedal({ badge, size = 40 }: { badge: CustomBadge; size?: number }) {
+  return (
+    <span className="badge-tip-wrap" tabIndex={0} aria-label={`${badge.name}, custom badge.${badge.desc ? ` ${badge.desc}` : ""}`}>
+      <BadgeMedal icon={badge.icon} shape={badge.shape as BadgeShape} hue={badge.hue} tier={4} size={size} />
+      <span className="badge-tip" role="tooltip" style={{ "--hue": badge.hue } as CSSProperties}>
+        <b>{badge.name}</b>
+        <span className="badge-tip-tier badge-tip-tier--special">Custom</span>
+        {badge.desc ? <span className="badge-tip-desc">{badge.desc}</span> : null}
+        <span className="badge-tip-when">One of a kind, designed by its owner</span>
+      </span>
+    </span>
+  );
+}
+
 /** A member's badge title and pinned badges (profile card, Social profiles), each with its tooltip. */
-export function ShowcaseBadges({ showcase, earned, size = 40, className }: { showcase: BadgeShowcase | null; earned?: Record<string, BadgeEarned>; size?: number; className?: string }) {
+export function ShowcaseBadges({
+  showcase,
+  earned,
+  size = 40,
+  className,
+  customTitle,
+  customBadges,
+}: {
+  showcase: BadgeShowcase | null;
+  earned?: Record<string, BadgeEarned>;
+  size?: number;
+  className?: string;
+  /** From the store: a title they wrote (shown instead of a badge title) and badges they designed */
+  customTitle?: CustomTitle | null;
+  customBadges?: CustomBadge[];
+}) {
   const title = showcase?.title ? badgeById(showcase.title.id) : null;
   const pinned = (showcase?.pinned ?? []).map((p) => ({ def: badgeById(p.id), tier: p.tier })).filter((p) => p.def);
-  if (!title && !pinned.length) return null;
+  const custom = customBadges ?? [];
+  if (!title && !pinned.length && !customTitle && !custom.length) return null;
   return (
     <div className={`acct-badges-showcase ${className ?? ""}`}>
-      {title && showcase?.title ? (
+      {customTitle ? (
+        <span className="st-title-pill acct-badge-title cos-title" style={{ "--hue": customTitle.hue } as CSSProperties} title="Custom title">
+          <Sparkles size={12} aria-hidden="true" /> {customTitle.text}
+        </span>
+      ) : title && showcase?.title ? (
         <BadgeTip id={title.id} tier={showcase.title.tier} earned={earned?.[title.id]}>
           <span className="st-title-pill acct-badge-title" style={{ "--hue": title.hue } as CSSProperties}>
             <Sparkles size={12} aria-hidden="true" /> {title.name}
           </span>
         </BadgeTip>
       ) : null}
-      {pinned.length ? (
+      {pinned.length || custom.length ? (
         <div className="acct-pinned-badges">
           {pinned.map(({ def, tier }) => (
             <BadgeTip key={def!.id} id={def!.id} tier={tier} earned={earned?.[def!.id]}>
               <BadgeMedal icon={def!.icon} shape={def!.shape} hue={def!.hue} tier={tier} size={size} />
             </BadgeTip>
+          ))}
+          {custom.map((b) => (
+            <CustomBadgeMedal key={b.id} badge={b} size={size} />
           ))}
         </div>
       ) : null}

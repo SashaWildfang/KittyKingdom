@@ -1,5 +1,5 @@
 // Shared icons: our custom leaf emote for the currency, and store item icons (Lucide).
-import { Cake, Candy, Coffee, Cookie, CupSoda, Flower2, Gift, Heart, Mail, Package, PawPrint, Rocket, Star } from "lucide-react";
+import { Award, Cake, Candy, Coffee, Cookie, CupSoda, Flower2, Gift, Heart, Mail, Package, PawPrint, Rocket, ShieldCheck, Sparkles, Star, Sun, Type } from "lucide-react";
 
 /** The server's custom leaf emote, used everywhere leafs (the currency) appear. */
 export function LeafEmote({ size = 18, className }: { size?: number; className?: string }) {
@@ -20,6 +20,12 @@ const STORE_ICONS = {
   soda: CupSoda,
   cake: Cake,
   package: Package,
+  spotlight: Sun,
+  shield: ShieldCheck,
+  superlike: Star,
+  title: Type,
+  badge: Award,
+  sparkles: Sparkles,
 } as const;
 
 /** Icon for a store item (the server sends a key like "coffee"; "leaf" means the leaf emote). */
