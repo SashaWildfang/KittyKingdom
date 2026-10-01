@@ -30885,3 +30885,37 @@ a.apl-chip {
   inset: -3px;
   padding: 2.5px;
 }
+
+/* The ring sits 4px outside the picture, so its corners are 4px rounder: the curves line up exactly */
+.cos-frame.dt-hero-frame .cos-ring {
+  border-radius: 32px;
+}
+
+.cos-frame.smini-frame .cos-ring {
+  border-radius: 22px;
+}
+
+.cos-frame.dt-hero-frame::after {
+  border-radius: 34px;
+}
+
+/* A little breathing room between a framed photo and the socials/badges under it */
+.dt-profile--v2 .cos-frame.dt-hero-frame {
+  margin-bottom: 10px;
+}
+
+/* Social profile v2 draws two rings of its own around the photo (panel + accent); with a frame on, the frame is the only ring */
+.dt-profile.dt-profile--v2 .cos-frame.dt-hero-frame > .dt-hero-photo {
+  margin-top: 0;
+  box-shadow: 0 14px 30px var(--shadow);
+}
+
+.dt-profile.dt-profile--v2 .cos-frame.dt-hero-frame {
+  margin-top: -80px;
+}
+
+@media (max-width: 900px) {
+  .dt-profile.dt-profile--v2 .cos-frame.dt-hero-frame {
+    margin-top: -62px;
+  }
+}
