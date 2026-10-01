@@ -234,7 +234,6 @@ export async function compatWith(me: string, other: string) {
 
 // ---------- Featured this hour ----------
 const PROFILE_BOOSTER_WEIGHT = 2;
-const LEFT_WEIGHT = 0.25;
 function seeded(seed: number) {
   let s = seed >>> 0;
   return () => {
@@ -249,17 +248,20 @@ function seeded(seed: number) {
 export async function featured(hoursAgo = 0) {
   const pool = await datingPool();
   const hour = Math.floor(Date.now() / 3_600_000) - hoursAgo;
+  // Only members still in the server (and not banned) can be featured
+  const inServer = (id: string) => (pool.inServer ? pool.inServer.has(id) : pool.who.get(id)?.inServer !== false);
   const eligible = Array.from(pool.profiles.values())
-    .filter((p) => p.is_looking === "Yes" && !((p.web ?? {}) as WebPrefs).paused && pool.settings.get(String(p._id))?.featured !== false && isFilled(p.bio))
+    .filter((p) => {
+      const id = String(p._id);
+      return p.is_looking === "Yes" && !((p.web ?? {}) as WebPrefs).paused && pool.settings.get(id)?.featured !== false && isFilled(p.bio) && inServer(id) && !pool.banned.has(id);
+    })
     .sort((a, b) => String(a._id).localeCompare(String(b._id)));
   if (!eligible.length) return null;
   // Weight: profile_weight (kept in sync by the economy bot from their roles: server booster and
-  // Patreon tier), doubled while a Store Profile Booster is running, and a much smaller chance for
-  // members who left the server
+  // Patreon tier), doubled while a Store Profile Booster is running
   const weightOf = (p: ProfileDoc) => {
     const id = String(p._id);
-    const left = pool.inServer ? !pool.inServer.has(id) : pool.who.get(id)?.inServer === false;
-    return Math.max(0.1, Number(p.profile_weight ?? 1)) * (pool.profileBoosted.has(id) ? PROFILE_BOOSTER_WEIGHT : 1) * (left ? LEFT_WEIGHT : 1);
+    return Math.max(0.1, Number(p.profile_weight ?? 1)) * (pool.profileBoosted.has(id) ? PROFILE_BOOSTER_WEIGHT : 1);
   };
   const weights = eligible.map(weightOf);
   const total = weights.reduce((a, b) => a + b, 0);

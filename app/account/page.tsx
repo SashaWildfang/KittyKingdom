@@ -153,7 +153,8 @@ export default async function AccountPage({
   const memberSince = user.createdAt instanceof Date ? formatMonthYear(user.createdAt) : null;
   const statusText = status ? statusMessages[status] ?? `Status: ${status}` : null;
   // Today's daily reward is waiting (shown even while the card is folded)
-  const dailyReady = Boolean(dailyStatus && !dailyStatus.claimedToday && Date.parse(dailyStatus.nextClaimAt) <= Date.now());
+  // (same rule as the Daily Reward card: not claimed yet, or the next claim has opened)
+  const dailyReady = Boolean(dailyStatus && (!dailyStatus.claimedToday || Date.parse(dailyStatus.nextClaimAt) <= Date.now()));
   const statusTone = status && successStatuses.has(status) ? "success" : "error";
 
   return (

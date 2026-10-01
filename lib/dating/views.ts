@@ -6,7 +6,7 @@ import { getMongoClient } from "../mongodb";
 import { notify } from "../notifications";
 import { getSettings } from "./settings";
 
-const RENOTIFY_MS = 12 * 3_600_000; // the same person looking again only pings after 12 hours
+const RENOTIFY_MS = 3 * 86_400_000; // the same person looking again only pings once every 3 days
 
 async function col() {
   const c = (await getMongoClient()).db(process.env.MONGODB_DB ?? "website").collection("dating_profile_views");
@@ -19,13 +19,19 @@ export async function recordView(viewer: string, viewed: string, viewerName: str
   const c = await col();
   const anon = (await getSettings(viewer)).anonymousViews;
   const now = new Date();
-  const before = await c.findOneAndUpdate(
+  await c.updateOne(
     { _id: `${viewer}:${viewed}` } as never,
     { $set: { viewer, viewed, at: now, anon }, $setOnInsert: { first: now }, $inc: { count: 1 } },
-    { upsert: true, returnDocument: "before" },
+    { upsert: true },
   );
-  const last = before?.at instanceof Date ? before.at.getTime() : 0;
-  if (anon || Date.now() - last < RENOTIFY_MS) return;
+  if (anon) return;
+  // Claim the ping in one step (when they were last pinged, not last looked), so repeat visits and
+  // two page loads at once never send more than one
+  const claimed = await c.updateOne(
+    { _id: `${viewer}:${viewed}`, $or: [{ notifiedAt: { $exists: false } }, { notifiedAt: { $lt: new Date(now.getTime() - RENOTIFY_MS) } }] } as never,
+    { $set: { notifiedAt: now } },
+  );
+  if (!claimed.modifiedCount) return;
   await notify(viewed, { type: "view", actor: viewer, title: `${viewerName} viewed your profile`, body: "Take a look at theirs?", link: `/social/u/${viewer}`, key: `view:${viewer}` });
 }
 

@@ -76,6 +76,9 @@ export function TwoFactorForm({ account, error, startMode }: { account: string; 
             required
           />
         )}
+        <label className="tfa-remember">
+          <input type="checkbox" name="remember" defaultChecked /> Remember this device for 30 days
+        </label>
         <button type="submit" className="tfa-submit" disabled={busy || (mode === "app" ? code.length !== 6 : code.replace(/[^A-Z0-9]/g, "").length !== 8)}>
           {busy ? "Checking…" : "Verify and sign in"}
         </button>

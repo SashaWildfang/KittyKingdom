@@ -225,9 +225,21 @@ export function BadgeCollection({ badges, showcase, history, onSaved }: { badges
     window.addEventListener("resize", place);
     return () => window.removeEventListener("resize", place);
   }, [openIndex, list.length]);
-  // Bring the details into view when they open
+  // Re-sorting or filtering closes the details, so the new order is what you see
   useEffect(() => {
-    if (detail && detailAfter >= 0) detailRow.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    setOpen(null);
+  }, [sort, cat, hideLocked]);
+  // Bring the details into view when a badge is opened (not when the layout shifts)
+  const scrolledFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!detail) {
+      scrolledFor.current = null;
+      return;
+    }
+    if (detailAfter >= 0 && scrolledFor.current !== detail.id) {
+      scrolledFor.current = detail.id;
+      detailRow.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
   }, [detail, detailAfter]);
   const counts = [1, 2, 3, 4].map((t) => badges.filter((b) => b.tiers.length > 1 && b.tier === t).length);
 
