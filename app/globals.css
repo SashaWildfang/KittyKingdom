@@ -27721,3 +27721,260 @@ body.live-fullscreen .view-as-bar {
     display: none;
   }
 }
+
+.apl-chip--locked {
+  background: rgba(139, 141, 152, 0.18);
+  color: var(--muted);
+}
+
+/* My Account → Punishments */
+.acct-puns {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.acct-puns li {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  padding: 0.7rem 0.85rem;
+}
+
+.acct-puns li.is-active {
+  border-color: rgba(229, 72, 77, 0.45);
+}
+
+.acct-pun-main {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.acct-pun-main strong {
+  font-size: 0.95rem;
+  overflow-wrap: anywhere;
+}
+
+.acct-pun-main small {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.acct-pun-end {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.acct-pun-live {
+  border-radius: 999px;
+  background: rgba(229, 72, 77, 0.16);
+  color: #e5484d;
+  font-size: 0.75rem;
+  font-weight: 900;
+  padding: 0.2rem 0.55rem;
+}
+
+.acct-pun-appeal {
+  border: 1px solid var(--ember);
+  border-radius: 999px;
+  color: var(--ember);
+  font-size: 0.85rem;
+  font-weight: 800;
+  padding: 0.35rem 0.9rem;
+  text-decoration: none;
+}
+
+.acct-pun-appeal:hover {
+  background: var(--ember);
+  color: #fff;
+}
+
+a.apl-chip {
+  text-decoration: none;
+}
+
+@media (max-width: 560px) {
+  .acct-puns li {
+    flex-wrap: wrap;
+  }
+
+  .acct-pun-main {
+    flex-basis: calc(100% - 7rem);
+  }
+
+  .acct-pun-end {
+    margin-left: auto;
+  }
+}
+
+/* Notifications: the sender's picture, with the kind as a small badge */
+.nb-face {
+  position: relative;
+  flex: none;
+  display: block;
+}
+
+.nb-face img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.nb-face-badge {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--panel-strong);
+  border-radius: 50%;
+  background: var(--maple);
+  color: #fff;
+}
+
+/* Admin → full profile → Social messages */
+.adm-msgs-convs {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.adm-msgs-convs li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.adm-msgs-convs li > button:first-child {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 0.8rem;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  padding: 0.5rem 0.65rem;
+  text-align: left;
+}
+
+.adm-msgs-convs li > button:first-child:hover {
+  border-color: var(--ember);
+}
+
+.adm-msgs-conv-main {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.adm-msgs-conv-main strong {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.adm-msgs-conv-main small,
+.adm-msgs-conv-meta small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adm-msgs-conv-meta {
+  display: grid;
+  flex: none;
+  justify-items: end;
+}
+
+.adm-msgs-thread header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 800;
+}
+
+.adm-msgs-note {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.5rem 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.adm-msgs-older {
+  margin-bottom: 0.4rem;
+}
+
+.adm-msgs-list {
+  display: grid;
+  gap: 0.55rem;
+  max-height: 26rem;
+  margin: 0;
+  overflow-y: auto;
+  padding: 0;
+  list-style: none;
+}
+
+.adm-msgs-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.adm-msgs-list li > div {
+  min-width: 0;
+  border-radius: 0.7rem;
+  background: var(--well, rgba(0, 0, 0, 0.14));
+  padding: 0.4rem 0.6rem;
+}
+
+.adm-msgs-list li.is-member > div {
+  border-left: 3px solid var(--ember);
+}
+
+.adm-msgs-list b {
+  font-size: 0.82rem;
+}
+
+.adm-msgs-list small {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.adm-msgs-list p {
+  margin: 0.15rem 0 0;
+  font-size: 0.88rem;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.adm-msgs-list p.is-deleted {
+  color: var(--muted);
+  font-style: italic;
+}

@@ -3,7 +3,7 @@
 import { Bell, ChevronDown, Eye, History, Heart, HeartHandshake, Inbox, MessageCircle, Settings, Sparkles, Trash2, UserCheck, UserPlus } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-type Item = { id: string; type: string; title: string; body: string; link: string; at: string; read: boolean; count: number };
+type Item = { id: string; type: string; actor?: string | null; title: string; body: string; link: string; at: string; read: boolean; count: number };
 
 export const NOTIFICATION_ICONS: Record<string, typeof Bell> = {
   like: Heart,
@@ -15,6 +15,29 @@ export const NOTIFICATION_ICONS: Record<string, typeof Bell> = {
   view: Eye,
   partner: HeartHandshake,
 };
+
+/** The circle on a notification: who it's from (their profile picture, with the kind as a small badge), or just the kind. */
+export function NotificationFace({ type, actor, size = 32 }: { type: string; actor?: string | null; size?: number }) {
+  const [failed, setFailed] = useState(false);
+  const Icon = NOTIFICATION_ICONS[type] ?? Bell;
+  // "Someone new liked your profile" stays anonymous (and groups several likes), so no face there
+  if (!actor || failed || type === "like") {
+    return (
+      <span className={`nb-icon nb-icon--${type}`} style={{ width: size, height: size }}>
+        <Icon size={Math.round(size / 2.1)} aria-hidden="true" />
+      </span>
+    );
+  }
+  return (
+    <span className="nb-face" style={{ width: size, height: size }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={`/api/discord/avatar/${actor}`} alt="" width={size} height={size} loading="lazy" onError={() => setFailed(true)} />
+      <span className={`nb-face-badge nb-icon--${type}`} aria-hidden="true">
+        <Icon size={9} />
+      </span>
+    </span>
+  );
+}
 
 // The panel starts with a few; "Show more" adds this many at a time
 const PAGE = 5;
@@ -123,7 +146,6 @@ export function NotificationBell() {
           ) : items.length ? (
             <ul>
               {items.slice(0, shown).map((n) => {
-                const Icon = NOTIFICATION_ICONS[n.type] ?? Bell;
                 return (
                   <li key={n.id}>
                     <a
@@ -133,9 +155,7 @@ export function NotificationBell() {
                         if (!n.read) void mark({ ids: [n.id] });
                       }}
                     >
-                      <span className={`nb-icon nb-icon--${n.type}`}>
-                        <Icon size={15} aria-hidden="true" />
-                      </span>
+                      <NotificationFace type={n.type} actor={n.actor} />
                       <span className="nb-text">
                         <b>{n.title}</b>
                         {n.body ? <small>{n.body}</small> : null}

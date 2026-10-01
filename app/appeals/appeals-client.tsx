@@ -4,7 +4,7 @@ import { AlertTriangle, ArrowLeft, Check, CheckCircle2, Clock, Gavel, Loader2, L
 import { useEffect, useState } from "react";
 
 type Account = { id: string; username: string; name: string; avatar: string | null; banned: boolean };
-type Me = { discordId: string; username: string; name: string; avatar: string | null };
+type Me = { discordId: string; username: string; name: string; avatar: string | null; via?: "account" | "discord" };
 type Punishment = {
   id: string;
   action: string;
@@ -12,6 +12,7 @@ type Punishment = {
   at: string | null;
   expiresAt: string | null;
   active: boolean;
+  appealable: boolean;
   appeal: { id: string; status: "pending" | "accepted" | "denied"; at: string; canAppealAgainAt: string | null } | null;
 };
 type MyAppeal = { id: string; reference: string; action: string; status: "pending" | "accepted" | "denied"; createdAt: string; decidedAt: string | null; response: string | null };
@@ -165,8 +166,8 @@ function FindAccount() {
 }
 
 /** Step 3: the signed-in member's punishments, an appeal form, and their past appeals. */
-function MyRecord({ me, punishments, appeals, reload }: { me: Me; punishments: Punishment[]; appeals: MyAppeal[]; reload: () => void }) {
-  const [open, setOpen] = useState<string | null>(null);
+function MyRecord({ me, punishments, appeals, reload, initialOpen }: { me: Me; punishments: Punishment[]; appeals: MyAppeal[]; reload: () => void; initialOpen: string | null }) {
+  const [open, setOpen] = useState<string | null>(initialOpen);
   const [message, setMessage] = useState("");
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
@@ -217,13 +218,15 @@ function MyRecord({ me, punishments, appeals, reload }: { me: Me; punishments: P
           <span>
             <strong>{me.name}</strong>
             <small>
-              <ShieldCheck size={12} aria-hidden="true" /> Verified with Discord as @{me.username}
+              <ShieldCheck size={12} aria-hidden="true" /> {me.via === "account" ? `Linked to your account as @${me.username}` : `Verified with Discord as @${me.username}`}
             </small>
           </span>
         </div>
-        <button type="button" className="apl-link" onClick={() => void signOut()}>
-          <LogOut size={14} aria-hidden="true" /> Not you?
-        </button>
+        {me.via === "account" ? null : (
+          <button type="button" className="apl-link" onClick={() => void signOut()}>
+            <LogOut size={14} aria-hidden="true" /> Not you?
+          </button>
+        )}
       </section>
       {mismatch ? (
         <p className="apl-alert">
@@ -249,7 +252,7 @@ function MyRecord({ me, punishments, appeals, reload }: { me: Me; punishments: P
         {punishments.length ? (
           <ul className="apl-list">
             {punishments.map((p) => {
-              const canAppeal = !p.appeal || (p.appeal.status === "denied" && p.appeal.canAppealAgainAt && new Date(p.appeal.canAppealAgainAt).getTime() < Date.now());
+              const canAppeal = p.appealable && (!p.appeal || (p.appeal.status === "denied" && p.appeal.canAppealAgainAt && new Date(p.appeal.canAppealAgainAt).getTime() < Date.now()));
               return (
                 <li key={p.id} className={open === p.id ? "is-open" : undefined}>
                   <div className="apl-row">
@@ -266,6 +269,7 @@ function MyRecord({ me, punishments, appeals, reload }: { me: Me; punishments: P
                     </div>
                     <div className="apl-row-end">
                       {p.appeal && !canAppeal ? <StatusChip status={p.appeal.status} /> : null}
+                      {!p.appealable && !p.appeal ? <span className="apl-chip apl-chip--locked">Not appealable</span> : null}
                       {canAppeal && open !== p.id ? (
                         <button
                           type="button"
@@ -284,7 +288,7 @@ function MyRecord({ me, punishments, appeals, reload }: { me: Me; punishments: P
                   {p.appeal?.status === "denied" && !canAppeal && p.appeal.canAppealAgainAt ? (
                     <p className="apl-muted apl-note">You can appeal this again after {date(p.appeal.canAppealAgainAt)}.</p>
                   ) : null}
-                  {open === p.id ? (
+                  {open === p.id && canAppeal ? (
                     <form
                       className="apl-form"
                       onSubmit={(e) => {
@@ -329,7 +333,8 @@ function MyRecord({ me, punishments, appeals, reload }: { me: Me; punishments: P
           </ul>
         ) : (
           <p className="apl-muted apl-empty">
-            <UserRound size={16} aria-hidden="true" /> There are no punishments on this account. If you were punished on a different Discord account, use &quot;Not you?&quot; and sign in with that one.
+            <UserRound size={16} aria-hidden="true" /> There are no punishments on this account.{" "}
+            {me.via === "account" ? "If you were punished on a different Discord account, sign out and use that account on this page." : "If you were punished on a different Discord account, use \"Not you?\" and sign in with that one."}
           </p>
         )}
       </section>
@@ -371,6 +376,7 @@ function MyRecord({ me, punishments, appeals, reload }: { me: Me; punishments: P
 export function AppealsClient({ error }: { error: string | null }) {
   const [data, setData] = useState<{ me: Me | null; punishments?: Punishment[]; appeals?: MyAppeal[] } | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [initialOpen] = useState(() => (typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("p")));
 
   async function load() {
     const res = await fetch("/api/appeals/me", { cache: "no-store" }).catch(() => null);
@@ -397,7 +403,7 @@ export function AppealsClient({ error }: { error: string | null }) {
       {loadError ? <p className="apl-alert">{loadError}</p> : null}
       {!data && !loadError ? <div className="apl-card apl-skeleton" /> : null}
       {data && !data.me ? <FindAccount /> : null}
-      {data?.me ? <MyRecord me={data.me} punishments={data.punishments ?? []} appeals={data.appeals ?? []} reload={() => void load()} /> : null}
+      {data?.me ? <MyRecord me={data.me} punishments={data.punishments ?? []} appeals={data.appeals ?? []} reload={() => void load()} initialOpen={initialOpen} /> : null}
       <p className="apl-fine">
         Appeals are reviewed by Kitty Kingdom admins only. Be respectful and honest; abusive or spam appeals are denied. If an appeal is denied, you can appeal the same
         punishment again after 30 days. See our <a href="/privacy">Privacy Policy</a> for how appeal information is stored.

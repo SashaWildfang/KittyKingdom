@@ -3,14 +3,27 @@
 
 const ADMIN_TABS: Record<string, string> = {
   overview: "Overview", punishments: "Punishments", automod: "AutoMod", join: "Join Apps", logs: "Logs", live: "Live Chat",
-  tickets: "Tickets", accounts: "Website", news: "News", traffic: "Traffic",
+  tickets: "Tickets", accounts: "Website", news: "News", traffic: "Traffic", appeals: "Appeals", dating: "Social",
 };
 const STATS_TABS: Record<string, string> = {
   stats: "their stats", social: "their friendship map", activity: "their activity stats", topics: "their topic map", voice: "their voice stats",
   economy: "their Leaves & store stats", badges: "their badges",
 };
 
-export function describePage(path: string | null | undefined): { label: string; icon: string } {
+const SOCIAL_PAGES: Record<string, string> = {
+  "/social": "On Social", "/social/discover": "Discovering on Social", "/social/browse": "Browsing Social profiles", "/social/likes": "Checking their Social likes",
+  "/social/matches": "Checking their Social matches", "/social/friends": "On Social: Friends", "/social/profile": "Editing their Social profile",
+  "/social/messages": "Reading their messages", "/social/setup": "Setting up a Social profile", "/social/hidden": "On Social: hidden & blocked",
+};
+
+/** The Discord ids a page is about (a Social profile or a message thread), so their names can be shown. */
+export function pageDiscordId(path: string | null | undefined): string | null {
+  if (!path) return null;
+  const m = /^\/social\/(?:u|messages)\/(\d{15,21})/.exec(new URL(path, "https://x").pathname);
+  return m ? m[1] : null;
+}
+
+export function describePage(path: string | null | undefined, names: Record<string, string> = {}): { label: string; icon: string } {
   if (!path) return { label: "Browsing", icon: "globe" };
   const url = new URL(path, "https://x");
   const p = url.pathname.replace(/\/+$/, "") || "/";
@@ -30,7 +43,7 @@ export function describePage(path: string | null | undefined): { label: string; 
   if (p.startsWith("/forgot-password") || p.startsWith("/reset-password")) return { label: "Resetting their password", icon: "login" };
   if (p === "/account") {
     if (hash && STATS_TABS[hash]) return { label: `Looking at ${STATS_TABS[hash]}`, icon: "stats" };
-    const sections: Record<string, string> = { daily: "claiming their Daily Reward", inventory: "their inventory", roles: "their server roles", profile: "editing their profile", security: "account security", "discord-account": "linking Discord", contact: "their contact details" };
+    const sections: Record<string, string> = { daily: "claiming their Daily Reward", inventory: "their inventory", roles: "their server roles", profile: "editing their profile", security: "account security", "discord-account": "linking Discord", punishments: "their punishments" };
     return { label: hash && sections[hash] ? `My Account: ${sections[hash]}` : "On My Account", icon: "account" };
   }
   if (p === "/admin") {
@@ -38,5 +51,14 @@ export function describePage(path: string | null | undefined): { label: string; 
     return { label: `Admin panel${tab && ADMIN_TABS[tab] ? `: ${ADMIN_TABS[tab]}` : ""}`, icon: "admin" };
   }
   if (p.startsWith("/reviews")) return { label: "Reading reviews", icon: "star" };
+  if (p === "/appeals") return { label: "On the Appeals page", icon: "legal" };
+  if (p === "/settings") return { label: "In Settings", icon: "account" };
+  if (p === "/notifications") return { label: "Reading their notifications", icon: "account" };
+  const other = pageDiscordId(p);
+  if (other) {
+    const name = names[other] ?? "another member";
+    return p.startsWith("/social/messages/") ? { label: `Messaging ${name}`, icon: "account" } : { label: `Viewing ${name}'s Social profile`, icon: "account" };
+  }
+  if (SOCIAL_PAGES[p]) return { label: SOCIAL_PAGES[p], icon: "account" };
   return { label: `On ${p}`, icon: "globe" };
 }

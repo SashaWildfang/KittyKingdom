@@ -1,10 +1,10 @@
 "use client";
 
-import { Bell, Check, Loader2, Settings, Trash2 } from "lucide-react";
+import { Check, Loader2, Settings, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { NOTIFICATION_ICONS } from "../notification-bell";
+import { NotificationFace } from "../notification-bell";
 
-type Item = { id: string; type: string; title: string; body: string; link: string; at: string; read: boolean; count: number };
+type Item = { id: string; type: string; actor?: string | null; title: string; body: string; link: string; at: string; read: boolean; count: number };
 
 const dayFmt = new Intl.DateTimeFormat(undefined, { weekday: "long", month: "short", day: "numeric" });
 const timeFmt = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" });
@@ -92,13 +92,10 @@ export function NotificationsList() {
             <h2>{g.day}</h2>
             <ul>
               {g.items.map((n) => {
-                const Icon = NOTIFICATION_ICONS[n.type] ?? Bell;
                 return (
                   <li key={n.id}>
                     <a href={n.link} className={n.read ? undefined : "is-unread"}>
-                      <span className={`nb-icon nb-icon--${n.type}`}>
-                        <Icon size={16} aria-hidden="true" />
-                      </span>
+                      <NotificationFace type={n.type} actor={n.actor} size={36} />
                       <span className="nf-text">
                         <b>
                           {n.title}
