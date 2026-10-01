@@ -30841,3 +30841,47 @@ a.apl-chip {
 .cos-theme-orb {
   animation: none;
 }
+
+/* ==========================================
+   Frames: a slim ring hugging the picture (not a thick band on top of its own border)
+   ========================================== */
+.cos-ring {
+  inset: -4px;
+  padding: 3.5px;
+}
+
+.cos-frame--dual .cos-ring--inner {
+  inset: 1px;
+  padding: 2px;
+}
+
+.cos-frame::after {
+  inset: -9%;
+  opacity: 0.4;
+}
+
+/* The ring replaces the picture's own border */
+.cos-frame > .dt-hero-photo {
+  box-shadow: 0 14px 30px var(--shadow);
+}
+
+.cos-frame > .acct-avatar,
+.cos-frame > .smini-photo {
+  border-width: 0;
+}
+
+.cos-frame.dt-hero-frame,
+.cos-frame.smini-frame {
+  border-radius: 28px;
+}
+
+.cos-frame.smini-frame {
+  border-radius: 18px;
+}
+
+/* Small avatars get a thinner ring */
+.cprev.is-compact .cos-ring,
+.cos-frame.dt-face-frame .cos-ring {
+  inset: -3px;
+  padding: 2.5px;
+}
