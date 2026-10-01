@@ -97,7 +97,11 @@ export async function previewWipe(discordId: string, actor: PanelUser) {
   await guard(discordId, actor);
   const { steps } = await plan(discordId);
   const rows = await Promise.all(steps.map(async (s) => ({ label: s.label, count: await (await collectionFor(s)).countDocuments(s.filter).catch(() => 0) })));
-  const economy = await (await getBotCollection("users")).countDocuments({ discordId: idForms(discordId) });
+  // Only counts when there's something to reset (a wiped or brand-new record has nothing left)
+  const economy = await (await getBotCollection("users")).countDocuments({
+    discordId: idForms(discordId),
+    $or: [{ balance: { $gt: 0 } }, { level: { $gt: 1 } }, { xp: { $gt: 0 } }, { msgCount: { $gt: 0 } }, { streak: { $gt: 0 } }],
+  } as Document);
   rows.push({ label: "Leaves, level and XP (reset to a new member's)", count: economy });
   return { rows: rows.filter((r) => r.count > 0), total: rows.reduce((n, r) => n + r.count, 0) };
 }

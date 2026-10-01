@@ -1,13 +1,13 @@
 "use client";
 
 import { Eraser, Loader2, TriangleAlert } from "lucide-react";
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { TicketDeletePermissions } from "./delete-ticket-button";
 
 type Preview = { rows: { label: string; count: number }[]; total: number };
 
 /**
- * Owner only: wipe all of a member's data except safety records. Shows exactly what will go first,
+ * Owner only (hidden when nothing is stored for them): wipe all of a member's data except safety records. Shows exactly what will go first,
  * then asks for their Discord id. The server checks owner, 2FA and the id too.
  */
 export function WipeMember({ userId, onDone }: { userId: string; onDone: () => void }) {
@@ -16,8 +16,20 @@ export function WipeMember({ userId, onDone }: { userId: string; onDone: () => v
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<string | null>(null);
-  if (!isOwner) return null;
+  // Whether there's anything to wipe at all (the option is hidden when there isn't)
+  const [hasData, setHasData] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!isOwner) return;
+    let stop = false;
+    void fetch(`/api/admin/wipe/${userId}`, { cache: "no-store" })
+      .then((x) => x.json())
+      .then((r) => !stop && setHasData(r?.ok ? r.total > 0 : true))
+      .catch(() => !stop && setHasData(true));
+    return () => {
+      stop = true;
+    };
+  }, [isOwner, userId]);
+  if (!isOwner || !hasData) return null;
 
   const load = async () => {
     setBusy(true);
@@ -35,9 +47,7 @@ export function WipeMember({ userId, onDone }: { userId: string; onDone: () => v
       .catch(() => null);
     setBusy(false);
     if (!r?.ok) return setError(r?.error ?? "That didn't work.");
-    setPreview(null);
-    setConfirm("");
-    setResult(`Wiped ${r.total.toLocaleString()} record${r.total === 1 ? "" : "s"}. It's logged in the bot logs channel.`);
+    // Nothing left to look at: close their full profile
     onDone();
   };
 
@@ -46,7 +56,6 @@ export function WipeMember({ userId, onDone }: { userId: string; onDone: () => v
       <h3>
         <TriangleAlert size={16} aria-hidden="true" /> Owner only
       </h3>
-      {result ? <p className="adm-wipe-done">{result}</p> : null}
       {!preview ? (
         <button type="button" className="adm-btn adm-btn--ghost adm-wipe-open" onClick={() => void load()} disabled={busy}>
           {busy ? <Loader2 size={14} className="set-spin" aria-hidden="true" /> : <Eraser size={14} aria-hidden="true" />} Wipe all their data…

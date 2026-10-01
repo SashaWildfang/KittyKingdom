@@ -214,3 +214,36 @@ export async function messageWithContext(messageId: string) {
   const shape = (x: Document) => ({ id: String(x._id), from: String(x.from), text: String(x.text ?? ""), at: (x.at as Date).toISOString(), reported: String(x._id) === messageId });
   return { conv: String(m.conv), from: String(m.from), to: String(m.to), messages: [...before.reverse(), m, ...after].map(shape) };
 }
+
+// ---------- Admins only (Admin → a member's full profile → Social messages). Every thread opened is audited. ----------
+
+/** Every conversation a member is in (including hidden ones and requests), newest first. */
+export async function adminConversations(member: string) {
+  const { convs, msgs } = await cols();
+  const rows = await convs.find({ users: member }).sort({ lastAt: -1 }).limit(200).toArray();
+  const counts = await msgs
+    .aggregate([{ $match: { conv: { $in: rows.map((r) => r._id) } } }, { $group: { _id: "$conv", n: { $sum: 1 } } }])
+    .toArray();
+  const count = new Map(counts.map((c) => [String(c._id), Number(c.n)]));
+  return rows.map((c) => ({
+    id: String(c._id),
+    other: (c.users as string[]).find((u) => u !== member) ?? member,
+    state: String(c.state ?? "open"),
+    lastAt: c.lastAt instanceof Date ? c.lastAt.toISOString() : null,
+    lastText: String(c.lastText ?? ""),
+    lastFromMember: c.lastFrom === member,
+    messages: count.get(String(c._id)) ?? 0,
+  }));
+}
+
+/** A conversation's messages for an admin (read only: nothing is marked read). */
+export async function adminThread(a: string, b: string, before?: string | null) {
+  const { msgs } = await cols();
+  const q: Document = { conv: pairId(a, b) };
+  if (before && ObjectId.isValid(before)) q._id = { $lt: new ObjectId(before) };
+  const rows = await msgs.find(q).sort({ _id: -1 }).limit(100).toArray();
+  return {
+    messages: rows.reverse().map((m) => ({ id: String(m._id), from: String(m.from), text: m.deleted ? "" : String(m.text ?? ""), deleted: Boolean(m.deleted), at: (m.at as Date).toISOString() })),
+    more: rows.length === 100,
+  };
+}

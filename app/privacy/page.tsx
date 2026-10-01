@@ -47,8 +47,8 @@ const sections: LegalSection[] = [
             <b>Password:</b> never stored in readable form. We keep a salted one-way hash (scrypt). Staff cannot see your password.
           </li>
           <li>
-            <b>Optional contact details:</b> a phone number and social links (Telegram, X/Twitter, YouTube, Steam) if you add them. Your phone number is
-            only visible to you and to Site administrators.
+            <b>Optional phone number:</b> if you add one on My Account. It is only visible to you and to Site administrators. (Social links you add to
+            your Social profile are covered under Social below.)
           </li>
           <li>
             <b>Two-factor authentication:</b> if you turn it on, the authenticator secret (encrypted with AES-256-GCM), your backup codes (stored only as
@@ -275,9 +275,10 @@ const sections: LegalSection[] = [
           </li>
           <li>
             <b>Dating</b> profiles and photos are only shown to signed-in members who hold the 18+ Verified role. You can hide your age and last-active time,
-            pause your profile, and block anyone. Dating messages are private between the two of you: staff cannot browse them. If you report a message,
-            staff see only that message and up to two messages before and after it; if you report a profile or photo, staff see that profile as it was
-            when reported. Staff may review uploaded photos to keep Dating safe for work.
+            pause your profile, and block anyone. Social messages are not visible to other members or to moderators. If you report a message,
+            moderators see only that message and up to two messages before and after it; if you report a profile or photo, staff see that profile as it was
+            when reported. <b>Administrators</b> can read Social conversations when needed for safety, to investigate reports, harassment or scams, or to
+            enforce the rules; every conversation an administrator opens is recorded in an audit log. Staff may review uploaded photos to keep Dating safe for work.
           </li>
           <li>
             <b>Administrators</b> can additionally see Site account details (email, phone, birthday, linked Discord, sign-in sessions and devices), ticket

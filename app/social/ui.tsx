@@ -265,7 +265,7 @@ export function ReportButton({ target, type = "profile", photoId, messageId, lab
             ) : (
               <>
                 <h3>Report {type === "message" ? "this message" : type === "photo" ? "this photo" : "this profile"}</h3>
-                <p className="dt-muted">Staff only see what you report{type === "message" ? " (this message and a couple around it)" : ""}. They won&apos;t be told who reported them.</p>
+                <p className="dt-muted">Moderators see what you report{type === "message" ? " (this message and a couple around it)" : ""}. They won&apos;t be told who reported them.</p>
                 <div className="dt-chips dt-chips--stack">
                   {REPORT_REASONS.map((r) => (
                     <button key={r} type="button" className={reason === r ? "is-on" : undefined} onClick={() => setReason(r)}>
