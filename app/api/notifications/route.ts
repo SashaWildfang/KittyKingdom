@@ -5,11 +5,14 @@ import { getViewAs } from "../../../lib/auth";
 
 export const dynamic = "force-dynamic";
 
-/** Your notifications (the bell). ?count=1 returns just the unread count. */
+/** Your notifications (the bell). ?count=1 returns just the unread count; ?before=<time> pages back (the Notifications page). */
 export async function GET(request: Request) {
   const user = await getCurrentUser();
   if (!user?.discordId) return NextResponse.json({ ok: true, unread: 0, items: [] });
-  const data = await listNotifications(String(user.discordId), new URL(request.url).searchParams.get("count") ? 0 : 30);
+  const params = new URL(request.url).searchParams;
+  const beforeRaw = params.get("before");
+  const before = beforeRaw && !Number.isNaN(Date.parse(beforeRaw)) ? new Date(beforeRaw) : null;
+  const data = await listNotifications(String(user.discordId), params.get("count") ? 0 : 30, before);
   return NextResponse.json({ ok: true, ...data }, { headers: { "Cache-Control": "no-store" } });
 }
 

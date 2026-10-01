@@ -25,6 +25,8 @@ export type Drill = (
   | { kind: "member"; id: string }
   | { kind: "action"; action: string }
   | { kind: "ticketType"; type: string }
+  | { kind: "ticketStaff"; id: string }
+  | { kind: "ticketOpener"; id: string }
 ) & { range?: string; source?: string };
 
 type Summary = {
@@ -48,7 +50,8 @@ type DrillProps = {
 
 export function DrillPanel(props: DrillProps) {
   // Separate components so switching between kinds never mixes up their hooks
-  return props.drill.kind === "ticketType" ? <TicketTypeDrill key="tickets" {...props} /> : <PunishmentDrill key="punishments" {...props} />;
+  const tickets = props.drill.kind === "ticketType" || props.drill.kind === "ticketStaff" || props.drill.kind === "ticketOpener";
+  return tickets ? <TicketTypeDrill key={`tickets-${props.drill.kind}`} {...props} /> : <PunishmentDrill key="punishments" {...props} />;
 }
 
 function PunishmentDrill({ drill, onClose, onOpenMember, onDrill }: DrillProps) {

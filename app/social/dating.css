@@ -4488,3 +4488,65 @@ a.dt-partner-chip:hover {
     flex: none;
   }
 }
+
+/* Our own chevron, kept inside the box (some browsers drew theirs over the rounded edge) */
+.dt-select {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 2.3rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23f59b2a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.8rem center;
+  background-size: 14px 14px;
+}
+
+/* Profile strength tips link straight to the field */
+.dt-strength-tip {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--ember) 50%, transparent);
+  text-underline-offset: 0.2em;
+}
+.dt-strength-tip:hover {
+  color: var(--ember);
+}
+.dt-jump-flash {
+  border-radius: 14px;
+  animation: dt-jump-flash 2.4s ease;
+}
+@keyframes dt-jump-flash {
+  0%,
+  60% {
+    box-shadow: 0 0 0 3px var(--ember), 0 0 24px rgba(245, 155, 42, 0.35);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.dt-ring.is-none b {
+  color: var(--muted);
+}
+
+/* Old answers that need updating */
+.dt-banner--warn {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  border-color: rgba(245, 155, 42, 0.55);
+  background: rgba(245, 155, 42, 0.1);
+}
+.dt-banner--warn > svg {
+  flex: none;
+  margin-top: 0.15rem;
+  color: var(--ember);
+}
+.dt-banner--warn p {
+  margin: 0.25rem 0 0.5rem;
+  color: var(--muted);
+}
+.dt-stale-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
