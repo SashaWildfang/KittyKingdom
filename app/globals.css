@@ -28768,8 +28768,13 @@ a.apl-chip {
   opacity: 1;
 }
 
+/* Store banners fill the whole width (the cover keeps its 6:1 shape, a little taller on small screens) */
 .dt-profile--v2 .dt-hero-cover.has-cos-banner {
-  height: 210px;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 6 / 1;
+  min-height: 150px;
+  max-height: 260px;
 }
 
 .dt-profile.has-cos-theme {
@@ -30764,3 +30769,75 @@ a.apl-chip {
 .sc .sc-spurt { animation: sc-spurt ease-out infinite; }
 @keyframes sc-flow { to { stroke-dashoffset: -48; } }
 @keyframes sc-spurt { 0% { transform: translate(0, 0); opacity: 1; } 55% { transform: translate(var(--sx, 0), -26px); opacity: 1; } 100% { transform: translate(var(--sx, 0), 4px); opacity: 0; } }
+
+/* ==========================================
+   Store performance: only what you're looking at moves
+   ========================================== */
+/* Card and Locker previews hold still until hovered or focused */
+.store-grid .cprev *,
+.store-grid .cprev *::before,
+.store-grid .cprev *::after,
+.locker-tiles .cprev *,
+.locker-tiles .cprev *::before,
+.locker-tiles .cprev *::after,
+.store-inv-grid .cprev *,
+.store-cart .cprev * {
+  animation-play-state: paused !important;
+}
+
+.store-card:hover .cprev *,
+.store-card:hover .cprev *::before,
+.store-card:hover .cprev *::after,
+.store-card:focus-within .cprev *,
+.locker-tile:hover .cprev *,
+.locker-tile:hover .cprev *::before,
+.locker-tile:hover .cprev *::after,
+.locker-tile.is-on .cprev * {
+  animation-play-state: running !important;
+}
+
+/* Cards: no live blur behind them (the biggest scrolling cost), and the browser skips offscreen ones */
+.store-card,
+.store-inv-card,
+.locker-slot,
+.locker-preview,
+.trade-card,
+.trades-head {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background-color: color-mix(in srgb, var(--panel-strong) 92%, transparent);
+}
+
+.store-card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 380px;
+}
+
+.store-section,
+.locker-slot {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 600px;
+}
+
+/* A calmer backdrop: still glows, but doesn't move */
+.store-orb {
+  animation: none;
+  filter: blur(60px);
+}
+
+.store-spark:nth-child(even) {
+  display: none;
+}
+
+.store-grid-glow {
+  display: none;
+}
+
+/* Smooth hover without repainting shadows every frame */
+.store-card {
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.cos-theme-orb {
+  animation: none;
+}

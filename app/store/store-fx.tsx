@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from "react";
+import { memo, useEffect, useRef, useState, type CSSProperties, type PointerEvent } from "react";
 import type { Flair } from "../../lib/cosmetics";
 import { FlairBanner, FlairEffect, FlairName, Framed, themeVars } from "../cosmetic-flair";
 
@@ -129,8 +129,23 @@ export function MiniProfile({ me, flair, title, compact }: { me: { name: string;
   );
 }
 
-/** A small copy of the Social profile header wearing everything (banner, frame, name, effect, theme). */
-export function SocialMini({ me, flair, title, compact }: { me: { name: string; avatar: string | null }; flair: Flair; title?: { text: string; hue: string } | null; compact?: boolean }) {
+type MiniProps = { me: { name: string; avatar: string | null }; flair: Flair; title?: { text: string; hue: string } | null; compact?: boolean };
+
+/** A small copy of the Social profile header wearing everything (only redraws when what it wears changes). */
+export const SocialMini = memo(SocialMiniInner, (a: MiniProps, b: MiniProps) =>
+  a.compact === b.compact &&
+  a.me.name === b.me.name &&
+  a.me.avatar === b.me.avatar &&
+  a.title?.text === b.title?.text &&
+  a.title?.hue === b.title?.hue &&
+  a.flair.banner === b.flair.banner &&
+  a.flair.frame === b.flair.frame &&
+  a.flair.nameplate === b.flair.nameplate &&
+  a.flair.effect === b.flair.effect &&
+  a.flair.theme === b.flair.theme,
+);
+
+function SocialMiniInner({ me, flair, title, compact }: { me: { name: string; avatar: string | null }; flair: Flair; title?: { text: string; hue: string } | null; compact?: boolean }) {
   const [failed, setFailed] = useState(false);
   return (
     <div className={`smini${compact ? " is-compact" : ""}${flair.theme ? " has-theme" : ""}`} style={themeVars(flair.theme)}>
