@@ -1,7 +1,7 @@
 "use client";
 
 import { NO_FLAIR, type ProfileExtras } from "../../lib/cosmetics";
-import { FlairBanner, FlairName, Framed } from "../cosmetic-flair";
+import { FlairBanner, FlairEffect, FlairName, FlairTheme, Framed, themeVars } from "../cosmetic-flair";
 import {
   Activity,
   Ban,
@@ -350,7 +350,12 @@ export function ProfileScreen({ id }: { id: string }) {
   const sections = p.sections.filter((s) => s.id !== "socials" && s.id !== "gaming");
 
   return (
-    <div className="dt-profile dt-profile--v2" style={{ "--acc": p.accent, "--acc-ink": inkFor(p.accent) } as CSSProperties}>
+    <div
+      className={`dt-profile dt-profile--v2${flair.theme ? " has-cos-theme" : ""}`}
+      style={{ "--acc": p.accent, "--acc-ink": inkFor(p.accent), ...(themeVars(flair.theme) ?? {}) } as CSSProperties}
+    >
+      {/* Store theme and effect: the whole page behind the profile */}
+      <FlairTheme theme={flair.theme} effect={flair.effect} />
       {data.own ? (
         <div className="dt-banner dt-banner--soft">
           <Eye size={16} aria-hidden="true" />
@@ -373,13 +378,16 @@ export function ProfileScreen({ id }: { id: string }) {
         {flair.banner ? (
           <div className="dt-hero-cover has-cos-banner" aria-hidden="true">
             <FlairBanner banner={flair.banner} />
+            <FlairEffect effect={flair.effect} count={16} />
           </div>
         ) : (
           <div
-            className={`dt-hero-cover${p.banner ? " has-banner" : " dt-banner-default"}`}
+            className={`dt-hero-cover${p.banner ? " has-banner" : " dt-banner-default"}${flair.effect ? " has-cos-fx" : ""}`}
             style={p.banner ? { backgroundImage: `url(${p.banner})`, backgroundPosition: `center ${p.bannerY}%` } : undefined}
             aria-hidden="true"
-          />
+          >
+            <FlairEffect effect={flair.effect} count={16} />
+          </div>
         )}
         <div className="dt-hero-body">
           <div className="dt-hero-side">
