@@ -14,6 +14,8 @@ import {
   COSMETICS,
   ITEM,
   NO_EXTRAS,
+  NO_FLAIR,
+  SLOTS,
   TITLE_HUES,
   cleanFlair,
   type CosmeticSlot,
@@ -31,7 +33,7 @@ export class PerkError extends Error {
   }
 }
 
-const SLOTS: CosmeticSlot[] = ["frame", "banner", "nameplate"];
+
 const COSMETIC_IDS = Object.keys(COSMETICS);
 
 function cleanBadge(id: string, raw: unknown): CustomBadge | null {
@@ -80,7 +82,7 @@ export async function profileExtrasMany(discordIds: string[]): Promise<Map<strin
     const account = accounts.find((a) => String(a.discordId) === id);
     const mine = ownedBy.get(id) ?? new Set<string>();
     const raw = cleanFlair(account?.cosmetics);
-    const flair: Flair = { frame: null, banner: null, nameplate: null };
+    const flair: Flair = { ...NO_FLAIR };
     for (const slot of SLOTS) {
       const key = raw[slot];
       const itemId = key ? COSMETIC_IDS.find((i) => COSMETICS[i].slot === slot && COSMETICS[i].key === key) : null;
@@ -88,7 +90,7 @@ export async function profileExtrasMany(discordIds: string[]): Promise<Map<strin
     }
     const customTitle = mine.has(ITEM.customTitle) ? cleanTitle(account?.customTitle) : null;
     const customBadges = (badges.get(id) ?? []).slice(0, 3);
-    if (flair.frame || flair.banner || flair.nameplate || customTitle || customBadges.length) out.set(id, { flair, customTitle, customBadges });
+    if (SLOTS.some((s) => flair[s]) || customTitle || customBadges.length) out.set(id, { flair, customTitle, customBadges });
   }
   return out;
 }

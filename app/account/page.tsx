@@ -30,7 +30,7 @@ import { badgeHistory } from "../../lib/badge-history";
 import { serverJoinDate } from "../../lib/member-directory";
 import { myPunishments } from "../../lib/appeals";
 import { profileExtras } from "../../lib/store-perks";
-import { FlairBanner, FlairName, Framed } from "../cosmetic-flair";
+import { FlairBanner, FlairEffect, FlairName, Framed } from "../cosmetic-flair";
 
 const shortDate = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Denver" });
 import { RoleManager } from "./role-manager";
@@ -194,7 +194,9 @@ export default async function AccountPage({
         {/* ---------- Sidebar: profile summary + section links ---------- */}
         <aside className="acct-sidebar">
           <div className={`acct-profile-card${extras?.flair.banner ? " has-cos-banner" : ""}`}>
-            <FlairBanner banner={extras?.flair.banner} />
+            <FlairBanner banner={extras?.flair.banner}>
+              <FlairEffect effect={extras?.flair.effect} count={10} />
+            </FlairBanner>
             <Framed frame={extras?.flair.frame} className="acct-avatar-frame">
               <div className="acct-avatar">
                 {discordLinked ? (
