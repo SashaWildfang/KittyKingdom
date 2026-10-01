@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Backpack, Check, ChevronLeft, ChevronRight, CircleAlert, Crown, Eye, Flame, Gift, Heart, Hourglass, LayoutGrid, Minus, Package, Paintbrush, Plus, Repeat, Rocket, Search, ShieldCheck, ShoppingBag, ShoppingCart, Sparkles, Star, Trash2, Wand2, X } from "lucide-react";
 import { RARITY, SLOTS, SLOT_HINT, SLOT_LABELS, SLOT_PLURAL, type CosmeticSlot, type Flair } from "../../lib/cosmetics";
 import { CosmeticPreview } from "../cosmetic-flair";
@@ -420,7 +420,7 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
                 </div>
                 <div className="store-grid">
                   {sorted.map((item) => (
-                    <ShopCard key={item.itemId} item={item} me={state.me} balance={state.balance} now={now} inCart={cart[item.itemId] ?? 0} onAdd={() => addToCart(item)} onOpen={() => setModal({ kind: item.cosmetic ? "preview" : "buy", item })} onCart={() => setCartOpen(true)} />
+                    <ShopCard key={item.itemId} item={item} me={state.me} balance={state.balance} now={item.availableUntil ? Math.floor(now / 60_000) * 60_000 : 0} inCart={cart[item.itemId] ?? 0} onAdd={() => addToCart(item)} onOpen={() => setModal({ kind: item.cosmetic ? "preview" : "buy", item })} onCart={() => setCartOpen(true)} />
                   ))}
                 </div>
               </section>
@@ -446,7 +446,7 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
                   </div>
                   <div className="store-grid">
                     {section.items.map((item) => (
-                      <ShopCard key={item.itemId} item={item} me={state.me} balance={state.balance} now={now} inCart={cart[item.itemId] ?? 0} onAdd={() => addToCart(item)} onOpen={() => setModal({ kind: item.cosmetic ? "preview" : "buy", item })} onCart={() => setCartOpen(true)} />
+                      <ShopCard key={item.itemId} item={item} me={state.me} balance={state.balance} now={item.availableUntil ? Math.floor(now / 60_000) * 60_000 : 0} inCart={cart[item.itemId] ?? 0} onAdd={() => addToCart(item)} onOpen={() => setModal({ kind: item.cosmetic ? "preview" : "buy", item })} onCart={() => setCartOpen(true)} />
                     ))}
                   </div>
                   {section.key === "cosmetics" ? (
@@ -481,7 +481,7 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
                     </div>
                     <div className="store-grid">
                       {list.map((item) => (
-                        <ShopCard key={item.itemId} item={item} me={state.me} balance={state.balance} now={now} inCart={cart[item.itemId] ?? 0} onAdd={() => addToCart(item)} onOpen={() => setModal({ kind: "preview", item })} onCart={() => setCartOpen(true)} />
+                        <ShopCard key={item.itemId} item={item} me={state.me} balance={state.balance} now={item.availableUntil ? Math.floor(now / 60_000) * 60_000 : 0} inCart={cart[item.itemId] ?? 0} onAdd={() => addToCart(item)} onOpen={() => setModal({ kind: "preview", item })} onCart={() => setCartOpen(true)} />
                       ))}
                     </div>
                   </section>
@@ -583,7 +583,7 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
 // ==========================================
 // SHOP CARD
 // ==========================================
-function ShopCard({ item, me, balance, now, inCart, onAdd, onOpen, onCart }: { item: StoreItem; me: StoreState["me"]; balance: number; now: number; inCart: number; onAdd: () => void; onOpen: () => void; onCart: () => void }) {
+function ShopCardInner({ item, me, balance, now, inCart, onAdd, onOpen, onCart }: { item: StoreItem; me: StoreState["me"]; balance: number; now: number; inCart: number; onAdd: () => void; onOpen: () => void; onCart: () => void }) {
   const isRole = Boolean(item.roleId) || item.category === "Roles";
   const ownedRole = isRole && item.owned > 0;
   const ownedOne = !item.stackable && item.owned > 0;
@@ -679,6 +679,26 @@ function ShopCard({ item, me, balance, now, inCart, onAdd, onOpen, onCart }: { i
     </article>
   );
 }
+
+/** Cards only redraw when something on them changes (not every second, and not on every refresh). */
+const ShopCard = memo(ShopCardInner, (a, b) => {
+  const x = a.item;
+  const y = b.item;
+  return (
+    x.itemId === y.itemId &&
+    x.owned === y.owned &&
+    x.stock === y.stock &&
+    x.equipped === y.equipped &&
+    x.boughtToday === y.boughtToday &&
+    x.price === y.price &&
+    x.availableUntil === y.availableUntil &&
+    a.inCart === b.inCart &&
+    a.balance === b.balance &&
+    a.now === b.now &&
+    a.me.name === b.me.name &&
+    a.me.avatar === b.me.avatar
+  );
+});
 
 /** The big rotating banner for limited and seasonal items. */
 function FeaturedDrops({ items, now, me, flair, onOpen }: { items: StoreItem[]; now: number; me: StoreState["me"]; flair: Flair; onOpen: (item: StoreItem) => void }) {
