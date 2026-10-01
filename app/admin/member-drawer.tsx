@@ -23,6 +23,7 @@ import {
   type Ticket,
 } from "./admin-shared";
 import { DeleteTicketButton } from "./delete-ticket-button";
+import { MemberMessages } from "./member-messages";
 import { WipeMember } from "./wipe-member";
 import { ViewAsButton } from "./view-as-button";
 
@@ -235,8 +236,10 @@ export function MemberDrawer({
               )}
             </section>
             ) : null}
+            {/* Admins only; the server checks too, and logs each conversation opened */}
+            {canEditRoles ? <MemberMessages userId={userId} onOpenMember={onOpenMember} /> : null}
             {/* Owner only (the component checks, and so does the server) */}
-            {canEditRoles ? <WipeMember userId={userId} onDone={() => reload()} /> : null}
+            {canEditRoles ? <WipeMember userId={userId} onDone={onClose} /> : null}
           </>
         ) : loading ? (
           <div className="adm-skeleton" style={{ height: 240 }} />

@@ -224,3 +224,13 @@ export async function memberGrowth(startOfToday: Date) {
   const before = Math.max(1, total - joined30 + left30);
   return { total, today, perDay: joined30 / 30, growth: (total - before) / before };
 }
+
+/** When a member joined the Discord server ("Member since" everywhere on the site), or null if unknown. */
+export async function serverJoinDate(discordId: string | null | undefined): Promise<Date | null> {
+  if (!discordId || !/^\d{15,21}$/.test(String(discordId))) return null;
+  const { getMemberProfile } = await import("./discord-member");
+  const profile = await getMemberProfile(String(discordId)).catch(() => null);
+  if (profile?.joinedAt) return new Date(profile.joinedAt);
+  const doc = (await (await directory()).findOne({ _id: String(discordId) }).catch(() => null)) as DirectoryEntry | null;
+  return doc?.joinedAt ? new Date(doc.joinedAt) : null;
+}

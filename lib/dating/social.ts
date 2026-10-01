@@ -186,3 +186,16 @@ export async function setFriendSkip(me: string, other: string, skip: boolean) {
   if (skip) await friendSkips.updateOne({ _id: me } as never, { $pull: { ids: { id: other } } } as never);
   await friendSkips.updateOne({ _id: me } as never, skip ? ({ $push: { ids: { $each: [{ id: other, at: new Date() }], $slice: -2000 } } } as never) : ({ $pull: { ids: { id: other } } } as never), { upsert: true });
 }
+
+/** Marks them active on Social now (at most once a minute). Messaging and browsing count, not just profile edits. */
+export async function touchActive(me: string) {
+  // An admin viewing the site as them isn't them being active
+  const { getViewAs } = await import("../auth");
+  if (await getViewAs().catch(() => null)) return;
+  const c = await datingCols();
+  const now = new Date();
+  await c.profiles.updateOne(
+    { _id: toLong(me), $or: [{ last_active: { $lt: new Date(now.getTime() - 60_000) } }, { last_active: { $exists: false } }, { last_active: null }] } as never,
+    { $set: { last_active: now } },
+  );
+}

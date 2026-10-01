@@ -406,7 +406,7 @@ export function AccountsTab({ onOpenMember }: { onOpenMember: (id: string) => vo
               </th>
               <th>Discord</th>
               <th>
-                <button type="button" onClick={() => sortBy("created")}>Joined{arrow("created")}</button>
+                <button type="button" onClick={() => sortBy("created")}>Signed up{arrow("created")}</button>
               </th>
               <th>
                 <button type="button" onClick={() => sortBy("online")}>Last active{arrow("online")}</button>
@@ -765,7 +765,7 @@ function AccountDrawer({ id, onClose, onChanged, onOpenMember }: { id: string; o
                   <dd>{account.applicationStatus ? account.applicationStatus.charAt(0).toUpperCase() + account.applicationStatus.slice(1) : "—"}</dd>
                 </div>
                 <div>
-                  <dt>Joined</dt>
+                  <dt>Website account since</dt>
                   <dd>{formatDate(account.createdAt)}</dd>
                 </div>
                 <div>

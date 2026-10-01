@@ -8,7 +8,8 @@ import { randomBytes } from "crypto";
 import { Long, ObjectId, type Document } from "mongodb";
 import { cookies } from "next/headers";
 import type { PanelUser } from "./admin";
-import { readSignedPayload, signPayload } from "./auth";
+import { people } from "./admin-people";
+import { getCurrentUser, readSignedPayload, signPayload } from "./auth";
 import { DISCORD_API, botToken, guildId, postChannelMessage, searchMembers } from "./discord-member";
 import { sendAppealDecisionEmail, sendAppealReceivedEmail } from "./email";
 import { getCurrentBans } from "./moderation";
@@ -27,7 +28,8 @@ export class AppealError extends Error {
   }
 }
 
-export type AppealIdentity = { discordId: string; username: string; name: string; avatar: string | null };
+// via: "account" = their signed-in Kitty Kingdom account with Discord linked; "discord" = Discord sign-in on the appeals page
+export type AppealIdentity = { discordId: string; username: string; name: string; avatar: string | null; via?: "account" | "discord" };
 export type AppealStatus = "pending" | "accepted" | "denied";
 export type HistoryEntry = { at: string; action: "submitted" | "accepted" | "denied" | "lifted" | "note"; byName: string | null; note: string | null };
 
@@ -134,15 +136,21 @@ export async function finishAppealSignIn(request: Request, code: string, state: 
   return identity;
 }
 
-/** Who has proven (via Discord) they're appealing for themselves, or null. */
+/** Who has proven they're appealing for themselves: a signed-in account with Discord linked, or a Discord sign-in here. */
 export async function appealIdentity(): Promise<AppealIdentity | null> {
+  const user = await getCurrentUser().catch(() => null);
+  if (user?.discordId && user.emailVerified !== false) {
+    const discordId = String(user.discordId);
+    const who = (await people([discordId]).catch(() => ({}) as Awaited<ReturnType<typeof people>>))[discordId];
+    return { discordId, username: who?.username ?? String(user.username ?? discordId), name: who?.name ?? String(user.username ?? "You"), avatar: who?.avatar ?? null, via: "account" };
+  }
   const value = readSignedPayload((await cookies()).get(IDENTITY_COOKIE)?.value);
   if (!value) return null;
   const i = value.indexOf("|");
   if (i < 0 || Number(value.slice(0, i)) < Date.now()) return null;
   try {
     const parsed = JSON.parse(value.slice(i + 1)) as AppealIdentity;
-    return /^\d{15,21}$/.test(parsed.discordId) ? parsed : null;
+    return /^\d{15,21}$/.test(parsed.discordId) ? { ...parsed, via: "discord" } : null;
   } catch {
     return null;
   }
@@ -155,7 +163,7 @@ export async function clearAppealIdentity() {
 // ---------- Their punishments and appeals ----------
 const idForms = (id: string) => [id, Long.fromString(id)];
 
-export type MyPunishment = { id: string; action: string; reason: string; at: string | null; expiresAt: string | null; active: boolean; appeal: { id: string; status: AppealStatus; at: string; canAppealAgainAt: string | null } | null };
+export type MyPunishment = { id: string; action: string; reason: string; at: string | null; expiresAt: string | null; active: boolean; appealable: boolean; appeal: { id: string; status: AppealStatus; at: string; canAppealAgainAt: string | null } | null };
 
 export async function myPunishments(discordId: string): Promise<MyPunishment[]> {
   const rows = await (await getBotCollection("punishments"))
@@ -170,8 +178,11 @@ export async function myPunishments(discordId: string): Promise<MyPunishment[]> 
   return rows.map((r) => {
     const id = String(r._id);
     const action = String(r.action ?? "");
-    const expires = r.expires_at instanceof Date ? r.expires_at : null;
-    const active = action === "ban" ? Boolean(bans?.has(discordId)) : action === "tempmute" || action === "mute" || action === "timeout" ? Boolean(expires && expires.getTime() > Date.now()) : false;
+    // The bot stamps every punishment with an expiry; only mutes really end (from their duration when it's there)
+    const muteLike = action === "tempmute" || action === "mute" || action === "timeout";
+    const fromDuration = r.timestamp instanceof Date && Number(r.duration_seconds) > 0 ? new Date(r.timestamp.getTime() + Number(r.duration_seconds) * 1000) : null;
+    const expires = muteLike ? fromDuration ?? (r.expires_at instanceof Date ? r.expires_at : null) : null;
+    const active = action === "ban" ? Boolean(bans?.has(discordId)) : muteLike ? Boolean(expires && expires.getTime() > Date.now()) : false;
     const a = latest.get(id);
     const decided = a && a.decidedAt instanceof Date ? a.decidedAt.getTime() : null;
     return {
@@ -181,6 +192,8 @@ export async function myPunishments(discordId: string): Promise<MyPunishment[]> 
       at: r.timestamp instanceof Date ? r.timestamp.toISOString() : null,
       expiresAt: expires ? expires.toISOString() : null,
       active,
+      // Staff can mark a punishment as not appealable (e.g. /ban appealable:No)
+      appealable: r.appealable !== false && r.extra_info?.appealable !== false,
       appeal: a
         ? {
             id: String(a._id),
@@ -225,6 +238,7 @@ export async function submitAppeal(identity: AppealIdentity, input: { punishment
 
   const punishment = await (await getBotCollection("punishments")).findOne({ _id: new ObjectId(punishmentId), user_discord_id: { $in: idForms(identity.discordId) } } as Document);
   if (!punishment || !APPEALABLE.includes(String(punishment.action))) throw new AppealError("That punishment couldn't be found on your account.", 404);
+  if (punishment.appealable === false || punishment.extra_info?.appealable === false) throw new AppealError("This punishment can't be appealed.", 403);
 
   const col = await appealsCol();
   const last = await col.findOne({ discordId: identity.discordId, punishmentId }, { sort: { createdAt: -1 } });

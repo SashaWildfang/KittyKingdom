@@ -5,7 +5,7 @@ import { people } from "../../../../lib/admin-people";
 import { getPresenceCollection, getUsersCollection } from "../../../../lib/mongodb";
 import { ONLINE_WINDOW_MS, sessionsCollection } from "../../../../lib/sessions";
 import { accountName } from "../../../../lib/names";
-import { describePage } from "../../../../lib/page-labels";
+import { describePage, pageDiscordId } from "../../../../lib/page-labels";
 
 export const dynamic = "force-dynamic";
 
@@ -26,10 +26,13 @@ export async function GET(request: Request) {
   const byId = new Map(accounts.map((a) => [String(a._id), a]));
   const who = await people(accounts.map((a) => (a.discordId ? String(a.discordId) : null)));
   const visitors = tabs.length;
-  const pageOf = (t: (typeof tabs)[number]) => ({ path: t.path ?? null, title: t.title ?? null, ...describePage(t.path), since: (t.pathSince ?? t.lastSeen).toISOString() });
+  // Names for the people a page is about ("Messaging Snow Paw" instead of the raw id)
+  const about = await people(tabs.map((t) => pageDiscordId(t.path)));
+  const names = Object.fromEntries(Object.entries(about).map(([id, p]) => [id, p.name]));
+  const pageOf = (t: (typeof tabs)[number]) => ({ path: t.path ?? null, title: t.title ?? null, ...describePage(t.path, names), since: (t.pathSince ?? t.lastSeen).toISOString() });
   const guestPages = new Map<string, { label: string; icon: string; path: string | null; n: number }>();
   for (const t of tabs.filter((t) => !t.userId)) {
-    const d = describePage(t.path);
+    const d = describePage(t.path, names);
     const g = guestPages.get(d.label) ?? { ...d, path: t.path ?? null, n: 0 };
     g.n++;
     guestPages.set(d.label, g);

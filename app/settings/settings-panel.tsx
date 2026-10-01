@@ -9,7 +9,7 @@ import {
   Eye,
   HeartHandshake,
   KeyRound,
-  Link2,
+  Gavel,
   Loader2,
   Lock,
   Mail,
@@ -141,8 +141,8 @@ function AccountPane({ social }: { social: boolean }) {
         </Row>
       </Group>
       <Group title="Your account" intro="These open on My Account.">
-        <LinkRow href="/account#profile" icon={PenLine} title="Display name & username" hint="How you appear around the site" />
-        <LinkRow href="/account#contact" icon={Link2} title="Contact & socials" hint="Phone and social links on your profile card" />
+        <LinkRow href="/account#profile" icon={PenLine} title="Name, username & phone" hint="How you appear around the site, and your private phone number" />
+        <LinkRow href="/account#punishments" icon={Gavel} title="Punishments & appeals" hint="Your moderation record, when it ends, and appeals" />
         <LinkRow href="/account#security" icon={KeyRound} title="Password & two-factor" hint="Keep your account secure" />
         <LinkRow href="/account#discord-account" icon={ShieldCheck} title="Discord link" hint="Link or unlink your Discord account" />
       </Group>
