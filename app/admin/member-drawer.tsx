@@ -24,6 +24,7 @@ import {
 } from "./admin-shared";
 import { DeleteTicketButton } from "./delete-ticket-button";
 import { MemberMessages } from "./member-messages";
+import type { Chat } from "./messages-tab";
 import { WipeMember } from "./wipe-member";
 import { ViewAsButton } from "./view-as-button";
 
@@ -49,6 +50,8 @@ export function MemberDrawer({
   onClose,
   onOpenMember,
   onOpenTranscript,
+  onOpenChat,
+  onOpenChats,
 }: {
   userId: string;
   canEditRoles: boolean;
@@ -56,6 +59,9 @@ export function MemberDrawer({
   onClose: () => void;
   onOpenMember: (id: string) => void;
   onOpenTranscript: (ticketId: number) => void;
+  /** Admins: read one of their Social chats live in Admin → Messages */
+  onOpenChat?: (chat: Chat) => void;
+  onOpenChats?: (member: { id: string; name: string }) => void;
 }) {
   const { data, error, loading, reload } = useLive<Result>(`/api/admin/user/${userId}`, 20_000);
   // A ticket deleted anywhere else in Admin drops off this profile too
@@ -188,6 +194,11 @@ export function MemberDrawer({
               )}
             </section>
 
+            {/* Admins only; the server checks too, and logs each chat opened */}
+            {canEditRoles && onOpenChat && onOpenChats ? (
+              <MemberMessages userId={userId} onOpenChat={onOpenChat} onOpenAll={(name) => onOpenChats({ id: userId, name })} />
+            ) : null}
+
             <section className="adm-drawer-section">
               <h3>
                 Roles <small>{data.roles.length}</small>
@@ -236,8 +247,6 @@ export function MemberDrawer({
               )}
             </section>
             ) : null}
-            {/* Admins only; the server checks too, and logs each conversation opened */}
-            {canEditRoles ? <MemberMessages userId={userId} onOpenMember={onOpenMember} /> : null}
             {/* Owner only (the component checks, and so does the server) */}
             {canEditRoles ? <WipeMember userId={userId} onDone={onClose} /> : null}
           </>

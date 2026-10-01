@@ -3,7 +3,7 @@
 
 const ADMIN_TABS: Record<string, string> = {
   overview: "Overview", punishments: "Punishments", automod: "AutoMod", join: "Join Apps", logs: "Logs", live: "Live Chat",
-  tickets: "Tickets", accounts: "Website", news: "News", traffic: "Traffic", appeals: "Appeals", dating: "Social",
+  tickets: "Tickets", accounts: "Website", news: "News", traffic: "Traffic", appeals: "Appeals", dating: "Social", messages: "Messages",
 };
 const STATS_TABS: Record<string, string> = {
   stats: "their stats", social: "their friendship map", activity: "their activity stats", topics: "their topic map", voice: "their voice stats",

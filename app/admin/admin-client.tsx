@@ -1,7 +1,7 @@
 "use client";
 
 import { TicketDeletePermissions } from "./delete-ticket-button";
-import { Activity, BarChart3, Scale, Globe, HeartHandshake, ClipboardCheck, MessagesSquare, Gavel, Newspaper, ScrollText, ShieldCheck, Ticket, Users, type LucideIcon } from "lucide-react";
+import { Activity, BarChart3, Mail, Scale, Globe, HeartHandshake, ClipboardCheck, MessagesSquare, Gavel, Newspaper, ScrollText, ShieldCheck, Ticket, Users, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AccountsTab } from "./accounts-tab";
@@ -14,6 +14,7 @@ import { JoinAppsTab } from "./join-apps";
 import { LiveTab } from "./live-tab";
 import { LogsTab } from "./logs-tab";
 import { MemberDrawer } from "./member-drawer";
+import { MessagesTab, type Chat, type ChatFilter } from "./messages-tab";
 import { NewsTab } from "./news-tab";
 import { TrafficTab } from "./traffic-tab";
 import { OverviewTab } from "./overview-tab";
@@ -21,7 +22,7 @@ import { DEFAULT_PUNISHMENT_FILTERS, PunishmentsTab, type PunishmentFilters } fr
 import { TicketsTab } from "./tickets-tab";
 import { TranscriptViewer } from "./transcript-viewer";
 
-type Tab = "overview" | "punishments" | "automod" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live" | "join" | "dating" | "appeals";
+type Tab = "overview" | "punishments" | "automod" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live" | "join" | "dating" | "appeals" | "messages";
 type Level = "admin" | "staff";
 
 // Tabs are grouped so the bar stays short: pick a group, then one of its tabs
@@ -29,7 +30,7 @@ type Group = "overview" | "moderation" | "members" | "website";
 const GROUPS: { key: Group; label: string; icon: LucideIcon; tabs: Tab[] }[] = [
   { key: "overview", label: "Overview", icon: BarChart3, tabs: ["overview"] },
   { key: "moderation", label: "Moderation", icon: Gavel, tabs: ["punishments", "appeals", "automod", "logs", "live"] },
-  { key: "members", label: "Members", icon: Users, tabs: ["join", "tickets", "dating"] },
+  { key: "members", label: "Members", icon: Users, tabs: ["join", "tickets", "dating", "messages"] },
   { key: "website", label: "Website", icon: Globe, tabs: ["accounts", "news", "traffic"] },
 ];
 
@@ -41,6 +42,7 @@ const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean }[] = [
   { key: "join", label: "Join Apps", icon: ClipboardCheck },
   { key: "logs", label: "Logs", icon: ScrollText },
   { key: "dating", label: "Social", icon: HeartHandshake },
+  { key: "messages", label: "Messages", icon: Mail, admin: true },
   { key: "live", label: "Live Chat", icon: MessagesSquare },
   { key: "tickets", label: "Tickets", icon: Ticket, admin: true },
   { key: "accounts", label: "Accounts", icon: Users, admin: true },
@@ -65,6 +67,9 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false }: { admin
   const [transcript, setTranscript] = useState<number | null>(null);
   const [lookup, setLookup] = useState("");
   const [drill, setDrill] = useState<Drill | null>(null);
+  // Admin → Messages: the open chat, and whose chats the list is narrowed to
+  const [chat, setChat] = useState<Chat | null>(null);
+  const [chatFilter, setChatFilter] = useState<ChatFilter>(null);
   const [punishmentFilters, setPunishmentFilters] = useStored<PunishmentFilters>("punishment-filters", DEFAULT_PUNISHMENT_FILTERS);
   const { data: meta } = useLive<{ actions: string[]; ticketTypes: string[] }>("/api/admin/meta", 60_000);
   const [urlRead, setUrlRead] = useState(false);
@@ -144,6 +149,8 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false }: { admin
     if (t && tabs.some((x) => x.key === t)) setTab(t);
     if (params.get("member")) setMember(params.get("member"));
     if (isAdmin && params.get("ticket")) setTranscript(Number(params.get("ticket")));
+    const c = /^(\d{15,21})-(\d{15,21})$/.exec(params.get("chat") ?? "");
+    if (isAdmin && c) setChat({ a: c[1], b: c[2] });
     setUrlRead(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -154,8 +161,9 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false }: { admin
     const params = new URLSearchParams({ tab });
     if (member) params.set("member", member);
     if (transcript) params.set("ticket", String(transcript));
+    if (tab === "messages" && chat) params.set("chat", `${chat.a}-${chat.b}`);
     window.history.replaceState(null, "", `/admin?${params}`);
-  }, [tab, member, transcript, urlRead]);
+  }, [tab, member, transcript, urlRead, chat]);
 
   const openMember = useCallback((id: string) => setMember(id), []);
   const openTranscript = useCallback((id: number) => isAdmin && setTranscript(id), [isAdmin]);
@@ -251,6 +259,7 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false }: { admin
       {tab === "logs" ? <LogsTab onOpenMember={openMember} /> : null}
       {tab === "dating" ? <DatingTab onOpenMember={openMember} /> : null}
       {isAdmin && tab === "appeals" ? <AppealsTab onOpenMember={openMember} /> : null}
+      {isAdmin && tab === "messages" ? <MessagesTab chat={chat} onChat={setChat} filter={chatFilter} onFilter={setChatFilter} onOpenMember={openMember} /> : null}
       {isAdmin && tab === "tickets" ? <TicketsTab typesAvailable={meta?.ticketTypes ?? []} onOpenMember={openMember} onOpenTranscript={openTranscript} /> : null}
       {isAdmin && tab === "accounts" ? <AccountsTab onOpenMember={openMember} /> : null}
       {isAdmin && tab === "news" ? <NewsTab /> : null}
@@ -259,7 +268,26 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false }: { admin
       {/* Overlays render at the page root so they sit above the site's top bar */}
       {member
         ? createPortal(
-            <MemberDrawer userId={member} canEditRoles={isAdmin} onDrill={setDrill} onClose={() => setMember(null)} onOpenMember={openMember} onOpenTranscript={openTranscript} />,
+            <MemberDrawer
+              userId={member}
+              canEditRoles={isAdmin}
+              onDrill={setDrill}
+              onClose={() => setMember(null)}
+              onOpenMember={openMember}
+              onOpenTranscript={openTranscript}
+              onOpenChat={(c) => {
+                setChatFilter(null);
+                setChat(c);
+                setMember(null);
+                setTab("messages");
+              }}
+              onOpenChats={(m) => {
+                setChatFilter(m);
+                setChat(null);
+                setMember(null);
+                setTab("messages");
+              }}
+            />,
             document.body,
           )
         : null}
