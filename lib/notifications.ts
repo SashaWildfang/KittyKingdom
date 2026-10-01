@@ -9,6 +9,7 @@ import { getMongoClient } from "./mongodb";
 export type NotificationType = "like" | "match" | "message" | "request" | "friend-request" | "friend-accepted" | "view" | "partner" | "system";
 
 let ready: Promise<unknown> | null = null;
+const ENVELOPE_TYPES = ["message", "request"];
 
 async function col(): Promise<Collection<Document>> {
   const c = (await getMongoClient()).db(process.env.MONGODB_DB ?? "website").collection("notifications");
@@ -35,11 +36,21 @@ export async function notify(to: string, n: { type: NotificationType; actor?: st
 /** Newest first; `before` (an ISO time) pages back through older ones. */
 export async function listNotifications(to: string, limit = 30, before?: Date | null) {
   const c = await col();
-  const q: Document = before ? { to, at: { $lt: before } } : { to };
-  const [rows, unread] = await Promise.all([limit ? c.find(q).sort({ at: -1 }).limit(limit).toArray() : Promise.resolve([] as Document[]), c.countDocuments({ to, read: false })]);
+  // Messages and message requests live on the envelope, not the bell
+  const q: Document = before ? { to, type: { $nin: ENVELOPE_TYPES }, at: { $lt: before } } : { to, type: { $nin: ENVELOPE_TYPES } };
+  const [rows, unread] = await Promise.all([limit ? c.find(q).sort({ at: -1 }).limit(limit).toArray() : Promise.resolve([] as Document[]), c.countDocuments({ to, read: false, type: { $nin: ENVELOPE_TYPES } })]);
+  // "X viewed your profile" more than once: only the newest shows
+  const seenViews = new Set<string>();
+  const shown = rows.filter((r) => {
+    if (r.type !== "view" || !r.actor) return true;
+    const key = String(r.actor);
+    if (seenViews.has(key)) return false;
+    seenViews.add(key);
+    return true;
+  });
   return {
     unread,
-    items: rows.map((r) => ({
+    items: shown.map((r) => ({
       id: String(r._id),
       type: String(r.type),
       actor: r.actor ? String(r.actor) : null,
@@ -54,7 +65,7 @@ export async function listNotifications(to: string, limit = 30, before?: Date | 
 }
 
 export async function unreadCount(to: string) {
-  return (await col()).countDocuments({ to, read: false });
+  return (await col()).countDocuments({ to, read: false, type: { $nin: ENVELOPE_TYPES } });
 }
 
 export async function markRead(to: string, ids: string[] | "all") {
