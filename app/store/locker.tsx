@@ -7,7 +7,9 @@ import {
   BADGE_ICONS,
   BADGE_SHAPES,
   RARITY,
-  SLOT_LABELS,
+  SLOTS,
+  SLOT_HINT,
+  SLOT_PLURAL,
   TITLE_HUES,
   type CosmeticSlot,
   type CustomBadge,
@@ -16,10 +18,10 @@ import {
 import type { BadgeShape } from "../../lib/badges";
 import type { InventoryEntry, StoreState } from "../../lib/store";
 import { BadgeMedal } from "../account/badge-medal";
-import { MiniProfile } from "./store-fx";
+import { CosmeticPreview } from "../cosmetic-flair";
+import { SocialMini } from "./store-fx";
 
 type Act = (path: string, body: Record<string, unknown>) => Promise<boolean>;
-const SLOTS: CosmeticSlot[] = ["frame", "banner", "nameplate"];
 
 function BadgeDesigner({ badge, busy, act, index }: { badge: { id: string; design: CustomBadge | null }; busy: boolean; act: Act; index: number }) {
   const d = badge.design;
@@ -117,10 +119,8 @@ export function Locker({ state, busy, act, onShop }: { state: StoreState; busy: 
         onClick={() => !on && void act("/api/store/locker", { action: "equip", slot, itemId: e?.itemId ?? null })}
         aria-pressed={on}
       >
-        <span className={`locker-tile-look locker-look--${slot}`}>
-          {slot === "frame" ? <span className={key ? `cos-frame cos-frame--${key}` : undefined}><span className="locker-dot" />{key ? <span className="cos-frame-ring" /> : null}</span> : null}
-          {slot === "banner" ? <span className={key ? `cos-banner cos-banner--${key}` : "locker-none"}>{key ? <span className="cos-banner-fx" /> : null}</span> : null}
-          {slot === "nameplate" ? <span className={key ? `cos-name cos-name--${key}` : undefined} data-text="Aa">Aa</span> : null}
+        <span className="locker-tile-look">
+          {key ? <CosmeticPreview slot={slot} cosKey={key} me={state.me} compact /> : <span className="cprev is-compact locker-none" />}
         </span>
         <span className="locker-tile-name">{e ? e.name : "None"}</span>
         {e ? <span className="locker-tile-rarity" style={{ color: RARITY[e.rarity].color }}>{RARITY[e.rarity].label}</span> : null}
@@ -137,8 +137,8 @@ export function Locker({ state, busy, act, onShop }: { state: StoreState; busy: 
     <div className="locker">
       <aside className="locker-preview">
         <span className="locker-label">How you look</span>
-        <MiniProfile me={state.me} flair={preview} title={titleOwned && titleText.trim() ? { text: titleText.trim(), hue: titleHue } : state.customTitle} />
-        <p className="store-muted">Shows on your profile card on My Account, your Social profile, and your Social cards.</p>
+        <SocialMini me={state.me} flair={preview} title={titleOwned && titleText.trim() ? { text: titleText.trim(), hue: titleHue } : state.customTitle} />
+        <p className="store-muted">Your Social profile, as others see it. Hover anything to try it on.</p>
         <div className="locker-stock">
           <span title="Streak Shields">
             <ShieldCheck size={15} aria-hidden="true" /> {state.shields} shield{state.shields === 1 ? "" : "s"}
@@ -153,10 +153,12 @@ export function Locker({ state, busy, act, onShop }: { state: StoreState; busy: 
         {SLOTS.map((slot) => (
           <section key={slot} className="locker-slot">
             <header>
-              <h3>{SLOT_LABELS[slot]}s</h3>
+              <h3>
+                {SLOT_PLURAL[slot]} <small className="store-muted">{SLOT_HINT[slot]}</small>
+              </h3>
               {!bySlot(slot).length ? (
                 <button type="button" className="store-link-button" onClick={() => onShop("Cosmetics")}>
-                  <ShoppingBag size={13} aria-hidden="true" /> Browse {SLOT_LABELS[slot].toLowerCase()}s
+                  <ShoppingBag size={13} aria-hidden="true" /> Browse {SLOT_PLURAL[slot].toLowerCase()}
                 </button>
               ) : null}
             </header>

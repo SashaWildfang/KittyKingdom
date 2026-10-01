@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Backpack, Check, ChevronLeft, ChevronRight, CircleAlert, Crown, Eye, Flame, Gift, Heart, Hourglass, LayoutGrid, Minus, Package, Paintbrush, Plus, Repeat, Rocket, Search, ShieldCheck, ShoppingBag, ShoppingCart, Sparkles, Star, Trash2, Wand2, X } from "lucide-react";
-import { RARITY, SLOT_LABELS, type Flair } from "../../lib/cosmetics";
+import { RARITY, SLOTS, SLOT_HINT, SLOT_LABELS, SLOT_PLURAL, type CosmeticSlot, type Flair } from "../../lib/cosmetics";
+import { CosmeticPreview } from "../cosmetic-flair";
 import type { InventoryEntry, StoreItem, StoreState } from "../../lib/store";
 import { LeafEmote, StoreItemIcon } from "../ui-icons";
 import { Locker } from "./locker";
 import { TradesView } from "./trades";
-import { Celebrate, CountUp, MiniProfile, StoreBackdrop, tiltHandlers } from "./store-fx";
+import { Celebrate, CountUp, SocialMini, StoreBackdrop, tiltHandlers } from "./store-fx";
 
 const MAX_BUY = 50;
 const POLL_MS = 15000;
@@ -81,25 +82,11 @@ function useNow(intervalMs = 1000) {
 }
 
 /** A cosmetic shown on a tiny avatar (frames), card strip (banners) or name sample (name effects). */
-function CosmeticThumb({ cosmetic, name, large = false }: { cosmetic: NonNullable<StoreItem["cosmetic"]>; name: string; large?: boolean }) {
-  const { slot, key } = cosmetic;
+/** A small preview of a cosmetic (cart, inventory, buy window). */
+function CosmeticThumb({ cosmetic, large = false }: { cosmetic: NonNullable<StoreItem["cosmetic"]>; name: string; large?: boolean }) {
   return (
-    <span className={`store-cos-thumb store-cos-thumb--${slot}${large ? " is-large" : ""}`} aria-hidden="true">
-      {slot === "banner" ? (
-        <span className={`cos-banner cos-banner--${key}`}>
-          <span className="cos-banner-fx" />
-        </span>
-      ) : slot === "frame" ? (
-        <span className={`cos-frame cos-frame--${key}`}>
-          <span className="store-cos-dot" />
-          <span className="cos-frame-ring" />
-          {key === "crown" ? <span className="cos-frame-crown">♛</span> : null}
-        </span>
-      ) : (
-        <span className={`cos-name cos-name--${key}`} data-text={name.split(" ")[0]}>
-          {name.split(" ")[0]}
-        </span>
-      )}
+    <span className={`store-cos-thumb${large ? " is-large" : ""}`} aria-hidden="true">
+      <CosmeticPreview slot={cosmetic.slot} cosKey={cosmetic.key} compact />
     </span>
   );
 }
@@ -136,6 +123,8 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
     return () => window.clearInterval(t);
   }, [inventoryOnly]);
   const [celebrate, setCelebrate] = useState(0);
+  // Store → Cosmetics: which kind is shown
+  const [cosSlot, setCosSlot] = useState<CosmeticSlot | "all">("all");
   const [category, setCategory] = useState("All");
   const [modal, setModal] = useState<Modal>(null);
   const [busy, setBusy] = useState(false);
@@ -284,7 +273,16 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
       setCartOpen(false);
     }
   };
-  const slotOrder = (i: StoreItem) => (i.cosmetic ? ["frame", "banner", "nameplate"].indexOf(i.cosmetic.slot) : 9);
+  const slotOrder = (i: StoreItem) => (i.cosmetic ? SLOTS.indexOf(i.cosmetic.slot) : 9);
+  const allCosmetics = visible.filter((i) => !isDrop(i) && i.rotation === "permanent" && i.category === "Cosmetics");
+  const cosmeticsTotal = state.items.filter((i) => i.category === "Cosmetics").length;
+  // On the front page: the two rarest of each kind, then a link to all of them
+  const cosmeticPicks = SLOTS.flatMap((slot) =>
+    allCosmetics
+      .filter((i) => i.cosmetic?.slot === slot && !i.owned)
+      .sort((a, b) => RARITY[b.rarity].order - RARITY[a.rarity].order || b.price - a.price)
+      .slice(0, 2),
+  );
   const sections: { key: string; title: string; sub?: string; icon: ReactNode; ends: string | null; items: StoreItem[] }[] = [
     { key: "drops", title: "Limited & seasonal", sub: "Here for a short time only. Once they're gone, they're gone.", icon: <Crown size={18} />, ends: drops.map((i) => i.availableUntil!).sort()[0] ?? null, items: visible.filter(isDrop) },
     { key: "daily", title: "Daily deals", icon: <Flame size={18} />, ends: state.nextDaily, items: visible.filter((i) => !isDrop(i) && i.rotation === "daily") },
@@ -292,10 +290,10 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
     {
       key: "cosmetics",
       title: "Profile cosmetics",
-      sub: "Frames, banners and name effects for your profile card and Social profile. Equip them in your Locker.",
+      sub: `${cosmeticsTotal} banners, frames, name effects, profile effects and themes for your Social profile. Equip them in your Locker.`,
       icon: <Wand2 size={18} />,
       ends: null,
-      items: visible.filter((i) => !isDrop(i) && i.rotation === "permanent" && i.category === "Cosmetics").sort((a, b) => slotOrder(a) - slotOrder(b) || a.price - b.price),
+      items: category === "Cosmetics" ? [] : cosmeticPicks.sort((a, b) => slotOrder(a) - slotOrder(b)),
     },
     { key: "social", title: "Social boosts", sub: "Stand out on Social.", icon: <Heart size={18} />, ends: null, items: visible.filter((i) => !isDrop(i) && i.rotation === "permanent" && i.category === "Social") },
     { key: "perks", title: "Perks", sub: "Protect your streak and make your profile truly yours.", icon: <Star size={18} />, ends: null, items: visible.filter((i) => !isDrop(i) && i.rotation === "permanent" && i.category === "Perks") },
@@ -422,7 +420,7 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
                 </div>
                 <div className="store-grid">
                   {sorted.map((item) => (
-                    <ShopCard key={item.itemId} item={item} balance={state.balance} now={now} inCart={cart[item.itemId] ?? 0} onAdd={() => addToCart(item)} onOpen={() => setModal({ kind: item.cosmetic ? "preview" : "buy", item })} onCart={() => setCartOpen(true)} />
+                    <ShopCard key={item.itemId} item={item} me={state.me} balance={state.balance} now={now} inCart={cart[item.itemId] ?? 0} onAdd={() => addToCart(item)} onOpen={() => setModal({ kind: item.cosmetic ? "preview" : "buy", item })} onCart={() => setCartOpen(true)} />
                   ))}
                 </div>
               </section>
@@ -448,13 +446,49 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
                   </div>
                   <div className="store-grid">
                     {section.items.map((item) => (
-                      <ShopCard key={item.itemId} item={item} balance={state.balance} now={now} inCart={cart[item.itemId] ?? 0} onAdd={() => addToCart(item)} onOpen={() => setModal({ kind: item.cosmetic ? "preview" : "buy", item })} onCart={() => setCartOpen(true)} />
+                      <ShopCard key={item.itemId} item={item} me={state.me} balance={state.balance} now={now} inCart={cart[item.itemId] ?? 0} onAdd={() => addToCart(item)} onOpen={() => setModal({ kind: item.cosmetic ? "preview" : "buy", item })} onCart={() => setCartOpen(true)} />
                     ))}
                   </div>
+                  {section.key === "cosmetics" ? (
+                    <button type="button" className="store-seeall" onClick={() => setCategory("Cosmetics")}>
+                      <Wand2 size={16} aria-hidden="true" /> See all {cosmeticsTotal} cosmetics
+                    </button>
+                  ) : null}
                 </section>
               ) : null,
             )
           )}
+          {category === "Cosmetics" && !q && sort === "featured" ? (
+            <>
+              <div className="store-slotbar" role="group" aria-label="Kind of cosmetic">
+                <button type="button" className={cosSlot === "all" ? "active" : ""} onClick={() => setCosSlot("all")}>
+                  Everything <small>{allCosmetics.length}</small>
+                </button>
+                {SLOTS.map((slot) => (
+                  <button key={slot} type="button" className={cosSlot === slot ? "active" : ""} onClick={() => setCosSlot(slot)}>
+                    {SLOT_PLURAL[slot]} <small>{allCosmetics.filter((i) => i.cosmetic?.slot === slot).length}</small>
+                  </button>
+                ))}
+              </div>
+              {SLOTS.filter((slot) => cosSlot === "all" || cosSlot === slot).map((slot) => {
+                const list = allCosmetics.filter((i) => i.cosmetic?.slot === slot).sort((a, b) => RARITY[a.rarity].order - RARITY[b.rarity].order || a.price - b.price);
+                if (!list.length) return null;
+                return (
+                  <section className="store-section" key={slot}>
+                    <div className="store-section-head store-section-head--stacked">
+                      <h2>{SLOT_PLURAL[slot]}</h2>
+                      <span className="store-hint">{SLOT_HINT[slot]}</span>
+                    </div>
+                    <div className="store-grid">
+                      {list.map((item) => (
+                        <ShopCard key={item.itemId} item={item} me={state.me} balance={state.balance} now={now} inCart={cart[item.itemId] ?? 0} onAdd={() => addToCart(item)} onOpen={() => setModal({ kind: "preview", item })} onCart={() => setCartOpen(true)} />
+                      ))}
+                    </div>
+                  </section>
+                );
+              })}
+            </>
+          ) : null}
           {!visible.length ? <p className="store-empty">{q ? "Nothing matches that search." : "Nothing in this category right now. Check back after the next rotation!"}</p> : null}
         </>
       ) : tab === "trades" ? (
@@ -549,7 +583,7 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
 // ==========================================
 // SHOP CARD
 // ==========================================
-function ShopCard({ item, balance, now, inCart, onAdd, onOpen, onCart }: { item: StoreItem; balance: number; now: number; inCart: number; onAdd: () => void; onOpen: () => void; onCart: () => void }) {
+function ShopCard({ item, me, balance, now, inCart, onAdd, onOpen, onCart }: { item: StoreItem; me: StoreState["me"]; balance: number; now: number; inCart: number; onAdd: () => void; onOpen: () => void; onCart: () => void }) {
   const isRole = Boolean(item.roleId) || item.category === "Roles";
   const ownedRole = isRole && item.owned > 0;
   const ownedOne = !item.stackable && item.owned > 0;
@@ -594,15 +628,20 @@ function ShopCard({ item, balance, now, inCart, onAdd, onOpen, onCart }: { item:
       ) : item.isNew ? (
         <span className="store-ribbon store-ribbon--new">New</span>
       ) : null}
-      <div className="store-card-top">
-        <button type="button" className="store-card-visual" onClick={onOpen} aria-label={item.cosmetic ? `Try on ${item.name}` : `View ${item.name}`}>
-          <ItemVisual icon={item.icon} roleColors={item.roleColors} isRole={isRole} cosmetic={item.cosmetic} name={item.name} />
-          {item.cosmetic ? (
-            <span className="store-tryon">
-              <Eye size={12} aria-hidden="true" /> Try on
-            </span>
-          ) : null}
+      {item.cosmetic ? (
+        <button type="button" className="store-card-preview" onClick={onOpen} aria-label={`Try on ${item.name}`}>
+          <CosmeticPreview slot={item.cosmetic.slot} cosKey={item.cosmetic.key} me={me} />
+          <span className="store-tryon">
+            <Eye size={12} aria-hidden="true" /> Try it on
+          </span>
         </button>
+      ) : null}
+      <div className={`store-card-top${item.cosmetic ? " is-cosmetic" : ""}`}>
+        {!item.cosmetic ? (
+          <button type="button" className="store-card-visual" onClick={onOpen} aria-label={`View ${item.name}`}>
+            <ItemVisual icon={item.icon} roleColors={item.roleColors} isRole={isRole} />
+          </button>
+        ) : null}
         <div className="store-badges">
           <span className="store-rarity" style={{ "--rarity": rarity.color } as CSSProperties}>
             {rarity.label}
@@ -710,7 +749,7 @@ function FeaturedDrops({ items, now, me, flair, onOpen }: { items: StoreItem[]; 
         </div>
       </div>
       <div className="store-drop-stage" key={`stage-${item.itemId}`}>
-        {item.cosmetic ? <MiniProfile me={me} flair={tryFlair} /> : <ItemVisual icon={item.icon} roleColors={item.roleColors} isRole={false} large />}
+        {item.cosmetic ? <SocialMini me={me} flair={tryFlair} compact /> : <ItemVisual icon={item.icon} roleColors={item.roleColors} isRole={false} large />}
       </div>
       {items.length > 1 ? (
         <div className="store-drop-nav">
@@ -732,6 +771,7 @@ function FeaturedDrops({ items, now, me, flair, onOpen }: { items: StoreItem[]; 
 /** "Try it on": the cosmetic on your own mini profile, next to what you're wearing now. */
 function PreviewModal({ item, state, busy, onClose, onBuy, onAddToCart }: { item: StoreItem; state: StoreState; busy: boolean; onClose: () => void; onBuy: () => void; onAddToCart: () => void }) {
   const cos = item.cosmetic!;
+  const [showNow, setShowNow] = useState(false);
   const wearing = state.flair;
   const trying: Flair = { ...wearing, [cos.slot]: cos.key };
   const owned = item.owned > 0;
@@ -746,16 +786,16 @@ function PreviewModal({ item, state, busy, onClose, onBuy, onAddToCart }: { item
         <strong>{item.name}</strong>
         <span className="store-muted">{SLOT_LABELS[cos.slot]}</span>
       </div>
-      <div className="store-tryon-compare">
-        <figure>
-          <MiniProfile me={state.me} flair={wearing} title={state.customTitle} compact />
-          <figcaption>Now</figcaption>
-        </figure>
-        <ChevronRight size={20} aria-hidden="true" className="store-tryon-arrow" />
-        <figure className="is-new">
-          <MiniProfile me={state.me} flair={trying} title={state.customTitle} compact />
-          <figcaption>With {item.name}</figcaption>
-        </figure>
+      <div className="store-tryon-stage">
+        <SocialMini me={state.me} flair={showNow ? wearing : trying} title={state.customTitle} />
+        <div className="store-tryon-toggle" role="group" aria-label="Compare">
+          <button type="button" className={!showNow ? "active" : ""} onClick={() => setShowNow(false)}>
+            With {item.name}
+          </button>
+          <button type="button" className={showNow ? "active" : ""} onClick={() => setShowNow(true)}>
+            What you have now
+          </button>
+        </div>
       </div>
       <p className="store-modal-note">{item.description}</p>
       <div className="store-modal-actions">
