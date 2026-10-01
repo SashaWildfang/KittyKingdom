@@ -30677,7 +30677,13 @@ a.apl-chip {
 }
 
 .dt-hero-frame.has-wings {
-  margin-inline: 22px;
+  margin-inline: 34px;
+}
+
+@media (max-width: 900px) {
+  .dt-hero-frame.has-wings {
+    margin-inline: 26px;
+  }
 }
 
 .store-tryon-stage {
@@ -30731,3 +30737,30 @@ a.apl-chip {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* A frame ring around a whole box (Social cards, the Discover card) */
+.cos-ringbox {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.cos-ringbox .cos-ring {
+  inset: 0;
+  padding: 3px;
+}
+
+.dt-deck-photo {
+  position: relative;
+}
+
+.cos-frame.dt-face-frame {
+  margin-bottom: 0.15rem;
+}
+
+.sc .sc-flow { animation: sc-flow linear infinite; }
+.sc .sc-spurt { animation: sc-spurt ease-out infinite; }
+@keyframes sc-flow { to { stroke-dashoffset: -48; } }
+@keyframes sc-spurt { 0% { transform: translate(0, 0); opacity: 1; } 55% { transform: translate(var(--sx, 0), -26px); opacity: 1; } 100% { transform: translate(var(--sx, 0), 4px); opacity: 0; } }

@@ -173,8 +173,8 @@ export const COSMETIC_DEFS: CosmeticDef[] = [
 
   bn("village", "Cozy Village", "A snowy village at night, every window glowing warm.", "epic", { scene: "village", p: ["#0d1b3a", "#2c4a7a", "#f2f7ff", "#5a3a2e", "#ffffff", "#ffc56b", "#1e3d33"], stars: true, snow: true }),
 
-  bn("volcano", "Volcano", "Rivers of glowing lava and rising embers.", "legendary", { scene: "lava", p: ["#120303", "#3d0a05", "#2b1210", "#1a0b09", "#ff5a1f", "#ffb02e", "#ffd27a"] }),
-  bn("emberforge", "Ember Forge", "Dark stone split by molten gold.", "epic", { scene: "lava", p: ["#0e0b0a", "#2a1c14", "#2a2420", "#171310", "#ffb703", "#fb8500", "#ffe8a3"] }),
+  bn("volcano", "Volcano", "An erupting volcano with rivers of flowing lava and rising embers.", "legendary", { scene: "lava", p: ["#14070a", "#5a1608", "#3a2420", "#24140f", "#ff4d0d", "#ffc23a", "#ffe08a"] }),
+  bn("emberforge", "Ember Forge", "A volcano of molten gold under a smoky violet sky.", "epic", { scene: "lava", p: ["#120a1f", "#4a2a3a", "#3b3040", "#211a28", "#f59e0b", "#fff1a8", "#ffe8a3"] }),
 
   // ================= FRAMES =================
   fr("ember", "Ember Ring", "A warm ring of firelight turning around your avatar.", "rare", { style: "spin", colors: ["#ffb347", "#ff6a00", "#ffe08a"], glow: "rgba(255,120,0,.6)" }, {}, 3000),

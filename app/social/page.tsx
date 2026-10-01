@@ -1,5 +1,6 @@
 "use client";
 
+import { Framed } from "../cosmetic-flair";
 import { ArrowRight, Clock, Compass, Eye, Flame, Gem, Heart, HeartHandshake, LayoutGrid, MessageCircle, PenLine, Quote, Sparkles, Trophy, UserPlus, Users, Wand2 } from "lucide-react";
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { Score } from "./icons";
@@ -73,10 +74,12 @@ function Faces({ cards, show = "score" }: { cards: Card[]; show?: "score" | "act
     <div className="dt-faces">
       {cards.map((c) => (
         <a key={c.id} href={`/social/u/${c.id}`} className="dt-face" style={{ "--acc": c.accent } as CSSProperties} title={c.name}>
-          <span className="dt-face-img">
-            <Photo src={c.photo} name={c.name} accent={c.accent} crop={c.photoCrop} />
-            {show === "active" && ago(c.lastActive) === "online now" ? <span className="dt-face-dot" aria-label="Online now" /> : null}
-          </span>
+          <Framed frame={c.flair?.frame} className="dt-face-frame">
+            <span className="dt-face-img">
+              <Photo src={c.photo} name={c.name} accent={c.accent} crop={c.photoCrop} />
+              {show === "active" && ago(c.lastActive) === "online now" ? <span className="dt-face-dot" aria-label="Online now" /> : null}
+            </span>
+          </Framed>
           <b>{c.name}</b>
           <small>
             {show === "score" && c.score !== null ? <Score score={c.score} fit={c.datingFit} size={11} /> : show === "active" ? ago(c.lastActive)?.replace("active ", "") : c.age ? `${c.age}` : null}
