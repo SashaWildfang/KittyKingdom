@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { memo, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { specOf, type CosmeticSlot, type FrameSpec, type Ornament, type Particle, type ThemeSpec } from "../lib/cosmetics";
 import { BannerScene } from "./cosmetic-scenes";
 
@@ -344,9 +344,29 @@ export function FlairTheme({ theme, effect }: { theme: string | null | undefined
   );
 }
 
-/** What a cosmetic looks like, for store cards and the Locker. */
-export function CosmeticPreview({ slot, cosKey, me, compact }: { slot: CosmeticSlot; cosKey: string; me?: { name: string; avatar: string | null }; compact?: boolean }) {
+/** True once the element has come near the screen (so long lists only build what people scroll to). */
+function useNearScreen<T extends Element>() {
+  const ref = useRef<T>(null);
+  const [near, setNear] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || near) return;
+    if (typeof IntersectionObserver === "undefined") return setNear(true);
+    const io = new IntersectionObserver((entries) => entries.some((e) => e.isIntersecting) && setNear(true), { rootMargin: "300px 0px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [near]);
+  return [ref, near] as const;
+}
+
+type PreviewProps = { slot: CosmeticSlot; cosKey: string; me?: { name: string; avatar: string | null }; compact?: boolean };
+
+/** What a cosmetic looks like, for store cards and the Locker (built when it scrolls near the screen). */
+export const CosmeticPreview = memo(CosmeticPreviewInner, (a, b) => a.slot === b.slot && a.cosKey === b.cosKey && a.compact === b.compact && a.me?.name === b.me?.name && a.me?.avatar === b.me?.avatar);
+
+function CosmeticPreviewInner({ slot, cosKey, me, compact }: PreviewProps) {
   const [failed, setFailed] = useState(false);
+  const [ref, near] = useNearScreen<HTMLSpanElement>();
   const name = me?.name ?? "Your Name";
   const avatar = (
     <span className="cprev-avatar">
@@ -359,7 +379,9 @@ export function CosmeticPreview({ slot, cosKey, me, compact }: { slot: CosmeticS
     </span>
   );
   return (
-    <span className={`cprev cprev--${slot}${compact ? " is-compact" : ""}`} style={slot === "theme" ? themeVars(cosKey) : undefined} aria-hidden="true">
+    <span ref={ref} className={`cprev cprev--${slot}${compact ? " is-compact" : ""}`} style={slot === "theme" ? themeVars(cosKey) : undefined} aria-hidden="true">
+      {!near ? null : (
+        <>
       {slot === "banner" ? <FlairBanner banner={cosKey} /> : null}
       {slot === "frame" ? <Framed frame={cosKey}>{avatar}</Framed> : null}
       {slot === "nameplate" ? (
@@ -377,6 +399,8 @@ export function CosmeticPreview({ slot, cosKey, me, compact }: { slot: CosmeticS
           <i />
         </span>
       ) : null}
+        </>
+      )}
     </span>
   );
 }
