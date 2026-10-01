@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { setSession } from "../../../../../lib/auth";
 import { getUsersCollection } from "../../../../../lib/mongodb";
 import { TwoFactorError, checkSecondFactor } from "../../../../../lib/two-factor-account";
-import { clearTwoFactorLogin, pendingTwoFactorUser } from "../../../../../lib/two-factor-login";
+import { clearTwoFactorLogin, pendingTwoFactorUser, rememberDevice } from "../../../../../lib/two-factor-login";
 import { isFormPost, safeNext } from "../../../../../lib/validate";
 
 export const maxDuration = 10;
@@ -22,6 +22,8 @@ export async function POST(request: Request) {
     const how = await checkSecondFactor(user, code);
     if (!how) return NextResponse.redirect(`${origin}/login/2fa?error=wrong&mode=${mode}`, 303);
     await clearTwoFactorLogin();
+    // "Remember this device": no code needed here for 30 days
+    if (form.get("remember") === "on") await rememberDevice(user);
     await (await getUsersCollection()).updateOne({ _id: user._id }, { $set: { lastLoginAt: new Date() } });
     await setSession(user._id, typeof user.sessionVersion === "number" ? user.sessionVersion : 0);
     // A backup code was used: show how many are left on the Security section

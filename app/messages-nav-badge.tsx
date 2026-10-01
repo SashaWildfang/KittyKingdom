@@ -3,7 +3,7 @@
 import { Mail } from "lucide-react";
 import { useEffect, useState } from "react";
 
-/** Unread Social messages (and requests), checked every 20 seconds while the page is visible. */
+/** Unread Social messages (and requests), checked every 8 seconds while the page is visible, and as soon as you come back to it. */
 export function useUnreadMessages(enabled = true) {
   const [unread, setUnread] = useState(0);
   useEffect(() => {
@@ -14,13 +14,16 @@ export function useUnreadMessages(enabled = true) {
       if (alive && typeof r?.unread === "number") setUnread(r.unread);
     };
     void check();
-    const t = window.setInterval(() => document.visibilityState === "visible" && void check(), 20_000);
+    const t = window.setInterval(() => document.visibilityState === "visible" && void check(), 8_000);
     const onFocus = () => void check();
+    const onVisible = () => document.visibilityState === "visible" && void check();
     window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       alive = false;
       window.clearInterval(t);
       window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [enabled]);
   return unread;
