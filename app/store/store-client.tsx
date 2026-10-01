@@ -1,15 +1,29 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { Backpack, Check, CircleAlert, Flame, Gift, Hourglass, Minus, Package, Plus, Rocket, Search, ShoppingBag, ShoppingCart, Sparkles, Trash2, X } from "lucide-react";
+import { Backpack, Check, ChevronLeft, ChevronRight, CircleAlert, Crown, Eye, Flame, Gift, Heart, Hourglass, LayoutGrid, Minus, Package, Paintbrush, Plus, Rocket, Search, ShieldCheck, ShoppingBag, ShoppingCart, Sparkles, Star, Trash2, Wand2, X } from "lucide-react";
+import { RARITY, SLOT_LABELS, type Flair } from "../../lib/cosmetics";
 import type { InventoryEntry, StoreItem, StoreState } from "../../lib/store";
 import { LeafEmote, StoreItemIcon } from "../ui-icons";
+import { Locker } from "./locker";
+import { Celebrate, CountUp, MiniProfile, StoreBackdrop, tiltHandlers } from "./store-fx";
 
 const MAX_BUY = 50;
 const POLL_MS = 15000;
 const CART_KEY = "kk-cart";
 type Cart = Record<string, number>;
-type Sort = "featured" | "price-asc" | "price-desc" | "name";
+type Sort = "featured" | "price-asc" | "price-desc" | "name" | "rarity";
+const CATEGORY_ORDER = ["Cosmetics", "Social", "Perks", "Roles", "Boosters", "Gifts"];
+const CATEGORY_ICONS: Record<string, ReactNode> = {
+  All: <LayoutGrid size={15} />,
+  Drops: <Crown size={15} />,
+  Cosmetics: <Wand2 size={15} />,
+  Social: <Heart size={15} />,
+  Perks: <Star size={15} />,
+  Roles: <Paintbrush size={15} />,
+  Boosters: <Rocket size={15} />,
+  Gifts: <Gift size={15} />,
+};
 
 /** The most of an item you could put in the cart right now. */
 function maxFor(item: StoreItem) {
@@ -21,6 +35,7 @@ function maxFor(item: StoreItem) {
 type Toast = { id: number; tone: "success" | "error"; text: string };
 type Modal =
   | { kind: "buy"; item: StoreItem }
+  | { kind: "preview"; item: StoreItem }
   | { kind: "use"; entry: InventoryEntry }
   | { kind: "gift"; entry: InventoryEntry }
   | null;
@@ -64,7 +79,32 @@ function useNow(intervalMs = 1000) {
   return now;
 }
 
-function ItemVisual({ icon, roleColors, isRole, large = false }: { icon: string | null; roleColors: string[]; isRole: boolean; large?: boolean }) {
+/** A cosmetic shown on a tiny avatar (frames), card strip (banners) or name sample (name effects). */
+function CosmeticThumb({ cosmetic, name, large = false }: { cosmetic: NonNullable<StoreItem["cosmetic"]>; name: string; large?: boolean }) {
+  const { slot, key } = cosmetic;
+  return (
+    <span className={`store-cos-thumb store-cos-thumb--${slot}${large ? " is-large" : ""}`} aria-hidden="true">
+      {slot === "banner" ? (
+        <span className={`cos-banner cos-banner--${key}`}>
+          <span className="cos-banner-fx" />
+        </span>
+      ) : slot === "frame" ? (
+        <span className={`cos-frame cos-frame--${key}`}>
+          <span className="store-cos-dot" />
+          <span className="cos-frame-ring" />
+          {key === "crown" ? <span className="cos-frame-crown">♛</span> : null}
+        </span>
+      ) : (
+        <span className={`cos-name cos-name--${key}`} data-text={name.split(" ")[0]}>
+          {name.split(" ")[0]}
+        </span>
+      )}
+    </span>
+  );
+}
+
+function ItemVisual({ icon, roleColors, isRole, large = false, cosmetic, name }: { icon: string | null; roleColors: string[]; isRole: boolean; large?: boolean; cosmetic?: StoreItem["cosmetic"]; name?: string }) {
+  if (cosmetic) return <CosmeticThumb cosmetic={cosmetic} name={name ?? "Aa"} large={large} />;
   if (isRole) {
     return <span className={`store-swatch${large ? " store-swatch--large" : ""}`} style={swatchStyle(roleColors)} aria-hidden="true" />;
   }
@@ -80,7 +120,8 @@ function ItemVisual({ icon, roleColors, isRole, large = false }: { icon: string 
 // ==========================================
 export function StoreClient({ initialState, inventoryOnly = false }: { initialState: StoreState; inventoryOnly?: boolean }) {
   const [state, setState] = useState(initialState);
-  const [tab, setTab] = useState<"shop" | "inventory">(inventoryOnly ? "inventory" : "shop");
+  const [tab, setTab] = useState<"shop" | "locker" | "inventory">(inventoryOnly ? "inventory" : "shop");
+  const [celebrate, setCelebrate] = useState(0);
   const [category, setCategory] = useState("All");
   const [modal, setModal] = useState<Modal>(null);
   const [busy, setBusy] = useState(false);
@@ -153,6 +194,7 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
       if (data.ok) {
         toast("success", data.message ?? "Done!");
         setModal(null);
+        if (/\/(buy|checkout)$/.test(path)) setCelebrate((n) => n + 1);
         return true;
       }
       toast("error", data.error ?? "Something went wrong.");
@@ -169,20 +211,36 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
   // Links like /store?item=sunbeam (from My Account's color roles) open that item straight away
   useEffect(() => {
     if (inventoryOnly) return;
-    const wanted = new URLSearchParams(window.location.search).get("item");
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("tab") === "locker") {
+      setTab("locker");
+      window.history.replaceState(null, "", "/store");
+      return;
+    }
+    const wanted = params.get("item");
     const item = wanted ? state.items.find((i) => i.itemId === wanted) : null;
     if (!item) return;
     setTab("shop");
-    setModal({ kind: "buy", item });
+    setModal({ kind: item.cosmetic ? "preview" : "buy", item });
     window.history.replaceState(null, "", "/store");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const categories = useMemo(() => ["All", ...Array.from(new Set(state.items.map((i) => i.category))).sort()], [state.items]);
+  const isDrop = (i: StoreItem) => Boolean(i.availableUntil);
+  const categories = useMemo(() => {
+    const have = new Set(state.items.map((i) => i.category));
+    const list = ["All"];
+    if (state.items.some(isDrop)) list.push("Drops");
+    for (const c of CATEGORY_ORDER) if (have.has(c)) list.push(c);
+    for (const c of Array.from(have).sort()) if (!list.includes(c)) list.push(c);
+    return list;
+  }, [state.items]);
   const q = query.trim().toLowerCase();
-  const visible = state.items.filter((i) => (category === "All" || i.category === category) && (!q || `${i.name} ${i.description} ${i.category}`.toLowerCase().includes(q)));
+  const inCategory = (i: StoreItem) => category === "All" || (category === "Drops" ? isDrop(i) : i.category === category);
+  const visible = state.items.filter((i) => inCategory(i) && (!q || `${i.name} ${i.description} ${i.category} ${RARITY[i.rarity].label}`.toLowerCase().includes(q)));
   const sorted =
-    sort === "price-asc" ? [...visible].sort((a, b) => a.price - b.price) : sort === "price-desc" ? [...visible].sort((a, b) => b.price - a.price) : sort === "name" ? [...visible].sort((a, b) => a.name.localeCompare(b.name)) : visible;
+    sort === "price-asc" ? [...visible].sort((a, b) => a.price - b.price) : sort === "price-desc" ? [...visible].sort((a, b) => b.price - a.price) : sort === "name" ? [...visible].sort((a, b) => a.name.localeCompare(b.name)) : sort === "rarity" ? [...visible].sort((a, b) => RARITY[b.rarity].order - RARITY[a.rarity].order || b.price - a.price) : visible;
+  const drops = state.items.filter(isDrop).sort((a, b) => b.price - a.price);
 
   // Cart lines with their item (anything no longer in the store drops out)
   const itemById = useMemo(() => new Map(state.items.map((i) => [i.itemId, i])), [state.items]);
@@ -212,15 +270,35 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
       setCartOpen(false);
     }
   };
-  const sections: { key: StoreItem["rotation"]; title: string; ends: string | null }[] = [
-    { key: "daily", title: "Daily deals", ends: state.nextDaily },
-    { key: "weekly", title: "Weekly deals", ends: state.nextWeekly },
-    { key: "permanent", title: "Always in stock", ends: null },
+  const slotOrder = (i: StoreItem) => (i.cosmetic ? ["frame", "banner", "nameplate"].indexOf(i.cosmetic.slot) : 9);
+  const sections: { key: string; title: string; sub?: string; icon: ReactNode; ends: string | null; items: StoreItem[] }[] = [
+    { key: "drops", title: "Limited & seasonal", sub: "Here for a short time only. Once they're gone, they're gone.", icon: <Crown size={18} />, ends: drops.map((i) => i.availableUntil!).sort()[0] ?? null, items: visible.filter(isDrop) },
+    { key: "daily", title: "Daily deals", icon: <Flame size={18} />, ends: state.nextDaily, items: visible.filter((i) => !isDrop(i) && i.rotation === "daily") },
+    { key: "weekly", title: "Weekly deals", icon: <Hourglass size={18} />, ends: state.nextWeekly, items: visible.filter((i) => !isDrop(i) && i.rotation === "weekly") },
+    {
+      key: "cosmetics",
+      title: "Profile cosmetics",
+      sub: "Frames, banners and name effects for your profile card and Social profile. Equip them in your Locker.",
+      icon: <Wand2 size={18} />,
+      ends: null,
+      items: visible.filter((i) => !isDrop(i) && i.rotation === "permanent" && i.category === "Cosmetics").sort((a, b) => slotOrder(a) - slotOrder(b) || a.price - b.price),
+    },
+    { key: "social", title: "Social boosts", sub: "Stand out on Social.", icon: <Heart size={18} />, ends: null, items: visible.filter((i) => !isDrop(i) && i.rotation === "permanent" && i.category === "Social") },
+    { key: "perks", title: "Perks", sub: "Protect your streak and make your profile truly yours.", icon: <Star size={18} />, ends: null, items: visible.filter((i) => !isDrop(i) && i.rotation === "permanent" && i.category === "Perks") },
+    {
+      key: "permanent",
+      title: "Always in stock",
+      icon: <ShoppingBag size={18} />,
+      ends: null,
+      items: visible.filter((i) => !isDrop(i) && i.rotation === "permanent" && !["Cosmetics", "Social", "Perks"].includes(i.category)),
+    },
   ];
   const inventoryCount = state.inventory.reduce((n, e) => n + e.count, 0);
 
   return (
     <div className={`store-app${inventoryOnly ? " store-app--embedded" : ""}`}>
+      {!inventoryOnly ? <StoreBackdrop /> : null}
+      <Celebrate fire={celebrate} />
       {/* ---------- Header ---------- */}
       {inventoryOnly ? (
         <div className="store-embedded-head">
@@ -233,39 +311,57 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
           </a>
         </div>
       ) : (
-      <header className="store-header">
-        <div>
-          <p className="eyebrow">Kitty Kingdom Store</p>
-          <h1>Store</h1>
-          <p className="store-sub">Spend your leaves on roles, boosters and gifts — everything syncs with Discord instantly.</p>
-        </div>
-        <div className="store-wallet" aria-live="polite">
-          <span className="store-wallet-label">Your balance</span>
-          <span className="store-wallet-amount">
-            <Leaf size={30} />
-            {state.balance.toLocaleString()}
-          </span>
-          {state.nextDaily ? (
-            <span className="store-wallet-note">New daily deals in {formatCountdown(new Date(state.nextDaily).getTime() - now)}</span>
-          ) : null}
-        </div>
-      </header>
+        <header className="store-hero">
+          <div className="store-hero-copy">
+            <p className="eyebrow">Kitty Kingdom</p>
+            <h1>
+              The <span className="store-hero-shine">Kingdom</span> Store
+            </h1>
+            <p className="store-sub">Cosmetics, perks, Social boosts, roles and gifts. Spend your leaves and make your profile yours.</p>
+          </div>
+          <div className="store-wallet" aria-live="polite">
+            <span className="store-wallet-label">Your balance</span>
+            <span className="store-wallet-amount">
+              <Leaf size={30} />
+              <CountUp value={state.balance} />
+            </span>
+            <span className="store-wallet-stats">
+              <span title="Streak Shields">
+                <ShieldCheck size={13} aria-hidden="true" /> {state.shields}
+              </span>
+              <span title="Super Likes">
+                <Star size={13} aria-hidden="true" /> {state.superLikes}
+              </span>
+              <span title="Items you own">
+                <Backpack size={13} aria-hidden="true" /> {inventoryCount}
+              </span>
+            </span>
+            {state.nextDaily ? <span className="store-wallet-note">New daily deals in {formatCountdown(new Date(state.nextDaily).getTime() - now)}</span> : null}
+          </div>
+        </header>
       )}
 
       {/* ---------- Tabs ---------- */}
       {!inventoryOnly ? (
-      <div className="store-tabs" role="tablist">
-        <button role="tab" aria-selected={tab === "shop"} className={tab === "shop" ? "active" : ""} onClick={() => setTab("shop")}>
-          <ShoppingBag size={16} aria-hidden="true" /> Shop
-        </button>
-        <button role="tab" aria-selected={tab === "inventory"} className={tab === "inventory" ? "active" : ""} onClick={() => setTab("inventory")}>
-          <Backpack size={16} aria-hidden="true" /> Inventory {inventoryCount ? <span className="store-tab-count">{inventoryCount}</span> : null}
-        </button>
-      </div>
+        <div className="store-tabs" role="tablist">
+          <button role="tab" aria-selected={tab === "shop"} className={tab === "shop" ? "active" : ""} onClick={() => setTab("shop")}>
+            <ShoppingBag size={16} aria-hidden="true" /> Shop
+          </button>
+          <button role="tab" aria-selected={tab === "locker"} className={tab === "locker" ? "active" : ""} onClick={() => setTab("locker")}>
+            <Paintbrush size={16} aria-hidden="true" /> Locker
+          </button>
+          <button role="tab" aria-selected={tab === "inventory"} className={tab === "inventory" ? "active" : ""} onClick={() => setTab("inventory")}>
+            <Backpack size={16} aria-hidden="true" /> Inventory {inventoryCount ? <span className="store-tab-count">{inventoryCount}</span> : null}
+          </button>
+        </div>
       ) : null}
 
       {tab === "shop" ? (
         <>
+          {drops.length && !q && (category === "All" || category === "Drops") ? (
+            <FeaturedDrops items={drops} now={now} me={state.me} flair={state.flair} onOpen={(item) => setModal({ kind: item.cosmetic ? "preview" : "buy", item })} />
+          ) : null}
+
           {/* Search, sort and the cart */}
           <div className="store-shopbar">
             <label className="store-search">
@@ -274,6 +370,7 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
             </label>
             <select className="store-sort" value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort">
               <option value="featured">Featured</option>
+              <option value="rarity">Rarity</option>
               <option value="price-asc">Price: low to high</option>
               <option value="price-desc">Price: high to low</option>
               <option value="name">A–Z</option>
@@ -294,12 +391,12 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
           <div className="store-chips" role="group" aria-label="Filter by category">
             {categories.map((c) => (
               <button key={c} className={c === category ? "active" : ""} onClick={() => setCategory(c)}>
-                {c}
+                {CATEGORY_ICONS[c] ?? <Package size={15} />} {c === "Drops" ? "Limited" : c}
               </button>
             ))}
           </div>
 
-          {/* Searching or sorting shows one list; otherwise the deals are grouped */}
+          {/* Searching or sorting shows one list; otherwise everything is grouped */}
           {q || sort !== "featured" ? (
             sorted.length ? (
               <section className="store-section">
@@ -308,32 +405,51 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
                 </div>
                 <div className="store-grid">
                   {sorted.map((item) => (
-                    <ShopCard key={item.itemId} item={item} balance={state.balance} inCart={cart[item.itemId] ?? 0} onAdd={() => addToCart(item)} onOpen={() => setModal({ kind: "buy", item })} onCart={() => setCartOpen(true)} />
+                    <ShopCard key={item.itemId} item={item} balance={state.balance} now={now} inCart={cart[item.itemId] ?? 0} onAdd={() => addToCart(item)} onOpen={() => setModal({ kind: item.cosmetic ? "preview" : "buy", item })} onCart={() => setCartOpen(true)} />
                   ))}
                 </div>
               </section>
             ) : null
-          ) : sections.map((section) => {
-            const items = visible.filter((i) => i.rotation === section.key);
-            if (!items.length) return null;
-            return (
-              <section className="store-section" key={section.key}>
-                <div className="store-section-head store-section-head--stacked">
-                  <h2>{section.title}</h2>
-                  {section.ends ? (
-                    <span className="store-timer"><Hourglass size={13} aria-hidden="true" /> Ends in {formatCountdown(new Date(section.ends).getTime() - now)}</span>
-                  ) : null}
-                </div>
-                <div className="store-grid">
-                  {items.map((item) => (
-                    <ShopCard key={item.itemId} item={item} balance={state.balance} inCart={cart[item.itemId] ?? 0} onAdd={() => addToCart(item)} onOpen={() => setModal({ kind: "buy", item })} onCart={() => setCartOpen(true)} />
-                  ))}
-                </div>
-              </section>
-            );
-          })}
-          {!visible.length ? <p className="store-empty">{q ? "Nothing matches that search." : "Nothing in this category right now — check back after the next rotation!"}</p> : null}
+          ) : (
+            sections.map((section) =>
+              section.items.length ? (
+                <section className={`store-section store-section--${section.key}`} key={section.key}>
+                  <div className="store-section-head store-section-head--stacked">
+                    <h2>
+                      <span className="store-section-icon" aria-hidden="true">
+                        {section.icon}
+                      </span>
+                      {section.title}
+                    </h2>
+                    {section.ends ? (
+                      <span className="store-timer">
+                        <Hourglass size={13} aria-hidden="true" /> Ends in {formatCountdown(new Date(section.ends).getTime() - now)}
+                      </span>
+                    ) : section.sub ? (
+                      <span className="store-hint">{section.sub}</span>
+                    ) : null}
+                  </div>
+                  <div className="store-grid">
+                    {section.items.map((item) => (
+                      <ShopCard key={item.itemId} item={item} balance={state.balance} now={now} inCart={cart[item.itemId] ?? 0} onAdd={() => addToCart(item)} onOpen={() => setModal({ kind: item.cosmetic ? "preview" : "buy", item })} onCart={() => setCartOpen(true)} />
+                    ))}
+                  </div>
+                </section>
+              ) : null,
+            )
+          )}
+          {!visible.length ? <p className="store-empty">{q ? "Nothing matches that search." : "Nothing in this category right now. Check back after the next rotation!"}</p> : null}
         </>
+      ) : tab === "locker" ? (
+        <Locker
+          state={state}
+          busy={busy}
+          act={act}
+          onShop={(c) => {
+            setTab("shop");
+            if (c) setCategory(c);
+          }}
+        />
       ) : (
         <InventoryView
           state={state}
@@ -343,6 +459,7 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
           onUse={(entry) => setModal({ kind: "use", entry })}
           onGift={(entry) => setModal({ kind: "gift", entry })}
           onShop={() => setTab("shop")}
+          onLocker={inventoryOnly ? () => window.location.assign("/store?tab=locker") : () => setTab("locker")}
         />
       )}
 
@@ -354,6 +471,19 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
             addToCart(modal.item, amount);
             setModal(null);
           }} />
+      ) : null}
+      {modal?.kind === "preview" && modal.item.cosmetic ? (
+        <PreviewModal
+          item={modal.item}
+          state={state}
+          busy={busy}
+          onClose={() => setModal(null)}
+          onBuy={() => void act("/api/store/buy", { itemId: modal.item.itemId, amount: 1 })}
+          onAddToCart={() => {
+            addToCart(modal.item, 1);
+            setModal(null);
+          }}
+        />
       ) : null}
       {modal?.kind === "use" ? (
         <ModalShell title={`Use ${modal.entry.name}?`} onClose={() => setModal(null)}>
@@ -400,16 +530,22 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
 // ==========================================
 // SHOP CARD
 // ==========================================
-function ShopCard({ item, balance, inCart, onAdd, onOpen, onCart }: { item: StoreItem; balance: number; inCart: number; onAdd: () => void; onOpen: () => void; onCart: () => void }) {
+function ShopCard({ item, balance, now, inCart, onAdd, onOpen, onCart }: { item: StoreItem; balance: number; now: number; inCart: number; onAdd: () => void; onOpen: () => void; onCart: () => void }) {
   const isRole = Boolean(item.roleId) || item.category === "Roles";
-  const ownedRole = !item.stackable && item.owned > 0;
+  const ownedRole = isRole && item.owned > 0;
+  const ownedOne = !item.stackable && item.owned > 0;
   const soldOut = item.stock === 0;
-  const limitReached = item.dailyLimit !== null && item.boughtToday >= item.dailyLimit;
+  const limitReached = Boolean(item.dailyLimit && item.boughtToday >= item.dailyLimit);
+  const capped = item.maxOwned !== null && item.owned >= item.maxOwned;
   const short = item.price - balance;
+  const rarity = RARITY[item.rarity];
+  const endsIn = item.availableUntil ? new Date(item.availableUntil).getTime() - now : null;
+  const tilt = tiltHandlers();
 
   let button: ReactNode;
-  if (ownedRole) button = <button className="store-buy store-buy--owned" disabled><Check size={14} aria-hidden="true" /> {item.equipped ? "Equipped" : "Owned"}</button>;
+  if (ownedRole || ownedOne) button = <button className="store-buy store-buy--owned" disabled><Check size={14} aria-hidden="true" /> {item.equipped ? "Equipped" : "Owned"}</button>;
   else if (soldOut) button = <button className="store-buy" disabled>Sold out</button>;
+  else if (capped) button = <button className="store-buy store-buy--owned" disabled><Check size={14} aria-hidden="true" /> Max owned</button>;
   else if (limitReached) button = <button className="store-buy" disabled>Daily limit reached</button>;
   else if (short > 0) button = <button className="store-buy" disabled>Need {short.toLocaleString()} more</button>;
   else if (inCart && (!item.stackable || inCart >= maxFor(item)))
@@ -426,13 +562,36 @@ function ShopCard({ item, balance, inCart, onAdd, onOpen, onCart }: { item: Stor
     );
 
   return (
-    <article className={`store-card${ownedRole ? " store-card--owned" : ""}`} style={isRole ? swatchStyle(item.roleColors) : undefined}>
+    <article
+      className={`store-card rarity-${item.rarity}${ownedRole || ownedOne ? " store-card--owned" : ""}${item.cosmetic ? " store-card--cosmetic" : ""}`}
+      style={{ ...(isRole ? swatchStyle(item.roleColors) : {}), "--rarity": rarity.color } as CSSProperties}
+      {...tilt}
+    >
+      <span className="store-card-shine" aria-hidden="true" />
+      {item.edition ? (
+        <span className="store-ribbon store-ribbon--limited">Limited · {item.stock ?? 0}/{item.edition} left</span>
+      ) : item.season ? (
+        <span className="store-ribbon store-ribbon--season">{item.season}</span>
+      ) : item.isNew ? (
+        <span className="store-ribbon store-ribbon--new">New</span>
+      ) : null}
       <div className="store-card-top">
-        <ItemVisual icon={item.icon} roleColors={item.roleColors} isRole={isRole} />
+        <button type="button" className="store-card-visual" onClick={onOpen} aria-label={item.cosmetic ? `Try on ${item.name}` : `View ${item.name}`}>
+          <ItemVisual icon={item.icon} roleColors={item.roleColors} isRole={isRole} cosmetic={item.cosmetic} name={item.name} />
+          {item.cosmetic ? (
+            <span className="store-tryon">
+              <Eye size={12} aria-hidden="true" /> Try on
+            </span>
+          ) : null}
+        </button>
         <div className="store-badges">
-          {item.equipped ? <span className="store-badge store-badge--equipped">Equipped</span> : ownedRole ? <span className="store-badge store-badge--owned">Owned</span> : null}
+          <span className="store-rarity" style={{ "--rarity": rarity.color } as CSSProperties}>
+            {rarity.label}
+          </span>
+          {item.cosmetic ? <span className="store-badge">{SLOT_LABELS[item.cosmetic.slot]}</span> : null}
+          {item.equipped ? <span className="store-badge store-badge--equipped">Equipped</span> : null}
           {item.stackable && item.owned > 0 ? <span className="store-badge">You have {item.owned}</span> : null}
-          {item.stock !== null && item.stock > 0 ? <span className="store-badge store-badge--warn">{item.stock} left</span> : null}
+          {!item.edition && item.stock !== null && item.stock > 0 ? <span className="store-badge store-badge--warn">{item.stock} left</span> : null}
           {item.dailyLimit ? <span className="store-badge">{item.dailyLimit}/day</span> : null}
         </div>
       </div>
@@ -442,26 +601,177 @@ function ShopCard({ item, balance, inCart, onAdd, onOpen, onCart }: { item: Stor
         </button>
       </h3>
       <p className="store-card-desc">{item.description}</p>
+      {item.edition ? (
+        <div className="store-stockbar" aria-label={`${item.stock ?? 0} of ${item.edition} left`}>
+          <span style={{ width: `${Math.max(2, ((item.stock ?? 0) / item.edition) * 100)}%` }} />
+        </div>
+      ) : null}
+      {endsIn !== null && endsIn > 0 ? (
+        <span className="store-card-ends">
+          <Hourglass size={12} aria-hidden="true" /> Leaves the store in {formatCountdown(endsIn)}
+        </span>
+      ) : null}
       <div className="store-card-foot">
-        <span className="store-price"><Leaf size={20} />{item.price.toLocaleString()}</span>
+        <span className="store-price">
+          <Leaf size={20} />
+          {item.price.toLocaleString()}
+        </span>
         {button}
       </div>
     </article>
   );
 }
 
+/** The big rotating banner for limited and seasonal items. */
+function FeaturedDrops({ items, now, me, flair, onOpen }: { items: StoreItem[]; now: number; me: StoreState["me"]; flair: Flair; onOpen: (item: StoreItem) => void }) {
+  const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  useEffect(() => {
+    if (paused || items.length < 2) return;
+    const t = window.setInterval(() => setIndex((i) => (i + 1) % items.length), 6500);
+    return () => window.clearInterval(t);
+  }, [paused, items.length]);
+  const item = items[Math.min(index, items.length - 1)];
+  if (!item) return null;
+  const rarity = RARITY[item.rarity];
+  const endsIn = item.availableUntil ? new Date(item.availableUntil).getTime() - now : null;
+  const tryFlair: Flair = item.cosmetic ? { ...flair, [item.cosmetic.slot]: item.cosmetic.key } : flair;
+  const go = (d: number) => setIndex((i) => (i + d + items.length) % items.length);
+
+  return (
+    <section
+      className={`store-drop rarity-${item.rarity}`}
+      style={{ "--rarity": rarity.color } as CSSProperties}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      aria-roledescription="carousel"
+      aria-label="Limited and seasonal items"
+    >
+      <span className="store-drop-glow" aria-hidden="true" />
+      <div className="store-drop-copy" key={item.itemId}>
+        <span className="store-drop-kicker">
+          <Crown size={14} aria-hidden="true" /> {item.edition ? "Limited drop" : item.season ?? "Seasonal"}
+        </span>
+        <h2>{item.name}</h2>
+        <p>{item.description}</p>
+        <div className="store-drop-meta">
+          <span className="store-rarity" style={{ "--rarity": rarity.color } as CSSProperties}>
+            {rarity.label}
+          </span>
+          {endsIn !== null && endsIn > 0 ? (
+            <span className="store-timer">
+              <Hourglass size={13} aria-hidden="true" /> {formatCountdown(endsIn)} left
+            </span>
+          ) : null}
+          {item.edition ? (
+            <span className="store-drop-stock">
+              <b>{item.stock ?? 0}</b> of {item.edition} left
+            </span>
+          ) : null}
+        </div>
+        {item.edition ? (
+          <div className="store-stockbar store-stockbar--big">
+            <span style={{ width: `${Math.max(2, ((item.stock ?? 0) / item.edition) * 100)}%` }} />
+          </div>
+        ) : null}
+        <div className="store-drop-actions">
+          <button type="button" className="store-primary store-drop-cta" onClick={() => onOpen(item)}>
+            {item.cosmetic ? (
+              <>
+                <Eye size={16} aria-hidden="true" /> Try it on
+              </>
+            ) : (
+              "View"
+            )}
+          </button>
+          <span className="store-price store-price--big">
+            <Leaf size={24} />
+            {item.price.toLocaleString()}
+          </span>
+        </div>
+      </div>
+      <div className="store-drop-stage" key={`stage-${item.itemId}`}>
+        {item.cosmetic ? <MiniProfile me={me} flair={tryFlair} /> : <ItemVisual icon={item.icon} roleColors={item.roleColors} isRole={false} large />}
+      </div>
+      {items.length > 1 ? (
+        <div className="store-drop-nav">
+          <button type="button" onClick={() => go(-1)} aria-label="Previous">
+            <ChevronLeft size={16} />
+          </button>
+          {items.map((d, i) => (
+            <button key={d.itemId} type="button" className={`store-drop-dot${i === index ? " is-on" : ""}`} onClick={() => setIndex(i)} aria-label={d.name} aria-current={i === index} />
+          ))}
+          <button type="button" onClick={() => go(1)} aria-label="Next">
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+/** "Try it on": the cosmetic on your own mini profile, next to what you're wearing now. */
+function PreviewModal({ item, state, busy, onClose, onBuy, onAddToCart }: { item: StoreItem; state: StoreState; busy: boolean; onClose: () => void; onBuy: () => void; onAddToCart: () => void }) {
+  const cos = item.cosmetic!;
+  const wearing = state.flair;
+  const trying: Flair = { ...wearing, [cos.slot]: cos.key };
+  const owned = item.owned > 0;
+  const short = item.price - state.balance;
+  const rarity = RARITY[item.rarity];
+  return (
+    <ModalShell title="Try it on" onClose={onClose}>
+      <div className="store-tryon-head">
+        <span className="store-rarity" style={{ "--rarity": rarity.color } as CSSProperties}>
+          {rarity.label}
+        </span>
+        <strong>{item.name}</strong>
+        <span className="store-muted">{SLOT_LABELS[cos.slot]}</span>
+      </div>
+      <div className="store-tryon-compare">
+        <figure>
+          <MiniProfile me={state.me} flair={wearing} title={state.customTitle} compact />
+          <figcaption>Now</figcaption>
+        </figure>
+        <ChevronRight size={20} aria-hidden="true" className="store-tryon-arrow" />
+        <figure className="is-new">
+          <MiniProfile me={state.me} flair={trying} title={state.customTitle} compact />
+          <figcaption>With {item.name}</figcaption>
+        </figure>
+      </div>
+      <p className="store-modal-note">{item.description}</p>
+      <div className="store-modal-actions">
+        {owned ? (
+          <span className="store-muted">
+            <Check size={14} aria-hidden="true" /> You own this. Equip it in your Locker.
+          </span>
+        ) : (
+          <>
+            <button className="store-ghost-button" onClick={onAddToCart} disabled={maxFor(item) <= 0 || item.stock === 0}>
+              <ShoppingCart size={15} aria-hidden="true" /> Add to cart
+            </button>
+            <button className="store-primary" disabled={busy || short > 0 || item.stock === 0} onClick={onBuy}>
+              {item.stock === 0 ? "Sold out" : short > 0 ? `Need ${short.toLocaleString()} more` : busy ? "Buying..." : `Buy for ${item.price.toLocaleString()}`}
+            </button>
+          </>
+        )}
+      </div>
+    </ModalShell>
+  );
+}
+
 // ==========================================
 // INVENTORY
 // ==========================================
-function InventoryView({ state, now, busy, onEquip, onUse, onGift, onShop }: {
+function InventoryView({ state, now, busy, onEquip, onUse, onGift, onShop, onLocker }: {
   state: StoreState; now: number; busy: boolean;
   onEquip: (entry: InventoryEntry, action: "equip" | "unequip") => void;
-  onUse: (entry: InventoryEntry) => void; onGift: (entry: InventoryEntry) => void; onShop: () => void;
+  onUse: (entry: InventoryEntry) => void; onGift: (entry: InventoryEntry) => void; onShop: () => void; onLocker?: () => void;
 }) {
   const roles = state.inventory.filter((e) => e.type === "role");
   const boosters = state.inventory.filter((e) => e.type === "booster");
   const gifts = state.inventory.filter((e) => e.type === "gift");
-  const other = state.inventory.filter((e) => !["role", "booster", "gift"].includes(e.type));
+  const looks = state.inventory.filter((e) => e.cosmetic || e.type === "perk" || e.type === "consumable");
+  const other = state.inventory.filter((e) => !["role", "booster", "gift"].includes(e.type) && !looks.includes(e));
   const activeBoosters = state.boosters.filter((b) => new Date(b.endsAt).getTime() > now);
 
   if (!state.inventory.length && !activeBoosters.length) {
@@ -541,6 +851,27 @@ function InventoryView({ state, now, busy, onEquip, onUse, onGift, onShop }: {
         </InventorySection>
       ) : null}
 
+      {looks.length ? (
+        <InventorySection title="Cosmetics & perks" icon={<Wand2 size={18} />} hint="Equip and set these up in your Locker.">
+          {looks.map((e) => (
+            <article className={`store-inv-card rarity-${e.rarity}`} key={e.itemId}>
+              <ItemVisual icon={e.icon} roleColors={[]} isRole={false} cosmetic={e.cosmetic} name={e.name} />
+              <div className="store-inv-body">
+                <strong>
+                  {e.name} {e.count > 1 ? <span className="store-count">×{e.count}</span> : null}
+                </strong>
+                <span>{e.cosmetic ? SLOT_LABELS[e.cosmetic.slot] : e.itemId === "streak_shield" ? "Used automatically if you miss a day" : e.itemId === "super_like" ? "Use one from someone's Social profile" : e.description}</span>
+              </div>
+              {onLocker && (e.cosmetic || e.type === "perk") ? (
+                <button className="store-primary" onClick={onLocker}>
+                  <Paintbrush size={14} aria-hidden="true" /> Locker
+                </button>
+              ) : null}
+            </article>
+          ))}
+        </InventorySection>
+      ) : null}
+
       {other.length ? (
         <InventorySection title="Other items" icon={<Package size={18} />}>
           {other.map((e) => (
@@ -609,9 +940,11 @@ function BuyModal({ item, balance, busy, onClose, onConfirm, onAddToCart }: {
   return (
     <ModalShell title="Confirm purchase" onClose={onClose}>
       <div className="store-modal-item">
-        <ItemVisual icon={item.icon} roleColors={item.roleColors} isRole={isRole} large />
+        <ItemVisual icon={item.icon} roleColors={item.roleColors} isRole={isRole} large cosmetic={item.cosmetic} name={item.name} />
         <div>
-          <strong>{item.name}</strong>
+          <strong>
+            {item.name} <span className="store-rarity" style={{ "--rarity": RARITY[item.rarity].color } as CSSProperties}>{RARITY[item.rarity].label}</span>
+          </strong>
           <p>{item.description}</p>
         </div>
       </div>
@@ -787,7 +1120,7 @@ function CartDrawer({ lines, balance, total, busy, onClose, onQty, onCheckout }:
                 const max = maxFor(item);
                 return (
                   <li key={item.itemId}>
-                    <ItemVisual icon={item.icon} roleColors={item.roleColors} isRole={isRole} />
+                    <ItemVisual icon={item.icon} roleColors={item.roleColors} isRole={isRole} cosmetic={item.cosmetic} name={item.name} />
                     <div className="store-cart-info">
                       <strong>{item.name}</strong>
                       <span className="store-cart-each">

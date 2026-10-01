@@ -5,6 +5,8 @@ import type { Document } from "mongodb";
 import { people } from "../admin-people";
 import { badgeHistory, type BadgeEarned } from "../badge-history";
 import { badgeById, type BadgeShowcase } from "../badges";
+import { NO_EXTRAS, type ProfileExtras } from "../cosmetics";
+import { profileExtras } from "../store-perks";
 import { getUsersCollection } from "../mongodb";
 import { newsPlainText } from "../news-format";
 import { datingCols, toLong } from "./db";
@@ -265,6 +267,8 @@ export type ProfileView = {
   isNew: boolean;
   /** Their badge title and pinned badges from the website (with when each was earned) */
   badges: { showcase: BadgeShowcase; earned: Record<string, BadgeEarned> } | null;
+  /** Store cosmetics, custom title and custom badges */
+  extras: ProfileExtras;
 };
 
 /** The badge showcase a member picked on their stats page, for their Social profile. */
@@ -359,6 +363,7 @@ export async function profileView(doc: ProfileDoc, opts: { viewerIsOwner?: boole
     paused: web.paused === true,
     isNew: Boolean(created && Date.now() - created.getTime() < 14 * 86_400_000),
     badges: await profileBadges(id).catch(() => null),
+    extras: await profileExtras(id).catch(() => NO_EXTRAS),
   };
 }
 

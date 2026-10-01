@@ -1,6 +1,8 @@
 // Everyone's dating profiles and AI vectors, cached for a short time so ranking a member against the
 // whole pool is instant. The pool is small (hundreds), so scoring everyone per request is fine.
 
+import { ITEM, type ProfileExtras } from "../cosmetics";
+import { profileExtrasMany } from "../store-perks";
 import { people } from "../admin-people";
 import { getBotCollection, getMongoClient } from "../mongodb";
 import { inServerIds } from "../member-directory";
@@ -15,7 +17,7 @@ import { allSettings, type DatingSettings } from "./settings";
 /** What the site knows about a member from Discord: name, avatar and whether they're still in the server. */
 export type Who = { name: string; username: string | null; avatar: string | null; inServer: boolean; boosting: boolean };
 
-type Pool = { at: number; profiles: Map<string, ProfileDoc>; vectors: Map<string, Vectors>; inServer: Set<string> | null; who: Map<string, Who>; names: Map<string, string>; banned: Set<string>; settings: Map<string, DatingSettings>; partners: Map<string, Set<string>>; profileBoosted: Set<string> };
+type Pool = { at: number; profiles: Map<string, ProfileDoc>; vectors: Map<string, Vectors>; inServer: Set<string> | null; who: Map<string, Who>; names: Map<string, string>; banned: Set<string>; settings: Map<string, DatingSettings>; partners: Map<string, Set<string>>; profileBoosted: Set<string>; spotlit: Set<string>; extras: Map<string, ProfileExtras> };
 let cache: Pool | null = null;
 let loading: Promise<Pool> | null = null;
 const TTL_MS = 30_000;
@@ -30,9 +32,11 @@ async function load(): Promise<Pool> {
     allSettings().catch(() => new Map<string, DatingSettings>()),
     getMongoClient().then((m) => m.db(process.env.MONGODB_DB ?? "website").collection("dating_partners").find({ status: "accepted" }, { projection: { users: 1 } }).toArray()).catch(() => []),
     // Store Profile Boosters that are running right now
-    getBotCollection("temporary_boosters").then((c) => c.find({ item_id: "booster_profile", end_time: { $gt: new Date() } }, { projection: { discordId: 1 } }).toArray()).catch(() => []),
+    // (and Spotlights, which put them at the top of Discover and Browse)
+    getBotCollection("temporary_boosters").then((c) => c.find({ item_id: { $in: ["booster_profile", ITEM.spotlight] }, end_time: { $gt: new Date() } }, { projection: { discordId: 1, item_id: 1 } }).toArray()).catch(() => []),
   ]);
-  const profileBoosted = new Set(boosters.map((b) => String(b.discordId)));
+  const profileBoosted = new Set(boosters.filter((b) => b.item_id === "booster_profile").map((b) => String(b.discordId)));
+  const spotlit = new Set(boosters.filter((b) => b.item_id === ITEM.spotlight).map((b) => String(b.discordId)));
   // Confirmed partner links, both ways
   const partners = new Map<string, Set<string>>();
   for (const l of links) {
@@ -73,7 +77,9 @@ async function load(): Promise<Pool> {
     who.set(id, { name: p.name, username: p.username, avatar: p.avatar, inServer: inServer ? inServer.has(id) : p.inServer, boosting: Boolean(p.boosting) });
     if (p.username || p.name !== "Unknown user") names.set(id, p.username ?? p.name);
   }
-  return { at: Date.now(), profiles, vectors, inServer, who, names, banned, settings, partners, profileBoosted };
+  // Store cosmetics (name effects and frames on their cards)
+  const extras = await profileExtrasMany(Array.from(profiles.keys())).catch(() => new Map<string, ProfileExtras>());
+  return { at: Date.now(), profiles, vectors, inServer, who, names, banned, settings, partners, profileBoosted, spotlit, extras };
 }
 
 export async function datingPool(fresh = false): Promise<Pool> {

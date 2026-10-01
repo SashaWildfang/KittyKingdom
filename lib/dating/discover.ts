@@ -1,6 +1,7 @@
 // Discover (one great match at a time), Browse (everyone, with filters and sorting), profile pages
 // and the hourly featured draw. All work off the cached pool (lib/dating/pool.ts).
 
+import type { Flair } from "../cosmetics";
 import { ObjectId } from "mongodb";
 import { getPresenceCollection, getUsersCollection } from "../mongodb";
 import { blockedIds } from "./db";
@@ -45,6 +46,10 @@ export type Card = {
   myPartner: boolean;
   /** On the site right now (only filled in where asked for, and only if their settings allow) */
   online?: boolean;
+  /** A Spotlight (store item) is running: shown first, with a ribbon */
+  spotlight: boolean;
+  /** Store cosmetics they equipped */
+  flair: Flair | null;
 };
 
 type Pool = Awaited<ReturnType<typeof datingPool>>;
@@ -88,7 +93,16 @@ function card(doc: ProfileDoc, compat: Compat | null, liked: boolean, pool: Pool
     // They've linked a partner (hidden if they chose not to show partners)
     partnered: (pool.partners.get(id)?.size ?? 0) > 0 && pool.settings.get(id)?.showPartners !== false,
     myPartner: Boolean(me && pool.partners.get(me)?.has(id)),
+    spotlight: pool.spotlit.has(id),
+    flair: pool.extras.get(id)?.flair ?? null,
   };
+}
+
+/** Spotlighted members first (keeping the order otherwise). */
+function spotlightFirst<T extends { o: ProfileDoc }>(rows: T[], pool: Pool): T[] {
+  if (!pool.spotlit.size) return rows;
+  const lit = rows.filter((r) => pool.spotlit.has(String(r.o._id)));
+  return lit.length ? [...lit, ...rows.filter((r) => !pool.spotlit.has(String(r.o._id)))] : rows;
 }
 
 async function candidates(me: string) {
@@ -118,7 +132,7 @@ export async function discoverQueue(me: string, limit = 20) {
     .map((o) => ({ o, c: compatibility(side(mine), side(o)) }))
     .filter((x) => x.c.score >= Math.max(MIN_SCORE_SHOWN, settings.discoverMinScore))
     .sort((a, b) => b.c.score - a.c.score);
-  return { cards: ranked.slice(0, limit).map((x) => card(x.o, x.c, false, pool, me)), total: ranked.length };
+  return { cards: spotlightFirst(ranked, pool).slice(0, limit).map((x) => card(x.o, x.c, false, pool, me)), total: ranked.length };
 }
 
 /** Discover → Friends: people you'd get along with (dating preferences don't matter), best first. */
@@ -131,7 +145,7 @@ export async function friendQueue(me: string, limit = 20) {
     .filter((o) => !known.has(String(o._id)) && !skipped.has(String(o._id)))
     .map((o) => ({ o, c: compatibility(side(mine), side(o)) }))
     .sort((a, b) => b.c.score - a.c.score);
-  return { cards: ranked.slice(0, limit).map((x) => card(x.o, x.c, false, pool, me)), total: ranked.length };
+  return { cards: spotlightFirst(ranked, pool).slice(0, limit).map((x) => card(x.o, x.c, false, pool, me)), total: ranked.length };
 }
 
 export type BrowseQuery = {
@@ -201,7 +215,9 @@ export async function browse(me: string, query: BrowseQuery) {
   });
   const page = Math.max(0, query.page ?? 0);
   const size = 24;
-  return { total: rows.length, page, pages: Math.ceil(rows.length / size), cards: rows.slice(page * size, page * size + size).map((x) => card(x.o, x.c, liked.has(String(x.o._id)), pool, me)) };
+  // Spotlights lead the "best" and "active" orders (not the name/age/newest sorts people pick on purpose)
+  const ordered = sort === "best" || sort === "active" ? spotlightFirst(rows, pool) : rows;
+  return { total: rows.length, page, pages: Math.ceil(ordered.length / size), cards: ordered.slice(page * size, page * size + size).map((x) => card(x.o, x.c, liked.has(String(x.o._id)), pool, me)) };
 }
 
 /** Cards for a list of ids (likes, matches, friends...), in the given order. `online` also works
