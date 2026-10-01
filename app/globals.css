@@ -26662,3 +26662,69 @@ body.live-fullscreen .view-as-bar {
 :root[data-theme="light"] .auth-status--error {
   color: #c62828 !important;
 }
+
+/* ---------- Owner: wipe a member's data ---------- */
+.adm-wipe {
+  border: 1px solid rgba(229, 72, 77, 0.4);
+  border-radius: 0.9rem;
+  padding: 0.8rem 0.9rem;
+  background: rgba(229, 72, 77, 0.05);
+}
+.adm-wipe h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #ff6b6b;
+}
+.adm-wipe-open {
+  color: #ff6b6b;
+}
+.adm-wipe-box {
+  display: grid;
+  gap: 0.6rem;
+}
+.adm-wipe-box p {
+  margin: 0;
+  font-size: 0.88rem;
+}
+.adm-wipe-list {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0.5rem 0.7rem;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: 0.7rem;
+  background: var(--panel);
+  font-size: 0.85rem;
+}
+.adm-wipe-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+.adm-wipe-confirm {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.84rem;
+  color: var(--muted);
+}
+.adm-wipe-confirm input {
+  min-height: 2.4rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--text);
+  font: inherit;
+}
+.adm-wipe-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.adm-wipe-done {
+  margin: 0 0 0.5rem;
+  color: #3ddc84;
+  font-weight: 700;
+}
