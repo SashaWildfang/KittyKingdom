@@ -54,8 +54,8 @@ const CATEGORIES: { key: Category; label: string; blurb: string; icon: LucideIco
   { key: "discover", label: "Discover & Browse", blurb: "How profiles are shown to you", icon: Compass, social: true },
   { key: "profile", label: "Social profile", blurb: "Edit, hidden profiles and more", icon: HeartHandshake, social: true },
 ];
-// Old links (#dms, #general, #account…) still land in the right place
-const ALIASES: Record<string, Category> = { general: "account", dms: "notifications", account: "profile", social: "profile" };
+// Old links (#dms, #general…) still land in the right place
+const ALIASES: Record<string, Category> = { general: "account", dms: "notifications", social: "profile" };
 
 function Switch({ checked, disabled, onChange, label }: { checked: boolean; disabled?: boolean; onChange: (v: boolean) => void; label: string }) {
   return (

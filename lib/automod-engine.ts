@@ -134,6 +134,18 @@ export function candidates(text: string) {
   return { singles, glued, joined };
 }
 
+/**
+ * A censor star can stand in for a letter (n*g, f*ck), but at least half the word (and 2 letters)
+ * has to be real letters, so italics like *i* or **i** never read as a blocked word.
+ */
+function enoughLetters(term: string, matched: string) {
+  const letters = term.replace(/ /g, "");
+  const need = letters.length >= 2 ? Math.max(2, Math.ceil(letters.length / 2)) : 1;
+  let real = 0;
+  for (const ch of Array.from(matched)) if (ch !== "*" && ch !== " " && ch !== "\n") real++;
+  return real >= need;
+}
+
 export class Matcher {
   rules: WordRule[];
   allow: Set<string>;
@@ -151,13 +163,20 @@ export class Matcher {
     for (const rule of ordered) {
       if (relaxed && !rule.severe) continue;
       if (rule.phrase) {
-        if (rule.regex.test(c.joined) || singles.some((s) => rule.regex.test(s))) return { term: rule.term, severe: rule.severe, how: "phrase" };
+        for (const hay of [c.joined, ...singles]) {
+          const m = rule.regex.exec(hay);
+          if (m && enoughLetters(rule.term, m[0])) return { term: rule.term, severe: rule.severe, how: "phrase" };
+        }
         continue;
       }
-      for (const s of singles) if (rule.regex.test(s)) return { term: rule.term, severe: rule.severe, how: "word" };
+      for (const s of singles) {
+        const m = rule.regex.exec(s);
+        if (m && enoughLetters(rule.term, m[0])) return { term: rule.term, severe: rule.severe, how: "word" };
+      }
       if (!rule.partial) {
         for (const [g, part] of glued) {
-          if ((rule.term.length >= 4 || part <= 2) && rule.regex.test(g)) return { term: rule.term, severe: rule.severe, how: "split" };
+          const m = rule.term.length >= 4 || part <= 2 ? rule.regex.exec(g) : null;
+          if (m && enoughLetters(rule.term, m[0])) return { term: rule.term, severe: rule.severe, how: "split" };
         }
       }
     }

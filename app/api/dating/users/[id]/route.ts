@@ -35,7 +35,8 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   ]);
   const theyLike = received.find((l) => l.id === params.id);
   // Let them know someone looked (unless you browse anonymously or they turned it off)
-  if (!own) await recordView(me.discordId, params.id, String((await getProfile(me.discordId))?.name ?? me.name)).catch(() => undefined);
+  // Never while an admin is viewing the site as someone (they'd appear to have looked)
+  if (!own && !me.readOnly) await recordView(me.discordId, params.id, String((await getProfile(me.discordId))?.name ?? me.name)).catch(() => undefined);
   const views = await viewStats(params.id, me.discordId).catch(() => null);
   // Linked, confirmed partners: they're together, so "not a dating fit" never applies between them
   const partnered = !own && (await confirmedPartners(me.discordId).catch(() => [] as string[])).includes(params.id);
