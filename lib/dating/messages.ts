@@ -82,7 +82,7 @@ async function trusted(a: string, b: string) {
   return (await isMatch(a, b)) || (await friendState(a, b)) === "friends";
 }
 
-export async function thread(me: string, other: string, before?: string) {
+export async function thread(me: string, other: string, before?: string, opts: { readOnly?: boolean } = {}) {
   if ((await blockedIds(me)).has(other)) return null;
   const { convs, msgs } = await cols();
   const id = pairId(me, other);
@@ -90,9 +90,11 @@ export async function thread(me: string, other: string, before?: string) {
   const q: Document = { conv: id };
   if (before && ObjectId.isValid(before)) q._id = { $lt: new ObjectId(before) };
   const rows = conv ? await msgs.find(q).sort({ _id: -1 }).limit(50).toArray() : [];
-  // Opening the thread reads it
-  if (conv && Number(conv.unread?.[me] ?? 0) > 0) await convs.updateOne({ _id: id } as never, { $set: { [`unread.${me}`]: 0, [`readAt.${me}`]: new Date() } });
-  await markReadByKey(me, `msg:${id}`);
+  // Opening the thread reads it (not while an admin is only viewing as them)
+  if (!opts.readOnly) {
+    if (conv && Number(conv.unread?.[me] ?? 0) > 0) await convs.updateOne({ _id: id } as never, { $set: { [`unread.${me}`]: 0, [`readAt.${me}`]: new Date() } });
+    await markReadByKey(me, `msg:${id}`);
+  }
   const canWriteFreely = await trusted(me, other);
   const [mySettings, theirSettings] = await Promise.all([getSettings(me), getSettings(other)]);
   const receipts = mySettings.readReceipts && theirSettings.readReceipts;
