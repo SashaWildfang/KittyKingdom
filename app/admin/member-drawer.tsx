@@ -23,6 +23,7 @@ import {
   type Ticket,
 } from "./admin-shared";
 import { DeleteTicketButton } from "./delete-ticket-button";
+import { WipeMember } from "./wipe-member";
 import { ViewAsButton } from "./view-as-button";
 
 type Result = {
@@ -234,6 +235,8 @@ export function MemberDrawer({
               )}
             </section>
             ) : null}
+            {/* Owner only (the component checks, and so does the server) */}
+            {canEditRoles ? <WipeMember userId={userId} onDone={() => reload()} /> : null}
           </>
         ) : loading ? (
           <div className="adm-skeleton" style={{ height: 240 }} />
