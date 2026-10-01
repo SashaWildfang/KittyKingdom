@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from "react";
 import type { Flair } from "../../lib/cosmetics";
-import { FlairBanner, FlairName, Framed } from "../cosmetic-flair";
+import { FlairBanner, FlairEffect, FlairName, Framed, themeVars } from "../cosmetic-flair";
 
 // Store eye candy: the animated backdrop, a celebration burst, counting numbers, card tilt and
 // the "try it on" profile preview. Everything calms down for people who prefer reduced motion.
@@ -124,6 +124,51 @@ export function MiniProfile({ me, flair, title, compact }: { me: { name: string;
         <span className="st-title-pill acct-badge-title cos-title" style={{ "--hue": title.hue } as CSSProperties}>
           {title.text}
         </span>
+      ) : null}
+    </div>
+  );
+}
+
+/** A small copy of the Social profile header wearing everything (banner, frame, name, effect, theme). */
+export function SocialMini({ me, flair, title, compact }: { me: { name: string; avatar: string | null }; flair: Flair; title?: { text: string; hue: string } | null; compact?: boolean }) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <div className={`smini${compact ? " is-compact" : ""}${flair.theme ? " has-theme" : ""}`} style={themeVars(flair.theme)}>
+      <div className={`smini-cover${flair.banner ? "" : " is-default"}`}>
+        <FlairBanner banner={flair.banner} />
+        <FlairEffect effect={flair.effect} count={compact ? 8 : 12} />
+      </div>
+      <div className="smini-body">
+        <Framed frame={flair.frame} className="smini-frame">
+          <span className="smini-photo">
+            {me.avatar && !failed ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={me.avatar} alt="" onError={() => setFailed(true)} />
+            ) : (
+              <b>{me.name.charAt(0).toUpperCase()}</b>
+            )}
+          </span>
+        </Framed>
+        <div className="smini-info">
+          <strong>
+            <FlairName nameplate={flair.nameplate} text={me.name}>
+              {me.name}
+            </FlairName>
+          </strong>
+          {title ? (
+            <span className="st-title-pill acct-badge-title cos-title" style={{ "--hue": title.hue } as CSSProperties}>
+              {title.text}
+            </span>
+          ) : (
+            <small>Social profile</small>
+          )}
+        </div>
+      </div>
+      {!compact ? (
+        <div className="smini-cards">
+          <i />
+          <i />
+        </div>
       ) : null}
     </div>
   );
