@@ -16,6 +16,7 @@ const SITE = process.env.SITE_URL ?? "https://www.kittykingdom.net";
 const STYLE: Partial<Record<NotificationType, { emoji: string; button: string }>> = {
   view: { emoji: "👀", button: "View their profile" },
   like: { emoji: "💖", button: "See your likes" },
+  superlike: { emoji: "⭐", button: "See their profile" },
   match: { emoji: "💞", button: "Say hi" },
   message: { emoji: "💬", button: "Reply" },
   request: { emoji: "📨", button: "Open message request" },
@@ -27,6 +28,7 @@ const STYLE: Partial<Record<NotificationType, { emoji: string; button: string }>
 const LINES: Partial<Record<NotificationType, (name: string) => string>> = {
   view: (n) => `**${n}** just peeked at your profile! Maybe take a look at theirs? ✨`,
   like: (n) => `**${n}** liked your profile! Like them back and it's a match. 💕`,
+  superlike: (n) => `**${n}** **super liked** you! ⭐ They really want to get to know you.`,
   match: (n) => `You and **${n}** like each other! Now's the perfect time to say hi. 🥰`,
   message: (n) => `**${n}** sent you a message:`,
   request: (n) => `**${n}** wants to chat! Accept their request to reply.`,
@@ -37,7 +39,7 @@ const LINES: Partial<Record<NotificationType, (name: string) => string>> = {
 
 /** Sends the DM if they asked for this kind. Never throws; gives up quietly if their DMs are closed. */
 export async function sendDatingDm(to: string, settings: DatingSettings, n: { type: NotificationType; actor?: string | null; title: string; body?: string; link: string }) {
-  if (n.type === "system" || !settings.dm[n.type as keyof DatingSettings["dm"]]) return;
+  if (n.type === "system" || !settings.dm[(n.type === "superlike" ? "like" : n.type) as keyof DatingSettings["dm"]]) return;
   // A burst of activity shouldn't flood anyone's DMs
   if (!(await allow([{ key: `dating-dm:${to}`, limit: 12, windowMs: 10 * MINUTE }]).catch(() => false))) return;
   const style = STYLE[n.type] ?? { emoji: "🔔", button: "Open Social" };

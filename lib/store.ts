@@ -6,7 +6,9 @@
 // id uses `useBigInt64` and every id written to the bot's integer fields is a BSON Long.
 
 import { Long, MongoServerError, type Document } from "mongodb";
-import { getBotCollection } from "./mongodb";
+import { ITEM, MAX_CUSTOM_BADGES, cleanFlair, cosmeticOf, rarityFor, type CosmeticSlot, type CustomBadge, type CustomTitle, type Flair, type Rarity } from "./cosmetics";
+import { getBotCollection, getUsersCollection } from "./mongodb";
+import { SITE_ITEMS, ensureSiteCatalog, inWindow } from "./store-catalog";
 import {
   addMemberRole,
   getGuildMember,
@@ -17,7 +19,7 @@ import {
   sendDirectMessage,
 } from "./discord-member";
 
-export const STACKABLE_CATEGORIES = ["Consumables", "Boosters", "Gifts"];
+export const STACKABLE_CATEGORIES = ["Consumables", "Boosters", "Gifts", "Social"];
 export const MAX_BUY_AMOUNT = 50;
 const GIFT_COOLDOWN_MS = 5 * 60 * 1000;
 const LETTER_MAX_LENGTH = 1000;
@@ -35,6 +37,11 @@ const ITEM_ICONS: Record<string, string> = {
   booster_xp: "xp",
   booster_profile: "heart",
   booster_balance: "leaf",
+  booster_spotlight: "spotlight",
+  streak_shield: "shield",
+  super_like: "superlike",
+  custom_title: "title",
+  custom_badge: "badge",
 };
 
 const ICON_BY_NAME: [RegExp, string][] = [
@@ -49,6 +56,7 @@ const ICON_BY_NAME: [RegExp, string][] = [
 ];
 
 const BIG = { useBigInt64: true } as const;
+const LIMITED_EDITIONS: Record<string, number> = Object.fromEntries(SITE_ITEMS.filter((i) => i.quantity).map((i) => [i.item_id, i.quantity!]));
 
 export class StoreError extends Error {
   constructor(message: string, public status = 400) {
@@ -69,12 +77,26 @@ export function iconFor(item: Document) {
   const id = String(item.item_id ?? "").toLowerCase();
   for (const [pattern, key] of ICON_BY_NAME) if (pattern.test(id)) return key;
   if (item.type === "booster") return "rocket";
+  if (item.type === "cosmetic") return "sparkles";
   if (item.type === "gift") return "gift";
   return null;
 }
 
 function isStackable(item: Document) {
-  return STACKABLE_CATEGORIES.includes(item.category);
+  return item.stackable === true || STACKABLE_CATEGORIES.includes(item.category);
+}
+
+/** On sale right now: active, and inside its seasonal/limited window if it has one. */
+function onSale(item: Document) {
+  return Boolean(item.is_active) && !isRetired(item) && inWindow(item as { available_from?: unknown; available_until?: unknown });
+}
+
+/** The most of an item one member may hold (null = no cap). */
+function maxOwned(item: Document) {
+  const n = num(item.max_owned);
+  if (n > 0) return n;
+  if (item.item_id === ITEM.customBadge) return MAX_CUSTOM_BADGES;
+  return null;
 }
 
 async function collections() {
@@ -130,6 +152,16 @@ export type StoreItem = {
   owned: number;
   equipped: boolean;
   requiresMessage: boolean;
+  rarity: Rarity;
+  /** The cosmetic it applies (frames, banners, name effects) */
+  cosmetic: { slot: CosmeticSlot; key: string } | null;
+  /** Seasonal and limited items: when they leave the store */
+  availableUntil: string | null;
+  season: string | null;
+  /** Limited items: how many were ever made */
+  edition: number | null;
+  maxOwned: number | null;
+  isNew: boolean;
 };
 
 export type InventoryEntry = {
@@ -145,6 +177,10 @@ export type InventoryEntry = {
   durationSeconds: number | null;
   giftedCount: number;
   requiresMessage: boolean;
+  rarity: Rarity;
+  cosmetic: { slot: CosmeticSlot; key: string } | null;
+  /** Custom badges: each one they own, and its design (null until designed) */
+  badges?: { id: string; design: CustomBadge | null }[];
 };
 
 export type ActiveBooster = { itemId: string; name: string; icon: string | null; endsAt: string };
@@ -159,9 +195,17 @@ export type StoreState = {
   giftCooldownEndsAt: string | null;
   inServer: boolean;
   serverTime: string;
+  /** What they've equipped and set up with perks */
+  flair: Flair;
+  customTitle: CustomTitle | null;
+  shields: number;
+  superLikes: number;
+  /** Their name and avatar, for "try it on" previews */
+  me: { name: string; avatar: string | null };
 };
 
 export async function getStoreState(discordId: string): Promise<StoreState> {
+  await ensureSiteCatalog();
   const c = await collections();
   const now = new Date();
   const [activeItems, allRoleItems, timers, balanceDoc, invDocs, boosterDocs, memberRoles, guildRoles, cooldown] = await Promise.all([
@@ -175,17 +219,23 @@ export async function getStoreState(discordId: string): Promise<StoreState> {
     getGuildRoles(),
     c.cooldowns.findOne({ _id: toLong(discordId) as never }),
   ]);
+  const [account, member] = await Promise.all([
+    getUsersCollection().then((u) => u.findOne({ discordId }, { projection: { cosmetics: 1, customTitle: 1, displayName: 1, username: 1 } })).catch(() => null),
+    getGuildMember(discordId).catch(() => null),
+  ]);
+  const saleItems = activeItems.filter((i) => inWindow(i as { available_from?: unknown; available_until?: unknown }));
 
   const memberRoleSet = new Set(memberRoles ?? []);
   const ownedCounts = new Map<string, number>();
   for (const doc of invDocs) ownedCounts.set(doc.item_id, (ownedCounts.get(doc.item_id) ?? 0) + 1);
-  const limited = activeItems.filter((i) => num(i.daily_limit) > 0).map((i) => i.item_id as string);
+  const limited = saleItems.filter((i) => num(i.daily_limit) > 0).map((i) => i.item_id as string);
   const today = await boughtInLast24h(discordId, limited);
   const roleIdByItem = new Map(allRoleItems.map((i) => [i.item_id as string, idString(i.role_id)]));
 
-  const items: StoreItem[] = activeItems.map((item) => {
+  const items: StoreItem[] = saleItems.map((item) => {
     const roleId = idString(item.role_id);
     const stock = num(item.quantity);
+    const created = item.created_at instanceof Date ? item.created_at.getTime() : 0;
     return {
       itemId: item.item_id,
       name: item.name,
@@ -205,6 +255,13 @@ export async function getStoreState(discordId: string): Promise<StoreState> {
       owned: ownedCounts.get(item.item_id) ?? 0,
       equipped: roleId ? memberRoleSet.has(roleId) : false,
       requiresMessage: Boolean(item.requires_message),
+      rarity: rarityFor(num(item.price), item.rarity),
+      cosmetic: cosmeticOf(String(item.item_id)),
+      availableUntil: item.available_until instanceof Date ? item.available_until.toISOString() : null,
+      season: typeof item.season === "string" ? item.season : null,
+      edition: item.rotation_type === "limited" ? num(siteEdition(String(item.item_id))) || null : null,
+      maxOwned: maxOwned(item),
+      isNew: created > 0 && now.getTime() - created < 7 * 86_400_000,
     };
   });
 
@@ -215,6 +272,7 @@ export async function getStoreState(discordId: string): Promise<StoreState> {
     if (existing) {
       existing.count += 1;
       if (doc.gifted_by) existing.giftedCount += 1;
+      existing.badges?.push({ id: String(doc._id), design: badgeDesign(doc) });
       continue;
     }
     const roleId = idString(doc.role_id) ?? roleIdByItem.get(doc.item_id) ?? null;
@@ -232,6 +290,9 @@ export async function getStoreState(discordId: string): Promise<StoreState> {
       durationSeconds: num((storeItem as { duration?: unknown } | undefined)?.duration) || (doc.duration ? num(doc.duration) : null),
       giftedCount: doc.gifted_by ? 1 : 0,
       requiresMessage: Boolean(storeItem?.requires_message),
+      rarity: rarityFor(num(storeItem?.price ?? doc.price), storeItem?.rarity),
+      cosmetic: cosmeticOf(String(doc.item_id)),
+      badges: doc.item_id === ITEM.customBadge ? [{ id: String(doc._id), design: badgeDesign(doc) }] : undefined,
     });
   }
 
@@ -251,7 +312,26 @@ export async function getStoreState(discordId: string): Promise<StoreState> {
     giftCooldownEndsAt: cooldownEnd ? cooldownEnd.toISOString() : null,
     inServer: memberRoles !== null,
     serverTime: now.toISOString(),
+    flair: cleanFlair(account?.cosmetics),
+    customTitle: account?.customTitle?.text ? { text: String(account.customTitle.text), hue: String(account.customTitle.hue ?? "#f59b2a") } : null,
+    shields: ownedCounts.get(ITEM.shield) ?? 0,
+    superLikes: ownedCounts.get(ITEM.superLike) ?? 0,
+    me: {
+      name: String(account?.displayName || member?.displayName || member?.username || account?.username || "You"),
+      avatar: member?.avatar?.replace("size=64", "size=256") ?? `/api/discord/avatar/${discordId}`,
+    },
   };
+}
+
+function badgeDesign(doc: Document): CustomBadge | null {
+  const c = doc.custom as Record<string, unknown> | undefined;
+  if (!c || typeof c.name !== "string") return null;
+  return { id: String(doc._id), name: c.name, desc: String(c.desc ?? ""), icon: String(c.icon ?? "Star"), shape: String(c.shape ?? "circle"), hue: String(c.hue ?? "#f59b2a") };
+}
+
+/** How many of a limited website item were made (from the website catalog). */
+function siteEdition(itemId: string) {
+  return LIMITED_EDITIONS[itemId] ?? 0;
 }
 
 // ==========================================
@@ -263,9 +343,14 @@ export async function buyItem(discordId: string, itemId: string, amount: number)
   }
   const c = await collections();
   const item = await c.storeInventory.findOne({ item_id: itemId }, BIG);
-  if (!item || !item.is_active || isRetired(item)) throw new StoreError("That item isn't in the store right now.");
+  if (!item || !onSale(item)) throw new StoreError("That item isn't in the store right now.");
   const stock = num(item.quantity);
   if (stock === 0) throw new StoreError("That item is out of stock.");
+  const cap = maxOwned(item);
+  if (cap !== null) {
+    const have = await c.userInventory.countDocuments({ discordId, item_id: itemId });
+    if (have + amount > cap) throw new StoreError(have >= cap ? `You can hold up to ${cap} of ${item.name}.` : `You can only hold ${cap - have} more ${item.name}.`);
+  }
 
   if (!isStackable(item)) {
     if (amount > 1) throw new StoreError("You can only buy one of this item.");
@@ -348,8 +433,10 @@ export async function checkout(discordId: string, rawLines: unknown) {
   const lines: { item: Document; itemId: string; amount: number; stock: number; cost: number }[] = [];
   for (const [itemId, amount] of Array.from(wanted.entries())) {
     const item = byId.get(itemId);
-    if (!item || !item.is_active || isRetired(item)) throw new StoreError("Something in your cart isn't in the store anymore. Remove it and try again.");
+    if (!item || !onSale(item)) throw new StoreError("Something in your cart isn't in the store anymore. Remove it and try again.");
     const name = String(item.name ?? itemId);
+    const cap = maxOwned(item);
+    if (cap !== null && (await c.userInventory.countDocuments({ discordId, item_id: itemId })) + amount > cap) throw new StoreError(`You can hold up to ${cap} of ${name}.`);
     if (amount > MAX_BUY_AMOUNT) throw new StoreError(`You can buy up to ${MAX_BUY_AMOUNT} of ${name} at a time.`);
     const stock = num(item.quantity);
     if (stock === 0) throw new StoreError(`${name} is out of stock.`);
@@ -420,9 +507,11 @@ export async function activateItem(discordId: string, itemId: string) {
   const owned = await c.userInventory.findOne({ discordId, item_id: itemId }, BIG);
   if (!owned || RETIRED_ITEM_IDS.includes(itemId)) throw new StoreError("You don't own that item anymore.");
   if (owned.type === "gift") throw new StoreError("Gifts are meant to be given! Use Send gift instead.");
+  if (itemId === ITEM.shield) throw new StoreError("Streak Shields work on their own: one is used automatically if you miss a day.");
+  if (itemId === ITEM.superLike) throw new StoreError("Use Super Likes from someone's Social profile.");
   if (owned.type !== "booster") throw new StoreError("That item can't be used.");
 
-  if (itemId === "booster_profile") {
+  if (itemId === "booster_profile" || itemId === ITEM.spotlight) {
     const profile = await c.datingProfiles.findOne({ _id: { $in: [toLong(discordId), discordId] } as never });
     if (!profile) throw new StoreError("You need a Social profile before using a Profile Booster. Make one in Social on the website.");
   }

@@ -1,10 +1,10 @@
 "use client";
 
-import { Eye, Heart, HeartHandshake } from "lucide-react";
+import { Eye, Heart, HeartHandshake, Star } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Empty, ProfileTile, ago, post, useApi, type Card } from "../ui";
 
-type Likes = { booster: boolean; received: (Card & { at: string | null })[]; hidden: number; sent: Card[] };
+type Likes = { booster: boolean; received: (Card & { at: string | null; super?: boolean })[]; hidden: number; sent: Card[] };
 
 export default function Likes() {
   const { data, error, reload } = useApi<Likes>("/api/dating/lists?list=likes");
@@ -82,8 +82,13 @@ export default function Likes() {
                   key={c.id}
                   card={c}
                   extra={
-                    <div className="dt-tile-foot">
-                      <small className="dt-muted">{c.at ? ago(c.at)?.replace("active ", "liked ") : null}</small>
+                    <div className={`dt-tile-foot${c.super ? " is-super" : ""}`}>
+                      {c.super ? (
+                        <span className="dt-superlike-tag" title="They super liked you">
+                          <Star size={12} aria-hidden="true" /> Super Like
+                        </span>
+                      ) : null}
+                      <small className="dt-muted">{c.at ? ago(c.at)?.replace("active ", c.super ? "" : "liked ") : null}</small>
                       {c.liked ? (
                         <span className="dt-badge dt-badge--match">
                           <HeartHandshake size={12} aria-hidden="true" /> Match

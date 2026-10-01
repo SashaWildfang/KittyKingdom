@@ -3,12 +3,12 @@ import { isSnowflake } from "../../../../lib/dating/db";
 import { invalidatePool } from "../../../../lib/dating/pool";
 import { getProfile } from "../../../../lib/dating/profiles";
 import { requireDating, sameOrigin } from "../../../../lib/dating/route-helpers";
-import { block, friendAction, like, setFriendSkip, setPass, unblock, unlike } from "../../../../lib/dating/social";
+import { block, friendAction, like, setFriendSkip, setPass, superLike, unblock, unlike } from "../../../../lib/dating/social";
 import { MINUTE, allow } from "../../../../lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
-const ACTIONS = ["like", "unlike", "pass", "unpass", "friend", "accept", "decline", "unfriend", "block", "unblock", "skip", "unskip"] as const;
+const ACTIONS = ["like", "superlike", "unlike", "pass", "unpass", "friend", "accept", "decline", "unfriend", "block", "unblock", "skip", "unskip"] as const;
 
 /** { action, target }: likes, passes, friends and blocks. */
 export async function POST(request: Request) {
@@ -22,13 +22,21 @@ export async function POST(request: Request) {
   if (!(await allow([{ key: `dating-action:${me.discordId}`, limit: 60, windowMs: MINUTE }]))) return NextResponse.json({ ok: false, error: "Slow down a little." }, { status: 429 });
   const mine = await getProfile(me.discordId);
   const myName = String(mine?.name ?? me.name);
-  if ((action === "like" || action === "pass") && !mine) return NextResponse.json({ ok: false, error: "Create your dating profile first." }, { status: 400 });
+  if ((action === "like" || action === "superlike" || action === "pass") && !mine) return NextResponse.json({ ok: false, error: "Create your dating profile first." }, { status: 400 });
   switch (action) {
     case "like": {
       const r = await like(me.discordId, target, me.booster, myName);
       if (r.status === "blocked") return NextResponse.json({ ok: false, error: "You can't like this profile." }, { status: 400 });
       invalidatePool();
       return NextResponse.json({ ok: true, mutual: r.mutual, left: r.left });
+    }
+    case "superlike": {
+      const r = await superLike(me.discordId, target, me.booster, myName);
+      if (r.status === "blocked") return NextResponse.json({ ok: false, error: "You can't like this profile." }, { status: 400 });
+      if (r.status === "limit") return NextResponse.json({ ok: false, error: "You're out of Super Likes. Get more in the Store.", code: "no-superlikes" }, { status: 400 });
+      if (r.status === "already") return NextResponse.json({ ok: false, error: "You already super liked them." }, { status: 400 });
+      invalidatePool();
+      return NextResponse.json({ ok: true, mutual: r.mutual, superLikesLeft: r.superLikesLeft });
     }
     case "unlike":
       await unlike(me.discordId, target);

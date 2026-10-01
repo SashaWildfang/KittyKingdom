@@ -1,7 +1,7 @@
 "use client";
 
 import { DAILY_CLAIMED_EVENT } from "./daily-ready";
-import { Check, Clock, ExternalLink, Flame, Gem, Gift, Lock } from "lucide-react";
+import { Check, Clock, ExternalLink, Flame, Gem, Gift, Lock, ShieldCheck } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DailyStatus } from "../../lib/daily";
 import { LeafEmote } from "../ui-icons";
@@ -152,7 +152,9 @@ export function DailyCard({ initial, guildId }: { initial: DailyStatus | null; g
             {status.streak ? `${status.streak}-day streak` : "No streak yet"}
           </strong>
           <small>
-            {atRisk && streakEndsMs !== null
+            {status.shieldsNeeded
+              ? `You missed ${status.shieldsNeeded === 1 ? "a day" : `${status.shieldsNeeded} days`}: claim now and ${status.shieldsNeeded === 1 ? "a Streak Shield" : `${status.shieldsNeeded} Streak Shields`} will save your streak.`
+              : atRisk && streakEndsMs !== null
               ? `Claim within ${roughly(streakEndsMs)} to keep it going!`
               : status.claimedToday
                 ? "Come back tomorrow to keep it going."
@@ -161,6 +163,9 @@ export function DailyCard({ initial, guildId }: { initial: DailyStatus | null; g
                   : "Claim today to start one. Missing a day resets it."}
           </small>
         </div>
+        <a className={`daily-shields${status.shields ? " has-shields" : ""}`} href="/store?item=streak_shield" title={status.shields ? `${status.shields} Streak Shield${status.shields === 1 ? "" : "s"}: a missed day uses one instead of breaking your streak` : "Get a Streak Shield to protect your streak if you miss a day"}>
+          <ShieldCheck size={15} aria-hidden="true" /> {status.shields ? `×${status.shields}` : "Get a shield"}
+        </a>
       </div>
 
       <ol className="daily-week" aria-label="7-day streak bonus">

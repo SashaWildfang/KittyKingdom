@@ -6,7 +6,7 @@ import { sendDatingDm } from "./dating/dm";
 import { getSettings } from "./dating/settings";
 import { getMongoClient } from "./mongodb";
 
-export type NotificationType = "like" | "match" | "message" | "request" | "friend-request" | "friend-accepted" | "view" | "partner" | "system";
+export type NotificationType = "like" | "superlike" | "match" | "message" | "request" | "friend-request" | "friend-accepted" | "view" | "partner" | "system";
 
 let ready: Promise<unknown> | null = null;
 const ENVELOPE_TYPES = ["message", "request"];
@@ -23,7 +23,9 @@ export async function notify(to: string, n: { type: NotificationType; actor?: st
   // Members choose which kinds they get in the bell and which also come as Discord DMs (Settings → Notifications)
   const settings = n.type === "system" ? null : await getSettings(to).catch(() => null);
   if (settings) await sendDatingDm(to, settings, n).catch(() => undefined);
-  if (settings?.notify[n.type as keyof typeof settings.notify] === false) return;
+  // Super Likes follow the "Someone likes you" setting
+  const pref = n.type === "superlike" ? "like" : n.type;
+  if (settings?.notify[pref as keyof typeof settings.notify] === false) return;
   const c = await col();
   const doc = { to, type: n.type, actor: n.actor ?? null, title: n.title.slice(0, 140), body: (n.body ?? "").slice(0, 200), link: n.link, at: new Date(), read: false };
   if (n.key) {

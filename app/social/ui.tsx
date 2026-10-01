@@ -3,6 +3,7 @@
 // Shared pieces for the Dating pages: data loading, profile cards, option chips, avatars and the
 // report dialog. Keeping them here keeps every page consistent and easy to extend.
 
+import { FlairName } from "../cosmetic-flair";
 import { Flag, Heart, HeartHandshake, MapPin, Sparkles, Users, X } from "lucide-react";
 import { Score } from "./icons";
 import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
@@ -36,6 +37,8 @@ export type Card = {
   online?: boolean;
   partnered?: boolean;
   myPartner?: boolean;
+  spotlight?: boolean;
+  flair?: { frame: string | null; banner: string | null; nameplate: string | null } | null;
 };
 
 /** GET a dating API route; `reload()` fetches again. */
@@ -136,7 +139,12 @@ export function Photo({ src, name, accent, className = "", crop }: { src: string
 export function ProfileTile({ card, extra, onLike }: { card: Card; extra?: ReactNode; onLike?: (c: Card) => void }) {
   const active = ago(card.lastActive);
   return (
-    <article className="dt-tile" style={{ "--acc": card.accent } as CSSProperties}>
+    <article className={`dt-tile${card.spotlight ? " is-spotlight" : ""}${card.flair?.frame ? ` cos-tile cos-tile--${card.flair.frame}` : ""}`} style={{ "--acc": card.accent } as CSSProperties}>
+      {card.spotlight ? (
+        <span className="dt-spotlight-ribbon">
+          <Sparkles size={11} aria-hidden="true" /> Spotlight
+        </span>
+      ) : null}
       <a href={`/social/u/${card.id}`} className="dt-tile-link" aria-label={`Open ${card.name}'s profile`}>
         <Photo src={card.photo} name={card.name} accent={card.accent} className="dt-tile-photo" crop={card.photoCrop} />
         <span className="dt-tile-badges">
@@ -166,7 +174,9 @@ export function ProfileTile({ card, extra, onLike }: { card: Card; extra?: React
         </span>
         <span className="dt-tile-body">
           <b>
-            {card.name}
+            <FlairName nameplate={card.flair?.nameplate} text={card.name}>
+              {card.name}
+            </FlairName>
             {card.age ? <span>, {card.age}</span> : null}
           </b>
           {card.headline ? <em>{card.headline}</em> : null}

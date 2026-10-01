@@ -1,12 +1,13 @@
 "use client";
 
-import { Bell, ChevronDown, Eye, History, Heart, HeartHandshake, Inbox, MessageCircle, Settings, Sparkles, Trash2, UserCheck, UserPlus } from "lucide-react";
+import { Bell, ChevronDown, Eye, History, Heart, HeartHandshake, Inbox, MessageCircle, Settings, Sparkles, Star, Trash2, UserCheck, UserPlus } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type Item = { id: string; type: string; actor?: string | null; title: string; body: string; link: string; at: string; read: boolean; count: number };
 
 export const NOTIFICATION_ICONS: Record<string, typeof Bell> = {
   like: Heart,
+  superlike: Star,
   match: Sparkles,
   message: MessageCircle,
   request: Inbox,

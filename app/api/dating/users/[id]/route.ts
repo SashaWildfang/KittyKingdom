@@ -7,7 +7,7 @@ import { getSettings } from "../../../../../lib/dating/settings";
 import { confirmedPartners } from "../../../../../lib/dating/partners";
 import { getCurrentBans } from "../../../../../lib/moderation";
 import { requireDating } from "../../../../../lib/dating/route-helpers";
-import { friendState, hasLiked, isMatch, likesReceived, passedIds } from "../../../../../lib/dating/social";
+import { friendState, hasLiked, iSuperLiked, isMatch, likesReceived, passedIds, superLikesOwned } from "../../../../../lib/dating/social";
 
 export const dynamic = "force-dynamic";
 
@@ -25,13 +25,15 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   if (!doc || banned || (staffPaused && !own) || (blocked.has(params.id) && !(await blocks.countDocuments({ blocker: me.discordId, blocked: params.id }, { limit: 1 })))) {
     return NextResponse.json({ ok: false, error: "This profile isn't available." }, { status: 404 });
   }
-  const [view, compat, iLiked, match, friend, received] = await Promise.all([
+  const [view, compat, iLiked, match, friend, received, superLiked, superLikes] = await Promise.all([
     profileView(doc, { viewerIsOwner: own }),
     own ? null : compatWith(me.discordId, params.id),
     own ? false : hasLiked(me.discordId, params.id),
     own ? false : isMatch(me.discordId, params.id),
     own ? "none" : friendState(me.discordId, params.id),
     own ? [] : likesReceived(me.discordId, me.booster),
+    own ? false : iSuperLiked(me.discordId, params.id).catch(() => false),
+    own ? 0 : superLikesOwned(me.discordId),
   ]);
   const theyLike = received.find((l) => l.id === params.id);
   // Let them know someone looked (unless you browse anonymously or they turned it off)
@@ -57,6 +59,9 @@ export async function GET(_request: Request, { params }: { params: { id: string 
         friend,
         blockedByMe: blocked.has(params.id),
         passed: own ? false : (await passedIds(me.discordId)).has(params.id),
+        superLiked,
+        // Super Likes they own (store item)
+        superLikes,
       },
     },
     { headers: { "Cache-Control": "no-store" } },
