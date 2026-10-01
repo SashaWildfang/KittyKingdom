@@ -32,9 +32,11 @@ export async function notify(to: string, n: { type: NotificationType; actor?: st
   }
 }
 
-export async function listNotifications(to: string, limit = 30) {
+/** Newest first; `before` (an ISO time) pages back through older ones. */
+export async function listNotifications(to: string, limit = 30, before?: Date | null) {
   const c = await col();
-  const [rows, unread] = await Promise.all([limit ? c.find({ to }).sort({ at: -1 }).limit(limit).toArray() : Promise.resolve([] as Document[]), c.countDocuments({ to, read: false })]);
+  const q: Document = before ? { to, at: { $lt: before } } : { to };
+  const [rows, unread] = await Promise.all([limit ? c.find(q).sort({ at: -1 }).limit(limit).toArray() : Promise.resolve([] as Document[]), c.countDocuments({ to, read: false })]);
   return {
     unread,
     items: rows.map((r) => ({

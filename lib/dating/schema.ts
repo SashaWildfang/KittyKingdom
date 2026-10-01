@@ -148,29 +148,30 @@ export function accentFor(id: string, chosen?: string | null) {
 }
 
 // ---------- Profile strength (same tips as the bot, plus photos) ----------
-type Check = [number, string, string, (p: ProfileDoc) => boolean];
+// points, label, tip, done?, and where it is in the profile editor (#anchor)
+type Check = [number, string, string, (p: ProfileDoc) => boolean, string];
 const STRENGTH: Check[] = [
-  [14, "Bio", "Write a bio of a few sentences (150+ characters)", (p) => String(p.bio ?? "").length >= 150],
-  [10, "Photos", "Add at least one photo or piece of art", (p) => Array.isArray(p.photos) && p.photos.length > 0],
-  [11, "Hobbies & interests", "Add your hobbies & interests (matching weighs these most)", (p) => isFilled(p.hobbies_interests)],
-  [7, "Likes", "List some things you like", (p) => isFilled(p.likes)],
-  [4, "Favorite games", "Add your favorite games", (p) => isFilled(p.favorite_games)],
-  [9, "Identity", "Set your gender and sexuality", (p) => isFilled(p.gender) && isFilled(p.sexuality)],
-  [13, "Dating targets", "Set who you're looking for (genders, ages, relationship type)", (p) => getList(p, "looking_for_gender").length > 0 && asInt(p.looking_for_min_age) !== null && getList(p, "looking_for_relationship_type").length > 0],
-  [8, "Lifestyle", "Fill in your lifestyle (sleep, activity, kids, marriage)", (p) => ["sleep_schedule", "activity_level", "want_kids", "marriage_goals"].filter((k) => isFilled(p[k])).length >= 3],
-  [4, "Your habits", "Say whether you smoke, drink or use 420", (p) => ["smokes", "drinks", "uses_weed"].filter((k) => isFilled(p[k])).length >= 2],
-  [4, "Partner habits comfort", "Say what habits you're OK with in a partner", (p) => ["smoking_ok", "drinking_ok", "substance_ok"].filter((k) => isFilled(p[k])).length >= 2],
-  [7, "Location & timezone", "Add your location, timezone and distance comfort", (p) => isFilled(p.location) && isFilled(p.timezone) && isFilled(p.distance_comfort)],
-  [4, "Flags & dealbreakers", "Add green/red flags or dealbreakers", (p) => ["green_flags", "red_flags", "dealbreakers"].some((k) => isFilled(p[k]))],
-  [5, "Prompts", "Answer a prompt or two so people have something to reply to", (p) => Array.isArray(p.prompts) && p.prompts.length > 0],
+  [14, "Bio", "Write a bio of a few sentences (150+ characters)", (p) => String(p.bio ?? "").length >= 150, "f-bio"],
+  [10, "Photos", "Add at least one photo or piece of art", (p) => Array.isArray(p.photos) && p.photos.length > 0, "photos"],
+  [11, "Hobbies & interests", "Add your hobbies & interests (matching weighs these most)", (p) => isFilled(p.hobbies_interests), "f-hobbies_interests"],
+  [7, "Likes", "List some things you like", (p) => isFilled(p.likes), "f-likes"],
+  [4, "Favorite games", "Add your favorite games", (p) => isFilled(p.favorite_games), "f-favorite_games"],
+  [9, "Identity", "Set your gender and sexuality", (p) => isFilled(p.gender) && isFilled(p.sexuality), "f-gender"],
+  [13, "Dating targets", "Set who you're looking for (genders, ages, relationship type)", (p) => getList(p, "looking_for_gender").length > 0 && asInt(p.looking_for_min_age) !== null && getList(p, "looking_for_relationship_type").length > 0, "f-looking_for_gender"],
+  [8, "Lifestyle", "Fill in your lifestyle (sleep, activity, kids, marriage)", (p) => ["sleep_schedule", "activity_level", "want_kids", "marriage_goals"].filter((k) => isFilled(p[k])).length >= 3, "f-sleep_schedule"],
+  [4, "Your habits", "Say whether you smoke, drink or use 420", (p) => ["smokes", "drinks", "uses_weed"].filter((k) => isFilled(p[k])).length >= 2, "f-smokes"],
+  [4, "Partner habits comfort", "Say what habits you're OK with in a partner", (p) => ["smoking_ok", "drinking_ok", "substance_ok"].filter((k) => isFilled(p[k])).length >= 2, "f-smoking_ok"],
+  [7, "Location & timezone", "Add your location, timezone and distance comfort", (p) => isFilled(p.location) && isFilled(p.timezone) && isFilled(p.distance_comfort), "f-location"],
+  [4, "Flags & dealbreakers", "Add green/red flags or dealbreakers", (p) => ["green_flags", "red_flags", "dealbreakers"].some((k) => isFilled(p[k])), "f-green_flags"],
+  [5, "Prompts", "Answer a prompt or two so people have something to reply to", (p) => Array.isArray(p.prompts) && p.prompts.length > 0, "prompts"],
 ];
 
 export function profileStrength(p: ProfileDoc) {
   let score = 0;
-  const missing: { points: number; label: string; tip: string }[] = [];
-  for (const [points, label, tip, check] of STRENGTH) {
+  const missing: { points: number; label: string; tip: string; field: string }[] = [];
+  for (const [points, label, tip, check, field] of STRENGTH) {
     if (check(p)) score += points;
-    else missing.push({ points, label, tip });
+    else missing.push({ points, label, tip, field });
   }
   missing.sort((a, b) => b.points - a.points);
   return { score: Math.min(100, score), missing };

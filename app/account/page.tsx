@@ -25,6 +25,7 @@ import { DailyCard } from "./daily-card";
 import { getDailyStatus } from "../../lib/daily";
 import { AccountInventory } from "./account-inventory";
 import { DiscordLinkCode } from "./discord-link-code";
+import { DailyReadyChip, DailyReadyDot } from "./daily-ready";
 import { memberTranscripts, ticketTypeLabel } from "../../lib/member-transcripts";
 import { badgeHistory } from "../../lib/badge-history";
 
@@ -151,6 +152,8 @@ export default async function AccountPage({
   const discordName = discordLinked ? String(user.discord?.username ?? roles.username ?? user.discordId) : null;
   const memberSince = user.createdAt instanceof Date ? formatMonthYear(user.createdAt) : null;
   const statusText = status ? statusMessages[status] ?? `Status: ${status}` : null;
+  // Today's daily reward is waiting (shown even while the card is folded)
+  const dailyReady = Boolean(dailyStatus && !dailyStatus.claimedToday && Date.parse(dailyStatus.nextClaimAt) <= Date.now());
   const statusTone = status && successStatuses.has(status) ? "success" : "error";
 
   return (
@@ -216,6 +219,7 @@ export default async function AccountPage({
                 ))}
               </div>
             ) : null}
+            {discordLinked ? <DailyReadyChip ready={dailyReady} /> : null}
             {memberSince ? <p className="acct-since"><LeafEmote size={16} /> Member since {memberSince}</p> : null}
             {discordLinked ? <StatsButton /> : null}
           </div>
@@ -224,7 +228,7 @@ export default async function AccountPage({
             <a href="#discord-account"><MessageCircle size={16} aria-hidden="true" /> Discord</a>
             <a href="#overview"><ClipboardList size={16} aria-hidden="true" /> Overview</a>
             {discordLinked ? <a href="#roles"><Sparkles size={16} aria-hidden="true" /> Server roles</a> : null}
-            {discordLinked ? <a href="#daily"><Gift size={16} aria-hidden="true" /> Daily Reward</a> : null}
+            {discordLinked ? <a href="#daily"><Gift size={16} aria-hidden="true" /> Daily Reward<DailyReadyDot ready={dailyReady} /></a> : null}
             {discordLinked ? <a href="#inventory"><Backpack size={16} aria-hidden="true" /> Inventory</a> : null}
             {discordLinked ? <a href="#transcripts"><FileText size={16} aria-hidden="true" /> Transcripts</a> : null}
             <a href="#profile"><UserRound size={16} aria-hidden="true" /> Profile</a>
@@ -311,7 +315,7 @@ export default async function AccountPage({
           ) : null}
 
           {discordLinked ? (
-            <CollapsibleCard id="daily" defaultOpen={!collapsed.has("daily")} title="Daily Reward" description="Claim free leaves once a day. Claim every day to build your streak.">
+            <CollapsibleCard id="daily" defaultOpen={!collapsed.has("daily")} title="Daily Reward" description="Claim free leaves once a day. Claim every day to build your streak." summary={dailyReady ? "🎁 Ready to claim!" : undefined}>
               <DailyCard initial={dailyStatus} guildId={serverId} />
             </CollapsibleCard>
           ) : null}

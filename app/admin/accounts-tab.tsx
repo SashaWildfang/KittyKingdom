@@ -72,6 +72,7 @@ type SortKey = "created" | "email" | "username" | "lastLogin" | "online";
 
 const FILTERS = [
   { key: "all", label: "All" },
+  { key: "online", label: "Online now" },
   { key: "verified", label: "Email verified" },
   { key: "unverified", label: "Not verified" },
   { key: "linked", label: "Discord linked" },

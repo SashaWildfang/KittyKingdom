@@ -1,5 +1,6 @@
 "use client";
 
+import { DAILY_CLAIMED_EVENT } from "./daily-ready";
 import { Check, Clock, ExternalLink, Flame, Gem, Gift, Lock } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DailyStatus } from "../../lib/daily";
@@ -79,6 +80,7 @@ export function DailyCard({ initial, guildId }: { initial: DailyStatus | null; g
         void refresh();
       } else {
         setStatus(body.status);
+        window.dispatchEvent(new Event(DAILY_CLAIMED_EVENT));
         setMessage({ text: body.message, tone: "ok" });
         setPopped(body.reward);
         window.setTimeout(() => setPopped(null), 1800);

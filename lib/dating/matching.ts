@@ -124,8 +124,33 @@ function positionsOk(a: ProfileDoc, b: ProfileDoc) {
   }
   return true;
 }
+/** "m" / "f" for binary genders (from gender, else he/him or she/her pronouns), null otherwise. */
+function binarySide(p: ProfileDoc): "m" | "f" | null {
+  const g = p.gender ? String(p.gender) : "";
+  if (g === "Male" || g === "Trans (FtM)") return "m";
+  if (g === "Female" || g === "Trans (MtF)") return "f";
+  if (g) return null;
+  const pronouns = getList(p, "pronouns");
+  const he = pronouns.includes("He/Him");
+  const she = pronouns.includes("She/Her");
+  return he && !she ? "m" : she && !he ? "f" : null;
+}
+/**
+ * Sexuality rules out a pairing on its own: straight never matches the same gender, gay/lesbian
+ * never matches the opposite one (when both genders are known). Checked both ways.
+ */
+function orientationOk(viewer: ProfileDoc, other: ProfileDoc) {
+  const mine = binarySide(viewer);
+  const theirs = binarySide(other);
+  if (!mine || !theirs) return true;
+  const sexuality = viewer.sexuality ? String(viewer.sexuality) : "";
+  if (sexuality === "Straight") return mine !== theirs;
+  if (sexuality === "Gay / Lesbian") return mine === theirs;
+  return true;
+}
 export function blockedReason(a: ProfileDoc, b: ProfileDoc): string | null {
   if (!isLooking(a) || !isLooking(b)) return "Not open to dating";
+  if (!orientationOk(a, b) || !orientationOk(b, a)) return "Your orientations don't match";
   if (!wantsGender(a, b) || !wantsGender(b, a)) return "Gender preferences don't match";
   if (!ageOk(a, b) || !ageOk(b, a)) return "Outside each other's age range";
   if (!relTypesOk(a, b)) return "Looking for different relationship types";
