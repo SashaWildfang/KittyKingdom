@@ -12,6 +12,7 @@ import {
   Link2,
   Loader2,
   Lock,
+  Mail,
   MessageCircle,
   Palette,
   PenLine,
@@ -292,14 +293,21 @@ export function SettingsPanel({ social }: { social: boolean }) {
                   {t.hint ? <small>{t.hint}</small> : null}
                 </span>
                 <span role="cell">
-                  <Switch
-                    label={`${t.label} on the site`}
-                    checked={s.notify[t.key] !== false}
-                    onChange={(v) => {
-                      setS({ ...s, notify: { ...s.notify, [t.key]: v } });
-                      void save({ notify: { [t.key]: v } });
-                    }}
-                  />
+                  {t.key === "message" || t.key === "request" ? (
+                    // Messages always show on the envelope at the top of the site
+                    <span className="set-matrix-fixed" title="Shown on the envelope at the top of the site">
+                      <Mail size={14} aria-hidden="true" /> Envelope
+                    </span>
+                  ) : (
+                    <Switch
+                      label={`${t.label} on the site`}
+                      checked={s.notify[t.key] !== false}
+                      onChange={(v) => {
+                        setS({ ...s, notify: { ...s.notify, [t.key]: v } });
+                        void save({ notify: { [t.key]: v } });
+                      }}
+                    />
+                  )}
                 </span>
                 <span role="cell">
                   <Switch
@@ -315,7 +323,7 @@ export function SettingsPanel({ social }: { social: boolean }) {
             ))}
           </div>
           <p className="set-note">
-            <MessageCircle size={15} aria-hidden="true" /> Discord DMs are off unless you turn them on. Your Discord privacy settings must allow DMs from server members, and you&apos;ll get at most a few every few minutes.
+            <MessageCircle size={15} aria-hidden="true" /> Message DMs are a reminder: if a message is still unread after 10 minutes, the bot DMs you once. Other DMs are off unless you turn them on. Your Discord privacy settings must allow DMs from server members.
           </p>
         </Group>
       </>

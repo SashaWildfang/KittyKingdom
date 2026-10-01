@@ -94,6 +94,8 @@ export async function thread(me: string, other: string, before?: string, opts: {
   if (!opts.readOnly) {
     if (conv && Number(conv.unread?.[me] ?? 0) > 0) await convs.updateOne({ _id: id } as never, { $set: { [`unread.${me}`]: 0, [`readAt.${me}`]: new Date() } });
     await markReadByKey(me, `msg:${id}`);
+    // Read: no Discord DM reminder needed
+    await (await getMongoClient()).db(process.env.MONGODB_DB ?? "website").collection("message_dm_queue").deleteOne({ _id: `${id}:${me}` } as never).catch(() => undefined);
   }
   const canWriteFreely = await trusted(me, other);
   const [mySettings, theirSettings] = await Promise.all([getSettings(me), getSettings(other)]);
@@ -159,14 +161,21 @@ export async function send(me: string, other: string, raw: string, myName: strin
     },
     { upsert: true },
   );
-  await notify(other, {
-    type: state === "request" ? "request" : "message",
-    actor: me,
-    title: state === "request" ? `${myName} sent you a message request` : `New message from ${myName}`,
-    body: text.slice(0, 100),
-    link: `/social/messages/${me}`,
-    key: `msg:${id}`,
-  });
+  // Messages show on the envelope (not the bell). If it's still unread after 10 minutes, the bot sends
+  // one Discord DM about it (Main_Bot events/social_message_dm.py reads this queue)
+  await (await getMongoClient())
+    .db(process.env.MONGODB_DB ?? "website")
+    .collection("message_dm_queue")
+    .updateOne(
+      { _id: `${id}:${other}` } as never,
+      {
+        $set: { to: other, from: me, fromName: myName, conv: id, kind: state === "request" ? "request" : "message", lastText: text.slice(0, 180), lastAt: now },
+        // One reminder per unread stretch: more messages don't re-arm it (reading the chat clears it)
+        $setOnInsert: { firstAt: now, sentAt: null },
+      },
+      { upsert: true },
+    )
+    .catch(() => undefined);
   return { id: String(res.insertedId) };
 }
 

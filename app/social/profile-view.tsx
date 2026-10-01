@@ -306,7 +306,8 @@ export function ProfileScreen({ id }: { id: string }) {
   // Close the "more" menu when clicking elsewhere
   useEffect(() => {
     if (!menu) return;
-    const close = (e: MouseEvent) => !(e.target as HTMLElement).closest(".dt-more") && setMenu(false);
+    // Clicks inside a window opened from the menu (like Report) don't count as "elsewhere"
+    const close = (e: MouseEvent) => !(e.target as HTMLElement).closest(".dt-more, .dt-modal-backdrop") && setMenu(false);
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
   }, [menu]);
