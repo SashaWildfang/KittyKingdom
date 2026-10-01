@@ -2,7 +2,7 @@
 
 import { Eye, Loader2, Save, Sparkles, Trash2, TriangleAlert, Wand2 } from "lucide-react";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { SECTIONS } from "../../../../lib/dating/schema";
+import { FIELDS, SECTIONS } from "../../../../lib/dating/schema";
 import { AgeField, FieldInput, FursonaEditor, PartnerManager, type Birth, LooksEditor, PhotoManager, PromptsEditor, changed, clearDraft, readDraft, saveMe, writeDraft, type Own } from "../../profile-form";
 import { SectionIcon } from "../../icons";
 import { Empty, useApi } from "../../ui";
@@ -78,6 +78,24 @@ export default function EditProfile() {
     return () => window.removeEventListener("beforeunload", onLeave);
   }, [dirty]);
 
+  // Arriving from a profile-strength tip (#f-bio, #photos…): jump to that field and flash it
+  const [jumped, setJumped] = useState(false);
+  useEffect(() => {
+    if (!own || jumped) return;
+    setJumped(true);
+    const id = window.location.hash.slice(1);
+    if (!id) return;
+    window.setTimeout(() => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const target = (el.closest(".dt-field") as HTMLElement | null) ?? el;
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+      target.classList.add("dt-jump-flash");
+      if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement) el.focus({ preventScroll: true });
+      window.setTimeout(() => target.classList.remove("dt-jump-flash"), 2400);
+    }, 150);
+  }, [own, jumped]);
+
   // Highlight the section in view
   useEffect(() => {
     const els = Array.from(document.querySelectorAll<HTMLElement>(".dt-edit-section"));
@@ -116,6 +134,21 @@ export default function EditProfile() {
     setMsg({ text: "Saved! Your matches update within a minute." });
   };
   const flagged = new Set(own.review);
+  // Old Discord answers that didn't fit the new choices: these need a real answer before saving
+  const stale = Object.keys(own.legacy).filter((k) => {
+    const f = FIELDS[k];
+    if (!f || f.kind === "text") return false;
+    const v = values[k];
+    return Array.isArray(v) ? v.length === 0 : v === null || v === undefined || String(v).trim() === "";
+  });
+  const jumpTo = (key: string) => {
+    const el = document.getElementById(`f-${key}`);
+    const target = (el?.closest(".dt-field") as HTMLElement | null) ?? el;
+    if (!target) return;
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    target.classList.add("dt-jump-flash");
+    window.setTimeout(() => target.classList.remove("dt-jump-flash"), 2400);
+  };
   const nav = [...EXTRA, ...SECTIONS.map((s) => ({ id: s.id, label: s.label })), ...TAIL];
 
   return (
@@ -178,6 +211,24 @@ export default function EditProfile() {
           </h2>
           <PhotoManager photos={own.photos} onChange={(p) => setOwn((o) => (o ? { ...o, photos: p.photos, strength: p.strength } : p))} />
         </section>
+        {stale.length ? (
+          <div className="dt-banner dt-banner--warn" role="alert">
+            <TriangleAlert size={18} aria-hidden="true" />
+            <div>
+              <b>
+                {stale.length === 1 ? "One of your old answers needs" : `${stale.length} of your old answers need`} updating before you can save changes.
+              </b>
+              <p>These came from the Discord bot and don&apos;t fit the new options. Pick a new answer for each:</p>
+              <div className="dt-stale-list">
+                {stale.map((k) => (
+                  <button key={k} type="button" className="dt-chip" onClick={() => jumpTo(k)}>
+                    {FIELDS[k].label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
         <section id="partners" className="dt-card dt-edit-section">
           <PartnerManager onCount={setPartnerCount} />
         </section>

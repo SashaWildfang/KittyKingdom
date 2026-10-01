@@ -1,11 +1,11 @@
 "use client";
 
-import { Bell, ChevronDown, Eye, Heart, HeartHandshake, Inbox, MessageCircle, Settings, Sparkles, Trash2, UserCheck, UserPlus } from "lucide-react";
+import { Bell, ChevronDown, Eye, History, Heart, HeartHandshake, Inbox, MessageCircle, Settings, Sparkles, Trash2, UserCheck, UserPlus } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type Item = { id: string; type: string; title: string; body: string; link: string; at: string; read: boolean; count: number };
 
-const ICONS: Record<string, typeof Bell> = {
+export const NOTIFICATION_ICONS: Record<string, typeof Bell> = {
   like: Heart,
   match: Sparkles,
   message: MessageCircle,
@@ -123,7 +123,7 @@ export function NotificationBell() {
           ) : items.length ? (
             <ul>
               {items.slice(0, shown).map((n) => {
-                const Icon = ICONS[n.type] ?? Bell;
+                const Icon = NOTIFICATION_ICONS[n.type] ?? Bell;
                 return (
                   <li key={n.id}>
                     <a
@@ -157,9 +157,14 @@ export function NotificationBell() {
           ) : (
             <p className="nb-empty">You&apos;re all caught up.</p>
           )}
-          <a className="nb-foot" href="/settings#notifications">
-            <Settings size={13} aria-hidden="true" /> Notification settings
-          </a>
+          <div className="nb-foot-row">
+            <a className="nb-foot" href="/notifications">
+              <History size={13} aria-hidden="true" /> See all notifications
+            </a>
+            <a className="nb-foot" href="/settings#notifications">
+              <Settings size={13} aria-hidden="true" /> Settings
+            </a>
+          </div>
         </div>
       ) : null}
     </div>

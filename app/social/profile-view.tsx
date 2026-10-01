@@ -322,6 +322,8 @@ export function ProfileScreen({ id }: { id: string }) {
     );
   if (!data) return <div className="dt-loading dt-loading--tall" aria-busy="true" />;
   const { profile: p, compat: c, relation: r, views: v } = data;
+  // Orientations rule dating out completely (they can still be friends)
+  const noDating = Boolean(c && !c.partnered && c.blocked && /orientation/i.test(c.blocked));
 
   const act = async (action: string, done?: string) => {
     setBusy(true);
@@ -541,8 +543,9 @@ export function ProfileScreen({ id }: { id: string }) {
           {c && !data.own ? (
             <section className="dt-card dt-compat">
               <header>
-                <div className="dt-ring dt-ring--big" style={{ "--p": c.score } as CSSProperties}>
-                  <b>{c.score}%</b>
+                {/* Orientations rule out dating entirely: no match percentage, just a clear no */}
+                <div className={`dt-ring dt-ring--big${noDating ? " is-none" : ""}`} style={{ "--p": noDating ? 0 : c.score } as CSSProperties}>
+                  <b>{noDating ? "—" : `${c.score}%`}</b>
                 </div>
                 <div>
                   {c.partnered ? (
@@ -555,10 +558,18 @@ export function ProfileScreen({ id }: { id: string }) {
                   ) : (
                     <>
                       <b className="dt-h-icon">
-                        <TierIcon score={c.score} fit={!c.blocked} size={16} /> {c.blocked ? "Friendly fit" : `${c.tier} match`}
+                        <TierIcon score={c.score} fit={!c.blocked} size={16} /> {noDating ? "Not a dating match" : c.blocked ? "Friendly fit" : `${c.tier} match`}
                       </b>
-                      <small className="dt-muted">{c.ai ? "Matched by meaning with our AI" : "Matched on shared words"}</small>
-                      {c.blocked ? <small className="dt-muted">Not a dating fit: {c.blocked}</small> : null}
+                      {noDating ? (
+                        <small className="dt-muted">
+                          {c.blocked}. As friends you&apos;d get along {c.score}%.
+                        </small>
+                      ) : (
+                        <>
+                          <small className="dt-muted">{c.ai ? "Matched by meaning with our AI" : "Matched on shared words"}</small>
+                          {c.blocked ? <small className="dt-muted">Not a dating fit: {c.blocked}</small> : null}
+                        </>
+                      )}
                     </>
                   )}
                 </div>

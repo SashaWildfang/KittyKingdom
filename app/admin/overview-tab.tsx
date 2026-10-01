@@ -331,7 +331,7 @@ export function OverviewTab({
             {t ? (
               <BarList
                 color="rgba(18, 165, 148, 0.3)"
-                items={t.topStaff.map((u) => ({ key: u.id, value: u.count, label: <PersonLink id={u.id} people={people} onOpen={onOpenMember} compact /> }))}
+                items={t.topStaff.map((u) => ({ key: u.id, value: u.count, label: <PersonLink id={u.id} people={people} onOpen={() => setDrill({ kind: "ticketStaff", id: u.id })} compact /> }))}
               />
             ) : (
               <Skeleton />
@@ -343,7 +343,7 @@ export function OverviewTab({
             {t ? (
               <BarList
                 color="rgba(214, 64, 159, 0.28)"
-                items={t.topOpeners.map((u) => ({ key: u.id, value: u.count, label: <PersonLink id={u.id} people={people} onOpen={onOpenMember} compact /> }))}
+                items={t.topOpeners.map((u) => ({ key: u.id, value: u.count, label: <PersonLink id={u.id} people={people} onOpen={() => setDrill({ kind: "ticketOpener", id: u.id })} compact /> }))}
               />
             ) : (
               <Skeleton />

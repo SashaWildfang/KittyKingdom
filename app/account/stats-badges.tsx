@@ -3,7 +3,7 @@
 import { ArrowDown, ArrowUp, Check, History, Pencil, Pin, PinOff, Sparkles, Type, X } from "lucide-react";
 import type { BadgeEarned, BadgeHistory } from "../../lib/badge-history";
 import { earnedText } from "./badge-tip";
-import { useMemo, useState, type CSSProperties } from "react";
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { MAX_SHOWCASE, TIER_NAMES, badgeAbout, type BadgeCategory, type BadgeShowcase, type EarnedBadge } from "../../lib/badges";
 import { BadgeMedal } from "./badge-medal";
 import { BADGES_EVENT } from "./profile-badges";
@@ -206,6 +206,29 @@ export function BadgeCollection({ badges, showcase, history, onSaved }: { badges
     return out.sort((a, b) => (sort === "name" ? a.name.localeCompare(b.name) : sort === "progress" ? b.progress - a.progress || b.tier - a.tier : b.tier - a.tier || b.progress - a.progress));
   }, [badges, cat, sort, hideLocked]);
   const detail = open ? byId.get(open) ?? null : null;
+  // Where the details go: after the last badge in the open badge's row (worked out from the layout)
+  const grid = useRef<HTMLDivElement>(null);
+  const detailRow = useRef<HTMLDivElement>(null);
+  const openIndex = detail ? list.findIndex((b) => b.id === detail.id) : -1;
+  const [detailAfter, setDetailAfter] = useState(-1);
+  useLayoutEffect(() => {
+    const place = () => {
+      const el = grid.current;
+      if (!el || openIndex < 0) return setDetailAfter(-1);
+      const buttons = Array.from(el.querySelectorAll<HTMLElement>("button[data-badge]"));
+      const top = buttons[openIndex]?.offsetTop;
+      let last = openIndex;
+      for (let i = openIndex + 1; i < buttons.length && buttons[i].offsetTop === top; i++) last = i;
+      setDetailAfter(last);
+    };
+    place();
+    window.addEventListener("resize", place);
+    return () => window.removeEventListener("resize", place);
+  }, [openIndex, list.length]);
+  // Bring the details into view when they open
+  useEffect(() => {
+    if (detail && detailAfter >= 0) detailRow.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [detail, detailAfter]);
   const counts = [1, 2, 3, 4].map((t) => badges.filter((b) => b.tiers.length > 1 && b.tier === t).length);
 
   const place = (id: string) => {
@@ -384,26 +407,15 @@ export function BadgeCollection({ badges, showcase, history, onSaved }: { badges
         </label>
       </div>
 
-      {detail ? (
-        <Detail
-          b={detail}
-          earned={history?.earned[detail.id]}
-          onClose={() => setOpen(null)}
-          pinned={!editing && pinned.includes(detail.id)}
-          isTitle={!editing && title === detail.id}
-          onUnpin={() => void unpin(detail.id)}
-          onRemoveTitle={() => void removeTitle()}
-          busy={busy}
-        />
-      ) : null}
 
-      <div className="st-badges">
+      <div className="st-badges" ref={grid}>
         {list.map((b, i) => {
           const isPinned = pinned.includes(b.id);
           const canPin = editing && b.tier > 0;
           return (
+            <Fragment key={b.id}>
             <button
-              key={b.id}
+              data-badge={b.id}
               type="button"
               className={`st-badge2${b.tier ? "" : " is-locked"}${open === b.id ? " is-open" : ""}${isPinned ? " is-pinned" : ""}${editing && !b.tier ? " is-disabled" : ""}`}
               style={{ "--hue": b.hue, "--d": `${Math.min(i, 24) * 30}ms` } as CSSProperties}
@@ -428,6 +440,22 @@ export function BadgeCollection({ badges, showcase, history, onSaved }: { badges
                 </span>
               ) : null}
             </button>
+            {/* The open badge's details sit right under its row */}
+            {detail && i === detailAfter ? (
+              <div className="st-bdetail-row" ref={detailRow}>
+                <Detail
+                  b={detail}
+                  earned={history?.earned[detail.id]}
+                  onClose={() => setOpen(null)}
+                  pinned={!editing && pinned.includes(detail.id)}
+                  isTitle={!editing && title === detail.id}
+                  onUnpin={() => void unpin(detail.id)}
+                  onRemoveTitle={() => void removeTitle()}
+                  busy={busy}
+                />
+              </div>
+            ) : null}
+            </Fragment>
           );
         })}
       </div>

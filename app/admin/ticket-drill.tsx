@@ -28,7 +28,10 @@ type Result = {
 
 const statusClass = (s: string) => (s === "Open" ? "adm-status adm-status--active" : "adm-status");
 
-/** The story behind one ticket type on the overview: statuses, who handled and opened them, every ticket. */
+/**
+ * The story behind a set of tickets on the overview (one type, everything a staff member handled, or
+ * everything a member opened): statuses, who handled and opened them, every ticket.
+ */
 export function TicketTypeDrill({
   drill,
   onClose,
@@ -41,8 +44,17 @@ export function TicketTypeDrill({
   onOpenTranscript?: (ticketId: number) => void;
 }) {
   const type = drill.kind === "ticketType" ? drill.type : "";
+  const personId = drill.kind === "ticketStaff" || drill.kind === "ticketOpener" ? drill.id : "";
   const range = drill.range ?? "all";
-  const params = new URLSearchParams({ types: type, pageSize: "100", summary: "1", sort: "created", order: "desc", ...(range !== "all" ? { range } : {}) });
+  const params = new URLSearchParams({
+    ...(type ? { types: type } : {}),
+    ...(drill.kind === "ticketStaff" ? { staffId: personId } : drill.kind === "ticketOpener" ? { userId: personId } : {}),
+    pageSize: "100",
+    summary: "1",
+    sort: "created",
+    order: "desc",
+    ...(range !== "all" ? { range } : {}),
+  });
   const { data, error, loading } = useLive<Result>(`/api/admin/tickets?${params}`, 20_000);
 
   useEffect(() => {
@@ -54,6 +66,8 @@ export function TicketTypeDrill({
   const people = data?.people ?? {};
   const s = data?.summary;
   const color = TICKET_COLORS[type] ?? "#8b8d98";
+  const personName = personId ? people[personId]?.name ?? personId : "";
+  const kicker = drill.kind === "ticketStaff" ? "Tickets handled by" : drill.kind === "ticketOpener" ? "Tickets opened by" : "Ticket type";
 
   return (
     <div className="adm-drawer-backdrop" onClick={onClose}>
@@ -66,8 +80,13 @@ export function TicketTypeDrill({
             <Ticket size={26} />
           </span>
           <div>
-            <p className="adm-drill-kicker">Ticket type</p>
-            <h2>{prettyAction(type)}</h2>
+            <p className="adm-drill-kicker">{kicker}</p>
+            <h2>{personId ? personName : prettyAction(type)}</h2>
+            {personId ? (
+              <button type="button" className="adm-btn adm-btn--tiny adm-btn--ghost adm-drill-profile" onClick={() => onOpenMember(personId)}>
+                Open their profile
+              </button>
+            ) : null}
             <p>
               {data ? `${data.total.toLocaleString()} ticket${data.total === 1 ? "" : "s"}` : "…"}
               {range !== "all" ? " in this range" : " all time"}
