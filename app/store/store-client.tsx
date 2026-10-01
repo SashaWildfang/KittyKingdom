@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { Backpack, Check, ChevronLeft, ChevronRight, CircleAlert, Crown, Eye, Flame, Gift, Heart, Hourglass, LayoutGrid, Minus, Package, Paintbrush, Plus, Rocket, Search, ShieldCheck, ShoppingBag, ShoppingCart, Sparkles, Star, Trash2, Wand2, X } from "lucide-react";
+import { Backpack, Check, ChevronLeft, ChevronRight, CircleAlert, Crown, Eye, Flame, Gift, Heart, Hourglass, LayoutGrid, Minus, Package, Paintbrush, Plus, Repeat, Rocket, Search, ShieldCheck, ShoppingBag, ShoppingCart, Sparkles, Star, Trash2, Wand2, X } from "lucide-react";
 import { RARITY, SLOT_LABELS, type Flair } from "../../lib/cosmetics";
 import type { InventoryEntry, StoreItem, StoreState } from "../../lib/store";
 import { LeafEmote, StoreItemIcon } from "../ui-icons";
 import { Locker } from "./locker";
+import { TradesView } from "./trades";
 import { Celebrate, CountUp, MiniProfile, StoreBackdrop, tiltHandlers } from "./store-fx";
 
 const MAX_BUY = 50;
@@ -120,7 +121,20 @@ function ItemVisual({ icon, roleColors, isRole, large = false, cosmetic, name }:
 // ==========================================
 export function StoreClient({ initialState, inventoryOnly = false }: { initialState: StoreState; inventoryOnly?: boolean }) {
   const [state, setState] = useState(initialState);
-  const [tab, setTab] = useState<"shop" | "locker" | "inventory">(inventoryOnly ? "inventory" : "shop");
+  const [tab, setTab] = useState<"shop" | "locker" | "trades" | "inventory">(inventoryOnly ? "inventory" : "shop");
+  // Trade offers waiting for them (the Trades tab keeps it current while open)
+  const [tradeOffers, setTradeOffers] = useState(0);
+  useEffect(() => {
+    if (inventoryOnly) return;
+    const load = () =>
+      fetch("/api/store/trades", { cache: "no-store" })
+        .then((x) => x.json())
+        .then((r) => r?.ok && setTradeOffers(r.incoming.length))
+        .catch(() => undefined);
+    void load();
+    const t = window.setInterval(() => document.visibilityState === "visible" && void load(), 60_000);
+    return () => window.clearInterval(t);
+  }, [inventoryOnly]);
   const [celebrate, setCelebrate] = useState(0);
   const [category, setCategory] = useState("All");
   const [modal, setModal] = useState<Modal>(null);
@@ -212,8 +226,8 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
   useEffect(() => {
     if (inventoryOnly) return;
     const params = new URLSearchParams(window.location.search);
-    if (params.get("tab") === "locker") {
-      setTab("locker");
+    if (params.get("tab") === "locker" || params.get("tab") === "trades") {
+      setTab(params.get("tab") as "locker" | "trades");
       window.history.replaceState(null, "", "/store");
       return;
     }
@@ -350,6 +364,9 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
           <button role="tab" aria-selected={tab === "locker"} className={tab === "locker" ? "active" : ""} onClick={() => setTab("locker")}>
             <Paintbrush size={16} aria-hidden="true" /> Locker
           </button>
+          <button role="tab" aria-selected={tab === "trades"} className={tab === "trades" ? "active" : ""} onClick={() => setTab("trades")}>
+            <Repeat size={16} aria-hidden="true" /> Trades {tradeOffers ? <span className="store-tab-count is-hot">{tradeOffers}</span> : null}
+          </button>
           <button role="tab" aria-selected={tab === "inventory"} className={tab === "inventory" ? "active" : ""} onClick={() => setTab("inventory")}>
             <Backpack size={16} aria-hidden="true" /> Inventory {inventoryCount ? <span className="store-tab-count">{inventoryCount}</span> : null}
           </button>
@@ -440,6 +457,8 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
           )}
           {!visible.length ? <p className="store-empty">{q ? "Nothing matches that search." : "Nothing in this category right now. Check back after the next rotation!"}</p> : null}
         </>
+      ) : tab === "trades" ? (
+        <TradesView state={state} onState={setState} toast={toast} onCount={setTradeOffers} />
       ) : tab === "locker" ? (
         <Locker
           state={state}
