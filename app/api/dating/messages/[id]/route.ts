@@ -3,6 +3,7 @@ import { isSnowflake } from "../../../../../lib/dating/db";
 import { deleteMessage, hideConversation, respondToRequest, send, thread } from "../../../../../lib/dating/messages";
 import { getProfile } from "../../../../../lib/dating/profiles";
 import { requireDating, sameOrigin } from "../../../../../lib/dating/route-helpers";
+import { touchActive } from "../../../../../lib/dating/social";
 import { MINUTE, allow } from "../../../../../lib/rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +26,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
   if (!isSnowflake(params.id)) return NextResponse.json({ ok: false, error: "Unknown member." }, { status: 404 });
   const body = (await request.json().catch(() => null)) as { text?: unknown; request?: unknown; hide?: unknown; unsend?: unknown } | null;
   if (!body) return NextResponse.json({ ok: false, error: "Invalid request." }, { status: 400 });
+  await touchActive(me.discordId).catch(() => undefined);
   if (body.request === "accept" || body.request === "decline") {
     const err = await respondToRequest(me.discordId, params.id, body.request === "accept");
     return err ? NextResponse.json({ ok: false, error: err }, { status: 400 }) : NextResponse.json({ ok: true });

@@ -1,6 +1,6 @@
 import { userTimeZone } from "../../lib/timezone";
 import { accountGreeting } from "../../lib/greeting";
-import { Backpack, ChevronDown, Gift, ShieldCheck, Check, CircleAlert, ClipboardList, FileText, KeyRound, Link2, Lock, Mail, MessageCircle, Sparkles, TriangleAlert, UserRound } from "lucide-react";
+import { Backpack, ChevronDown, Gift, ShieldCheck, Check, CircleAlert, ClipboardList, FileText, Gavel, KeyRound, Lock, Mail, MessageCircle, Sparkles, TriangleAlert, UserRound } from "lucide-react";
 import { LeafEmote } from "../ui-icons";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -10,9 +10,8 @@ import { DiscordUnlinkForm } from "../discord-unlink-form";
 import { getDiscordInviteSummary } from "../../lib/discord";
 import { SiteNav } from "../site-nav";
 import { VerifyEmailBanner } from "../verify-email-banner";
-import { BrandIcon } from "../brand-icon";
 import { getMemberRoleSummary, guildId } from "../../lib/discord-member";
-import { formatPhone, SOCIALS, type SocialLink } from "../../lib/contact";
+import { formatPhone } from "../../lib/contact";
 import { formatDateOfBirth } from "../../lib/dates";
 import { applicationBirthday, getJoinApplication } from "../../lib/join-application";
 import { getRoleState } from "../../lib/member-roles";
@@ -28,6 +27,8 @@ import { DiscordLinkCode } from "./discord-link-code";
 import { DailyReadyChip, DailyReadyDot } from "./daily-ready";
 import { memberTranscripts, ticketTypeLabel } from "../../lib/member-transcripts";
 import { badgeHistory } from "../../lib/badge-history";
+import { serverJoinDate } from "../../lib/member-directory";
+import { myPunishments } from "../../lib/appeals";
 
 const shortDate = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Denver" });
 import { RoleManager } from "./role-manager";
@@ -37,14 +38,10 @@ import type { BadgeShowcase } from "../../lib/badges";
 import { accountName } from "../../lib/names";
 
 const statusMessages: Record<string, string> = {
-  "contact-saved": "Contact details and social links saved.",
+  "contact-saved": "Phone number saved.",
   "invalid-phone": "That phone number doesn't look right. Include your country code, e.g. +44 for the UK or +1 for the US and Canada.",
   "fake-phone": "That phone number doesn't look real. Enter your actual number, or leave it blank.",
   "spam-name": "That display name looks like keyboard spam or isn't allowed. Try your real nickname.",
-  "invalid-twitter": "That Twitter / X handle isn't valid. Use @handle or an x.com link.",
-  "invalid-telegram": "That Telegram username isn't valid. Use @username (5+ characters) or a t.me link.",
-  "invalid-youtube": "That YouTube channel isn't valid. Use @channel or a youtube.com link.",
-  "invalid-steam": "That Steam profile isn't valid. Use your custom ID or a steamcommunity.com link.",
   "username-saved": "Username saved. Usernames can only be set once.",
   "username-taken": "That username is already taken.",
   "username-locked": "Your username is already set and cannot be changed.",
@@ -84,11 +81,7 @@ const statusMessages: Record<string, string> = {
 
 const successStatuses = new Set(["password-reset", "username-saved", "name-saved", "password-saved", "success", "linked", "unlinked", "contact-saved"]);
 
-// What to show in a social link's input box: the short handle/ID when there is one, else the full link
-function socialInputValue(link: SocialLink | undefined) {
-  if (!link) return "";
-  return link.handle === "Steam profile" || link.handle === "YouTube channel" ? link.url : link.handle;
-}
+const PUNISHMENT_WORDS: Record<string, string> = { ban: "Ban", kick: "Kick", kick_unverified: "Kick", tempmute: "Mute", mute: "Mute", timeout: "Timeout", warn: "Warning" };
 
 function formatMonthYear(date: Date) {
   return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: userTimeZone() }).format(date);
@@ -123,7 +116,7 @@ export default async function AccountPage({
     searchParams.discord ??
     searchParams.verify ??
     searchParams.login;
-  const [application, roles, roleState, dailyStatus, serverId, staffAccount, transcripts, badgeDates] = await Promise.all([
+  const [application, roles, roleState, dailyStatus, serverId, staffAccount, transcripts, badgeDates, joinedServer, punishments] = await Promise.all([
     getJoinApplication(user.discordId),
     getMemberRoleSummary(user.discordId),
     user.discordId ? getRoleState(String(user.discordId)).catch(() => null) : Promise.resolve(null),
@@ -132,8 +125,12 @@ export default async function AccountPage({
     isStaffDiscordId(user.discordId).catch(() => false),
     user.discordId ? memberTranscripts(String(user.discordId)).catch(() => null) : Promise.resolve(null),
     user.discordId ? badgeHistory(String(user.discordId)).catch(() => null) : Promise.resolve(null),
+    serverJoinDate(user.discordId ? String(user.discordId) : null).catch(() => null),
+    user.discordId ? myPunishments(String(user.discordId)).catch(() => null) : Promise.resolve(null),
   ]);
-  const socials = (user.socials ?? {}) as Partial<Record<string, SocialLink>>;
+  const tz = userTimeZone();
+  const punDate = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", timeZone: tz });
+  const activeCount = punishments?.filter((p) => p.active).length ?? 0;
   const phone = typeof user.phone === "string" ? user.phone : null;
   // Birthday and age come from the Discord join application
   const birthday = applicationBirthday(application, { dateOfBirth: user.dateOfBirth, age: user.age });
@@ -150,7 +147,8 @@ export default async function AccountPage({
   const discordLinked = Boolean(user.discordId);
   const twoFactor = twoFactorStatus(user);
   const discordName = discordLinked ? String(user.discord?.username ?? roles.username ?? user.discordId) : null;
-  const memberSince = user.createdAt instanceof Date ? formatMonthYear(user.createdAt) : null;
+  // "Member since" is when they joined the Discord server (not when they signed up or applied)
+  const memberSince = joinedServer ? formatMonthYear(joinedServer) : null;
   const statusText = status ? statusMessages[status] ?? `Status: ${status}` : null;
   // Today's daily reward is waiting (shown even while the card is folded)
   // (same rule as the Daily Reward card: not claimed yet, or the next claim has opened)
@@ -204,22 +202,6 @@ export default async function AccountPage({
             {user.username ? <p className="acct-handle">@{user.username}</p> : null}
             {discordLinked ? <ProfileBadges initial={(user.badgeShowcase as BadgeShowcase | undefined) ?? null} earned={badgeDates?.earned} /> : null}
             <LiveServerStatus initial={roleState} discordLinked={discordLinked} fallbackStaff={roles.isStaff} />
-            {SOCIALS.some((s) => socials[s.key]) ? (
-              <div className="acct-social-icons">
-                {SOCIALS.filter((s) => socials[s.key]).map((s) => (
-                  <a
-                    key={s.key}
-                    href={socials[s.key]!.url}
-                    target="_blank"
-                    rel="noopener noreferrer nofollow"
-                    title={`${s.label}: ${socials[s.key]!.handle}`}
-                    aria-label={`${s.label}: ${socials[s.key]!.handle}`}
-                  >
-                    <BrandIcon network={s.key} />
-                  </a>
-                ))}
-              </div>
-            ) : null}
             {discordLinked ? <DailyReadyChip ready={dailyReady} /> : null}
             {memberSince ? <p className="acct-since"><LeafEmote size={16} /> Member since {memberSince}</p> : null}
             {discordLinked ? <StatsButton /> : null}
@@ -232,8 +214,8 @@ export default async function AccountPage({
             {discordLinked ? <a href="#daily"><Gift size={16} aria-hidden="true" /> Daily Reward<DailyReadyDot ready={dailyReady} /></a> : null}
             {discordLinked ? <a href="#inventory"><Backpack size={16} aria-hidden="true" /> Inventory</a> : null}
             {discordLinked ? <a href="#transcripts"><FileText size={16} aria-hidden="true" /> Transcripts</a> : null}
+            {discordLinked ? <a href="#punishments"><Gavel size={16} aria-hidden="true" /> Punishments{activeCount ? <span className="acct-nav-dot" title={`${activeCount} active`} /> : null}</a> : null}
             <a href="#profile"><UserRound size={16} aria-hidden="true" /> Profile</a>
-            <a href="#contact"><Link2 size={16} aria-hidden="true" /> Contact &amp; socials</a>
             <a href="#security"><Lock size={16} aria-hidden="true" /> Security{twoFactor.enabled ? null : <span className="acct-nav-dot" title="Two-factor is off" />}</a>
             <a className="acct-nav-danger" href="#delete-account"><TriangleAlert size={16} aria-hidden="true" /> Delete account</a>
           </nav>
@@ -365,6 +347,56 @@ export default async function AccountPage({
             </CollapsibleCard>
           ) : null}
 
+          {discordLinked ? (
+            <CollapsibleCard
+              id="punishments"
+              defaultOpen={!collapsed.has("punishments")}
+              title="Punishments"
+              description="Warnings, mutes, kicks and bans on your Discord account. Think one was a mistake? Appeal it."
+              summary={punishments ? (activeCount ? `${activeCount} active` : punishments.length ? `${punishments.length} on record` : "Clean record") : undefined}
+            >
+              {punishments === null ? (
+                <p className="acct-muted">Your record couldn&apos;t be loaded right now. Please try again in a moment.</p>
+              ) : punishments.length === 0 ? (
+                <p className="acct-muted acct-inline-icon"><ShieldCheck size={16} aria-hidden="true" /> Nothing on your record. Keep it up!</p>
+              ) : (
+                <ul className="acct-puns">
+                  {punishments.map((p) => {
+                    const again = p.appeal?.status === "denied" && p.appeal.canAppealAgainAt && Date.parse(p.appeal.canAppealAgainAt) < Date.now();
+                    const canAppeal = p.appealable && (!p.appeal || again);
+                    const ends = p.expiresAt ? Date.parse(p.expiresAt) : null;
+                    const kind = p.action === "kick_unverified" ? "kick" : p.action;
+                    return (
+                      <li key={p.id} className={p.active ? "is-active" : undefined}>
+                        <span className={`acct-pun-action apl-action apl-action--${kind}`}>{PUNISHMENT_WORDS[p.action] ?? p.action}</span>
+                        <span className="acct-pun-main">
+                          <strong>{p.reason}</strong>
+                          <small>
+                            {p.at ? punDate.format(new Date(p.at)) : "Date unknown"}
+                            {p.action === "ban" ? (p.active ? " · Active (permanent until lifted)" : " · Lifted") : null}
+                            {ends ? (ends > Date.now() ? ` · Ends ${punDate.format(new Date(ends))}` : ` · Ended ${punDate.format(new Date(ends))}`) : null}
+                          </small>
+                        </span>
+                        <span className="acct-pun-end">
+                          {p.active ? <span className="acct-pun-live">Active</span> : null}
+                          {canAppeal ? (
+                            <a className="acct-pun-appeal" href={`/appeals?p=${p.id}`}>Appeal</a>
+                          ) : p.appeal ? (
+                            <a className={`apl-chip apl-chip--${p.appeal.status}`} href="/appeals">
+                              {p.appeal.status === "pending" ? "Appeal under review" : p.appeal.status === "accepted" ? "Appeal accepted" : "Appeal denied"}
+                            </a>
+                          ) : !p.appealable ? (
+                            <span className="apl-chip apl-chip--locked">Not appealable</span>
+                          ) : null}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </CollapsibleCard>
+          ) : null}
+
           <CollapsibleCard id="profile" defaultOpen={!collapsed.has("profile")} title={"Profile"} description={"How you appear around the site."}>
             <div className="acct-form-grid">
               <form className="acct-form" action="/api/account/name" method="post" autoComplete="off">
@@ -414,37 +446,27 @@ export default async function AccountPage({
                   </>
                 )}
               </form>
+
+              <form className="acct-form" action="/api/account/contact" method="post" autoComplete="off">
+                <label>
+                  Phone number
+                  <input
+                    name="phone"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    defaultValue={phone ? formatPhone(phone) : ""}
+                    placeholder="+1 555 123 4567"
+                    maxLength={24}
+                  />
+                </label>
+                <p className="form-note acct-inline-icon"><Lock size={13} aria-hidden="true" /> Optional and private: only you can see it. Include your country code if you&apos;re outside the US/Canada.</p>
+                <button className="acct-button" type="submit">Save phone number</button>
+              </form>
             </div>
           </CollapsibleCard>
 
-          <CollapsibleCard id="contact" defaultOpen={!collapsed.has("contact")} title={"Contact & socials"} description={"All optional. Paste a link or type your @handle — leave a box empty to remove it."}>
-            <form className="acct-form" action="/api/account/contact" method="post" autoComplete="off">
-              <label>
-                Phone number
-                <input
-                  name="phone"
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel"
-                  defaultValue={phone ? formatPhone(phone) : ""}
-                  placeholder="+1 555 123 4567"
-                  maxLength={24}
-                />
-              </label>
-              <p className="form-note acct-inline-icon"><Lock size={13} aria-hidden="true" /> Private — only you can see your phone number. Include your country code if you&apos;re outside the US/Canada.</p>
-              <div className="acct-socials-grid">
-                {SOCIALS.map((s) => (
-                  <label key={s.key}>
-                    <span className="acct-social-label">
-                      <BrandIcon network={s.key} size={15} /> {s.label}
-                    </span>
-                    <input name={s.key} defaultValue={socialInputValue(socials[s.key])} placeholder={s.placeholder} maxLength={200} />
-                  </label>
-                ))}
-              </div>
-              <button className="acct-button" type="submit">Save contact details</button>
-            </form>
-          </CollapsibleCard>
+
 
 
           <CollapsibleCard id="security" defaultOpen={!collapsed.has("security")} title={"Security"} description={"Your password and two-factor authentication."} summary={twoFactor.enabled ? "Two-factor on" : "Two-factor off"}>
