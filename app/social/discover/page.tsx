@@ -1,5 +1,6 @@
 "use client";
 
+import { FrameRing } from "../../cosmetic-flair";
 import { Compass, Eye, Heart, HeartHandshake, RotateCcw, Sparkles, UserPlus, Users, X } from "lucide-react";
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { Score } from "../icons";
@@ -164,6 +165,7 @@ export default function Discover() {
         <article className={`dt-deck${leaving ? ` is-leaving-${leaving}` : ""}`} style={{ "--acc": card.accent } as CSSProperties} key={card.id}>
           <a href={`/social/u/${card.id}`} className="dt-deck-photo" aria-label={`Open ${card.name}'s profile`}>
             <Photo src={card.photo} name={card.name} accent={card.accent} crop={card.photoCrop} />
+            <FrameRing frame={card.flair?.frame} />
             {card.photoCount > 1 ? <span className="dt-deck-count">{card.photoCount} photos</span> : null}
             <span className="dt-deck-score">
               <Score score={card.score} fit={!friends} /> · {friends ? "Get-along score" : card.tier}

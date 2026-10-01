@@ -43,7 +43,8 @@ function OrnamentArt({ kind, color, glow }: { kind: Ornament; color?: string; gl
       return (
         <g className="orn-wing">
           <Mirror>
-            <path d="M-46 -8 C-62 -32 -86 -30 -98 -14 C-88 -12 -86 -6 -96 2 C-84 2 -82 8 -92 16 C-80 16 -74 22 -82 30 C-66 26 -56 18 -48 10 Z" fill="#ffffff" stroke="#e8dcb5" strokeWidth="1.5" opacity="0.97" />
+            <path d="M-47 -10 C-57 -28 -72 -32 -84 -24 C-78 -21 -77 -16 -82 -11 C-75 -10 -73 -5 -78 0 C-70 0 -68 5 -71 11 C-62 10 -54 5 -48 2 Z" fill="#ffffff" stroke="#e8dcb5" strokeWidth="1.4" />
+            <path d="M-55 -16 C-63 -20 -70 -21 -76 -19 M-57 -8 C-64 -9 -70 -8 -74 -5 M-55 0 C-60 1 -64 3 -67 6" fill="none" stroke="#e8dcb5" strokeWidth="1.1" strokeLinecap="round" />
           </Mirror>
         </g>
       );
@@ -51,7 +52,8 @@ function OrnamentArt({ kind, color, glow }: { kind: Ornament; color?: string; gl
       return (
         <g className="orn-wing">
           <Mirror>
-            <path d="M-46 -6 C-60 -28 -82 -28 -100 -14 C-92 -9 -92 0 -98 6 C-88 2 -84 8 -88 18 C-78 12 -70 14 -68 22 C-60 12 -54 6 -47 6 Z" fill="#1a0b16" stroke="#5a1424" strokeWidth="1.5" />
+            <path d="M-47 -8 C-56 -25 -72 -30 -86 -22 C-80 -16 -80 -10 -84 -4 C-77 -6 -73 -2 -75 5 C-68 1 -62 3 -61 9 C-57 3 -52 2 -47 3 Z" fill="#241020" stroke="#8a2a3a" strokeWidth="1.4" strokeLinejoin="round" />
+            <path d="M-49 -6 L-84 -22 M-50 -4 L-82 -4 M-50 -2 L-73 5 M-49 0 L-61 9" fill="none" stroke="#8a2a3a" strokeWidth="1" opacity="0.8" />
           </Mirror>
         </g>
       );
@@ -202,6 +204,17 @@ export function Framed({ frame, children, className }: { frame: string | null | 
           ))}
         </svg>
       ) : null}
+    </span>
+  );
+}
+
+/** Just the animated frame ring, drawn around any positioned box (Social cards, the Discover card). */
+export function FrameRing({ frame, className }: { frame: string | null | undefined; className?: string }) {
+  const spec = specOf("frame", frame)?.frame;
+  if (!spec) return null;
+  return (
+    <span className={`cos-ringbox cos-frame--${spec.style}${className ? ` ${className}` : ""}`} style={frameStyle(spec)} aria-hidden="true">
+      <span className="cos-ring" />
     </span>
   );
 }

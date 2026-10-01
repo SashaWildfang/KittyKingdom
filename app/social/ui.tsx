@@ -3,7 +3,7 @@
 // Shared pieces for the Dating pages: data loading, profile cards, option chips, avatars and the
 // report dialog. Keeping them here keeps every page consistent and easy to extend.
 
-import { FlairName } from "../cosmetic-flair";
+import { FlairName, FrameRing } from "../cosmetic-flair";
 import { specOf } from "../../lib/cosmetics";
 
 /** A tile glows in the colors of its owner's frame. */
@@ -150,6 +150,7 @@ export function ProfileTile({ card, extra, onLike }: { card: Card; extra?: React
       className={`dt-tile${card.spotlight ? " is-spotlight" : ""}${card.flair?.frame ? " cos-tile" : ""}`}
       style={{ "--acc": card.accent, ...tileGlow(card.flair?.frame) } as unknown as CSSProperties}
     >
+      <FrameRing frame={card.flair?.frame} />
       {card.spotlight ? (
         <span className="dt-spotlight-ribbon">
           <Sparkles size={11} aria-hidden="true" /> Spotlight
