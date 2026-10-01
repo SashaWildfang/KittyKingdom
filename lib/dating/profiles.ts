@@ -94,6 +94,11 @@ export async function saveProfile(discordId: string, patch: ProfilePatch): Promi
   if (known?.age || isFilled(current?.age)) delete fields.age;
   if (!current && known?.age) fields.age = known.age;
   if (known?.age && known.age < 18) return "Dating is for members 18 and over.";
+  // Old answers that couldn't be converted have to be given a real answer before any other edit saves
+  if (current && Object.keys(fields).length) {
+    const stale = staleLegacyFields(current, fields);
+    if (stale.length) return `Please update your old ${stale.length === 1 ? "answer" : "answers"} first: ${stale.map((k) => FIELDS[k].label).join(", ")}.`;
+  }
   for (const [key, value] of Object.entries(fields)) {
     const res = cleanField(key, value);
     if (typeof res === "string") return res;
@@ -401,3 +406,17 @@ export const bioPreview = (doc: ProfileDoc, max = 160) => {
   const t = newsPlainText(String(display(doc, "bio")?.text ?? ""));
   return t.length > max ? `${t.slice(0, max).replace(/\s+\S*$/, "")}…` : t;
 };
+
+/**
+ * Fields still showing an old free-text answer from the Discord bot (it didn't fit any of the new
+ * choices), taking unsaved `fields` into account. These must be answered before the profile is edited.
+ */
+export function staleLegacyFields(doc: ProfileDoc, fields: Record<string, unknown> = {}): string[] {
+  const legacy = (doc.legacy ?? {}) as Record<string, unknown>;
+  return Object.keys(legacy).filter((k) => {
+    const f = FIELDS[k];
+    if (!f || f.kind === "text" || !isFilled(legacy[k])) return false;
+    const value = k in fields ? fields[k] : f.kind === "multi" ? getList(doc, k) : doc[k];
+    return Array.isArray(value) ? value.length === 0 : !isFilled(value);
+  });
+}

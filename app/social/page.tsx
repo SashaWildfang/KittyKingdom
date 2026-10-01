@@ -12,7 +12,7 @@ type Home = {
   hasProfile: boolean;
   needsReview: boolean;
   looking: boolean;
-  strength: { score: number; missing: { points: number; label: string; tip: string }[] } | null;
+  strength: { score: number; missing: { points: number; label: string; tip: string; field?: string }[] } | null;
   featured: Featured | null;
   recent: Featured[];
   counts: { likes: number; matches: number; unread: number; requests: number; friends: number; friendRequests: number; views: number; viewsThisWeek: number };
@@ -335,7 +335,11 @@ export default function DatingHome() {
                 {data.strength.missing.length ? (
                   <ul>
                     {data.strength.missing.slice(0, 2).map((m) => (
-                      <li key={m.label}>{m.tip}</li>
+                      <li key={m.label}>
+                        <a className="dt-strength-tip" href={`/social/profile/edit${m.field ? `#${m.field}` : ""}`}>
+                          {m.tip} <span aria-hidden="true">→</span>
+                        </a>
+                      </li>
                     ))}
                   </ul>
                 ) : (

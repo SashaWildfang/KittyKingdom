@@ -159,7 +159,7 @@ export default function Browse() {
               <input type="checkbox" checked={f.photos} onChange={(e) => set("photos", e.target.checked)} /> Has photos
             </label>
             <label>
-              <input type="checkbox" checked={f.isNew} onChange={(e) => set("isNew", e.target.checked)} /> New this fortnight
+              <input type="checkbox" checked={f.isNew} onChange={(e) => set("isNew", e.target.checked)} /> New profiles
             </label>
             <label>
               <input type="checkbox" checked={f.inServer} onChange={(e) => set("inServer", e.target.checked)} /> Still in the server

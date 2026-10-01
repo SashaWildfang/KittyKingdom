@@ -121,6 +121,11 @@ export async function listAccounts(q: {
   if (q.filter === "linked") and.push({ discordId: { $nin: [null, ""] } });
   if (q.filter === "unlinked") and.push({ discordId: { $in: [null, ""] } });
   if (q.filter === "temp") and.push({ mustChangePassword: true });
+  if (q.filter === "online") {
+    // Accounts with a signed-in device active right now
+    const ids = await (await sessionsCollection()).distinct("userId", { revokedAt: { $exists: false }, lastSeenAt: { $gte: new Date(Date.now() - ONLINE_WINDOW_MS) } });
+    and.push({ _id: { $in: ids } });
+  }
 
   const sortField = { created: "createdAt", email: "email", username: "username", lastLogin: "lastLoginAt", online: "lastActiveAt" }[q.sort ?? "created"] ?? "createdAt";
   const pageSize = Math.min(100, Math.max(10, q.pageSize ?? 25));
