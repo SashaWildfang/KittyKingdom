@@ -96,6 +96,8 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false }: { admin
   const tabsRef = useRef<HTMLElement>(null);
 
   // Bubbles on tabs (and added up on their group)
+  // 999 → "999", 1,420 → "1.42k", 15,300 → "15.3k"
+  const shortCount = (n: number) => (n < 1000 ? String(n) : n < 10_000 ? `${(Math.floor(n / 10) / 100).toString()}k` : n < 1_000_000 ? `${(Math.floor(n / 100) / 10).toString()}k` : `${(Math.floor(n / 100_000) / 10).toString()}m`);
   const alert = (k: Tab): { count: number; hot?: boolean; live?: boolean; label: string } | null => {
     if (k === "live" && liveUnread) return { count: liveUnread, live: true, label: `${liveUnread} unread` };
     if (k === "automod" && automodUnread) return { count: automodUnread, hot: true, label: `${automodUnread} new` };
@@ -193,13 +195,14 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false }: { admin
       {/* Groups first, then the chosen group's tabs */}
       <nav className="adm-groups" aria-label="Admin sections">
         {groups.map((g) => {
-          const count = g.tabs.reduce((n, k) => n + (alert(k)?.count ?? 0), 0);
-          const hot = g.tabs.some((k) => alert(k)?.hot);
+          // Live Chat is just unread chat, not something to act on, so it doesn't add to its group
+          const count = g.tabs.reduce((n, k) => n + (k === "live" ? 0 : alert(k)?.count ?? 0), 0);
+          const hot = g.tabs.some((k) => k !== "live" && alert(k)?.hot);
           const on = g.key === group;
           return (
             <button key={g.key} type="button" className={on ? "is-active" : undefined} aria-pressed={on} onClick={() => openGroup(g.key)}>
               <g.icon size={16} aria-hidden="true" /> {g.label}
-              {count > 0 && !on ? <span className={`adm-tab-bubble${hot ? " is-hot" : ""}`}>{count > 999 ? "999+" : count}</span> : null}
+              {count > 0 && !on ? <span className={`adm-tab-bubble${hot ? " is-hot" : ""}`}>{shortCount(count)}</span> : null}
             </button>
           );
         })}
@@ -213,7 +216,7 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false }: { admin
                 <t.icon size={16} aria-hidden="true" /> {t.label}
                 {a ? (
                   <span className={`adm-tab-bubble${a.hot ? " is-hot" : ""}${a.live ? " is-live" : ""}`} aria-label={a.label}>
-                    {a.count > 999 ? "999+" : a.count}
+                    {shortCount(a.count)}
                   </span>
                 ) : null}
               </button>

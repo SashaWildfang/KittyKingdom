@@ -26124,3 +26124,134 @@ body.live-fullscreen .view-as-bar {
     grid-template-columns: minmax(0, 1fr) 4.2rem 4.2rem;
   }
 }
+
+/* ---------- Phones: the top bar always fits the screen ---------- */
+@media (max-width: 480px) {
+  /* Theme lives in the menu here (Theme row), so the wide day/night slider steps aside */
+  .mobile-nav .theme-switch {
+    display: none;
+  }
+  .topbar .brand {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+  .topbar .brand-copy {
+    min-width: 0;
+  }
+  .topbar .brand-copy strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mobile-nav {
+    gap: 0.4rem;
+  }
+}
+
+/* ---------- Leaderboards: never wider than the screen ---------- */
+/* The column can't grow to fit the stat tabs (they scroll sideways inside their pill instead) */
+.lb,
+.leaderboard-shell > .lb {
+  grid-template-columns: minmax(0, 1fr);
+}
+.lb-top,
+.lb-top > *,
+.lb-standing,
+.lb-standing-body,
+.lb-controls,
+.lb-list,
+.lb-row,
+.lb-row-main {
+  min-width: 0;
+}
+/* "5,762 more to pass <name> for #13" reads as one sentence; only a long name breaks */
+.lb-standing-note {
+  display: block !important;
+  line-height: 1.5;
+}
+.lb-standing-note strong {
+  white-space: nowrap;
+}
+.lb-standing-note strong + strong,
+.lb-standing-note strong:nth-of-type(2) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Admin: never wider than the screen ---------- */
+/* Grid columns can't grow to fit a long row of filters; those rows scroll sideways instead */
+.adm,
+.adm-panel,
+.ja,
+.ja-list {
+  grid-template-columns: minmax(0, 1fr);
+}
+.adm > *,
+.adm-panel > *,
+.ja > *,
+.ja-card,
+.ja-head,
+.ja-who {
+  min-width: 0;
+}
+.adm-filters > .adm-seg,
+.ja > .adm-filters .adm-seg {
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.adm-seg button {
+  flex: none;
+}
+@media (max-width: 760px) {
+  /* The group row scrolls sideways (keeps every group reachable without stretching the page) */
+  .adm-groups button {
+    flex: none;
+    padding: 0.55rem 0.85rem;
+  }
+}
+
+/* Settings on desktop: centered heading over a balanced two-column layout */
+.set-wrap {
+  width: min(1040px, calc(100% - 2rem));
+}
+.set-head {
+  text-align: center;
+}
+.set-layout {
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 1.5rem;
+}
+.set-main {
+  padding: 1.2rem 1.3rem 1.4rem;
+  border: 1px solid var(--line);
+  border-radius: 1.3rem;
+  background: color-mix(in srgb, var(--panel) 55%, transparent);
+  min-height: 26rem;
+}
+.set-main .set-group {
+  background: var(--panel);
+}
+@media (max-width: 860px) {
+  .set-head {
+    text-align: left;
+  }
+  .set-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .set-main {
+    padding: 0;
+    border: 0;
+    background: none;
+    min-height: 0;
+  }
+}
+.set-head h1 {
+  width: auto;
+  max-width: none;
+  margin-inline: auto;
+}
+@media (max-width: 860px) {
+  .set-head h1 {
+    margin-inline: 0;
+  }
+}

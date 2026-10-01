@@ -38,6 +38,9 @@ import { RULE_LABELS } from "../../lib/automod-data";
 import { testMessage, type AutomodWord } from "../../lib/automod-engine";
 import type { AutomodConfig, AutomodEvent, RuleKey } from "../../lib/automod";
 import { LiveBadge, Pager, PersonLink, formatDate, timeAgo, useLive, type People } from "./admin-shared";
+import { StackedBars } from "./admin-charts";
+
+const RULE_COLORS = ["#e5484d", "#f59b2a", "#5865f2", "#46a758", "#d6409f", "#0ea5e9", "#a855f7", "#eab308", "#14b8a6", "#8b8d98"];
 
 type Places = { channels: { id: string; name: string; category: boolean; parent: string | null }[]; roles: { id: string; name: string; color: string | null }[] };
 type Change = { id: string; at: string | null; source: string; byId: string | null; byName: string | null; summary: string };
@@ -49,7 +52,7 @@ type Activity = {
   byAction: Record<string, number>;
   members: { id: string; n: number; last: string | null }[];
   terms: { term: string; n: number }[];
-  series: { at: string | null; n: number }[];
+  timeline: { bucket: string; action: string; count: number }[];
   unit: "hour" | "day";
   page: number;
   rows: AutomodEvent[];
@@ -264,7 +267,8 @@ function ActivitySection({ onOpenMember }: { onOpenMember: (id: string) => void 
     if (a) known.current = new Set([...(prev ? Array.from(prev) : []), ...Array.from(ids)]);
     return out;
   }, [a]);
-  const max = Math.max(1, ...(a?.series ?? []).map((s) => s.n));
+  // One color per rule, in the same order as "By rule"
+  const ruleSeries = (a?.byRule ?? []).map((r, i) => ({ key: r.rule, label: r.label, color: RULE_COLORS[i % RULE_COLORS.length] }));
   const strikes = a?.byAction.punish ?? 0;
 
   return (
@@ -310,16 +314,12 @@ function ActivitySection({ onOpenMember }: { onOpenMember: (id: string) => void 
       <div className="am-grid">
         <section className="adm-card am-span2">
           <h3>Catches over time</h3>
-          {a?.series.length ? (
-            <div className="am-bars" role="img" aria-label="Catches over time">
-              {a.series.map((s) => (
-                <span key={s.at} style={{ height: `${Math.max(4, (s.n / max) * 100)}%` }} title={`${s.at ? new Date(s.at).toLocaleString(undefined, a.unit === "hour" ? { hour: "numeric" } : { month: "short", day: "numeric" }) : ""}: ${s.n}`}>
-                  <i>{s.n}</i>
-                </span>
-              ))}
-            </div>
+          {!a ? (
+            <p className="adm-empty">Loading…</p>
+          ) : a.total ? (
+            <StackedBars points={a.timeline} series={ruleSeries} unit={a.unit} height={200} />
           ) : (
-            <p className="adm-empty">{a ? "All quiet 🌙 nothing caught in this range." : "Loading…"}</p>
+            <p className="adm-empty">All quiet 🌙 nothing caught in this range.</p>
           )}
         </section>
         <section className="adm-card">

@@ -222,8 +222,8 @@ export async function automodActivity(opts: { range: string; timeZone: string; r
           members: [{ $match: { userId: { $ne: null } } }, { $group: { _id: "$userId", n: { $sum: 1 }, last: { $max: "$at" } } }, { $sort: { n: -1 } }, { $limit: 8 }],
           terms: [{ $match: { term: { $nin: [null, ""] }, rule: { $in: ["words", "severe", "names"] } } }, { $group: { _id: "$term", n: { $sum: 1 } } }, { $sort: { n: -1 } }, { $limit: 10 }],
           series: [
-            { $group: { _id: { $dateTrunc: { date: "$at", unit: days <= 1 ? "hour" : "day", timezone: opts.timeZone } }, n: { $sum: 1 } } },
-            { $sort: { _id: 1 } },
+            { $group: { _id: { t: { $dateTrunc: { date: "$at", unit: days <= 1 ? "hour" : "day", timezone: opts.timeZone } }, r: "$rule" }, n: { $sum: 1 } } },
+            { $sort: { "_id.t": 1 } },
           ],
           rows: [{ $sort: { at: -1, _id: -1 } }, { $skip: page * 25 }, { $limit: 25 }],
         },
@@ -238,7 +238,13 @@ export async function automodActivity(opts: { range: string; timeZone: string; r
     byAction: count(agg?.byAction ?? []),
     members: (agg?.members ?? []).map((d: Document) => ({ id: String(d._id), n: d.n as number, last: iso(d.last) })),
     terms: (agg?.terms ?? []).map((d: Document) => ({ term: String(d._id), n: d.n as number })),
-    series: (agg?.series ?? []).map((d: Document) => ({ at: iso(d._id), n: d.n as number })),
+    // Every day (or hour) in the range, stacked by rule; quiet periods stay as empty bars
+    timeline: fillTimeline(
+      (agg?.series ?? []).map((d: Document) => ({ bucket: iso(d._id?.t) ?? "", action: String(d._id?.r ?? "other"), count: d.n as number })),
+      since,
+      days <= 1 ? "hour" : "day",
+      opts.timeZone,
+    ),
     unit: days <= 1 ? "hour" : "day",
     page,
     rows: ((agg?.rows ?? []) as Document[]).map(
@@ -299,4 +305,28 @@ export async function automodUnread(viewerId: string) {
 
 export async function markAutomodSeen(viewerId: string) {
   await (await prefsCol()).updateOne({ _id: viewerId }, { $set: { "automod.seenAt": new Date() } }, { upsert: true });
+}
+
+/** Adds an empty bucket for every day (or hour) in the range that had no catches. */
+function fillTimeline(points: { bucket: string; action: string; count: number }[], since: Date, unit: "hour" | "day", timeZone: string) {
+  const seen = new Set(points.map((p) => p.bucket));
+  const out = [...points];
+  const now = Date.now();
+  if (unit === "hour") {
+    for (let t = Math.floor(since.getTime() / 3_600_000) * 3_600_000; t <= now; t += 3_600_000) {
+      const key = new Date(t).toISOString();
+      if (!seen.has(key)) out.push({ bucket: key, action: "none", count: 0 });
+    }
+  } else {
+    // One bucket per calendar day in their time zone (matched to the database's buckets by date)
+    const day = new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" });
+    const have = new Set(points.map((p) => (p.bucket ? day.format(new Date(p.bucket)) : "")));
+    for (let t = since.getTime(); t <= now; t += 86_400_000) {
+      const key = day.format(new Date(t));
+      if (have.has(key)) continue;
+      have.add(key);
+      out.push({ bucket: `${key}T12:00:00.000Z`, action: "none", count: 0 });
+    }
+  }
+  return out.sort((a, b) => a.bucket.localeCompare(b.bucket));
 }

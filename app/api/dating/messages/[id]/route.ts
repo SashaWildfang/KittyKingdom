@@ -12,7 +12,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const me = await requireDating();
   if (me instanceof NextResponse) return me;
   if (!isSnowflake(params.id)) return NextResponse.json({ ok: false, error: "Unknown member." }, { status: 404 });
-  const t = await thread(me.discordId, params.id, new URL(request.url).searchParams.get("before") ?? undefined);
+  const t = await thread(me.discordId, params.id, new URL(request.url).searchParams.get("before") ?? undefined, { readOnly: me.readOnly });
   if (!t) return NextResponse.json({ ok: false, error: "You can't message this member." }, { status: 403 });
   return NextResponse.json({ ok: true, me: me.discordId, ...t }, { headers: { "Cache-Control": "no-store" } });
 }
