@@ -1,12 +1,22 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { Backpack, Check, CircleAlert, Flame, Gift, Hourglass, Package, Rocket, ShoppingBag, Sparkles } from "lucide-react";
+import { Backpack, Check, CircleAlert, Flame, Gift, Hourglass, Minus, Package, Plus, Rocket, Search, ShoppingBag, ShoppingCart, Sparkles, Trash2, X } from "lucide-react";
 import type { InventoryEntry, StoreItem, StoreState } from "../../lib/store";
 import { LeafEmote, StoreItemIcon } from "../ui-icons";
 
 const MAX_BUY = 50;
 const POLL_MS = 15000;
+const CART_KEY = "kk-cart";
+type Cart = Record<string, number>;
+type Sort = "featured" | "price-asc" | "price-desc" | "name";
+
+/** The most of an item you could put in the cart right now. */
+function maxFor(item: StoreItem) {
+  if (!item.stackable) return item.owned > 0 ? 0 : 1;
+  const dailyLeft = item.dailyLimit ? Math.max(item.dailyLimit - item.boughtToday, 0) : MAX_BUY;
+  return Math.max(0, Math.min(MAX_BUY, item.stock ?? MAX_BUY, dailyLeft));
+}
 
 type Toast = { id: number; tone: "success" | "error"; text: string };
 type Modal =
@@ -77,6 +87,26 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastId = useRef(0);
   const now = useNow();
+  // The cart (remembered in this browser between visits)
+  const [cart, setCart] = useState<Cart>({});
+  const [cartOpen, setCartOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<Sort>("featured");
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(window.localStorage.getItem(CART_KEY) ?? "{}") as Cart;
+      if (saved && typeof saved === "object") setCart(saved);
+    } catch {
+      // no saved cart
+    }
+  }, []);
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(CART_KEY, JSON.stringify(cart));
+    } catch {
+      // storage unavailable: the cart just isn't remembered
+    }
+  }, [cart]);
 
   const toast = useCallback((tone: Toast["tone"], text: string) => {
     const id = ++toastId.current;
@@ -149,7 +179,39 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
   }, []);
 
   const categories = useMemo(() => ["All", ...Array.from(new Set(state.items.map((i) => i.category))).sort()], [state.items]);
-  const visible = state.items.filter((i) => category === "All" || i.category === category);
+  const q = query.trim().toLowerCase();
+  const visible = state.items.filter((i) => (category === "All" || i.category === category) && (!q || `${i.name} ${i.description} ${i.category}`.toLowerCase().includes(q)));
+  const sorted =
+    sort === "price-asc" ? [...visible].sort((a, b) => a.price - b.price) : sort === "price-desc" ? [...visible].sort((a, b) => b.price - a.price) : sort === "name" ? [...visible].sort((a, b) => a.name.localeCompare(b.name)) : visible;
+
+  // Cart lines with their item (anything no longer in the store drops out)
+  const itemById = useMemo(() => new Map(state.items.map((i) => [i.itemId, i])), [state.items]);
+  const cartLines = Object.entries(cart)
+    .map(([itemId, amount]) => ({ item: itemById.get(itemId), amount }))
+    .filter((l): l is { item: StoreItem; amount: number } => Boolean(l.item) && l.amount > 0);
+  const cartCount = cartLines.reduce((n, l) => n + l.amount, 0);
+  const cartTotal = cartLines.reduce((n, l) => n + l.item.price * l.amount, 0);
+  const setQty = (item: StoreItem, amount: number) =>
+    setCart((c) => {
+      const next = { ...c };
+      const clamped = Math.min(maxFor(item), Math.max(0, Math.floor(amount)));
+      if (clamped <= 0) delete next[item.itemId];
+      else next[item.itemId] = clamped;
+      return next;
+    });
+  const addToCart = (item: StoreItem, amount = 1) => {
+    const room = maxFor(item) - (cart[item.itemId] ?? 0);
+    if (room <= 0) return toast("error", item.stackable ? `You can't add more ${item.name}.` : `${item.name} is already in your cart.`);
+    setQty(item, (cart[item.itemId] ?? 0) + Math.min(room, amount));
+    toast("success", `Added ${amount > 1 ? `${amount}× ` : ""}${item.name} to your cart.`);
+  };
+  const checkoutCart = async () => {
+    const ok = await act("/api/store/checkout", { items: cartLines.map((l) => ({ itemId: l.item.itemId, amount: l.amount })) });
+    if (ok) {
+      setCart({});
+      setCartOpen(false);
+    }
+  };
   const sections: { key: StoreItem["rotation"]; title: string; ends: string | null }[] = [
     { key: "daily", title: "Daily deals", ends: state.nextDaily },
     { key: "weekly", title: "Weekly deals", ends: state.nextWeekly },
@@ -204,6 +266,31 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
 
       {tab === "shop" ? (
         <>
+          {/* Search, sort and the cart */}
+          <div className="store-shopbar">
+            <label className="store-search">
+              <Search size={16} aria-hidden="true" />
+              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search the store…" aria-label="Search the store" />
+            </label>
+            <select className="store-sort" value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort">
+              <option value="featured">Featured</option>
+              <option value="price-asc">Price: low to high</option>
+              <option value="price-desc">Price: high to low</option>
+              <option value="name">A–Z</option>
+            </select>
+            <button type="button" className={`store-cart-button${cartCount ? " has-items" : ""}`} onClick={() => setCartOpen(true)} aria-label={`Cart, ${cartCount} item${cartCount === 1 ? "" : "s"}`}>
+              <ShoppingCart size={18} aria-hidden="true" />
+              <span>Cart</span>
+              {cartCount ? (
+                <>
+                  <b className="store-cart-count">{cartCount}</b>
+                  <span className="store-cart-total">
+                    <Leaf size={15} /> {cartTotal.toLocaleString()}
+                  </span>
+                </>
+              ) : null}
+            </button>
+          </div>
           <div className="store-chips" role="group" aria-label="Filter by category">
             {categories.map((c) => (
               <button key={c} className={c === category ? "active" : ""} onClick={() => setCategory(c)}>
@@ -212,7 +299,21 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
             ))}
           </div>
 
-          {sections.map((section) => {
+          {/* Searching or sorting shows one list; otherwise the deals are grouped */}
+          {q || sort !== "featured" ? (
+            sorted.length ? (
+              <section className="store-section">
+                <div className="store-section-head store-section-head--stacked">
+                  <h2>{q ? `Results for “${query.trim()}”` : "All items"}</h2>
+                </div>
+                <div className="store-grid">
+                  {sorted.map((item) => (
+                    <ShopCard key={item.itemId} item={item} balance={state.balance} inCart={cart[item.itemId] ?? 0} onAdd={() => addToCart(item)} onOpen={() => setModal({ kind: "buy", item })} onCart={() => setCartOpen(true)} />
+                  ))}
+                </div>
+              </section>
+            ) : null
+          ) : sections.map((section) => {
             const items = visible.filter((i) => i.rotation === section.key);
             if (!items.length) return null;
             return (
@@ -225,13 +326,13 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
                 </div>
                 <div className="store-grid">
                   {items.map((item) => (
-                    <ShopCard key={item.itemId} item={item} balance={state.balance} onBuy={() => setModal({ kind: "buy", item })} />
+                    <ShopCard key={item.itemId} item={item} balance={state.balance} inCart={cart[item.itemId] ?? 0} onAdd={() => addToCart(item)} onOpen={() => setModal({ kind: "buy", item })} onCart={() => setCartOpen(true)} />
                   ))}
                 </div>
               </section>
             );
           })}
-          {!visible.length ? <p className="store-empty">Nothing in this category right now — check back after the next rotation!</p> : null}
+          {!visible.length ? <p className="store-empty">{q ? "Nothing matches that search." : "Nothing in this category right now — check back after the next rotation!"}</p> : null}
         </>
       ) : (
         <InventoryView
@@ -248,7 +349,11 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
       {/* ---------- Modals ---------- */}
       {modal?.kind === "buy" ? (
         <BuyModal item={modal.item} balance={state.balance} busy={busy} onClose={() => setModal(null)}
-          onConfirm={(amount) => act("/api/store/buy", { itemId: modal.item.itemId, amount })} />
+          onConfirm={(amount) => act("/api/store/buy", { itemId: modal.item.itemId, amount })}
+          onAddToCart={(amount) => {
+            addToCart(modal.item, amount);
+            setModal(null);
+          }} />
       ) : null}
       {modal?.kind === "use" ? (
         <ModalShell title={`Use ${modal.entry.name}?`} onClose={() => setModal(null)}>
@@ -277,6 +382,10 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
           onSend={(recipientId, message) => act("/api/store/gift", { itemId: modal.entry.itemId, recipientId, message })} />
       ) : null}
 
+      {cartOpen ? (
+        <CartDrawer lines={cartLines} balance={state.balance} total={cartTotal} busy={busy} onClose={() => setCartOpen(false)} onQty={setQty} onCheckout={() => void checkoutCart()} />
+      ) : null}
+
       <div className="store-toasts" aria-live="polite">
         {toasts.map((t) => (
           <div key={t.id} className={`store-toast store-toast--${t.tone}`}>
@@ -291,7 +400,7 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
 // ==========================================
 // SHOP CARD
 // ==========================================
-function ShopCard({ item, balance, onBuy }: { item: StoreItem; balance: number; onBuy: () => void }) {
+function ShopCard({ item, balance, inCart, onAdd, onOpen, onCart }: { item: StoreItem; balance: number; inCart: number; onAdd: () => void; onOpen: () => void; onCart: () => void }) {
   const isRole = Boolean(item.roleId) || item.category === "Roles";
   const ownedRole = !item.stackable && item.owned > 0;
   const soldOut = item.stock === 0;
@@ -303,7 +412,18 @@ function ShopCard({ item, balance, onBuy }: { item: StoreItem; balance: number; 
   else if (soldOut) button = <button className="store-buy" disabled>Sold out</button>;
   else if (limitReached) button = <button className="store-buy" disabled>Daily limit reached</button>;
   else if (short > 0) button = <button className="store-buy" disabled>Need {short.toLocaleString()} more</button>;
-  else button = <button className="store-buy store-buy--ready" onClick={onBuy}>Buy</button>;
+  else if (inCart && (!item.stackable || inCart >= maxFor(item)))
+    button = (
+      <button className="store-buy store-buy--incart" onClick={onCart}>
+        <Check size={14} aria-hidden="true" /> In cart{item.stackable ? ` ×${inCart}` : ""}
+      </button>
+    );
+  else
+    button = (
+      <button className="store-buy store-buy--ready" onClick={onAdd}>
+        <ShoppingCart size={14} aria-hidden="true" /> {inCart ? `Add another (${inCart})` : "Add to cart"}
+      </button>
+    );
 
   return (
     <article className={`store-card${ownedRole ? " store-card--owned" : ""}`} style={isRole ? swatchStyle(item.roleColors) : undefined}>
@@ -316,7 +436,11 @@ function ShopCard({ item, balance, onBuy }: { item: StoreItem; balance: number; 
           {item.dailyLimit ? <span className="store-badge">{item.dailyLimit}/day</span> : null}
         </div>
       </div>
-      <h3>{item.name}</h3>
+      <h3>
+        <button type="button" className="store-card-open" onClick={onOpen}>
+          {item.name}
+        </button>
+      </h3>
       <p className="store-card-desc">{item.description}</p>
       <div className="store-card-foot">
         <span className="store-price"><Leaf size={20} />{item.price.toLocaleString()}</span>
@@ -471,8 +595,8 @@ function ModalShell({ title, onClose, children }: { title: string; onClose: () =
   );
 }
 
-function BuyModal({ item, balance, busy, onClose, onConfirm }: {
-  item: StoreItem; balance: number; busy: boolean; onClose: () => void; onConfirm: (amount: number) => void;
+function BuyModal({ item, balance, busy, onClose, onConfirm, onAddToCart }: {
+  item: StoreItem; balance: number; busy: boolean; onClose: () => void; onConfirm: (amount: number) => void; onAddToCart: (amount: number) => void;
 }) {
   const dailyLeft = item.dailyLimit ? Math.max(item.dailyLimit - item.boughtToday, 0) : MAX_BUY;
   const maxAmount = item.stackable
@@ -512,9 +636,11 @@ function BuyModal({ item, balance, busy, onClose, onConfirm }: {
       {isRole ? <p className="store-modal-note">After buying, equip it from your Inventory — it&apos;ll show on your Discord profile.</p> : null}
 
       <div className="store-modal-actions">
-        <button className="store-ghost-button" onClick={onClose}>Cancel</button>
+        <button className="store-ghost-button" onClick={() => onAddToCart(amount)} disabled={maxFor(item) <= 0}>
+          <ShoppingCart size={15} aria-hidden="true" /> Add to cart
+        </button>
         <button className="store-primary" disabled={busy || total > balance} onClick={() => onConfirm(amount)}>
-          {busy ? "Buying..." : `Buy for ${total.toLocaleString()}`}
+          {busy ? "Buying..." : `Buy now for ${total.toLocaleString()}`}
         </button>
       </div>
     </ModalShell>
@@ -610,5 +736,122 @@ function GiftModal({ entry, cooldownEndsAt, now, busy, onClose, onSend }: {
         </button>
       </div>
     </ModalShell>
+  );
+}
+
+// ==========================================
+// CART
+// ==========================================
+function CartDrawer({ lines, balance, total, busy, onClose, onQty, onCheckout }: {
+  lines: { item: StoreItem; amount: number }[];
+  balance: number;
+  total: number;
+  busy: boolean;
+  onClose: () => void;
+  onQty: (item: StoreItem, amount: number) => void;
+  onCheckout: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  const short = total - balance;
+  const count = lines.reduce((n, l) => n + l.amount, 0);
+
+  return (
+    <div className="store-modal-backdrop store-cart-backdrop" onClick={onClose}>
+      <aside className="store-cart" role="dialog" aria-modal="true" aria-label="Your cart" onClick={(e) => e.stopPropagation()}>
+        <header className="store-cart-head">
+          <h2>
+            <ShoppingCart size={20} aria-hidden="true" /> Your cart
+          </h2>
+          <button type="button" className="store-modal-close" onClick={onClose} aria-label="Close cart">
+            <X size={18} />
+          </button>
+        </header>
+
+        {!lines.length ? (
+          <div className="store-cart-empty">
+            <ShoppingBag size={32} aria-hidden="true" />
+            <p>Your cart is empty.</p>
+            <button type="button" className="store-ghost-button" onClick={onClose}>
+              Keep shopping
+            </button>
+          </div>
+        ) : (
+          <>
+            <ul className="store-cart-lines">
+              {lines.map(({ item, amount }) => {
+                const isRole = Boolean(item.roleId) || item.category === "Roles";
+                const max = maxFor(item);
+                return (
+                  <li key={item.itemId}>
+                    <ItemVisual icon={item.icon} roleColors={item.roleColors} isRole={isRole} />
+                    <div className="store-cart-info">
+                      <strong>{item.name}</strong>
+                      <span className="store-cart-each">
+                        <Leaf size={14} /> {item.price.toLocaleString()} {item.stackable ? "each" : ""}
+                      </span>
+                      {item.stackable ? (
+                        <div className="store-qty-control store-qty-control--small">
+                          <button onClick={() => onQty(item, amount - 1)} aria-label={`One less ${item.name}`}>
+                            <Minus size={13} />
+                          </button>
+                          <input type="number" min={1} max={max} value={amount} onChange={(e) => onQty(item, Number(e.target.value) || 1)} aria-label={`How many ${item.name}`} />
+                          <button onClick={() => onQty(item, amount + 1)} disabled={amount >= max} aria-label={`One more ${item.name}`}>
+                            <Plus size={13} />
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                    <div className="store-cart-side">
+                      <b>
+                        <Leaf size={15} /> {(item.price * amount).toLocaleString()}
+                      </b>
+                      <button type="button" className="store-cart-remove" onClick={() => onQty(item, 0)} aria-label={`Remove ${item.name}`}>
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+
+            <dl className="store-receipt store-cart-receipt">
+              <div>
+                <dt>
+                  Subtotal ({count} item{count === 1 ? "" : "s"})
+                </dt>
+                <dd>
+                  {total.toLocaleString()} <Leaf size={16} />
+                </dd>
+              </div>
+              <div>
+                <dt>Your balance</dt>
+                <dd>
+                  {balance.toLocaleString()} <Leaf size={16} />
+                </dd>
+              </div>
+              <div className="store-receipt-total">
+                <dt>Balance after</dt>
+                <dd className={short > 0 ? "is-short" : undefined}>
+                  {(balance - total).toLocaleString()} <Leaf size={16} />
+                </dd>
+              </div>
+            </dl>
+            {short > 0 ? (
+              <p className="store-cart-warn">
+                <CircleAlert size={15} aria-hidden="true" /> You need {short.toLocaleString()} more leaves. Remove something or come back later.
+              </p>
+            ) : null}
+            <button type="button" className="store-primary store-checkout" disabled={busy || short > 0} onClick={onCheckout}>
+              {busy ? "Checking out…" : `Checkout · ${total.toLocaleString()}`}
+            </button>
+            <p className="store-cart-note">Everything is bought together: if anything can&apos;t be bought, nothing is charged.</p>
+          </>
+        )}
+      </aside>
+    </div>
   );
 }
