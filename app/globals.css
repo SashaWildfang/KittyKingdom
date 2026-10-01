@@ -27846,56 +27846,149 @@ a.apl-chip {
   color: #fff;
 }
 
-/* Admin → full profile → Social messages */
-.adm-msgs-convs {
+
+/* Admin → Members → Messages (live chats) */
+.amx {
   display: grid;
+  grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.amx-side,
+.amx-chat {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 1.1rem;
+  background: var(--panel);
+}
+
+.amx-side {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.8rem;
+}
+
+.amx-side-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.amx-side-head h3 {
+  display: flex;
+  align-items: center;
   gap: 0.4rem;
   margin: 0;
+  font-size: 1rem;
+}
+
+.amx-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--well, rgba(0, 0, 0, 0.14));
+  font-size: 0.85rem;
+  padding: 0.35rem 0.4rem 0.35rem 0.8rem;
+}
+
+.amx-filter button {
+  display: grid;
+  place-items: center;
+  margin-left: auto;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0.25rem;
+}
+
+.amx-filter button:hover {
+  color: var(--text);
+}
+
+.amx-list,
+.amx-card-list {
+  display: grid;
+  gap: 0.3rem;
+  max-height: 64vh;
+  margin: 0;
+  overflow-y: auto;
   padding: 0;
   list-style: none;
 }
 
-.adm-msgs-convs li {
+.amx-list button,
+.amx-card-list button {
   display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.adm-msgs-convs li > button:first-child {
-  display: flex;
-  flex: 1;
   align-items: center;
   gap: 0.6rem;
+  width: 100%;
   min-width: 0;
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
   border-radius: 0.8rem;
   background: transparent;
   color: var(--text);
   cursor: pointer;
   font: inherit;
-  padding: 0.5rem 0.65rem;
+  padding: 0.5rem 0.55rem;
   text-align: left;
 }
 
-.adm-msgs-convs li > button:first-child:hover {
-  border-color: var(--ember);
+.amx-list button:hover,
+.amx-card-list button:hover {
+  background: var(--well, rgba(0, 0, 0, 0.14));
 }
 
-.adm-msgs-conv-main {
+.amx-list button.is-on {
+  border-color: var(--ember);
+  background: var(--well, rgba(0, 0, 0, 0.14));
+}
+
+.amx-pair {
+  position: relative;
+  flex: none;
+  display: block;
+}
+
+.amx-pair > * {
+  position: absolute;
+  top: 0;
+  border: 2px solid var(--panel-strong);
+  border-radius: 50%;
+}
+
+.amx-pair > *:first-child {
+  left: 0;
+  z-index: 1;
+}
+
+.amx-pair > *:last-child {
+  right: 0;
+}
+
+.amx-item-main {
   display: grid;
   flex: 1;
   min-width: 0;
 }
 
-.adm-msgs-conv-main strong {
+.amx-item-main strong {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  font-size: 0.9rem;
+  gap: 0.3rem;
+  overflow: hidden;
+  font-size: 0.88rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.adm-msgs-conv-main small,
-.adm-msgs-conv-meta small {
+.amx-item-main small,
+.amx-item-meta small {
   overflow: hidden;
   color: var(--muted);
   font-size: 0.78rem;
@@ -27903,78 +27996,253 @@ a.apl-chip {
   white-space: nowrap;
 }
 
-.adm-msgs-conv-meta {
+.amx-item-meta {
   display: grid;
   flex: none;
   justify-items: end;
+  gap: 0.2rem;
 }
 
-.adm-msgs-thread header {
+.amx-and {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.amx-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.amx-dot--pending {
+  background: #f59b2a;
+}
+
+.amx-more,
+.amx-card-more {
+  justify-self: center;
+}
+
+/* The open chat */
+.amx-chat {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  height: min(78vh, 760px);
+  overflow: hidden;
+}
+
+.amx-chat--empty {
   align-items: center;
-  gap: 0.6rem;
+  justify-content: center;
+  gap: 0.4rem;
+  color: var(--muted);
+  text-align: center;
+  padding: 2rem;
+}
+
+.amx-chat--empty p {
+  margin: 0;
+  color: var(--text);
   font-weight: 800;
 }
 
-.adm-msgs-note {
+.amx-chat-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.7rem;
+  border-bottom: 1px solid var(--line);
+  padding: 0.75rem 0.9rem;
+}
+
+.amx-back {
+  display: none;
+  border: 0;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+  padding: 0.2rem;
+}
+
+.amx-who {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-align: left;
+}
+
+.amx-who > span {
+  display: grid;
+  min-width: 0;
+}
+
+.amx-who strong {
+  font-size: 0.92rem;
+}
+
+.amx-who:hover strong {
+  text-decoration: underline;
+}
+
+.amx-who small {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.amx-chat-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.amx-note {
   display: flex;
   align-items: center;
   gap: 0.35rem;
-  margin: 0.5rem 0;
-  color: var(--muted);
-  font-size: 0.78rem;
-}
-
-.adm-msgs-older {
-  margin-bottom: 0.4rem;
-}
-
-.adm-msgs-list {
-  display: grid;
-  gap: 0.55rem;
-  max-height: 26rem;
   margin: 0;
-  overflow-y: auto;
-  padding: 0;
-  list-style: none;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.76rem;
+  padding: 0.4rem 0.9rem;
 }
 
-.adm-msgs-list li {
+.amx-scroll {
   display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.15rem;
+  overflow-y: auto;
+  padding: 0.8rem 0.9rem 1rem;
 }
 
-.adm-msgs-list li > div {
-  min-width: 0;
-  border-radius: 0.7rem;
+.amx-older {
+  align-self: center;
+  margin-bottom: 0.5rem;
+}
+
+.amx-day {
+  align-self: center;
+  margin: 0.8rem 0 0.4rem;
+  border-radius: 999px;
   background: var(--well, rgba(0, 0, 0, 0.14));
-  padding: 0.4rem 0.6rem;
-}
-
-.adm-msgs-list li.is-member > div {
-  border-left: 3px solid var(--ember);
-}
-
-.adm-msgs-list b {
-  font-size: 0.82rem;
-}
-
-.adm-msgs-list small {
   color: var(--muted);
   font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.2rem 0.7rem;
 }
 
-.adm-msgs-list p {
-  margin: 0.15rem 0 0;
-  font-size: 0.88rem;
+.amx-msg {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  max-width: 78%;
+  margin-top: 0.5rem;
+}
+
+.amx-msg.is-grouped {
+  margin-top: 0.1rem;
+}
+
+.amx-msg--right {
+  flex-direction: row-reverse;
+  align-self: flex-end;
+}
+
+.amx-gap {
+  flex: none;
+  width: 28px;
+}
+
+.amx-bubble-wrap {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.amx-msg--right .amx-bubble-wrap {
+  justify-items: end;
+}
+
+.amx-msg-head {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
+.amx-msg-head b {
+  color: var(--text);
+}
+
+.amx-bubble {
+  margin: 0;
+  border-radius: 1rem 1rem 1rem 0.3rem;
+  background: var(--well, rgba(0, 0, 0, 0.2));
+  font-size: 0.9rem;
+  line-height: 1.45;
   overflow-wrap: anywhere;
+  padding: 0.45rem 0.75rem;
   white-space: pre-wrap;
 }
 
-.adm-msgs-list p.is-deleted {
+.amx-msg--right .amx-bubble {
+  border-radius: 1rem 1rem 0.3rem 1rem;
+  background: linear-gradient(135deg, var(--ember), var(--maple));
+  color: #fff;
+}
+
+.amx-bubble.is-deleted {
+  border: 1px dashed var(--line);
+  background: transparent;
   color: var(--muted);
   font-style: italic;
+}
+
+.amx-seen {
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+/* On a member's full profile */
+.amx-card h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.amx-card-all {
+  margin-left: auto;
+}
+
+.amx-card-list {
+  max-height: none;
+}
+
+@media (max-width: 860px) {
+  .amx {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .amx.has-chat .amx-side {
+    display: none;
+  }
+
+  .amx:not(.has-chat) .amx-chat--empty {
+    display: none;
+  }
+
+  .amx-back {
+    display: grid;
+  }
+
+  .amx-msg {
+    max-width: 92%;
+  }
 }
