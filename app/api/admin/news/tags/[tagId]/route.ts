@@ -1,3 +1,4 @@
+import { requireTwoFactorForAction } from "../../../../../../lib/admin-2fa";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "../../../../../../lib/admin";
 import { deleteTag, newsTags, updateTag } from "../../../../../../lib/news";
@@ -22,6 +23,8 @@ export async function PATCH(request: Request, { params }: { params: { tagId: str
 export async function DELETE(request: Request, { params }: { params: { tagId: string } }) {
   const admin = await requireAdmin(request);
   if (admin instanceof NextResponse) return admin;
+  const twoFactor = await requireTwoFactorForAction();
+  if (twoFactor) return twoFactor;
   try {
     const body = await readJson(request);
     const result = await deleteTag(params.tagId, typeof body.moveTo === "string" ? body.moveTo : undefined);
