@@ -1,3 +1,4 @@
+import { requireTwoFactorForAction } from "../../../../../../lib/admin-2fa";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "../../../../../../lib/admin";
 import { postChannelMessage } from "../../../../../../lib/discord-member";
@@ -25,6 +26,12 @@ export async function POST(request: Request, { params }: { params: { userId: str
   if (typeof body.itemId !== "string" || typeof body.count !== "number") return NextResponse.json({ ok: false, error: "Pick an item and an amount." }, { status: 400 });
 
   try {
+    // Taking items away needs your own 2FA on (adding doesn't)
+    const have = (await adminInventory(params.userId)).items.find((i) => i.itemId === body.itemId)?.count ?? 0;
+    if (body.count < have) {
+      const twoFactor = await requireTwoFactorForAction();
+      if (twoFactor) return twoFactor;
+    }
     const change = await adminSetInventory(params.userId, body.itemId, body.count);
     if (change.before === change.after) {
       return NextResponse.json({ ok: true, message: `${change.name}: nothing changed.`, ...(await adminInventory(params.userId)) });
