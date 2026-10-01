@@ -3,7 +3,7 @@ import { LegalShell, type LegalSection } from "../legal/legal-shell";
 
 export const metadata = { title: "Privacy Policy | Kitty Kingdom" };
 
-const UPDATED = "September 29, 2026";
+const UPDATED = "October 1, 2026";
 
 const sections: LegalSection[] = [
   {
@@ -159,6 +159,12 @@ const sections: LegalSection[] = [
             videos, files and stickers removed, and only they and staff can open it.
           </li>
           <li>
+            <b>Punishment appeals:</b> if you appeal a punishment at kittykingdom.net/appeals, you sign in with Discord (we only ask Discord for your user ID,
+            username and avatar) so we know the appeal is really from you. We store your appeal message, the punishment it is about, the optional email address
+            you give for the decision, and a history of the review (who decided, when, and their reply). Only administrators can see appeals, and they do not
+            see your email address; it is only used to email you about that appeal.
+          </li>
+          <li>
             <b>Audit log:</b> actions administrators take on Site accounts (for example resetting a password or changing roles) are logged with who did it
             and when.
           </li>
@@ -221,6 +227,7 @@ const sections: LegalSection[] = [
               <tr><td><code>kk_session</code></td><td>Keeps you signed in (signed, HTTP-only, secure)</td><td>Up to 8 hours</td></tr>
               <tr><td><code>kk_2fa</code></td><td>Remembers a login waiting for your two-factor code</td><td>5 minutes</td></tr>
               <tr><td><code>kk_reg</code></td><td>Remembers an unfinished sign-up while you link Discord</td><td>Until sign-up is finished</td></tr>
+              <tr><td><code>kk_appeal</code></td><td>Remembers which Discord account you confirmed on the appeals page</td><td>1 hour</td></tr>
               <tr><td><code>kk_tz</code></td><td>Your time zone, so times are shown on your clock</td><td>1 year</td></tr>
               <tr><td>Local storage</td><td>Theme (light/dark), which sections you collapsed, a random statistics ID, and similar display preferences</td><td>Until you clear it</td></tr>
             </tbody>
@@ -332,7 +339,7 @@ const sections: LegalSection[] = [
               <tr><td>Notifications</td><td>60 days, then deleted automatically</td></tr>
               <tr><td>Online count, rate limits, link codes</td><td>Minutes to hours, deleted automatically</td></tr>
               <tr><td>Ticket activity (while a ticket is open)</td><td>Until the ticket is closed and its transcript saved (at most 21 days if it is never closed)</td></tr>
-              <tr><td>Ticket transcripts, moderation records, server logs, join applications, verification records</td><td>As long as needed for community safety and to handle appeals, disputes and repeat rule-breaking</td></tr>
+              <tr><td>Ticket transcripts, moderation records, punishment appeals, server logs, join applications, verification records</td><td>As long as needed for community safety and to handle appeals, disputes and repeat rule-breaking</td></tr>
               <tr><td>Levels, Leaves, inventory, purchases, activity statistics</td><td>While you are part of the community, or until you ask us to delete them</td></tr>
             </tbody>
           </table>

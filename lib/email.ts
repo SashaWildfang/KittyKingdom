@@ -383,3 +383,58 @@ export async function sendDiscordLinkReminderEmail(email: string, name: string |
   const m = discordLinkReminderEmail(email, name);
   return sendEmail(email, m.subject, m.html, m.text);
 }
+
+// ---------- Appeals ----------
+const ACTION_WORDS: Record<string, string> = { ban: "Ban", kick: "Kick", kick_unverified: "Kick", tempmute: "Mute", mute: "Mute", timeout: "Timeout", warn: "Warning" };
+
+/** "We got your appeal" (sent when someone appeals and left an email). */
+export async function sendAppealReceivedEmail(email: string, a: { username: string; action: string; punishedAt: string | null; reference: string }) {
+  const kind = ACTION_WORDS[a.action] ?? a.action;
+  const html = layout({
+    preheader: "We've received your appeal and an admin will review it.",
+    eyebrow: "Appeal received",
+    title: "We've got your appeal",
+    intro: `Thanks for reaching out. An admin will review your appeal for the <strong style="color:${INK};">${escapeHtml(kind.toLowerCase())}</strong> on <strong style="color:${INK};">@${escapeHtml(a.username)}</strong> and we'll email you here with the decision.`,
+    rows: [
+      { label: "Discord", value: `@${a.username}` },
+      { label: "Punishment", value: kind },
+      ...(a.punishedAt ? [{ label: "Given", value: new Date(a.punishedAt).toUTCString().slice(0, 16) }] : []),
+      { label: "Reference", value: a.reference },
+      { label: "Submitted", value: stamp() },
+    ],
+    button: { label: "Check your appeal", url: `${SITE}/appeals` },
+    expiry: "Most appeals are reviewed within a few days.",
+    security: "Kitty Kingdom staff will never ask for your password. If you didn't send this appeal, you can ignore this email.",
+    reason: "You're receiving this because this address was entered on an appeal at kittykingdom.net.",
+  });
+  const text = [`Kitty Kingdom: we've got your appeal`, "", `An admin will review your appeal for the ${kind.toLowerCase()} on @${a.username}.`, `Reference: ${a.reference}`, "", `Check it any time: ${SITE}/appeals`].join("\n");
+  return sendEmail(email, "We've received your appeal", html, text);
+}
+
+/** The decision on an appeal, with staff's reply. */
+export async function sendAppealDecisionEmail(email: string, a: { username: string; action: string; accepted: boolean; response: string; reference: string; lifted: boolean }) {
+  const kind = ACTION_WORDS[a.action] ?? a.action;
+  const title = a.accepted ? "Your appeal was accepted" : "Your appeal was reviewed";
+  const intro = a.accepted
+    ? `Good news: your appeal for the <strong style="color:${INK};">${escapeHtml(kind.toLowerCase())}</strong> on <strong style="color:${INK};">@${escapeHtml(a.username)}</strong> was accepted.${a.lifted ? " It has been lifted, so you're welcome back in the server." : ""}`
+    : `An admin reviewed your appeal for the <strong style="color:${INK};">${escapeHtml(kind.toLowerCase())}</strong> on <strong style="color:${INK};">@${escapeHtml(a.username)}</strong> and decided to keep it in place.`;
+  const html = layout({
+    preheader: a.accepted ? "Your appeal was accepted." : "An admin has reviewed your appeal.",
+    eyebrow: "Appeal decision",
+    title,
+    intro: `${intro}${a.response ? `<br><br><strong style="color:${INK};">Message from staff:</strong><br>${escapeHtml(a.response).replace(/\n/g, "<br>")}` : ""}`,
+    rows: [
+      { label: "Discord", value: `@${a.username}` },
+      { label: "Punishment", value: kind },
+      { label: "Decision", value: a.accepted ? (a.lifted ? "Accepted, lifted" : "Accepted") : "Not accepted" },
+      { label: "Reference", value: a.reference },
+      { label: "Decided", value: stamp() },
+    ],
+    button: { label: a.accepted ? "Rejoin Kitty Kingdom" : "View your appeal", url: a.accepted && a.lifted ? `${SITE}/join` : `${SITE}/appeals` },
+    expiry: a.accepted ? "Please read the rules again before you rejoin." : "You can appeal this punishment again in 30 days.",
+    security: "Kitty Kingdom staff will never ask for your password.",
+    reason: "You're receiving this because this address was entered on an appeal at kittykingdom.net.",
+  });
+  const text = [`Kitty Kingdom: ${title.toLowerCase()}`, "", a.accepted ? `Your appeal for the ${kind.toLowerCase()} on @${a.username} was accepted.` : `Your appeal for the ${kind.toLowerCase()} on @${a.username} was not accepted.`, ...(a.response ? ["", "Message from staff:", a.response] : []), "", `Reference: ${a.reference}`, `${SITE}/appeals`].join("\n");
+  return sendEmail(email, title, html, text);
+}

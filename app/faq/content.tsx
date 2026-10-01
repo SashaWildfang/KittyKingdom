@@ -510,10 +510,12 @@ export const TOPICS: Topic[] = [
         q: "I think I was punished by mistake",
         a: (
           <>
-            Open a ticket in <b>#staff-support</b> and explain what happened. Staff can see what AutoMod caught and remove strikes that shouldn&apos;t count.
+            For AutoMod strikes, open a ticket in <b>#staff-support</b>; staff can remove strikes that shouldn&apos;t count. To appeal a ban, mute, kick or
+            warning (even if you&apos;re banned and can&apos;t open a ticket), use the <a href="/appeals">appeals page</a>: find your account, confirm it&apos;s
+            you with Discord and tell the admins what happened. You can leave an email to hear back.
           </>
         ),
-        keywords: "appeal mistake unfair",
+        keywords: "appeal mistake unfair ban banned unban mute kick warning",
       },
       {
         q: "How do I get into voice chats?",

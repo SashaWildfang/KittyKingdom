@@ -1,10 +1,11 @@
 "use client";
 
 import { TicketDeletePermissions } from "./delete-ticket-button";
-import { Activity, BarChart3, Globe, HeartHandshake, ClipboardCheck, MessagesSquare, Gavel, Newspaper, ScrollText, ShieldCheck, Ticket, Users, type LucideIcon } from "lucide-react";
+import { Activity, BarChart3, Scale, Globe, HeartHandshake, ClipboardCheck, MessagesSquare, Gavel, Newspaper, ScrollText, ShieldCheck, Ticket, Users, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AccountsTab } from "./accounts-tab";
+import { AppealsTab } from "./appeals-tab";
 import { AutoModTab } from "./automod-tab";
 import { DatingTab } from "./dating-tab";
 import { MemberSearch, useLive, useStored } from "./admin-shared";
@@ -20,14 +21,14 @@ import { DEFAULT_PUNISHMENT_FILTERS, PunishmentsTab, type PunishmentFilters } fr
 import { TicketsTab } from "./tickets-tab";
 import { TranscriptViewer } from "./transcript-viewer";
 
-type Tab = "overview" | "punishments" | "automod" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live" | "join" | "dating";
+type Tab = "overview" | "punishments" | "automod" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live" | "join" | "dating" | "appeals";
 type Level = "admin" | "staff";
 
 // Tabs are grouped so the bar stays short: pick a group, then one of its tabs
 type Group = "overview" | "moderation" | "members" | "website";
 const GROUPS: { key: Group; label: string; icon: LucideIcon; tabs: Tab[] }[] = [
   { key: "overview", label: "Overview", icon: BarChart3, tabs: ["overview"] },
-  { key: "moderation", label: "Moderation", icon: Gavel, tabs: ["punishments", "automod", "logs", "live"] },
+  { key: "moderation", label: "Moderation", icon: Gavel, tabs: ["punishments", "appeals", "automod", "logs", "live"] },
   { key: "members", label: "Members", icon: Users, tabs: ["join", "tickets", "dating"] },
   { key: "website", label: "Website", icon: Globe, tabs: ["accounts", "news", "traffic"] },
 ];
@@ -35,6 +36,7 @@ const GROUPS: { key: Group; label: string; icon: LucideIcon; tabs: Tab[] }[] = [
 const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean }[] = [
   { key: "overview", label: "Overview", icon: BarChart3 },
   { key: "punishments", label: "Punishments", icon: Gavel },
+  { key: "appeals", label: "Appeals", icon: Scale, admin: true },
   { key: "automod", label: "AutoMod", icon: ShieldCheck },
   { key: "join", label: "Join Apps", icon: ClipboardCheck },
   { key: "logs", label: "Logs", icon: ScrollText },
@@ -93,6 +95,9 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false }: { admin
   // Open dating reports
   const datingPoll = useLive<{ reports: unknown[] }>(tab !== "dating" ? "/api/admin/dating/reports?status=open" : null, 60_000);
   const datingReports = datingPoll.data?.reports.length ?? 0;
+  // Appeals waiting for a decision (admins)
+  const appealsPoll = useLive<{ counts: Record<string, number> }>(isAdmin && tab !== "appeals" ? "/api/admin/appeals?status=pending" : null, 30_000);
+  const pendingAppeals = appealsPoll.data?.counts.pending ?? 0;
   const tabsRef = useRef<HTMLElement>(null);
 
   // Bubbles on tabs (and added up on their group)
@@ -103,6 +108,7 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false }: { admin
     if (k === "automod" && automodUnread) return { count: automodUnread, hot: true, label: `${automodUnread} new` };
     if (k === "news" && pendingNews > 0 && tab !== "news") return { count: pendingNews, label: `${pendingNews} waiting for review` };
     if (k === "dating" && datingReports > 0 && tab !== "dating") return { count: datingReports, hot: true, label: `${datingReports} open reports` };
+    if (k === "appeals" && pendingAppeals > 0 && tab !== "appeals") return { count: pendingAppeals, hot: true, label: `${pendingAppeals} waiting` };
     if (k === "tickets" && openTickets > 0) return { count: openTickets, hot: true, label: `${openTickets} open` };
     if (k === "join" && pendingApps > 0) return { count: pendingApps, hot: true, label: `${pendingApps} pending` };
     return null;
@@ -244,6 +250,7 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false }: { admin
       {tab === "live" ? <LiveTab onOpenMember={openMember} onUnread={setLiveUnread} /> : null}
       {tab === "logs" ? <LogsTab onOpenMember={openMember} /> : null}
       {tab === "dating" ? <DatingTab onOpenMember={openMember} /> : null}
+      {isAdmin && tab === "appeals" ? <AppealsTab onOpenMember={openMember} /> : null}
       {isAdmin && tab === "tickets" ? <TicketsTab typesAvailable={meta?.ticketTypes ?? []} onOpenMember={openMember} onOpenTranscript={openTranscript} /> : null}
       {isAdmin && tab === "accounts" ? <AccountsTab onOpenMember={openMember} /> : null}
       {isAdmin && tab === "news" ? <NewsTab /> : null}

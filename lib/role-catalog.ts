@@ -397,12 +397,6 @@ export const ROLE_CATEGORIES: SelfRoleCategory[] = [
         "description": "Pings to bring life back to the chat."
       },
       {
-        "id": "1503069470908878969",
-        "name": "Store Ping",
-        "emoji": "🛒",
-        "description": "Pings related to store updates and offers."
-      },
-      {
         "id": "1552130421343395871",
         "name": "QOTD Ping",
         "emoji": "❓",
@@ -539,21 +533,6 @@ export const ROLE_CATEGORIES: SelfRoleCategory[] = [
         "name": "Vers Bottom",
         "emoji": "🔽",
         "description": "Versatile, but prefers bottoming."
-      }
-    ]
-  },
-  {
-    "key": "Notifications",
-    "title": "Notifications",
-    "description": "Opt-in to server pings and alerts.",
-    "color": "#5865F2",
-    "adult": true,
-    "roles": [
-      {
-        "id": "1497237607044747375",
-        "name": "Introduction Ping",
-        "emoji": "🔔",
-        "description": "Get pinged when a new dating profile is posted!"
       }
     ]
   }
