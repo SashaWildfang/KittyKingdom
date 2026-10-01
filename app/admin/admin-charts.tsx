@@ -13,7 +13,7 @@ export function StackedBars({
 }: {
   points: { bucket: string; action: string; count: number }[];
   series: Series[];
-  unit: "day" | "week" | "month";
+  unit: "hour" | "day" | "week" | "month";
   height?: number;
 }) {
   const [hover, setHover] = useState<number | null>(null);
@@ -29,7 +29,9 @@ export function StackedBars({
 
   const width = 100 / rows.length;
   const label = (iso: string) =>
-    new Date(iso).toLocaleDateString(undefined, unit === "month" ? { month: "short", year: "2-digit" } : { month: "short", day: "numeric" });
+    unit === "hour"
+      ? new Date(iso).toLocaleTimeString(undefined, { hour: "numeric" })
+      : new Date(iso).toLocaleDateString(undefined, unit === "month" ? { month: "short", year: "2-digit" } : { month: "short", day: "numeric" });
   const tickEvery = Math.max(1, Math.ceil(rows.length / 8));
   const hovered = hover !== null ? rows[hover] : null;
 
