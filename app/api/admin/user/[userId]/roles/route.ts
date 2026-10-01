@@ -1,3 +1,4 @@
+import { requireTwoFactorForAction } from "../../../../../../lib/admin-2fa";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "../../../../../../lib/admin";
 import { RoleChangeError, changeMemberRole } from "../../../../../../lib/admin-roles";
@@ -12,6 +13,10 @@ export async function POST(request: Request, { params }: { params: { userId: str
   const body = (await request.json().catch(() => ({}))) as { roleId?: string; add?: boolean };
   if (typeof body.roleId !== "string") return NextResponse.json({ ok: false, error: "Pick a role." }, { status: 400 });
   try {
+    if (!body.add) {
+      const twoFactor = await requireTwoFactorForAction();
+      if (twoFactor) return twoFactor;
+    }
     const result = await changeMemberRole(admin, params.userId, body.roleId, Boolean(body.add));
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {

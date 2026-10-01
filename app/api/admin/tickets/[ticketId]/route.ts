@@ -1,3 +1,4 @@
+import { requireTwoFactorForAction } from "../../../../../lib/admin-2fa";
 import { NextResponse } from "next/server";
 import { requireAdmin, transcriptToken } from "../../../../../lib/admin";
 import { people } from "../../../../../lib/admin-people";
@@ -27,6 +28,8 @@ export async function GET(request: Request, { params }: { params: { ticketId: st
 export async function DELETE(request: Request, { params }: { params: { ticketId: string } }) {
   const admin = await requireAdmin(request);
   if (admin instanceof NextResponse) return admin;
+  const twoFactor = await requireTwoFactorForAction();
+  if (twoFactor) return twoFactor;
   try {
     const result = await deleteTicket(admin, Number(params.ticketId));
     return NextResponse.json({ ok: true, ...result });

@@ -1,3 +1,4 @@
+import { requireTwoFactorForAction } from "../../../../../lib/admin-2fa";
 import { NextResponse } from "next/server";
 import { requirePanel } from "../../../../../lib/admin";
 import { JoinAppError, joinAppFor, queueJoinAction, type JoinAction } from "../../../../../lib/join-apps";
@@ -20,6 +21,10 @@ export async function POST(request: Request, { params }: { params: { discordId: 
   try {
     const body = await readJson(request);
     const action = String(body.action ?? "") as JoinAction;
+    if (action === "ban") {
+      const twoFactor = await requireTwoFactorForAction();
+      if (twoFactor) return twoFactor;
+    }
     if (action === "ban" && String(body.confirm ?? "").toUpperCase() !== "BAN") throw new JoinAppError("Type BAN to confirm the ban.");
     const queued = await queueJoinAction({ discordId: panel.discordId, name: panel.name }, params.discordId, action, String(body.reason ?? ""));
     const client = await getMongoClient();
