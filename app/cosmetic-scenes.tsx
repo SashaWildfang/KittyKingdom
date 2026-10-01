@@ -623,30 +623,76 @@ function Village({ p, id }: Opts) {
 
 function Lava({ p, id }: Opts) {
   const [bg1, bg2, rock1, rock2, l1, l2, ember] = p;
+  const river = (d: string, k: number) => (
+    <g key={k}>
+      <path d={d} fill="none" stroke={l1} strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={d} fill="none" stroke={l2} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="14 10" {...anim("sc-flow", 2.2 + k * 0.4)} />
+    </g>
+  );
   return (
     <>
       <Sky id={id} a={bg1} b={bg2} />
       <defs>
-        <linearGradient id={`${id}lava`} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor={l1} />
-          <stop offset="0.5" stopColor={l2} />
+        <radialGradient id={`${id}crater`} cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0" stopColor={l2} stopOpacity="0.85" />
+          <stop offset="0.4" stopColor={l1} stopOpacity="0.4" />
+          <stop offset="1" stopColor={l1} stopOpacity="0" />
+        </radialGradient>
+        <linearGradient id={`${id}lake`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor={l2} />
           <stop offset="1" stopColor={l1} />
         </linearGradient>
-        <filter id={`${id}lb`} x="-30%" y="-100%" width="160%" height="300%">
-          <feGaussianBlur stdDeviation="4" />
-        </filter>
+        <linearGradient id={`${id}cone`} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor="#fff" stopOpacity="0.1" />
+          <stop offset="0.5" stopColor="#fff" stopOpacity="0" />
+          <stop offset="1" stopColor="#000" stopOpacity="0.25" />
+        </linearGradient>
       </defs>
-      <ellipse cx="300" cy="200" rx="360" ry="70" fill={l1} opacity="0.25" filter={`url(#${id}lb)`} {...anim("sc-flicker", 3)} />
-      {[0, 1, 2].map((i) => (
-        <circle key={i} cx={290 + i * 14} cy={40 - i * 8} r={14 + i * 6} fill="#000" opacity="0.25" {...anim("sc-smoke", 7, -i * 2)} />
+      {/* Ash clouds */}
+      <g {...anim("sc-drift", 20)} opacity="0.55">
+        <Cloud x={40} y={38} s={1.1} fill={rock2} />
+        <Cloud x={420} y={30} s={1.3} fill={rock2} />
+      </g>
+      {/* Crater glow and smoke plume */}
+      <ellipse cx="300" cy="74" rx="150" ry="70" fill={`url(#${id}crater)`} {...anim("sc-flicker", 3)} />
+      {[0, 1, 2, 3].map((i) => (
+        <circle key={i} cx={296 + i * 4} cy={58 - i * 6} r={12 + i * 5} fill={rock2} opacity="0.7" {...anim("sc-smoke", 6, -i * 1.5)} />
       ))}
-      <path d="M140 200 L250 66 L290 58 L330 64 L460 200 Z" fill={rock1} />
-      <path d="M262 64 Q300 50 320 64" fill="none" stroke={l2} strokeWidth="4" filter={`url(#${id}lb)`} {...anim("sc-flicker", 2)} />
-      <path d="M296 62 C292 100 312 120 300 150 S320 186 312 200" fill="none" stroke={`url(#${id}lava)`} strokeWidth="7" strokeLinecap="round" {...anim("sc-flicker", 2.6)} />
-      <path d="M0 200 L0 160 L70 140 L120 168 L170 150 L200 200 Z M420 200 L460 150 L520 170 L560 140 L600 150 L600 200 Z" fill={rock2} />
-      <path d="M0 196 C120 186 220 200 340 190 S520 186 600 194 V200 H0Z" fill={`url(#${id}lava)`} {...anim("sc-flicker", 3.3)} />
-      {Array.from({ length: 22 }, (_, i) => (
-        <circle key={i} cx={R(i, 151) * 600} cy={205} r={1 + R(i, 152) * 1.6} fill={ember} {...anim("sc-ember", 4 + R(i, 153) * 4, -R(i, 154) * 6)} />
+      {/* Far ridges */}
+      <path d="M0 150 L50 118 L90 132 L140 104 L190 136 L230 150 Z" fill={rock2} />
+      <path d="M370 150 L420 112 L465 128 L520 100 L570 124 L600 116 L600 150 Z" fill={rock2} />
+      {/* The volcano */}
+      <path d="M120 200 L262 78 Q270 72 280 74 L292 70 L306 73 Q318 70 326 77 L480 200 Z" fill={rock1} />
+      <path d="M120 200 L262 78 Q270 72 280 74 L292 70 L306 73 Q318 70 326 77 L480 200 Z" fill={`url(#${id}cone)`} />
+      <path d="M200 140 L230 128 M360 132 L392 146 M250 170 L282 160 M330 172 L360 182" stroke="#000" strokeWidth="2" opacity="0.25" strokeLinecap="round" />
+      <ellipse cx="294" cy="75" rx="30" ry="6" fill={l1} />
+      <ellipse cx="294" cy="74" rx="22" ry="3.5" fill={l2} {...anim("sc-flicker", 1.6)} />
+      {/* Lava fountain */}
+      {Array.from({ length: 8 }, (_, i) => (
+        <circle
+          key={i}
+          cx={286 + i * 2.5}
+          cy={70}
+          r={2 + (i % 3)}
+          fill={i % 2 ? l2 : ember}
+          className="sc-spurt"
+          style={{ animationDuration: `${1.4 + R(i, 7) * 0.8}s`, animationDelay: `${-R(i, 8) * 2}s`, "--sx": `${(i - 3.5) * 5}px` } as CSSProperties}
+        />
+      ))}
+      {/* Rivers down the cone */}
+      {river("M284 78 C276 100 290 118 270 140 S258 176 244 200", 0)}
+      {river("M306 78 C318 104 304 126 326 150 S338 182 350 200", 1)}
+      {/* Foreground rock and the lava lake */}
+      <path d="M0 200 L0 172 L50 160 L96 176 L130 166 L160 200 Z" fill={rock2} />
+      <path d="M440 200 L470 168 L520 178 L560 160 L600 170 L600 200 Z" fill={rock2} />
+      <path d="M150 200 C200 186 260 190 300 186 S400 188 452 200 Z" fill={`url(#${id}lake)`} {...anim("sc-flicker", 3.4)} />
+      <path d="M156 199 C200 187 260 191 300 187 S400 189 448 199" fill="none" stroke={ember} strokeWidth="1.5" opacity="0.9" />
+      {[[210, 195, 14], [268, 193, 10], [330, 194, 16], [392, 196, 9]].map(([x, y, w], i) => (
+        <ellipse key={i} cx={x} cy={y} rx={w} ry="2.4" fill={rock1} opacity="0.75" />
+      ))}
+      {/* Embers */}
+      {Array.from({ length: 26 }, (_, i) => (
+        <circle key={i} cx={150 + R(i, 151) * 300} cy={205} r={1 + R(i, 152) * 1.8} fill={i % 3 ? ember : l2} {...anim("sc-ember", 3.5 + R(i, 153) * 4, -R(i, 154) * 6)} />
       ))}
     </>
   );
