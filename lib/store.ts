@@ -319,6 +319,100 @@ export async function buyItem(discordId: string, itemId: string, amount: number)
 }
 
 // ==========================================
+// CHECKOUT: a whole cart in one go
+// ==========================================
+export const MAX_CART_LINES = 15;
+
+/**
+ * Buys every line in the cart, or nothing: each item gets the same checks as a single purchase
+ * (in the store, stock, one-per-person, daily limits), then stock is taken, the total charged once
+ * and the items handed out. If any step fails, anything already taken is put back.
+ */
+export async function checkout(discordId: string, rawLines: unknown) {
+  if (!Array.isArray(rawLines) || !rawLines.length) throw new StoreError("Your cart is empty.");
+  // Same item twice = one line
+  const wanted = new Map<string, number>();
+  for (const line of rawLines.slice(0, 50)) {
+    const itemId = String((line as { itemId?: unknown })?.itemId ?? "").slice(0, 80);
+    const amount = Number((line as { amount?: unknown })?.amount ?? 1);
+    if (!itemId || !Number.isInteger(amount) || amount < 1) throw new StoreError("Something in your cart isn't right. Refresh and try again.");
+    wanted.set(itemId, (wanted.get(itemId) ?? 0) + amount);
+  }
+  if (wanted.size > MAX_CART_LINES) throw new StoreError(`You can check out up to ${MAX_CART_LINES} different items at once.`);
+
+  const c = await collections();
+  const ids = Array.from(wanted.keys());
+  const items = await c.storeInventory.find({ item_id: { $in: ids } }, BIG).toArray();
+  const byId = new Map(items.map((i) => [String(i.item_id), i]));
+  const bought = await boughtInLast24h(discordId, ids);
+  const lines: { item: Document; itemId: string; amount: number; stock: number; cost: number }[] = [];
+  for (const [itemId, amount] of Array.from(wanted.entries())) {
+    const item = byId.get(itemId);
+    if (!item || !item.is_active || isRetired(item)) throw new StoreError("Something in your cart isn't in the store anymore. Remove it and try again.");
+    const name = String(item.name ?? itemId);
+    if (amount > MAX_BUY_AMOUNT) throw new StoreError(`You can buy up to ${MAX_BUY_AMOUNT} of ${name} at a time.`);
+    const stock = num(item.quantity);
+    if (stock === 0) throw new StoreError(`${name} is out of stock.`);
+    if (!isStackable(item)) {
+      if (amount > 1) throw new StoreError(`You can only buy one ${name}.`);
+      if (await c.userInventory.findOne({ discordId, item_id: itemId })) throw new StoreError(`You already own ${name}.`);
+    }
+    if (stock > 0 && amount > stock) throw new StoreError(`Only ${stock} ${name} left in stock.`);
+    const dailyLimit = num(item.daily_limit);
+    if (dailyLimit > 0 && (bought.get(itemId) ?? 0) + amount > dailyLimit) {
+      const left = Math.max(dailyLimit - (bought.get(itemId) ?? 0), 0);
+      throw new StoreError(left === 0 ? `You've reached today's limit for ${name}.` : `You can buy ${left} more ${name} today.`);
+    }
+    lines.push({ item, itemId, amount, stock, cost: num(item.price) * amount });
+  }
+
+  const total = lines.reduce((n, l) => n + l.cost, 0);
+  const balanceDoc = await getBalanceDoc(discordId);
+  if (!balanceDoc || num(balanceDoc.balance) < total) throw new StoreError(`You need ${total.toLocaleString()} leaves for this cart.`);
+
+  // Take stock for every limited item; put it all back if any is gone
+  const taken: { itemId: string; amount: number }[] = [];
+  const putBack = async () => {
+    for (const t of taken) await c.storeInventory.updateOne({ item_id: t.itemId }, { $inc: { quantity: t.amount } }).catch(() => undefined);
+  };
+  for (const l of lines) {
+    if (l.stock <= 0) continue;
+    const res = await c.storeInventory.updateOne({ item_id: l.itemId, quantity: { $gte: l.amount } }, { $inc: { quantity: -l.amount } });
+    if (!res.modifiedCount) {
+      await putBack();
+      throw new StoreError(`${String(l.item.name ?? l.itemId)} just sold out. Nothing was charged.`);
+    }
+    taken.push({ itemId: l.itemId, amount: l.amount });
+  }
+  // One charge for the whole cart, in the same step as the balance check
+  const charged = await c.users.updateOne({ _id: balanceDoc._id, balance: { $gte: total } }, { $inc: { balance: -total } });
+  if (!charged.modifiedCount) {
+    await putBack();
+    throw new StoreError("You no longer have enough leaves for this cart. Nothing was charged.");
+  }
+
+  const now = new Date();
+  await c.userInventory.insertMany(
+    lines.flatMap((l) =>
+      Array.from({ length: l.amount }, () => ({
+        discordId,
+        item_id: l.itemId,
+        name: l.item.name,
+        description: l.item.description ?? "No description provided.",
+        image_url: l.item.image_url ?? "",
+        role_id: l.item.role_id ?? null,
+        type: l.item.type ?? "role",
+        duration: l.item.duration ?? null,
+        purchasedAt: now,
+      })),
+    ),
+  );
+  await c.storeSales.insertMany(lines.map((l) => ({ buyerId: discordId, item_id: l.itemId, quantity: l.amount, price_paid: l.cost, timestamp: now, source: "website-cart" })));
+  const count = lines.reduce((n, l) => n + l.amount, 0);
+  return { message: `Checked out ${count} item${count === 1 ? "" : "s"} for ${total.toLocaleString()} leaves!`, total };
+}
+
+// ==========================================
 // USE A BOOSTER (same as /inventory use)
 // ==========================================
 export async function activateItem(discordId: string, itemId: string) {
