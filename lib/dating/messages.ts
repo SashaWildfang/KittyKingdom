@@ -215,35 +215,73 @@ export async function messageWithContext(messageId: string) {
   return { conv: String(m.conv), from: String(m.from), to: String(m.to), messages: [...before.reverse(), m, ...after].map(shape) };
 }
 
-// ---------- Admins only (Admin → a member's full profile → Social messages). Every thread opened is audited. ----------
+// ---------- Admins only (Admin → Messages). Every conversation opened is audited by the route. ----------
 
-/** Every conversation a member is in (including hidden ones and requests), newest first. */
-export async function adminConversations(member: string) {
+export type AdminConversation = {
+  id: string;
+  users: [string, string];
+  state: string;
+  requestFrom: string | null;
+  lastAt: string | null;
+  lastText: string;
+  lastFrom: string | null;
+  messages: number;
+};
+
+/** Conversations across the site (or one member's), most recent first. */
+export async function adminConversations(opts: { member?: string | null; limit?: number; before?: string | null } = {}) {
   const { convs, msgs } = await cols();
-  const rows = await convs.find({ users: member }).sort({ lastAt: -1 }).limit(200).toArray();
-  const counts = await msgs
-    .aggregate([{ $match: { conv: { $in: rows.map((r) => r._id) } } }, { $group: { _id: "$conv", n: { $sum: 1 } } }])
-    .toArray();
+  const q: Document = {};
+  if (opts.member) q.users = opts.member;
+  if (opts.before) q.lastAt = { $lt: new Date(opts.before) };
+  const limit = Math.min(Math.max(opts.limit ?? 40, 1), 100);
+  const rows = await convs.find(q).sort({ lastAt: -1 }).limit(limit + 1).toArray();
+  const page = rows.slice(0, limit);
+  const counts = await msgs.aggregate([{ $match: { conv: { $in: page.map((r) => r._id) } } }, { $group: { _id: "$conv", n: { $sum: 1 } } }]).toArray();
   const count = new Map(counts.map((c) => [String(c._id), Number(c.n)]));
-  return rows.map((c) => ({
-    id: String(c._id),
-    other: (c.users as string[]).find((u) => u !== member) ?? member,
-    state: String(c.state ?? "open"),
-    lastAt: c.lastAt instanceof Date ? c.lastAt.toISOString() : null,
-    lastText: String(c.lastText ?? ""),
-    lastFromMember: c.lastFrom === member,
-    messages: count.get(String(c._id)) ?? 0,
-  }));
+  return {
+    more: rows.length > limit,
+    conversations: page.map(
+      (c): AdminConversation => {
+        const users = (c.users as string[]).slice(0, 2) as [string, string];
+        // The member being looked at goes first
+        if (opts.member && users[1] === opts.member) users.reverse();
+        return {
+          id: String(c._id),
+          users,
+          state: String(c.state ?? "open"),
+          requestFrom: c.requestFrom ? String(c.requestFrom) : null,
+          lastAt: c.lastAt instanceof Date ? c.lastAt.toISOString() : null,
+          lastText: String(c.lastText ?? ""),
+          lastFrom: c.lastFrom ? String(c.lastFrom) : null,
+          messages: count.get(String(c._id)) ?? 0,
+        };
+      },
+    ),
+  };
 }
 
-/** A conversation's messages for an admin (read only: nothing is marked read). */
-export async function adminThread(a: string, b: string, before?: string | null) {
-  const { msgs } = await cols();
-  const q: Document = { conv: pairId(a, b) };
-  if (before && ObjectId.isValid(before)) q._id = { $lt: new ObjectId(before) };
-  const rows = await msgs.find(q).sort({ _id: -1 }).limit(100).toArray();
+/**
+ * A conversation's messages for an admin (read only: nothing is marked read for them).
+ * `before` pages back through older ones; `after` returns only new ones (for the live view).
+ */
+export async function adminThread(a: string, b: string, opts: { before?: string | null; after?: string | null } = {}) {
+  const { convs, msgs } = await cols();
+  const id = pairId(a, b);
+  const q: Document = { conv: id };
+  if (opts.after && ObjectId.isValid(opts.after)) q._id = { $gt: new ObjectId(opts.after) };
+  else if (opts.before && ObjectId.isValid(opts.before)) q._id = { $lt: new ObjectId(opts.before) };
+  const [rows, conv] = await Promise.all([
+    opts.after ? msgs.find(q).sort({ _id: 1 }).limit(200).toArray() : msgs.find(q).sort({ _id: -1 }).limit(100).toArray().then((r) => r.reverse()),
+    convs.findOne({ _id: id } as never),
+  ]);
+  const readAt = (u: string) => (conv?.readAt?.[u] instanceof Date ? (conv.readAt[u] as Date).toISOString() : null);
   return {
-    messages: rows.reverse().map((m) => ({ id: String(m._id), from: String(m.from), text: m.deleted ? "" : String(m.text ?? ""), deleted: Boolean(m.deleted), at: (m.at as Date).toISOString() })),
-    more: rows.length === 100,
+    id,
+    state: String(conv?.state ?? "none"),
+    requestFrom: conv?.requestFrom ? String(conv.requestFrom) : null,
+    readAt: { [a]: readAt(a), [b]: readAt(b) } as Record<string, string | null>,
+    messages: rows.map((m) => ({ id: String(m._id), from: String(m.from), text: m.deleted ? "" : String(m.text ?? ""), deleted: Boolean(m.deleted), at: (m.at as Date).toISOString() })),
+    more: !opts.after && rows.length === 100,
   };
 }
