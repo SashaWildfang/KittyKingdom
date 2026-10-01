@@ -5,10 +5,13 @@
 // - one claim per UTC calendar day, resetting at midnight UTC
 // - everyone gets 250 leaves; the streak goes up by one per day and resets after a missed day
 // - Nitro boosters also get a streak bonus of +100 × the day of the 7-day cycle (+100 … +700)
+// - Streak Shields (store item): a missed day uses one shield instead of breaking the streak
+//   (one shield per missed day, up to 3 missed days in a row)
 
 import { Long, type Document } from "mongodb";
 import { getMemberRoleIds } from "./discord-member";
 import { getBotCollection } from "./mongodb";
+import { ITEM, SHIELD_MAX_GAP } from "./cosmetics";
 import { StoreError } from "./store";
 
 // 🍂 Golden Leaf (Nitro), given to server boosters
@@ -43,6 +46,10 @@ export type DailyStatus = {
   base: number;
   step: number;
   infoChannelId: string;
+  /** Streak Shields they hold */
+  shields: number;
+  /** Shields the next claim will use to keep the streak (0 if none are needed) */
+  shieldsNeeded: number;
 };
 
 const utcDay = (d: Date) => Math.floor(d.getTime() / DAY_MS);
@@ -61,11 +68,14 @@ function lastDailyOf(doc: Document | null) {
   return v instanceof Date && !Number.isNaN(v.getTime()) ? v : null;
 }
 
-function statusFrom(doc: Document | null, nitro: boolean, now = new Date()): DailyStatus {
+function statusFrom(doc: Document | null, nitro: boolean, now = new Date(), shields = 0): DailyStatus {
   const last = lastDailyOf(doc);
   const daysSince = last ? utcDay(now) - utcDay(last) : null;
   const claimedToday = daysSince === 0;
-  const alive = daysSince !== null && daysSince <= 1;
+  // Days missed since the last claim, and whether shields can cover them
+  const gap = daysSince !== null && daysSince > 1 ? daysSince - 1 : 0;
+  const shielded = gap > 0 && gap <= SHIELD_MAX_GAP && shields >= gap;
+  const alive = daysSince !== null && (daysSince <= 1 || shielded);
   const streak = alive ? Math.max(0, num(doc?.streak)) : 0;
 
   const nextStreak = streak + 1;
@@ -80,8 +90,9 @@ function statusFrom(doc: Document | null, nitro: boolean, now = new Date()): Dai
     claimedToday,
     lastClaimAt: last?.toISOString() ?? null,
     nextClaimAt: new Date(claimedToday ? tomorrow : now.getTime()).toISOString(),
-    // Claimed today → safe until the end of tomorrow; claimed yesterday → must claim before tonight
-    streakEndsAt: streak ? new Date(claimedToday ? tomorrow + DAY_MS : tomorrow).toISOString() : null,
+    // Lost at the start of the day after the last safe one: the day after the last claim, plus a day
+    // for each shield still left over after covering days already missed
+    streakEndsAt: streak && last ? new Date((utcDay(last) + 2 + Math.min(SHIELD_MAX_GAP, shields) ) * DAY_MS).toISOString() : null,
     nitro,
     cycleDone,
     nextCycleDay: cycleDayOf(nextStreak),
@@ -90,22 +101,47 @@ function statusFrom(doc: Document | null, nitro: boolean, now = new Date()): Dai
     base: DAILY_BASE,
     step: STREAK_STEP,
     infoChannelId: NITRO_INFO_CHANNEL_ID,
+    shields,
+    shieldsNeeded: shielded ? gap : 0,
   };
+}
+
+async function shieldCount(discordId: string) {
+  return (await getBotCollection("user_inventory")).countDocuments({ discordId, item_id: ITEM.shield }).catch(() => 0);
 }
 
 export async function getDailyStatus(discordId: string) {
   const users = await getBotCollection("users");
-  const [doc, nitro] = await Promise.all([users.findOne(idFilter(discordId), { projection: { balance: 1, streak: 1, lastDaily: 1 }, ...BIG }), hasNitro(discordId)]);
-  return statusFrom(doc, nitro);
+  const [doc, nitro, shields] = await Promise.all([users.findOne(idFilter(discordId), { projection: { balance: 1, streak: 1, lastDaily: 1 }, ...BIG }), hasNitro(discordId), shieldCount(discordId)]);
+  return statusFrom(doc, nitro, new Date(), shields);
 }
 
 /** Claims today's reward. Safe against double clicks: the write only lands if nobody claimed in between. */
 export async function claimDaily(discordId: string) {
   const users = await getBotCollection("users");
-  const [doc, nitro] = await Promise.all([users.findOne(idFilter(discordId), { ...BIG }), hasNitro(discordId)]);
+  const [doc, nitro, shields] = await Promise.all([users.findOne(idFilter(discordId), { ...BIG }), hasNitro(discordId), shieldCount(discordId)]);
   const now = new Date();
-  const before = statusFrom(doc, nitro, now);
+  let before = statusFrom(doc, nitro, now, shields);
   if (before.claimedToday) throw new StoreError("You already claimed today's leaves. Come back after the reset!", 409);
+
+  // Missed days: use one shield per day (all or none); if any can't be taken, the streak resets
+  let usedShields = 0;
+  if (before.shieldsNeeded) {
+    const inv = await getBotCollection("user_inventory");
+    const taken: Document[] = [];
+    for (let i = 0; i < before.shieldsNeeded; i++) {
+      const gone = await inv.findOneAndDelete({ discordId, item_id: ITEM.shield });
+      if (!gone) break;
+      taken.push(gone);
+    }
+    usedShields = taken.length;
+    if (usedShields < before.shieldsNeeded) {
+      // Not enough after all (used elsewhere at the same moment): give them back, the streak resets
+      if (taken.length) await inv.insertMany(taken).catch(() => undefined);
+      usedShields = 0;
+      before = statusFrom(doc, nitro, now, 0);
+    }
+  }
 
   const streak = before.streak + 1;
   const reward = rewardFor(streak, nitro);
@@ -123,8 +159,10 @@ export async function claimDaily(discordId: string) {
   }
 
   const after = await getDailyStatus(discordId);
-  const message = bonus
-    ? `+${reward.toLocaleString()} leaves! (${DAILY_BASE} + ${bonus} day ${cycleDayOf(streak)} streak bonus)`
-    : `+${reward.toLocaleString()} leaves! Streak: ${streak} day${streak === 1 ? "" : "s"}.`;
+  const saved = usedShields && before.streak ? ` 🛡️ ${usedShields} Streak Shield${usedShields === 1 ? "" : "s"} kept your streak alive.` : "";
+  const message =
+    (bonus
+      ? `+${reward.toLocaleString()} leaves! (${DAILY_BASE} + ${bonus} day ${cycleDayOf(streak)} streak bonus)`
+      : `+${reward.toLocaleString()} leaves! Streak: ${streak} day${streak === 1 ? "" : "s"}.`) + saved;
   return { message, reward, bonus, status: after };
 }

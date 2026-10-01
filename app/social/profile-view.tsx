@@ -1,5 +1,7 @@
 "use client";
 
+import { NO_FLAIR, type ProfileExtras } from "../../lib/cosmetics";
+import { FlairBanner, FlairName, Framed } from "../cosmetic-flair";
 import {
   Activity,
   Ban,
@@ -39,6 +41,7 @@ import {
   Wine,
   X,
   type LucideIcon,
+  Star,
 } from "lucide-react";
 import { useEffect, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
@@ -72,10 +75,11 @@ type View = {
   paused: boolean;
   isNew: boolean;
   badges: { showcase: BadgeShowcase; earned: Record<string, BadgeEarned> } | null;
+  extras?: ProfileExtras;
 };
 type Compat = { partnered?: boolean; score: number; tier: string; parts: Record<string, number | null>; pairs: { a: string; b: string }[]; agreements: string[]; conflicts: string[]; blocked: string | null; starter: string; ai: boolean };
 type Views = { total: number; week: number; theyViewedMe: string | null; iViewedBefore: boolean } | null;
-type Relation = { iLiked: boolean; likesMe: boolean; match: boolean; friend: "none" | "friends" | "sent" | "received"; blockedByMe: boolean; passed: boolean };
+type Relation = { iLiked: boolean; likesMe: boolean; match: boolean; friend: "none" | "friends" | "sent" | "received"; blockedByMe: boolean; passed: boolean; superLiked?: boolean; superLikes?: number };
 type Data = { own: boolean; profile: View; compat: Compat | null; views: Views; relation: Relation };
 
 const PART_LABELS: Record<string, [string, LucideIcon]> = {
@@ -339,6 +343,7 @@ export function ProfileScreen({ id }: { id: string }) {
   const active = ago(p.lastActive);
   const cover = p.photos[0]?.url ?? p.avatar;
   const coverCrop = p.photos[0]?.crop ?? null;
+  const flair = p.extras?.flair ?? NO_FLAIR;
   const facts = p.facts.map((f) => ({ ...f, Icon: FACT_ICONS[f.key] ?? Sparkles }));
   // Socials and gaming tags live in the header; everything else goes in the columns
   const socials = p.sections.filter((s) => s.id === "socials" || s.id === "gaming").flatMap((s) => s.items);
@@ -364,24 +369,44 @@ export function ProfileScreen({ id }: { id: string }) {
 
       {/* Header card */}
       <header className="dt-hero">
-        <div
-          className={`dt-hero-cover${p.banner ? " has-banner" : " dt-banner-default"}`}
-          style={p.banner ? { backgroundImage: `url(${p.banner})`, backgroundPosition: `center ${p.bannerY}%` } : undefined}
-          aria-hidden="true"
-        />
+        {/* A store banner wins over an uploaded one (unequip it in the store's Locker to show yours) */}
+        {flair.banner ? (
+          <div className="dt-hero-cover has-cos-banner" aria-hidden="true">
+            <FlairBanner banner={flair.banner} />
+          </div>
+        ) : (
+          <div
+            className={`dt-hero-cover${p.banner ? " has-banner" : " dt-banner-default"}`}
+            style={p.banner ? { backgroundImage: `url(${p.banner})`, backgroundPosition: `center ${p.bannerY}%` } : undefined}
+            aria-hidden="true"
+          />
+        )}
         <div className="dt-hero-body">
           <div className="dt-hero-side">
-            <div className="dt-hero-photo">
-              <Photo src={cover} name={p.name} accent={p.accent} crop={coverCrop} />
-              {active === "online now" ? <span className="dt-face-dot" title="Online now" /> : null}
-            </div>
+            <Framed frame={flair.frame} className="dt-hero-frame">
+              <div className="dt-hero-photo">
+                <Photo src={cover} name={p.name} accent={p.accent} crop={coverCrop} />
+                {active === "online now" ? <span className="dt-face-dot" title="Online now" /> : null}
+              </div>
+            </Framed>
             {socials.length ? <SocialChips items={socials} /> : null}
             {/* Their badge title and pinned badges from the website (hover for details) */}
-            {p.badges ? <ShowcaseBadges showcase={p.badges.showcase} earned={p.badges.earned} size={34} className="dt-hero-showcase" /> : null}
+            {p.badges || p.extras?.customTitle || p.extras?.customBadges.length ? (
+              <ShowcaseBadges
+                showcase={p.badges?.showcase ?? null}
+                earned={p.badges?.earned}
+                size={34}
+                className="dt-hero-showcase"
+                customTitle={p.extras?.customTitle}
+                customBadges={p.extras?.customBadges}
+              />
+            ) : null}
           </div>
           <div className="dt-hero-info">
             <h1>
-              {p.name}
+              <FlairName nameplate={flair.nameplate} text={p.name}>
+                {p.name}
+              </FlairName>
               {p.age ? <span>, {p.age}</span> : null}
               {p.isNew ? <span className="dt-new">New</span> : null}
             </h1>
@@ -479,6 +504,19 @@ export function ProfileScreen({ id }: { id: string }) {
                 <button type="button" className="dt-btn dt-btn--like" disabled={busy} onClick={() => void act("like", `You liked ${p.name}.`)}>
                   <Heart size={15} aria-hidden="true" /> {r.likesMe ? "Like back" : "Like"}
                 </button>
+              )}
+              {r.superLiked ? (
+                <span className="dt-btn dt-btn--superliked" title="You super liked them">
+                  <Star size={15} fill="currentColor" aria-hidden="true" /> Super liked
+                </span>
+              ) : r.superLikes ? (
+                <button type="button" className="dt-btn dt-btn--superlike" disabled={busy} onClick={() => void act("superlike", `You super liked ${p.name}! They'll know it was you.`)} title={`Use a Super Like (you have ${r.superLikes})`}>
+                  <Star size={15} aria-hidden="true" /> Super Like <small>×{r.superLikes}</small>
+                </button>
+              ) : (
+                <a className="dt-btn dt-btn--ghost dt-btn--superlike-get" href="/store?item=super_like" title="Get Super Likes in the Store: they're told it's you, and you're shown first in their Likes">
+                  <Star size={15} aria-hidden="true" /> Super Like
+                </a>
               )}
               <a className="dt-btn" href={`/social/messages/${p.id}`}>
                 <MessageCircle size={15} aria-hidden="true" /> Message

@@ -2,6 +2,8 @@
 // Dating on the website is free and open: unlimited likes and everyone sees who liked them. (Server
 // boosters get extra weight in the hourly featured draw instead; see discover.ts.)
 
+import { ITEM } from "../cosmetics";
+import { getBotCollection } from "../mongodb";
 import { Long } from "mongodb";
 import { notify } from "../notifications";
 import { getSettings } from "./settings";
@@ -88,10 +90,11 @@ export async function likesReceived(me: string, _booster?: boolean) {
   const { likes } = await datingCols();
   const doc = await likes.findOne({ _id: toLong(me) } as never);
   const blocked = await blockedIds(me);
-  const list = ((doc?.likes ?? []) as { liker_id: Long; timestamp?: Date }[])
-    .map((l) => ({ id: idStr(l.liker_id), at: l.timestamp instanceof Date ? l.timestamp.toISOString() : null }))
+  const list = ((doc?.likes ?? []) as { liker_id: Long; timestamp?: Date; super?: boolean }[])
+    .map((l) => ({ id: idStr(l.liker_id), at: l.timestamp instanceof Date ? l.timestamp.toISOString() : null, super: l.super === true }))
     .filter((l) => !blocked.has(l.id))
-    .sort((a, b) => String(b.at).localeCompare(String(a.at)));
+    // Super Likes first, then newest
+    .sort((a, b) => Number(b.super) - Number(a.super) || String(b.at).localeCompare(String(a.at)));
   // Everyone sees everyone who liked them
   return list.map((l) => ({ ...l, hidden: false }));
 }
@@ -198,4 +201,39 @@ export async function touchActive(me: string) {
     { _id: toLong(me), $or: [{ last_active: { $lt: new Date(now.getTime() - 60_000) } }, { last_active: { $exists: false } }, { last_active: null }] } as never,
     { $set: { last_active: now } },
   );
+}
+
+/**
+ * A Super Like (store item): likes them (or upgrades an existing like), uses one Super Like, marks
+ * the like with a star so it's shown first, and tells them who it was.
+ */
+export async function superLike(me: string, target: string, booster: boolean, myName: string): Promise<LikeResult & { superLikesLeft: number }> {
+  if (me === target || (await blockedIds(me)).has(target)) return { status: "blocked", mutual: false, left: null, superLikesLeft: 0 };
+  const c = await datingCols();
+  const existing = await c.likes.findOne({ _id: toLong(target), likes: { $elemMatch: { liker_id: toLong(me), super: true } } } as never, { projection: { _id: 1 } });
+  if (existing) return { status: "already", mutual: false, left: null, superLikesLeft: await superLikesOwned(me) };
+  // Use one first, so a double click can't spend nothing
+  const inv = await getBotCollection("user_inventory");
+  const spent = await inv.findOneAndDelete({ discordId: me, item_id: ITEM.superLike });
+  if (!spent) return { status: "limit", mutual: false, left: null, superLikesLeft: 0 };
+  const result = await like(me, target, booster, myName);
+  if (result.status === "blocked") {
+    await inv.insertOne(spent).catch(() => undefined);
+    return { ...result, superLikesLeft: await superLikesOwned(me) };
+  }
+  await c.likes.updateOne({ _id: toLong(target) } as never, { $set: { "likes.$[e].super": true, "likes.$[e].timestamp": new Date() } } as never, { arrayFilters: [{ "e.liker_id": toLong(me) }] } as never);
+  if (!result.mutual) {
+    await notify(target, { type: "superlike", actor: me, title: `${myName} super liked you!`, body: "Take a look at their profile, and like them back to match.", link: `/social/u/${me}`, key: `superlike:${me}` });
+  }
+  return { ...result, superLikesLeft: await superLikesOwned(me) };
+}
+
+export async function superLikesOwned(me: string) {
+  return (await getBotCollection("user_inventory")).countDocuments({ discordId: me, item_id: ITEM.superLike }).catch(() => 0);
+}
+
+/** Whether I already super liked them. */
+export async function iSuperLiked(me: string, target: string) {
+  const c = await datingCols();
+  return (await c.likes.countDocuments({ _id: toLong(target), likes: { $elemMatch: { liker_id: toLong(me), super: true } } } as never, { limit: 1 })) > 0;
 }
