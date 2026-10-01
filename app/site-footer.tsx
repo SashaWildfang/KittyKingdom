@@ -9,6 +9,7 @@ import {
   LogIn,
   MessageCircle,
   Newspaper,
+  Scale,
   Settings,
   Shield,
   ShoppingBag,
@@ -141,6 +142,9 @@ export async function SiteFooter() {
             </a>
             <a href="/support">
               <LifeBuoy size={13} aria-hidden="true" /> Support
+            </a>
+            <a href="/appeals">
+              <Scale size={13} aria-hidden="true" /> Appeal a punishment
             </a>
             <a href="/privacy">
               <Shield size={13} aria-hidden="true" /> Privacy Policy
