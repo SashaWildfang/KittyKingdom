@@ -53,7 +53,7 @@ export function MobileMenu({ links, signedIn, newsStamps = [], bell = false, mes
           {links.map((link) => {
             const Icon = ICONS[link.icon];
             return (
-              <a key={link.href} href={link.href} className={isActive(link.href) ? "is-active" : undefined} tabIndex={open ? 0 : -1} {...(link.external ? { rel: "noopener noreferrer", target: link.icon === "patreon" ? "_blank" : undefined } : {})}>
+              <a key={link.href} href={link.href} className={isActive(link.href) ? "is-active" : undefined} tabIndex={open ? 0 : -1} {...(link.external ? { rel: "noopener noreferrer", target: "_blank" } : {})}>
                 <span className="mobile-sheet-icon">
                   <Icon size={19} aria-hidden="true" />
                 </span>
