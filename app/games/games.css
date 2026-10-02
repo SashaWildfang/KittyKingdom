@@ -2071,24 +2071,6 @@
   color: #fff;
 }
 
-.sl-bulbs {
-  position: absolute;
-  inset: 4px;
-  border-radius: 13px;
-  background: radial-gradient(circle, #ffe9a8 0 2px, transparent 2.6px) 0 0 / 14px 14px;
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  padding: 3px;
-  opacity: 0.85;
-  animation: sl-bulbs 1.2s steps(2) infinite;
-  pointer-events: none;
-}
-
-@keyframes sl-bulbs {
-  50% { background-position: 7px 0; opacity: 0.55; }
-}
-
 .sl-marquee small {
   color: #ffd56a;
   font-size: 0.68rem;
@@ -2204,66 +2186,6 @@
 .sl-readout .is-jackpot { color: #ffd56a; font-size: 1.4rem; text-shadow: 0 0 16px rgba(255, 213, 106, 0.8); }
 .sl-readout .is-pair { color: #cfd6e0; }
 .sl-readout .is-loss { color: #ff9ea2; }
-
-.sl-controls {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  align-items: center;
-  gap: 0.8rem;
-}
-
-.sl-bet {
-  display: grid;
-  gap: 0.45rem;
-}
-
-.sl-quick,
-.sl-spins {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-}
-
-.sl-spins {
-  align-items: center;
-}
-
-.sl-spins > span {
-  color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 900;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.sl-quick button,
-.sl-spins button {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
-  padding: 0.35rem 0.65rem;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--panel);
-  color: var(--text);
-  font: inherit;
-  font-size: 0.82rem;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.sl-quick button.is-on,
-.sl-spins button.is-on {
-  border-color: transparent;
-  background: linear-gradient(135deg, var(--ember, #f59b2a), var(--maple, #d9572b));
-  color: #fff;
-}
-
-.sl-quick button:disabled,
-.sl-spins button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
 
 .sl-pull {
   display: grid;
@@ -2417,6 +2339,197 @@
   color: var(--muted);
 }
 
+/* Marquee bulbs: a chasing ring of lights, faster and gold on a win */
+.sl-lights {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 4px;
+}
+
+.sl-lights.is-top { margin-bottom: 0.35rem; }
+.sl-lights.is-bottom { margin-top: 0.35rem; }
+
+.sl-lights i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #6b3a1a;
+  box-shadow: inset 0 -1px 2px rgba(0, 0, 0, 0.4);
+  animation: sl-chase 1.4s linear infinite;
+  animation-delay: calc(var(--i) * -0.1s);
+}
+
+@keyframes sl-chase {
+  0%, 40% { background: #fff3c4; box-shadow: 0 0 6px 2px rgba(255, 213, 106, 0.9), inset 0 -1px 2px rgba(0, 0, 0, 0.2); }
+  50%, 100% { background: #6b3a1a; box-shadow: inset 0 -1px 2px rgba(0, 0, 0, 0.4); }
+}
+
+.sl-machine.is-triple .sl-lights i,
+.sl-machine.is-jackpot .sl-lights i {
+  animation-duration: 0.45s;
+}
+
+.sl-machine.is-jackpot .sl-lights i {
+  animation-name: sl-chase-gold;
+}
+
+@keyframes sl-chase-gold {
+  0%, 50% { background: #ffd56a; box-shadow: 0 0 10px 3px rgba(255, 213, 106, 1); }
+  51%, 100% { background: #ff6a3d; box-shadow: 0 0 8px 2px rgba(255, 106, 61, 0.8); }
+}
+
+/* The console under the machine */
+.sl-panel {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem 1.2rem;
+  width: min(640px, 100%);
+  margin: 0 auto;
+  padding: 1rem 1.1rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: linear-gradient(180deg, var(--panel-strong, var(--panel)), var(--panel));
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.25);
+}
+
+.sl-field {
+  display: grid;
+  align-content: start;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.sl-field-label {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sl-stepper {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.sl-stepper button {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 1.3rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.sl-stepper button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.07); }
+.sl-stepper button:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.sl-stepper label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  border-inline: 1px solid var(--line);
+}
+
+.sl-stepper input {
+  width: 100%;
+  min-width: 0;
+  max-width: 9ch;
+  padding: 0.55rem 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 1.2rem;
+  font-weight: 900;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  -moz-appearance: textfield;
+}
+
+.sl-stepper input::-webkit-outer-spin-button,
+.sl-stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.sl-stepper input:focus { outline: none; }
+
+.sl-quick {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.3rem;
+}
+
+.sl-quick button {
+  padding: 0.35rem 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.sl-seg {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.sl-seg button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.6rem 0;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.sl-quick button.is-on,
+.sl-seg button.is-on {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--ember, #f59b2a), var(--maple, #d9572b));
+  color: #fff;
+}
+
+.sl-quick button:disabled,
+.sl-seg button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.sl-panel .sl-pull {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+.sl-panel .sl-nitro-note {
+  display: block;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.sl-panel .sl-nitro-note svg {
+  vertical-align: -2px;
+  margin-right: 0.2rem;
+}
+
 /* Blackjack: the bet chip's amount needs room under the spot */
 .bj-spot {
   bottom: 44px;
@@ -2424,8 +2537,7 @@
 
 @media (max-width: 640px) {
   .sl-machine { --cell: 70px; padding: 0.7rem 0.7rem 0.9rem; }
-  .sl-controls { grid-template-columns: 1fr; }
-  .sl-pull { width: 100%; }
+  .sl-panel { grid-template-columns: 1fr; }
   .gm-tabs:not(.adm-games-tabs) button {
     flex-direction: column;
     gap: 0.15rem;
@@ -2444,7 +2556,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .sl-strip { animation-duration: 1ms !important; }
-  .sl-bulbs { animation: none; }
+  .sl-lights i { animation: none; }
 }
 
 /* Leaving a game mid-play */

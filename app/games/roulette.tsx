@@ -12,7 +12,51 @@ const colorOf = (n: number) => (n === 0 ? "green" : RED.has(n) ? "red" : "black"
 const POCKET = 360 / 37;
 const pocketAngle = (n: number) => WHEEL.indexOf(n) * POCKET;
 const WHEEL_SPEED = 0.024; // deg per ms, the rotor's slow constant turn
-const BALL_SPEED = 0.42; // deg per ms, the ball when it's launched
+
+// The ball's run, in ms after bets close (the spin lasts 7s). It's worked out relative to the rotor and
+// backwards from the winning pocket, so wherever it starts it always lands exactly on the number.
+const LAUNCH = 350; // lifted out of its pocket onto the outer track
+const TRACK_END = 4100; // rolling round the track, slowing down
+const DROP_END = 4800; // falls off the track, clips a diamond deflector
+const SETTLE = 6400; // bounces across pockets, then sits
+const V0 = 0.62; // deg/ms relative to the rotor at launch
+const V_TRACK_END = 0.17;
+const DECEL = (V0 - V_TRACK_END) / TRACK_END;
+const R_POCKET = 118;
+const R_TRACK = 158;
+
+/** A small seeded random generator, so every viewer sees the same bounces for a round. */
+function rng(seed: number) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+type Hop = { at: number; dur: number; pockets: number; height: number };
+/** The bounces after the drop: three or four hops over fewer and fewer pockets (sometimes one kicks back). */
+function hopsFor(round: number): { drop: number; hops: Hop[] } {
+  const r = rng(round * 7919 + 13);
+  const count = 3 + Math.floor(r() * 2);
+  const hops: Hop[] = [];
+  let at = DROP_END;
+  const budget = SETTLE - DROP_END;
+  const durs = Array.from({ length: count }, (_, i) => 1 / (i + 1.4));
+  const sum = durs.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < count; i++) {
+    const dur = (durs[i] / sum) * budget;
+    const big = Math.max(1, Math.round((count - i) * (0.8 + r() * 1.1)));
+    const pockets = i > 0 && r() < 0.25 ? -1 : big;
+    hops.push({ at, dur, pockets, height: 16 * Math.pow(0.55, i) + 2 });
+    at += dur;
+  }
+  return { drop: 40 + r() * 50, hops };
+}
+
+const easeOut = (u: number) => 1 - Math.pow(1 - u, 3);
 
 const CHIPS = [25, 100, 500, 1000, 5000, 10000];
 const CHIP_CLASS: Record<number, string> = { 25: "c25", 100: "c100", 500: "c500", 1000: "c1k", 5000: "c5k", 10000: "c10k" };
@@ -81,6 +125,7 @@ const hermite = (p0: number, v0: number, p1: number, v1: number, T: number, s: n
 function Wheel({ state, clock }: { state: State | null; clock: () => number }) {
   const rotor = useRef<SVGGElement>(null);
   const ball = useRef<SVGGElement>(null);
+  const shadow = useRef<SVGGElement>(null);
   const plan = useRef<{ round: number; tk: number; a0: number; aEnd: number } | null>(null);
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -95,44 +140,65 @@ function Wheel({ state, clock }: { state: State | null; clock: () => number }) {
       rotor.current?.setAttribute("transform", `rotate(${wheel} 200 200)`);
       if (!s || !ball.current) return;
       const rest = s.history[0]?.number ?? 0;
-      let angle: number;
-      let radius = 118; // in a pocket
-      if (t < s.closeAt) {
-        // Betting: the ball sits in the last winning pocket
-        angle = wheel + pocketAngle(rest);
-      } else {
-        const start = s.closeAt * WHEEL_SPEED + pocketAngle(rest);
-        const free = (at: number) => start - BALL_SPEED * (at - s.closeAt);
-        if (s.number === null || t < s.closeAt) {
-          angle = free(t);
-          radius = 158;
-        } else {
-          // The number is known: glide from where the ball is now into its pocket as the spin ends
+      const e = t - s.closeAt; // ms into the spin
+      let rel = pocketAngle(rest); // the ball's angle on the rotor
+      let radius = R_POCKET;
+
+      if (e >= 0) {
+        // Rolling free on the track: no number needed yet
+        const freeRel = (at: number) => pocketAngle(rest) - (V0 * at - 0.5 * DECEL * at * at);
+        const freeV = (at: number) => -(V0 - DECEL * at);
+        rel = freeRel(Math.min(e, TRACK_END));
+        radius = e < LAUNCH ? R_POCKET + (R_TRACK - R_POCKET) * easeOut(e / LAUNCH) : R_TRACK + Math.sin(e / 90) * 0.8;
+
+        if (s.number !== null) {
+          const { drop, hops } = hopsFor(s.round);
+          const hopTravel = hops.reduce((a, h) => a + h.pockets * POCKET, 0);
+          // Plan once: glide on the track from wherever the ball is to where the drop has to start
           if (!plan.current || plan.current.round !== s.round) {
-            const tk = Math.min(Math.max(t, s.closeAt), s.spinEndAt - 1);
-            const a0 = free(tk);
-            const target = s.spinEndAt * WHEEL_SPEED + pocketAngle(s.number);
-            const want = a0 - (BALL_SPEED * (s.spinEndAt - tk)) / 2;
-            const k = Math.round((target - want) / 360);
-            plan.current = { round: s.round, tk, a0, aEnd: target - k * 360 };
+            const tk = Math.min(Math.max(e, LAUNCH), TRACK_END - 200);
+            const p0 = freeRel(tk);
+            const ideal = p0 - ((V0 - DECEL * tk + V_TRACK_END) / 2) * (TRACK_END - tk);
+            const base = pocketAngle(s.number) + drop + hopTravel;
+            const k = Math.round((base - ideal) / 360);
+            plan.current = { round: s.round, tk, a0: p0, aEnd: base - k * 360 };
           }
           const p = plan.current;
-          if (t >= s.spinEndAt) angle = wheel + pocketAngle(s.number);
-          else {
-            const T = s.spinEndAt - p.tk;
-            const u = Math.min(1, Math.max(0, (t - p.tk) / T));
-            angle = hermite(p.a0, -BALL_SPEED, p.aEnd, WHEEL_SPEED, T, u);
+          const atDrop = p.aEnd; // rotor angle where the ball leaves the track
+          if (e < p.tk) {
+            // still before the plan's start (only on a late join)
+          } else if (e < TRACK_END) {
+            const u = (e - p.tk) / (TRACK_END - p.tk);
+            rel = hermite(p.a0, freeV(p.tk), atDrop, -drop / (DROP_END - TRACK_END), TRACK_END - p.tk, u);
+          } else if (e < DROP_END) {
+            // Off the track and down the slope, glancing off a deflector on the way
+            const u = (e - TRACK_END) / (DROP_END - TRACK_END);
+            rel = atDrop - drop * u;
+            radius = R_TRACK - (R_TRACK - (R_POCKET + 12)) * u * u + Math.max(0, Math.sin((u - 0.35) * Math.PI * 2.2)) * 9 * (1 - u);
+          } else {
+            // Rattling across the pockets
+            let at = atDrop - drop;
+            radius = R_POCKET;
+            for (const h of hops) {
+              if (e < h.at) break;
+              const u = Math.min(1, (e - h.at) / h.dur);
+              rel = at - h.pockets * POCKET * easeOut(u);
+              radius = R_POCKET + h.height * Math.sin(Math.PI * u);
+              at -= h.pockets * POCKET;
+            }
+            if (e >= SETTLE) {
+              rel = pocketAngle(s.number);
+              radius = R_POCKET;
+            }
           }
-          // Drop off the track into the pockets over the last stretch, with a small bounce
-          const left = s.spinEndAt - t;
-          if (left > 1600) radius = 158;
-          else if (left > 0) {
-            const q = 1 - left / 1600;
-            radius = 158 - 40 * q + Math.sin(q * Math.PI * 3) * 7 * (1 - q);
-          }
+        } else if (e >= TRACK_END) {
+          // The number hasn't reached us yet: keep rolling slowly
+          rel = freeRel(TRACK_END) + freeV(TRACK_END) * (e - TRACK_END);
         }
       }
-      ball.current.setAttribute("transform", `rotate(${angle} 200 200) translate(0 ${-radius})`);
+      ball.current.setAttribute("transform", `rotate(${wheel + rel} 200 200) translate(0 ${-radius})`);
+      // The ball's shadow sits a touch further out, so it reads as rolling on the wood
+      shadow.current?.setAttribute("transform", `rotate(${wheel + rel + 1.2} 200 200) translate(0 ${-radius + 2})`);
     };
     raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
@@ -182,8 +248,16 @@ function Wheel({ state, clock }: { state: State | null; clock: () => number }) {
         ))}
         <circle cx="200" cy="200" r="18" fill="#e9c75a" stroke="#7a5a10" strokeWidth="2" />
       </g>
+      {/* Diamond deflectors on the bowl */}
+      {Array.from({ length: 8 }, (_, i) => (
+        <path key={i} d="M200 41l3.5 4.5-3.5 4.5-3.5-4.5z" fill="#e9c75a" stroke="#7a5a10" strokeWidth="0.6" transform={`rotate(${i * 45 + 22.5} 200 200)`} />
+      ))}
+      <g ref={shadow} opacity="0.35">
+        <circle cx="200" cy="200" r="7" fill="#000" />
+      </g>
       <g ref={ball}>
         <circle cx="200" cy="200" r="7.5" fill="url(#rl-ball)" stroke="#6b6f78" strokeWidth="0.6" />
+        <circle cx="197.6" cy="197.4" r="2.2" fill="#fff" opacity="0.9" />
       </g>
     </svg>
   );

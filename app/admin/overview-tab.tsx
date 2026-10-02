@@ -170,7 +170,7 @@ export function OverviewTab({
           <Kpi label="Currently banned" value={p?.currentlyBanned ?? undefined} tone="red" hint="live from Discord" />
           <Kpi label="Bans" value={p ? count("ban") + count("tempban") : undefined} tone="red" onClick={() => onFilterPunishments("ban")} />
           <Kpi label="Warnings" value={p ? count("warn") : undefined} tone="yellow" onClick={() => onFilterPunishments("warn")} />
-          <Kpi label="Mutes" value={p ? count("mute") + count("tempmute") + count("timeout") : undefined} tone="orange" onClick={() => onFilterPunishments("mute")} />
+          <Kpi label="Mutes" value={p ? count("mute") + count("tempmute") + count("timeout") + count("muzzle") : undefined} tone="orange" onClick={() => onFilterPunishments("mute")} />
           <Kpi label="Kicks" value={p ? count("kick") + count("kick_unverified") : undefined} tone="orange" onClick={() => onFilterPunishments("kick")} />
           <Kpi
             label="By AutoMod"

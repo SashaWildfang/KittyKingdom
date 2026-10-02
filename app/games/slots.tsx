@@ -100,11 +100,20 @@ function Machine({ batch, jackpot, onSpinShown, onDone, skipSignal }: { batch: B
   return (
     <div className={`sl-machine${result ? ` is-${result.kind}` : ""}`}>
       <div className="sl-marquee">
-        <span className="sl-bulbs" aria-hidden="true" />
+        <span className="sl-lights is-top" aria-hidden="true">
+          {Array.from({ length: 14 }, (_, i) => (
+            <i key={i} style={{ "--i": i } as CSSProperties} />
+          ))}
+        </span>
         <small>Progressive jackpot</small>
         <strong>
           <CountUp value={jackpot} /> <LeafEmote size={20} />
         </strong>
+        <span className="sl-lights is-bottom" aria-hidden="true">
+          {Array.from({ length: 14 }, (_, i) => (
+            <i key={i} style={{ "--i": 13 - i } as CSSProperties} />
+          ))}
+        </span>
       </div>
       <div className="sl-window">
         {[0, 1, 2].map((r) => (
@@ -276,13 +285,21 @@ export function Slots({ balance, onBalance, initialStatus, viewers = 0 }: { bala
         </p>
       ) : null}
 
-      <div className="sl-controls">
-        <div className="sl-bet">
-          <label className="bj-bet-input">
-            <span>Bet a spin</span>
-            <LeafEmote size={16} />
-            <input type="number" min={50} step={50} value={bet} onChange={(e) => setBet(Math.max(0, Math.floor(Number(e.target.value) || 0)))} />
-          </label>
+      <div className="sl-panel">
+        <div className="sl-field">
+          <span className="sl-field-label">Bet per spin</span>
+          <div className="sl-stepper">
+            <button type="button" onClick={() => setBet((b) => Math.max(50, b >= 1000 ? b - 500 : b - 50))} disabled={bet <= 50} aria-label="Lower the bet">
+              −
+            </button>
+            <label>
+              <LeafEmote size={16} />
+              <input type="number" min={50} step={50} value={bet} onChange={(e) => setBet(Math.max(0, Math.floor(Number(e.target.value) || 0)))} aria-label="Bet per spin" />
+            </label>
+            <button type="button" onClick={() => setBet((b) => (b >= 1000 ? b + 500 : b + 50))} aria-label="Raise the bet">
+              +
+            </button>
+          </div>
           <div className="sl-quick" role="group" aria-label="Quick bets">
             {BET_CHIPS.map((c) => (
               <button key={c} type="button" className={bet === c ? "is-on" : ""} onClick={() => setBet(c)} disabled={c > balance}>
@@ -291,34 +308,37 @@ export function Slots({ balance, onBalance, initialStatus, viewers = 0 }: { bala
             ))}
           </div>
         </div>
-        <div className="sl-spins" role="group" aria-label="Spins at once">
-          <span>Spins</span>
-          {SPIN_COUNTS.map((n) => {
-            const locked = n > status.maxSpins;
-            return (
-              <button key={n} type="button" className={spins === n ? "is-on" : ""} disabled={locked} onClick={() => setSpins(n)} title={locked ? "Multi-spin is for Nitro boosters" : `${n} spin${n > 1 ? "s" : ""}`}>
-                {locked ? <Lock size={12} aria-hidden="true" /> : null}×{n}
-              </button>
-            );
-          })}
+        <div className="sl-field">
+          <span className="sl-field-label">Spins at once</span>
+          <div className="sl-seg" role="group" aria-label="Spins at once">
+            {SPIN_COUNTS.map((n) => {
+              const locked = n > status.maxSpins;
+              return (
+                <button key={n} type="button" className={spins === n ? "is-on" : ""} disabled={locked} onClick={() => setSpins(n)} title={locked ? "Extra spins are for Nitro boosters" : `${n} spin${n > 1 ? "s" : ""}`}>
+                  {locked ? <Lock size={12} aria-hidden="true" /> : null}×{n}
+                </button>
+              );
+            })}
+          </div>
+          {status.maxSpins <= 1 ? (
+            <p className="sl-nitro-note">
+              <Lock size={13} aria-hidden="true" /> Extra spins (×5, ×10, ×25) are for <b>Nitro boosters</b> only.
+            </p>
+          ) : (
+            <p className="sl-nitro-note is-on">
+              <Sparkles size={13} aria-hidden="true" /> Nitro booster: spin up to 25 times at once.
+            </p>
+          )}
         </div>
-        {status.maxSpins <= 1 ? (
-          <p className="sl-nitro-note">
-            <Lock size={13} aria-hidden="true" /> Extra spins (×5, ×10, ×25) are for <b>Nitro boosters</b> only.
-          </p>
-        ) : (
-          <p className="sl-nitro-note is-on">
-            <Sparkles size={13} aria-hidden="true" /> Nitro booster: spin up to 25 times at once.
-          </p>
-        )}
         {playing && many ? (
           <button type="button" className="sl-pull is-skip" onClick={() => setSkip(Date.now())}>
             <FastForward size={18} aria-hidden="true" /> Skip to the end
           </button>
         ) : (
           <button type="button" className="sl-pull" disabled={busy || playing || bet < 50 || cost > balance} onClick={spin}>
-            {busy ? "Pulling…" : spins > 1 ? `Spin ×${spins}` : "Spin"}
+            <span>{busy ? "Pulling…" : spins > 1 ? `Spin ×${spins}` : "Spin"}</span>
             <small>
+              {spins > 1 ? `${spins} × ${bet.toLocaleString()} = ` : ""}
               {cost.toLocaleString()} <LeafEmote size={13} />
             </small>
           </button>
