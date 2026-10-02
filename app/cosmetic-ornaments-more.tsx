@@ -100,31 +100,6 @@ export function MoreOrnament({ kind, k, color }: { kind: Ornament; k: string; co
         </g>
       );
     // Neon tube clips and a flickering neon heart sign
-    case "neontube":
-      return (
-        <g>
-          <defs>
-            <filter id={`${k}gl`} x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="2.2" />
-            </filter>
-            {lg(`${k}m`, [[0, "#d9dde5"], [0.5, "#7a808c"], [1, "#3a3f48"]], 1, 0)}
-          </defs>
-          {[-90, 0, 90, 180].map((a) => {
-            const [x, y] = pol(54, a);
-            return <rect key={a} x={x - 2.4} y={y - 4} width="4.8" height="8" rx="1" fill={u(`${k}m`)} transform={`rotate(${a} ${x} ${y})`} />;
-          })}
-          <g transform="translate(56 50) scale(1.35)" className="orn-neon" style={t(4.5)}>
-            <rect x="-12" y="-11" width="24" height="21" rx="3" fill="#120818" stroke="#3a2a48" strokeWidth="0.8" />
-            <path d="M0 6 C-2 4 -8 1 -8 -3 A3.6 3.6 0 0 1 0 -5 A3.6 3.6 0 0 1 8 -3 C8 1 2 4 0 6 Z" fill="none" stroke="#ff2bd6" strokeWidth="3" filter={u(`${k}gl`)} />
-            <path d="M0 6 C-2 4 -8 1 -8 -3 A3.6 3.6 0 0 1 0 -5 A3.6 3.6 0 0 1 8 -3 C8 1 2 4 0 6 Z" fill="none" stroke="#ffd6f5" strokeWidth="1.1" />
-          </g>
-          <g transform="translate(-56 -48)" className="orn-neon" style={t(5.5, -2)}>
-            <path d="M-6 -6 L0 6 L6 -6" fill="none" stroke="#00e5ff" strokeWidth="3" filter={u(`${k}gl`)} strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M-6 -6 L0 6 L6 -6" fill="none" stroke="#e0fdff" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
-          </g>
-        </g>
-      );
-    // A ribbon of aurora light draped over the top
     case "ribbon": {
       const top: string[] = [];
       const bot: string[] = [];
@@ -320,47 +295,6 @@ export function MoreOrnament({ kind, k, color }: { kind: Ornament; k: string; co
       );
     }
     // Black glass shards jutting out, lit violet from inside
-    case "shards":
-      return (
-        <g>
-          <defs>
-            {lg(`${k}a`, [[0, "#4a3a5a"], [1, "#050308"]], 1, 0)}
-            {lg(`${k}b`, [[0, "#1a1424"], [1, "#000000"]], 1, 0)}
-          </defs>
-          {[[-150, 20, 7], [-118, 14, 5.5], [-60, 12, 5], [-28, 22, 8], [22, 14, 6], [62, 18, 7], [118, 22, 8], [150, 13, 5.5], [178, 16, 6]].map(([a, len, w], i) => {
-            const [bx, by] = pol(53, a);
-            const [tx, ty] = pol(53 + len, a);
-            const [lx, ly] = pol(w, a - 90);
-            return (
-              <g key={i}>
-                <path d={`M${f(bx + lx)} ${f(by + ly)} L${f(tx)} ${f(ty)} L${f(bx)} ${f(by)} Z`} fill={u(`${k}a`)} />
-                <path d={`M${f(bx - lx)} ${f(by - ly)} L${f(tx)} ${f(ty)} L${f(bx)} ${f(by)} Z`} fill={u(`${k}b`)} />
-                <path d={`M${f(bx)} ${f(by)} L${f(tx)} ${f(ty)}`} stroke="#c9a7ff" strokeWidth="0.8" className="orn-glint" style={t(2 + R(i, 3), -R(i, 4) * 2)} />
-                <circle cx={tx} cy={ty} r="1.1" fill="#e9d8ff" className="orn-sparkle" style={t(2.4 + i * 0.3, -i * 0.5)} />
-              </g>
-            );
-          })}
-        </g>
-      );
-    // A curling wave along the bottom with bubbles
-    case "wave":
-      return (
-        <g>
-          <defs>
-            {lg(`${k}w`, [[0, "#7fe0ff"], [0.5, "#1fa2ff"], [1, "#0b3d91"]])}
-            {rg(`${k}bb`, [[0, "#ffffff", 0.9], [0.5, "#bfefff", 0.2], [1, "#bfefff", 0.7]], 0.35, 0.3, 0.7)}
-          </defs>
-          <path d="M-52 46 C-40 62 -10 70 14 66 C30 64 42 56 48 46 C52 40 50 32 44 32 C38 32 38 40 42 42 C36 52 20 58 4 58 C-20 58 -40 52 -52 46 Z" fill={u(`${k}w`)} />
-          <path d="M-50 47 C-38 58 -12 64 6 62 M44 32 C50 32 52 40 48 46" fill="none" stroke="#ffffff" strokeWidth="1.8" strokeLinecap="round" opacity="0.9" />
-          {[[44, 30], [48, 34], [40, 31], [-48, 44]].map(([x, y], i) => (
-            <circle key={i} cx={x} cy={y} r={1.2 + (i % 2)} fill="#fff" opacity="0.85" />
-          ))}
-          {Array.from({ length: 6 }, (_, i) => (
-            <circle key={i} cx={-30 + i * 12} cy="60" r={1.4 + R(i, 3) * 1.8} fill={u(`${k}bb`)} className="orn-rise" style={t(2.6 + R(i, 4) * 1.5, -R(i, 5) * 3)} />
-          ))}
-        </g>
-      );
-    // Slime dripping from the top, drops falling, bubbles popping below
     case "slime":
       return (
         <g>
@@ -506,23 +440,6 @@ export function MoreOrnament({ kind, k, color }: { kind: Ornament; k: string; co
         </g>
       );
     // Floating prisms throwing little rainbows
-    case "crystals": {
-      const prism = (x: number, y: number, s: number, i: number) => (
-        <g key={i} transform={`translate(${x} ${y}) scale(${s})`}>
-          <g className="orn-float" style={t(2.4 + i * 0.4, -i)}>
-            {["#ff4d4d", "#ffd84d", "#4dff88", "#4dc3ff", "#b44dff"].map((c, j) => (
-              <line key={c} x1="0" y1="2" x2={-14 + j * 7} y2="22" stroke={c} strokeWidth="1.2" opacity="0.55" />
-            ))}
-            <path d="M0 -10 L6 -2 L0 10 L-6 -2 Z" fill="#ffffff" opacity="0.35" stroke="#ffffff" strokeWidth="0.8" />
-            <path d="M0 -10 L6 -2 L0 0 Z" fill="#ffffff" opacity="0.8" />
-            <path d="M0 0 L6 -2 L0 10 Z" fill="#b8e6ff" opacity="0.6" />
-            <path d="M0 0 L-6 -2 L0 10 Z" fill="#ffc2f0" opacity="0.5" />
-          </g>
-        </g>
-      );
-      return <g>{[prism(-60, -42, 1.5, 0), prism(61, -34, 1.25, 1), prism(-54, 48, 1.1, 2)]}</g>;
-    }
-    // Dark spiral arms being drawn into the ring
     case "vortex":
       return (
         <g>
