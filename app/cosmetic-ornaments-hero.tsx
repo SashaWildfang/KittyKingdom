@@ -54,12 +54,12 @@ const feather = (len: number, w: number, flame = false) =>
  * A raised left wing: a curved arm (leading edge) from the shoulder up and out, with primaries hanging
  * from the outer half, secondaries from the inner half and a row of small coverts over the top.
  */
-function Wing({ edge, fill, cover, stroke, bone, flame = false, scale = 1 }: { edge: [number, number][]; fill: string; cover: string; stroke: string; bone: string; flame?: boolean; scale?: number }) {
+function Wing({ edge, fill, cover, stroke, bone, flame = false, scale = 1, turn = 0 }: { edge: [number, number][]; fill: string; cover: string; stroke: string; bone: string; flame?: boolean; scale?: number; turn?: number }) {
   const parts: ReactNode[] = [];
   const add = (tt: number, len: number, w: number, ang: number, paint: string, key: string) => {
     const [x, y] = bez(edge, tt);
     parts.push(
-      <g key={key} transform={`translate(${f(x)} ${f(y)}) rotate(${ang})`}>
+      <g key={key} transform={`translate(${f(x)} ${f(y)}) rotate(${ang + turn})`}>
         <path d={feather(len * scale, w, flame)} fill={paint} stroke={stroke} strokeWidth="0.5" className={flame ? "orn-flick" : undefined} style={flame ? t(0.6 + R(tt * 10, 3) * 0.4, -R(tt * 10, 4)) : undefined} />
       </g>,
     );
@@ -127,47 +127,110 @@ export function HeroOrnament({ kind, k }: { kind: Ornament; k: string }): ReactN
           </Mirror>
         </g>
       );
-    // Phoenix: a firebird perched on top, wings of flame raised, tail streamers trailing down both sides
-    case "phoenix":
+    // Phoenix: a firebird in flight across the top, seen side-on: hooked beak, crest, raised wings, long tail plumes
+    case "phoenix": {
+      const plume = (pts: [number, number][], w0: number) => {
+        const left: string[] = [];
+        const right: string[] = [];
+        pts.forEach(([x, y], i) => {
+          const q = pts[Math.min(pts.length - 1, i + 1)];
+          const p0 = pts[Math.max(0, i - 1)];
+          const dx = q[0] - p0[0];
+          const dy = q[1] - p0[1];
+          const len = Math.hypot(dx, dy) || 1;
+          const w = (w0 * (1 - i / pts.length) + 0.6) / 2;
+          left.push(`${f(x - (dy / len) * w)} ${f(y + (dx / len) * w)}`);
+          right.unshift(`${f(x + (dy / len) * w)} ${f(y - (dx / len) * w)}`);
+        });
+        return `M${left.join(" L")} L${right.join(" L")} Z`;
+      };
+      const curve = (p0: [number, number], c1: [number, number], c2: [number, number], p1: [number, number]) => Array.from({ length: 18 }, (_, i) => bez([p0, c1, c2, p1], i / 17));
+      const tails = [
+        curve([-6, -61], [-38, -74], [-66, -50], [-68, -12]),
+        curve([-6, -60], [-32, -68], [-58, -40], [-56, 22]),
+        curve([-6, -59], [-28, -62], [-74, -58], [-82, -34]),
+      ];
       return (
         <g>
           <defs>
-            {lg(`${k}w`, [[0, "#fff6a8"], [0.35, "#ffb300"], [0.75, "#ff4a00"], [1, "#c41a00", 0.85]])}
+            {lg(`${k}w`, [[0, "#fff6a8"], [0.3, "#ffc21a"], [0.7, "#ff5a00"], [1, "#b31400", 0.9]])}
+            {lg(`${k}w2`, [[0, "#ff9a1f"], [1, "#8a1a00", 0.9]])}
             {lg(`${k}c`, [[0, "#fff6a8"], [1, "#ff8a00"]])}
             {lg(`${k}b`, [[0, "#ffe680"], [1, "#ff6a00"]], 1, 0)}
-            {rg(`${k}g`, [[0, "#ffd36b", 0.7], [1, "#ff6a00", 0]])}
-            {rg(`${k}bd`, [[0, "#fff3b0"], [0.5, "#ff9a1f"], [1, "#c43a00"]], 0.4, 0.3, 0.75)}
+            {lg(`${k}t`, [[0, "#ffd36b"], [0.6, "#ff6a00"], [1, "#c41a00", 0.4]], 1, 1)}
+            {rg(`${k}g`, [[0, "#ffd36b", 0.65], [1, "#ff6a00", 0]])}
+            {rg(`${k}bd`, [[0, "#fff3b0"], [0.45, "#ffae1f"], [1, "#d43a00"]], 0.55, 0.7, 0.8)}
           </defs>
-          <circle cx="0" cy="-62" r="26" fill={u(`${k}g`)} className="orn-glint" style={t(1.6)} />
-          {/* Tail streamers */}
-          <Mirror>
-            <path className="orn-flick" style={t(1.2)} d="M-4 -50 C-30 -60 -66 -40 -66 0 C-66 30 -52 48 -40 58" fill="none" stroke={u(`${k}w`)} strokeWidth="3" strokeLinecap="round" />
-            <path d="M-8 -52 C-34 -58 -62 -34 -60 4 C-59 26 -50 40 -44 48" fill="none" stroke="#ffd36b" strokeWidth="1" strokeLinecap="round" opacity="0.7" />
-            <g transform="translate(-40 58)">
-              <path className="orn-flick" style={t(0.7)} d="M0 0 C-6 4 -6 12 0 16 C6 12 6 4 0 0 Z" fill={u(`${k}w`)} />
-              <circle cy="7" r="2.2" fill="#3a8cff" stroke="#fff6a8" strokeWidth="0.8" />
+          <ellipse cx="8" cy="-66" rx="54" ry="30" fill={u(`${k}g`)} className="orn-glint" style={t(1.6)} />
+          {/* Long tail plumes trailing round the ring */}
+          {tails.map((pts, i) => {
+            const end = pts[pts.length - 1];
+            return (
+              <g key={i} className="orn-flick" style={t(1.1 + i * 0.25, -i * 0.3)}>
+                <path d={plume(pts, 5.5 - i)} fill={u(`${k}t`)} />
+                <g transform={`translate(${f(end[0])} ${f(end[1])})`}>
+                  <path d="M0 -5 C-5 -2 -5 4 0 8 C5 4 5 -2 0 -5 Z" fill={u(`${k}w`)} />
+                  <circle cy="1.5" r="2" fill="#3a8cff" stroke="#fff6a8" strokeWidth="0.7" />
+                </g>
+              </g>
+            );
+          })}
+          <g transform="translate(-4 -6) scale(0.9)">
+            {/* Far wing, behind the body */}
+            <g className="orn-flapup" style={t(1.6, -0.2)}>
+              <Wing edge={[[10, -64], [2, -78], [-14, -86], [-34, -88]]} fill={u(`${k}w2`)} cover={u(`${k}w2`)} stroke="#7a1a00" bone="#ff9a1f" flame scale={0.62} turn={28} />
             </g>
-          </Mirror>
-          {/* Wings */}
-          <Mirror>
-            <g className="orn-flap" style={t(1.8)}>
-              <Wing edge={[[-6, -64], [-18, -84], [-44, -92], [-74, -84]]} fill={u(`${k}w`)} cover={u(`${k}c`)} stroke="#c43a00" bone={u(`${k}b`)} flame scale={0.78} />
+            {/* Body, neck and head in profile */}
+            <path d="M-8 -60 C0 -70 18 -75 28 -71 C34 -68 36 -63 31 -59 C21 -55 5 -53 -8 -60 Z" fill={u(`${k}bd`)} />
+            <path d="M23 -67 C27 -73 30 -77 34 -80 L40 -73 C35 -69 31 -64 29 -61 Z" fill={u(`${k}bd`)} />
+            <circle cx="36" cy="-76" r="6.6" fill={u(`${k}bd`)} />
+            <path d="M41 -79 C47 -79 50 -76 49 -72 C48 -74 45 -74 42 -73 Z" fill="#ffe14d" stroke="#8a3a00" strokeWidth="0.5" />
+            <circle cx="38" cy="-77" r="1.5" fill="#2a0a00" />
+            <circle cx="38.5" cy="-77.6" r="0.5" fill="#fff" />
+            {[0, 1, 2].map((i) => (
+              <path key={i} className="orn-flick" style={t(0.7 + i * 0.15, -i * 0.25)} d={`M32 -81 C${26 - i * 4} ${-88 - i * 2} ${20 - i * 6} ${-92 + i} ${12 - i * 7} ${-90 + i * 3}`} fill="none" stroke={u(`${k}c`)} strokeWidth={2.4 - i * 0.4} strokeLinecap="round" />
+            ))}
+            <path d="M8 -57 L6 -50 M14 -56 L13 -50" stroke="#8a3a00" strokeWidth="1.4" strokeLinecap="round" />
+            {/* Near wing, raised high */}
+            <g className="orn-flapup" style={t(1.6)}>
+              <Wing edge={[[16, -66], [8, -82], [-10, -92], [-36, -94]]} fill={u(`${k}w`)} cover={u(`${k}c`)} stroke="#b33000" bone={u(`${k}b`)} flame scale={0.82} turn={30} />
             </g>
-          </Mirror>
-          {/* Body, head and crest */}
-          <path d="M0 -50 C-8 -54 -9 -64 -4 -70 L4 -70 C9 -64 8 -54 0 -50 Z" fill={u(`${k}bd`)} />
-          <circle cx="0" cy="-74" r="5.2" fill={u(`${k}bd`)} />
-          <path d="M-1.6 -71.5 L0 -67.5 L1.6 -71.5 Z" fill="#ffe680" stroke="#8a3a00" strokeWidth="0.4" />
-          <circle cx="-2" cy="-75" r="0.9" fill="#2a0a00" />
-          <circle cx="2" cy="-75" r="0.9" fill="#2a0a00" />
-          {[-24, 0, 24].map((a, i) => (
-            <g key={a} transform={`translate(0 -78) rotate(${a})`}>
-              <path className="orn-flick" style={t(0.6 + i * 0.15, -i * 0.2)} d="M0 0 C-3 -5 -2.6 -11 0 -15 C2.6 -11 3 -5 0 0 Z" fill={u(`${k}c`)} />
-            </g>
-          ))}
+          </g>
           {Array.from({ length: 6 }, (_, i) => {
             const [x, y] = pol(60, 200 + i * 28);
             return <circle key={i} cx={x} cy={y} r="1" fill="#ffd36b" className="orn-rise" style={t(1.8 + R(i, 3), -R(i, 4) * 2)} />;
+          })}
+        </g>
+      );
+    }
+    // Ember Ring: embers swirling round a forged ring, sparks lifting off
+    case "embers":
+      return (
+        <g>
+          <defs>
+            {rg(`${k}e`, [[0, "#fffbe6"], [0.3, "#ffb347"], [1, "#ff4d00", 0]])}
+            {rg(`${k}h`, [[0.7, "#ff6a00", 0], [0.85, "#ff8a1f", 0.35], [1, "#ff6a00", 0]])}
+          </defs>
+          <circle r="66" fill={u(`${k}h`)} className="orn-glint" style={t(2)} />
+          {[0, 1, 2].map((ring) => (
+            <g key={ring} className="orn-orbit" style={t(5 + ring * 2.5, -ring)}>
+              {Array.from({ length: 5 }, (_, i) => {
+                const a = i * 72 + ring * 24;
+                const r = 56 + ring * 4 + R(i, ring + 3) * 3;
+                const [x, y] = pol(r, a);
+                const [tx, ty] = pol(r, a - 14);
+                return (
+                  <g key={i}>
+                    <path d={`M${f(tx)} ${f(ty)} A${r} ${r} 0 0 1 ${f(x)} ${f(y)}`} fill="none" stroke="#ff8a1f" strokeWidth={1.4 - ring * 0.3} strokeLinecap="round" opacity="0.55" />
+                    <circle cx={f(x)} cy={f(y)} r={4.6 - ring * 0.8} fill={u(`${k}e`)} />
+                  </g>
+                );
+              })}
+            </g>
+          ))}
+          {Array.from({ length: 8 }, (_, i) => {
+            const [x, y] = pol(56, 30 + i * 16);
+            return <circle key={i} cx={x} cy={y} r={0.9 + R(i, 7) * 0.8} fill={i % 2 ? "#ffd27a" : "#ff8a1f"} className="orn-rise" style={t(2 + R(i, 8) * 1.4, -R(i, 9) * 3)} />;
           })}
         </g>
       );
