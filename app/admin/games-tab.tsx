@@ -39,7 +39,7 @@ export function GamesTab() {
       {view === "live" ? (
         <>
           <p className="adm-muted">Staff can watch every table, including members who keep their games private. Watching counts toward the viewer number.</p>
-          <LiveGames listUrl="/api/admin/games?live=1" tableUrl={staffTable} minBet={25} initialWatch={watch && /^(bj|sc):\d{5,25}$/.test(watch) ? watch : null} onCount={setLive} />
+          <LiveGames listUrl="/api/admin/games?live=1" tableUrl={staffTable} minBet={25} initialWatch={watch && /^(bj|sc|sl):\d{5,25}$/.test(watch) ? watch : null} onCount={setLive} />
         </>
       ) : error ? (
         <p className="adm-error">{error}</p>
