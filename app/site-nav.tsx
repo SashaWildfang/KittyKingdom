@@ -1,7 +1,7 @@
 import { Settings, UserStar } from "lucide-react";
 import { AccountMenu } from "./account-menu";
 import { getPanelUser } from "../lib/admin";
-import { canViewStaffPage, getCurrentUser } from "../lib/auth";
+import { getCurrentUser } from "../lib/auth";
 import { OnlineStatus } from "./online-status";
 import { NewsNavBadge } from "./news-nav-badge";
 import { recentNewsStamps } from "../lib/news";
@@ -24,8 +24,6 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
   // The Store and Leaderboards need a linked Discord account
   const user = signedIn ? await getCurrentUser().catch(() => null) : null;
   const linked = Boolean(user?.discordId);
-  // The Staff page needs a verified email and a linked Discord account too
-  const staffPage = canViewStaffPage(user);
   // Dating is for 18+ Verified members (role checked with Discord, cached for two minutes)
   const dating = linked ? await canSeeDating(user?.discordId).catch(() => false) : false;
   // Recent posts, for the unread bubble on the News tab
@@ -36,7 +34,6 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
     { href: "/news", label: "News", icon: "news" as const },
     { href: "https://discord.com/invite/M9XKHFdYQV", label: "Discord", icon: "discord" as const, external: true },
     { href: PATREON_URL, label: "Patreon", icon: "patreon" as const, external: true },
-    ...(staffPage ? [{ href: "/staff", label: "Staff", icon: "staff" as const }] : []),
     ...(dating ? [{ href: "/social", label: "Social", icon: "dating" as const }] : []),
     ...(linked ? [{ href: "/store", label: "Store", icon: "store" as const }, { href: "/games", label: "Games", icon: "games" as const }, { href: "/leaderboards", label: "Leaderboards", icon: "leaderboards" as const }] : []),
     ...(panel ? [{ href: "/admin", label: panel.level === "admin" ? "Admin" : "Staff Panel", icon: "admin" as const }] : []),
@@ -57,11 +54,12 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
           News
           <NewsNavBadge items={newsStamps} />
         </a>
-        <a href="https://discord.com/invite/M9XKHFdYQV">Discord</a>
+        <a href="https://discord.com/invite/M9XKHFdYQV" target="_blank" rel="noopener noreferrer">
+          Discord
+        </a>
         <a className="nav-patreon-tab" href={PATREON_URL} target="_blank" rel="noopener noreferrer">
           Patreon
         </a>
-        {staffPage ? <a href="/staff">Staff</a> : null}
         {dating ? (
           <a href="/social" className="nav-dating-tab">
             Social
