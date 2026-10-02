@@ -1,6 +1,7 @@
 // Profile cosmetics from the store, and item rarity. Shared by the server and the browser: only
-// plain data here. Every cosmetic is a recipe (colors + a style); app/cosmetic-flair.tsx and
-// app/cosmetic-scenes.tsx draw them, and lib/store-items.ts turns them into store items.
+// plain data here. Every cosmetic is a recipe (colors + a style); app/cosmetic-flair.tsx draws them
+// (banner scenes in app/scenes-*.tsx, frame ornaments in app/cosmetic-ornaments.tsx, theme art in
+// app/cosmetic-themes.tsx), and lib/store-items.ts turns them into store items.
 //
 // Slots: frame (around your avatar/photo), banner (an illustrated scene behind your card and at the
 // top of your Social profile), nameplate (your name), effect (animated particles on your Social
@@ -77,10 +78,10 @@ export const ITEM = {
 } as const;
 
 // ---------- recipes ----------
-export type Ornament = "crown" | "halo" | "wings" | "batwings" | "horns" | "ears" | "wreath" | "snow" | "flames" | "hearts" | "stars" | "blossoms" | "moon" | "wisps" | "bolts" | "petals";
+export type Ornament = "crown" | "halo" | "wings" | "batwings" | "horns" | "ears" | "foxears" | "wreath" | "snow" | "flames" | "phoenix" | "hearts" | "stars" | "starfall" | "blossoms" | "moon" | "wisps" | "bolts" | "petals";
 export type FrameSpec = { style: "spin" | "dual" | "pulse" | "sweep" | "dots" | "flame" | "prism"; colors: string[]; glow: string; speed?: number; ornaments?: Ornament[]; ornament?: string };
 export type Scene = "pumpkins" | "mountains" | "ocean" | "forest" | "city" | "space" | "aurora" | "sakura" | "candy" | "desert" | "underwater" | "retro" | "clouds" | "meadow" | "village" | "lava";
-export type BannerSpec = { scene: Scene; p: string[]; stars?: boolean; snow?: boolean; alt?: boolean };
+export type BannerSpec = { scene: Scene; p: string[]; stars?: boolean; snow?: boolean; alt?: boolean; v?: string };
 export type NameSpec = { style: "sweep" | "neon" | "glow" | "outline" | "retro" | "chrome" | "sparkle" | "glitch"; colors: string[] };
 export type Particle = "snow" | "petal" | "heart" | "sparkle" | "star" | "leaf" | "bubble" | "ember" | "firefly" | "confetti" | "bat" | "ghost" | "note" | "paw" | "rain";
 export type EffectSpec = { particle: Particle; colors: string[]; motion: "fall" | "rise" | "float" | "twinkle" | "drift" | "rain"; count?: number };
@@ -137,7 +138,7 @@ export const COSMETIC_DEFS: CosmeticDef[] = [
 
   bn("neoncity", "Neon City", "A cyberpunk skyline glowing under a pink moon.", "epic", { scene: "city", p: ["#0b0221", "#3a0f6b", "#ff4dd8", "#26104d", "#140733", "#ffe66d", "#00f0ff"] }),
   bn("goldenhour", "Golden Hour City", "Warm city lights as the sun goes down.", "rare", { scene: "city", p: ["#ff9a5a", "#ffd6a0", "#fff1c9", "#7a3e4a", "#4a2034", "#ffe08a", "#ffffff"] }),
-  bn("rainynight", "Rainy Night", "A quiet blue city in the rain.", "rare", { scene: "city", p: ["#0a1830", "#1f3d66", "#cfe2ff", "#1d3557", "#11223d", "#9bd1ff", "#7fd3ff"] }),
+  bn("rainynight", "Rainy Night", "A quiet blue city in the rain.", "rare", { scene: "city", p: ["#0a1830", "#1f3d66", "#cfe2ff", "#1d3557", "#11223d", "#9bd1ff", "#7fd3ff"], alt: true }),
 
   bn("nebula", "Nebula", "Swirling violet nebula and a ringed planet.", "legendary", { scene: "space", p: ["#05010f", "#1a0638", "#b46cff", "#ff4dd8", "#ffcf8a", "#c4602f", "#ffe9c4"] }),
   bn("cosmos", "Cosmic Teal", "Deep space in teal and blue with a giant planet.", "epic", { scene: "space", p: ["#010a12", "#06283d", "#2bd9c7", "#3e9bff", "#7ee8fa", "#2a6f97", "#d4fbff"] }),
@@ -168,8 +169,8 @@ export const COSMETIC_DEFS: CosmeticDef[] = [
   bn("storm", "Stormfront", "Dark rolling storm clouds lit by distant light.", "epic", { scene: "clouds", p: ["#1b2333", "#46546e", "#cfd8ea", "#58657e", "#3d4860", "#2a3346"] }),
 
   bn("meadow", "Spring Meadow", "Rolling green hills covered in wildflowers.", "common", { scene: "meadow", p: ["#a8e0ff", "#e9f8ff", "#fff3a1", "#7cc576", "#5aa65a", "#ff8fab", "#ffe066"] }),
-  bn("lavender", "Lavender Fields", "Rows of lavender under a warm evening sky.", "rare", { scene: "meadow", p: ["#ffc6a8", "#ffe9d6", "#fff1c1", "#8f6bbd", "#6d4c9e", "#c39bff", "#f3e1ff"] }),
-  bn("sunflower", "Sunflower Hills", "Sunny hills dotted with sunflowers.", "rare", { scene: "meadow", p: ["#8fd3ff", "#e7f7ff", "#fff59d", "#9ccc65", "#7cb342", "#ffca28", "#ffa000"] }),
+  bn("lavender", "Lavender Fields", "Rows of lavender under a warm evening sky.", "rare", { scene: "meadow", p: ["#ffc6a8", "#ffe9d6", "#fff1c1", "#8f6bbd", "#6d4c9e", "#c39bff", "#f3e1ff"], v: "lavender" }),
+  bn("sunflower", "Sunflower Hills", "Sunny hills dotted with sunflowers.", "rare", { scene: "meadow", p: ["#8fd3ff", "#e7f7ff", "#fff59d", "#9ccc65", "#7cb342", "#ffca28", "#ffa000"], v: "sunflower" }),
 
   bn("village", "Cozy Village", "A snowy village at night, every window glowing warm.", "epic", { scene: "village", p: ["#0d1b3a", "#2c4a7a", "#f2f7ff", "#5a3a2e", "#ffffff", "#ffc56b", "#1e3d33"], stars: true, snow: true }),
 
@@ -183,7 +184,7 @@ export const COSMETIC_DEFS: CosmeticDef[] = [
   fr("aurora", "Aurora", "Shifting greens and violets of the northern lights.", "epic", { style: "spin", colors: ["#3dffb4", "#2bb8ff", "#b46cff"], glow: "rgba(61,255,180,.5)", speed: 8 }, {}, 8000),
   fr("gold", "Royal Gold", "Polished gold with light sweeping across it.", "epic", { style: "sweep", colors: ["#8a5a00", "#ffd56a", "#fff6c9", "#e0a526"], glow: "rgba(255,196,64,.6)" }, {}, 12000),
   fr("galaxy", "Galaxy", "A spinning ring of nebula with stars in orbit.", "legendary", { style: "spin", colors: ["#1b1464", "#8a2be2", "#4fc3ff", "#ff4dd8"], glow: "rgba(138,43,226,.65)", speed: 5, ornaments: ["stars"] }, {}, 25000),
-  fr("haunted", "Haunted", "Ghostly wisps circling a pale green ring. Halloween 2026 only.", "epic", { style: "pulse", colors: ["#3b6e58", "#c8ffe0"], glow: "rgba(125,255,184,.7)", ornaments: ["wisps"] }, { window: HALLOWEEN }, 6666),
+  fr("haunted", "Haunted", "Little ghosts drifting around a pale green ring. Halloween 2026 only.", "epic", { style: "pulse", colors: ["#3b6e58", "#c8ffe0"], glow: "rgba(125,255,184,.7)", ornaments: ["wisps"] }, { window: HALLOWEEN }, 6666),
   fr("batwing", "Bat Wings", "Leathery bat wings spread around a blood-red ring. Halloween 2026 only.", "legendary", { style: "dual", colors: ["#2a0a14", "#c1121f", "#ff4d4d"], glow: "rgba(193,18,31,.6)", ornaments: ["batwings"] }, { window: HALLOWEEN }, 13000),
   fr("crown", "Kingdom Crown", "The rarest frame in the Kingdom: a golden crown and royal glow. Only 25 will ever exist.", "mythic", { style: "sweep", colors: ["#8a5a00", "#ffe9a0", "#fff8dc", "#d4a017"], glow: "rgba(255,200,60,.85)", ornaments: ["crown"] }, { window: { kind: "limited", from: "2026-10-01T00:00:00Z", until: "2026-10-15T00:00:00Z", season: "Launch drop", quantity: 25 } }, 100000),
   fr("silver", "Silver Sweep", "Brushed silver with a cool sweeping shine.", "common", { style: "sweep", colors: ["#6b7280", "#e5e7eb", "#ffffff", "#9ca3af"], glow: "rgba(229,231,235,.45)" }),
@@ -193,15 +194,15 @@ export const COSMETIC_DEFS: CosmeticDef[] = [
   fr("toxic", "Toxic", "A radioactive green ring that pulses.", "rare", { style: "pulse", colors: ["#39ff14", "#b6ff00"], glow: "rgba(57,255,20,.7)" }),
   fr("candy", "Candy Stripe", "Pastel candy dots spinning round and round.", "common", { style: "dots", colors: ["#ff8fc7", "#8fd3ff", "#ffe066"], glow: "rgba(255,143,199,.45)" }),
   fr("heartbeat", "Heartbeat", "A pink ring with little hearts in orbit.", "epic", { style: "pulse", colors: ["#ff4d8d", "#ffb3cf"], glow: "rgba(255,77,141,.65)", ornaments: ["hearts"] }),
-  fr("starfall", "Starfall", "Golden starlight dotted around your avatar.", "epic", { style: "dots", colors: ["#ffe08a", "#fff6d6", "#ffb21e"], glow: "rgba(255,210,90,.6)", ornaments: ["stars"] }),
+  fr("starfall", "Starfall", "Shooting stars streaking past a ring of golden starlight.", "epic", { style: "dots", colors: ["#ffe08a", "#fff6d6", "#ffb21e"], glow: "rgba(255,210,90,.6)", ornaments: ["starfall"] }),
   fr("angel", "Angelic", "A shining halo and feathered wings.", "legendary", { style: "sweep", colors: ["#d9c58b", "#fffaf0", "#ffffff", "#f1e3b0"], glow: "rgba(255,248,220,.8)", ornaments: ["halo", "wings"] }),
   fr("demon", "Demonic", "Burning red ring and curling horns.", "legendary", { style: "flame", colors: ["#2b0000", "#ff1e1e", "#ff7a00"], glow: "rgba(255,40,0,.7)", ornaments: ["horns"] }),
   fr("kitty", "Kitty Ears", "A playful ring with fluffy cat ears on top.", "rare", { style: "spin", colors: ["#ffb3c6", "#ffd6e0", "#ff8fab"], glow: "rgba(255,143,171,.5)", ornaments: ["ears"], ornament: "#ffb3c6" }),
-  fr("foxears", "Fox Ears", "Orange fox ears on a warm autumn ring.", "rare", { style: "spin", colors: ["#ff8a3d", "#ffd0a1", "#c4501b"], glow: "rgba(255,138,61,.5)", ornaments: ["ears"], ornament: "#ff8a3d" }),
+  fr("foxears", "Fox Ears", "Orange fox ears on a warm autumn ring.", "rare", { style: "spin", colors: ["#ff8a3d", "#ffd0a1", "#c4501b"], glow: "rgba(255,138,61,.5)", ornaments: ["foxears"], ornament: "#ff8a3d" }),
   fr("wreath", "Forest Wreath", "A leafy green wreath around a golden ring.", "rare", { style: "sweep", colors: ["#1f5f3a", "#a8e6a3", "#f5ffe6", "#3f8f4f"], glow: "rgba(120,220,140,.5)", ornaments: ["wreath"] }),
   fr("frost", "Frostbite", "An icy ring dusted with snowflakes.", "epic", { style: "spin", colors: ["#bfefff", "#5ac8fa", "#ffffff"], glow: "rgba(140,220,255,.7)", ornaments: ["snow"] }),
-  fr("phoenix", "Phoenix", "A ring of living flame that never goes out.", "legendary", { style: "flame", colors: ["#ff3d00", "#ffb300", "#fff176"], glow: "rgba(255,120,0,.8)", ornaments: ["flames"] }),
-  fr("electric", "Electric", "Crackling yellow energy with lightning bolts.", "epic", { style: "dots", colors: ["#fff200", "#ffe066", "#ffffff"], glow: "rgba(255,242,0,.75)", ornaments: ["bolts"], speed: 2 }),
+  fr("phoenix", "Phoenix", "A firebird spreads its burning wings around a ring of living flame.", "legendary", { style: "flame", colors: ["#ff3d00", "#ffb300", "#fff176"], glow: "rgba(255,120,0,.8)", ornaments: ["flames", "phoenix"] }),
+  fr("electric", "Electric", "Crackling arcs of lightning dancing around your avatar.", "epic", { style: "dots", colors: ["#fff200", "#ffe066", "#ffffff"], glow: "rgba(255,242,0,.75)", ornaments: ["bolts"], speed: 2 }),
   fr("prism", "Prism", "Every color of the rainbow, always moving.", "legendary", { style: "prism", colors: ["#ff4d4d", "#ffd84d", "#4dff88", "#4dc3ff", "#b44dff"], glow: "rgba(255,255,255,.55)" }),
   fr("void", "Void", "A dark ring that swallows the light.", "epic", { style: "dual", colors: ["#000000", "#3c096c", "#9d4edd"], glow: "rgba(157,78,221,.65)" }),
   fr("moonlit", "Moonlit", "Silver moonlight with a crescent moon.", "rare", { style: "spin", colors: ["#c9d6ff", "#e2e2e2", "#7f8fd8"], glow: "rgba(201,214,255,.6)", ornaments: ["moon"] }),
