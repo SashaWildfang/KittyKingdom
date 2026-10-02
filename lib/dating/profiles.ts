@@ -190,19 +190,8 @@ export async function saveProfile(discordId: string, patch: ProfilePatch): Promi
     // A pause from staff (after a report) stays until staff lift it
     const current = ((await getProfile(discordId))?.web ?? {}) as WebPrefs;
     if (current.pausedByStaff) Object.assign(web, { paused: true, pausedByStaff: true });
-    // Banner: must be your own upload; the old one is deleted when it changes
-    const bannerId = (u: unknown) => String(u ?? "").match(/^\/api\/dating\/media\/([a-f0-9]{24})\.[a-z0-9]{2,5}$/)?.[1] ?? null;
-    // Leaving `banner` out of the request keeps the current one
-    if (!("banner" in (w as object))) Object.assign(w, { banner: current.banner, bannerY: w.bannerY ?? current.bannerY });
-    const newBanner = bannerId(w.banner);
-    if (w.banner && !newBanner) return "That banner image isn't valid.";
-    if (newBanner && newBanner !== bannerId(current.banner) && (await photoOwner(newBanner)) !== discordId) return "That banner image isn't yours.";
-    if (newBanner) {
-      web.banner = String(w.banner);
-      web.bannerY = typeof w.bannerY === "number" && Number.isFinite(w.bannerY) ? Math.min(100, Math.max(0, Math.round(w.bannerY))) : 50;
-    }
-    const oldBanner = bannerId(current.banner);
-    if (oldBanner && oldBanner !== newBanner) removedArt.push(oldBanner);
+    // Custom banner uploads were retired (banners come from the store); keep whatever was stored untouched
+    if (current.banner) Object.assign(web, { banner: current.banner, bannerY: current.bannerY });
     $set.web = web;
   }
 
@@ -341,8 +330,9 @@ export async function profileView(doc: ProfileDoc, opts: { viewerIsOwner?: boole
     age: web.hideAge && !opts.viewerIsOwner ? null : age,
     headline: web.headline || null,
     accent: accentFor(id, web.accent),
-    banner: web.banner ?? null,
-    bannerY: typeof web.bannerY === "number" ? web.bannerY : 50,
+    // Custom banner uploads were retired: only store banners show
+    banner: null,
+    bannerY: 50,
     photos,
     facts: FACT_KEYS.map((k) => ({ key: k, label: FIELDS[k].label, value: clean(display(doc, k)?.text ?? "") })).filter((f) => f.value),
     sections,

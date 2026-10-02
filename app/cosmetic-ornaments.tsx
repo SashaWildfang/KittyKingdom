@@ -3,6 +3,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { Ornament } from "../lib/cosmetics";
 import { dk, lt, mix, R } from "./scene-kit";
+import { MoreOrnament } from "./cosmetic-ornaments-more";
 
 // Hand-shaded frame ornaments, drawn around an avatar of radius 50 (viewBox -72..72, centred on 0,0).
 // Every shape gets its own gradient (lit top-left, shaded base) so nothing reads as flat clip art.
@@ -468,6 +469,6 @@ export function OrnamentArt({ kind, color, glow, uid }: { kind: Ornament; color?
       );
     }
     default:
-      return null;
+      return <MoreOrnament kind={kind} k={k} color={color} />;
   }
 }

@@ -587,31 +587,7 @@ export function parseColor(raw: string): string | null {
 export function LooksEditor({ web, onChange, name }: { web: Own["web"]; onChange: (w: Own["web"]) => void; name: string }) {
   const accent = web.accent ?? ACCENTS[0];
   const [text, setText] = useState(accent);
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-  const file = useRef<HTMLInputElement>(null);
   useEffect(() => setText(accent), [accent]);
-
-  const [size, setSize] = useState<string | null>(null);
-  const uploadBanner = async (f: File | undefined) => {
-    if (!f) return;
-    setBusy(true);
-    setErr(null);
-    // Tell them if it's smaller than the banner shows (it would look blurry)
-    try {
-      const bmp = await createImageBitmap(f);
-      setSize(bmp.width < 1200 || bmp.height < 200 ? `Your image is ${bmp.width} × ${bmp.height} pixels, smaller than recommended, so it may look blurry.` : null);
-    } catch {
-      setSize(null);
-    }
-    const form = new FormData();
-    form.append("file", await shrink(f), f.name);
-    const res = await fetch("/api/dating/art", { method: "POST", body: form }).then((r) => r.json()).catch(() => ({ ok: false, error: "Upload failed." }));
-    setBusy(false);
-    if (file.current) file.current.value = "";
-    if (!res.ok) return setErr(res.error ?? "Upload failed.");
-    onChange({ ...web, banner: res.url, bannerY: 50 });
-  };
 
   return (
     <div className="dt-looks">
@@ -660,33 +636,14 @@ export function LooksEditor({ web, onChange, name }: { web: Own["web"]; onChange
       <div className="dt-field">
         <label>Banner</label>
         <p className="dt-help">
-          A wide image across the top of your profile. <b>Recommended size: 1500 × 250 pixels</b> (a 6:1 strip; at least 1200 × 200). Without one you get the cozy paw pattern in your color.
+          Banners come from the <a href="/store">Store</a>: buy one with leaves and equip it in your Locker. Without one you get the cozy paw pattern in your color.
         </p>
-        <div className={`dt-banner-preview${web.banner ? "" : " dt-banner-default"}`} style={{ "--acc": accent, backgroundImage: web.banner ? `url(${web.banner})` : undefined, backgroundPosition: `center ${web.bannerY ?? 50}%` } as CSSProperties}>
+        <div className="dt-banner-preview dt-banner-default" style={{ "--acc": accent } as CSSProperties}>
           <span className="dt-banner-name">
             <b>{name || "Your name"}</b>
             <span>{web.headline || "Your headline"}</span>
           </span>
         </div>
-        {web.banner ? (
-          <label className="dt-banner-pos">
-            <span>Move up / down</span>
-            <input type="range" min={0} max={100} value={web.bannerY ?? 50} onChange={(e) => onChange({ ...web, bannerY: Number(e.target.value) })} />
-          </label>
-        ) : null}
-        <div className="dt-row">
-          <button type="button" className="dt-btn dt-btn--ghost dt-btn--small" disabled={busy} onClick={() => file.current?.click()}>
-            {busy ? <Loader2 size={14} className="dt-spin" aria-hidden="true" /> : <ImagePlus size={14} aria-hidden="true" />} {web.banner ? "Change banner" : "Upload banner"}
-          </button>
-          {web.banner ? (
-            <button type="button" className="dt-btn dt-btn--ghost dt-btn--small" onClick={() => onChange({ ...web, banner: "", bannerY: 50 })}>
-              <Trash2 size={14} aria-hidden="true" /> Use the paw pattern
-            </button>
-          ) : null}
-        </div>
-        <input ref={file} type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden onChange={(e) => void uploadBanner(e.target.files?.[0])} />
-        {size ? <p className="dt-warn">{size}</p> : null}
-        {err ? <p className="dt-error">{err}</p> : null}
       </div>
     </div>
   );
