@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Check, CheckCheck, EyeOff, Send, Trash2 } from "lucide-react";
+import { ArrowLeft, Check, CheckCheck, EyeOff, Send, Trash2, Undo2 } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Photo, ReportButton, ago, post, useApi } from "../../ui";
 
@@ -76,10 +76,18 @@ export default function ThreadPage({ params }: { params: { id: string } }) {
     if (a === "decline") window.location.href = "/social/messages";
     else await reload();
   };
+  // Delete for everyone: it shows as "Message unsent" on both sides
   const unsend = async (id: string) => {
+    if (!window.confirm("Delete this message for everyone? It will show as \"Message unsent\" for both of you.")) return;
     await post(`/api/dating/messages/${params.id}`, { unsend: id });
     setOlder((o) => o.map((m) => (m.id === id ? { ...m, deleted: true, text: "" } : m)));
     if (data) setData({ ...data, messages: data.messages.map((m) => (m.id === id ? { ...m, deleted: true, text: "" } : m)) });
+  };
+  // Delete for me: gone from your side only
+  const deleteForMe = async (id: string) => {
+    await post(`/api/dating/messages/${params.id}`, { deleteForMe: id });
+    setOlder((o) => o.filter((m) => m.id !== id));
+    if (data) setData({ ...data, messages: data.messages.filter((m) => m.id !== id) });
   };
   const hide = async () => {
     await post(`/api/dating/messages/${params.id}`, { hide: true });
@@ -135,21 +143,21 @@ export default function ThreadPage({ params }: { params: { id: string } }) {
             <div key={m.id} className="dt-msg-wrap">
               {showDay ? <div className="dt-day">{day}</div> : null}
               <div className={`dt-msg${mine ? " is-mine" : ""}${m.deleted ? " is-deleted" : ""}`}>
-                <div className="dt-bubble" title={new Date(m.at).toLocaleString()}>
+                <div className="dt-bubble" title={new Date(m.at).toLocaleString()} tabIndex={0}>
                   {m.deleted ? <em>Message unsent</em> : m.text}
                 </div>
-                {!m.deleted ? (
-                  <div className="dt-msg-tools">
-                    <small>{new Date(m.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</small>
-                    {mine ? (
-                      <button type="button" onClick={() => void unsend(m.id)} aria-label="Unsend">
-                        <Trash2 size={12} />
-                      </button>
-                    ) : (
-                      <ReportButton target={params.id} type="message" messageId={m.id} label="" small />
-                    )}
-                  </div>
-                ) : null}
+                <div className="dt-msg-tools">
+                  <small>{new Date(m.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</small>
+                  {mine && !m.deleted ? (
+                    <button type="button" onClick={() => void unsend(m.id)} title="Delete for everyone">
+                      <Undo2 size={12} aria-hidden="true" /> Unsend
+                    </button>
+                  ) : null}
+                  <button type="button" onClick={() => void deleteForMe(m.id)} title="Delete for me (they still see it)">
+                    <Trash2 size={12} aria-hidden="true" /> Delete for me
+                  </button>
+                  {!mine && !m.deleted ? <ReportButton target={params.id} type="message" messageId={m.id} label="" small /> : null}
+                </div>
               </div>
             </div>
           );

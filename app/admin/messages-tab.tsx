@@ -6,7 +6,7 @@ import { Avatar, LiveBadge, MemberSearch, formatDate, timeAgo, useLive, type Peo
 
 export type Chat = { a: string; b: string };
 type Conversation = { id: string; users: [string, string]; state: string; requestFrom: string | null; lastAt: string | null; lastText: string; lastFrom: string | null; messages: number };
-type Message = { id: string; from: string; text: string; deleted: boolean; at: string };
+type Message = { id: string; from: string; text: string; deleted: boolean; deletedAt?: string | null; hiddenFor?: string[]; at: string };
 type ThreadData = { id: string; state: string; requestFrom: string | null; readAt: Record<string, string | null>; messages: Message[]; more: boolean; people: People };
 
 const STATE: Record<string, { label: string; tone: string }> = {
@@ -183,8 +183,16 @@ function ChatView({ chat, onBack, onOpenMember }: { chat: Chat; onBack: () => vo
                     </span>
                   ) : null}
                   <p className={`amx-bubble${m.deleted ? " is-deleted" : ""}`} title={grouped ? clock(m.at) : undefined}>
-                    {m.deleted ? "Message unsent" : m.text}
+                    {m.deleted && !m.text ? "Message unsent (its text was erased before unsent messages were kept)" : m.text}
                   </p>
+                  {m.deleted || m.hiddenFor?.length ? (
+                    <span className="amx-msg-flags">
+                      {m.deleted ? <small className="amx-flag amx-flag--unsent" title={m.deletedAt ? `Unsent ${formatDate(m.deletedAt)}` : undefined}>Unsent by {name(m.from)} · only admins can see this</small> : null}
+                      {m.hiddenFor?.map((u) => (
+                        <small key={u} className="amx-flag">Deleted for {name(u)}</small>
+                      ))}
+                    </span>
+                  ) : null}
                   {(m.id === seenA && m.from === chat.b) || (m.id === seenB && m.from === chat.a) ? <small className="amx-seen">Seen</small> : null}
                 </div>
               </div>

@@ -78,7 +78,11 @@ export const ITEM = {
 } as const;
 
 // ---------- recipes ----------
-export type Ornament = "crown" | "halo" | "wings" | "batwings" | "horns" | "ears" | "foxears" | "wreath" | "snow" | "flames" | "phoenix" | "hearts" | "stars" | "starfall" | "blossoms" | "moon" | "wisps" | "bolts" | "petals";
+export type Ornament =
+  | "crown" | "halo" | "wings" | "batwings" | "horns" | "ears" | "foxears" | "wreath" | "snow" | "flames" | "phoenix" | "hearts" | "stars" | "starfall"
+  | "blossoms" | "moon" | "wisps" | "bolts" | "petals" | "coals" | "branch" | "neontube" | "ribbon" | "filigree" | "planets" | "mist" | "cobweb" | "laurel"
+  | "chain" | "roses" | "shards" | "wave" | "slime" | "sweets" | "ecg" | "thorns" | "tail" | "whiskers" | "bow" | "foxtail" | "icicles" | "crystals" | "vortex"
+  | "clouds" | "bee";
 export type FrameSpec = { style: "spin" | "dual" | "pulse" | "sweep" | "dots" | "flame" | "prism"; colors: string[]; glow: string; speed?: number; ornaments?: Ornament[]; ornament?: string };
 export type Scene = "pumpkins" | "mountains" | "ocean" | "forest" | "city" | "space" | "aurora" | "sakura" | "candy" | "desert" | "underwater" | "retro" | "clouds" | "meadow" | "village" | "lava";
 export type BannerSpec = { scene: Scene; p: string[]; stars?: boolean; snow?: boolean; alt?: boolean; v?: string };
@@ -178,35 +182,35 @@ export const COSMETIC_DEFS: CosmeticDef[] = [
   bn("emberforge", "Ember Forge", "A volcano of molten gold under a smoky violet sky.", "epic", { scene: "lava", p: ["#120a1f", "#4a2a3a", "#3b3040", "#211a28", "#f59e0b", "#fff1a8", "#ffe8a3"] }),
 
   // ================= FRAMES =================
-  fr("ember", "Ember Ring", "A warm ring of firelight turning around your avatar.", "rare", { style: "spin", colors: ["#ffb347", "#ff6a00", "#ffe08a"], glow: "rgba(255,120,0,.6)" }, {}, 3000),
-  fr("sakura", "Sakura", "Soft pink ring with cherry blossoms tucked in.", "rare", { style: "spin", colors: ["#ffd1e3", "#ff86b6", "#fff0f6"], glow: "rgba(255,134,182,.55)", speed: 10, ornaments: ["blossoms"] }, {}, 4000),
-  fr("neon", "Neon Pulse", "A pink and cyan neon ring that breathes with light.", "rare", { style: "pulse", colors: ["#ff2bd6", "#00e5ff"], glow: "rgba(0,229,255,.7)" }, {}, 5000),
-  fr("aurora", "Aurora", "Shifting greens and violets of the northern lights.", "epic", { style: "spin", colors: ["#3dffb4", "#2bb8ff", "#b46cff"], glow: "rgba(61,255,180,.5)", speed: 8 }, {}, 8000),
-  fr("gold", "Royal Gold", "Polished gold with light sweeping across it.", "epic", { style: "sweep", colors: ["#8a5a00", "#ffd56a", "#fff6c9", "#e0a526"], glow: "rgba(255,196,64,.6)" }, {}, 12000),
-  fr("galaxy", "Galaxy", "A spinning ring of nebula with stars in orbit.", "legendary", { style: "spin", colors: ["#1b1464", "#8a2be2", "#4fc3ff", "#ff4dd8"], glow: "rgba(138,43,226,.65)", speed: 5, ornaments: ["stars"] }, {}, 25000),
-  fr("haunted", "Haunted", "Little ghosts drifting around a pale green ring. Halloween 2026 only.", "epic", { style: "pulse", colors: ["#3b6e58", "#c8ffe0"], glow: "rgba(125,255,184,.7)", ornaments: ["wisps"] }, { window: HALLOWEEN }, 6666),
-  fr("batwing", "Bat Wings", "Leathery bat wings spread around a blood-red ring. Halloween 2026 only.", "legendary", { style: "dual", colors: ["#2a0a14", "#c1121f", "#ff4d4d"], glow: "rgba(193,18,31,.6)", ornaments: ["batwings"] }, { window: HALLOWEEN }, 13000),
-  fr("crown", "Kingdom Crown", "The rarest frame in the Kingdom: a golden crown and royal glow. Only 25 will ever exist.", "mythic", { style: "sweep", colors: ["#8a5a00", "#ffe9a0", "#fff8dc", "#d4a017"], glow: "rgba(255,200,60,.85)", ornaments: ["crown"] }, { window: { kind: "limited", from: "2026-10-01T00:00:00Z", until: "2026-10-15T00:00:00Z", season: "Launch drop", quantity: 25 } }, 100000),
-  fr("silver", "Silver Sweep", "Brushed silver with a cool sweeping shine.", "common", { style: "sweep", colors: ["#6b7280", "#e5e7eb", "#ffffff", "#9ca3af"], glow: "rgba(229,231,235,.45)" }),
-  fr("rosegold", "Rose Gold", "Warm rose gold, softly gleaming.", "rare", { style: "sweep", colors: ["#9e5a4f", "#f4c2b6", "#fff1ec", "#d4877a"], glow: "rgba(244,194,182,.55)" }),
-  fr("obsidian", "Obsidian", "Glassy black stone with a violet edge.", "rare", { style: "sweep", colors: ["#050505", "#3a2a4a", "#9b7bd4", "#1a1424"], glow: "rgba(155,123,212,.5)" }),
-  fr("tide", "Ocean Tide", "Deep blues rolling around your avatar.", "common", { style: "spin", colors: ["#0b3d91", "#1fa2ff", "#a6ffcb"], glow: "rgba(31,162,255,.5)" }),
-  fr("toxic", "Toxic", "A radioactive green ring that pulses.", "rare", { style: "pulse", colors: ["#39ff14", "#b6ff00"], glow: "rgba(57,255,20,.7)" }),
-  fr("candy", "Candy Stripe", "Pastel candy dots spinning round and round.", "common", { style: "dots", colors: ["#ff8fc7", "#8fd3ff", "#ffe066"], glow: "rgba(255,143,199,.45)" }),
-  fr("heartbeat", "Heartbeat", "A pink ring with little hearts in orbit.", "epic", { style: "pulse", colors: ["#ff4d8d", "#ffb3cf"], glow: "rgba(255,77,141,.65)", ornaments: ["hearts"] }),
+  fr("ember", "Ember Ring", "A ring of glowing coals with sparks drifting up.", "rare", { style: "spin", colors: ["#ffb347", "#ff6a00", "#ffe08a"], glow: "rgba(255,120,0,.6)", ornaments: ["coals"] }, {}, 3000),
+  fr("sakura", "Sakura", "A blossoming cherry branch arching over a soft pink ring, petals drifting down.", "rare", { style: "spin", colors: ["#ffd1e3", "#ff86b6", "#fff0f6"], glow: "rgba(255,134,182,.55)", speed: 10, ornaments: ["branch"] }, {}, 4000),
+  fr("neon", "Neon Pulse", "A buzzing neon tube ring with a flickering heart sign.", "rare", { style: "pulse", colors: ["#ff2bd6", "#00e5ff"], glow: "rgba(0,229,255,.7)", ornaments: ["neontube"] }, {}, 5000),
+  fr("aurora", "Aurora", "A ribbon of northern lights draped over your avatar.", "epic", { style: "spin", colors: ["#3dffb4", "#2bb8ff", "#b46cff"], glow: "rgba(61,255,180,.5)", speed: 8, ornaments: ["ribbon"] }, {}, 8000),
+  fr("gold", "Royal Gold", "Polished gold with hand-cut scrollwork and a sapphire.", "epic", { style: "sweep", colors: ["#8a5a00", "#ffd56a", "#fff6c9", "#e0a526"], glow: "rgba(255,196,64,.6)", ornaments: ["filigree"] }, {}, 12000),
+  fr("galaxy", "Galaxy", "A nebula ring with little planets in orbit.", "legendary", { style: "spin", colors: ["#1b1464", "#8a2be2", "#4fc3ff", "#ff4dd8"], glow: "rgba(138,43,226,.65)", speed: 5, ornaments: ["planets"] }, {}, 25000),
+  fr("haunted", "Haunted", "Little ghosts drifting around a pale green ring. Halloween 2026 only.", "epic", { style: "pulse", colors: ["#3b6e58", "#c8ffe0"], glow: "rgba(125,255,184,.7)", ornaments: ["wisps", "mist"] }, { window: HALLOWEEN }, 6666),
+  fr("batwing", "Bat Wings", "Leathery bat wings, a cobweb and a dangling spider. Halloween 2026 only.", "legendary", { style: "dual", colors: ["#2a0a14", "#c1121f", "#ff4d4d"], glow: "rgba(193,18,31,.6)", ornaments: ["batwings", "cobweb"] }, { window: HALLOWEEN }, 13000),
+  fr("crown", "Kingdom Crown", "The rarest frame in the Kingdom: a jewelled crown and golden laurels. Only 25 will ever exist.", "mythic", { style: "sweep", colors: ["#8a5a00", "#ffe9a0", "#fff8dc", "#d4a017"], glow: "rgba(255,200,60,.85)", ornaments: ["crown", "laurel"] }, { window: { kind: "limited", from: "2026-10-01T00:00:00Z", until: "2026-10-15T00:00:00Z", season: "Launch drop", quantity: 25 } }, 100000),
+  fr("silver", "Silver Sweep", "Brushed silver with a draped chain and a star charm.", "common", { style: "sweep", colors: ["#6b7280", "#e5e7eb", "#ffffff", "#9ca3af"], glow: "rgba(229,231,235,.45)", ornaments: ["chain"] }),
+  fr("rosegold", "Rose Gold", "Warm rose gold with roses and pearls.", "rare", { style: "sweep", colors: ["#9e5a4f", "#f4c2b6", "#fff1ec", "#d4877a"], glow: "rgba(244,194,182,.55)", ornaments: ["roses"] }),
+  fr("obsidian", "Obsidian", "Black volcanic glass shards lit violet from within.", "rare", { style: "sweep", colors: ["#050505", "#3a2a4a", "#9b7bd4", "#1a1424"], glow: "rgba(155,123,212,.5)", ornaments: ["shards"] }),
+  fr("tide", "Ocean Tide", "A curling ocean wave with rising bubbles.", "common", { style: "spin", colors: ["#0b3d91", "#1fa2ff", "#a6ffcb"], glow: "rgba(31,162,255,.5)", ornaments: ["wave"] }),
+  fr("toxic", "Toxic", "Radioactive slime dripping down a glowing ring.", "rare", { style: "pulse", colors: ["#39ff14", "#b6ff00"], glow: "rgba(57,255,20,.7)", ornaments: ["slime"] }),
+  fr("candy", "Candy Stripe", "A candy-stripe ring with sweets and sprinkles.", "common", { style: "dots", colors: ["#ff8fc7", "#8fd3ff", "#ffe066"], glow: "rgba(255,143,199,.45)", ornaments: ["sweets"] }),
+  fr("heartbeat", "Heartbeat", "Hearts in orbit and a heartbeat line that never stops.", "epic", { style: "pulse", colors: ["#ff4d8d", "#ffb3cf"], glow: "rgba(255,77,141,.65)", ornaments: ["hearts", "ecg"] }),
   fr("starfall", "Starfall", "Shooting stars streaking past a ring of golden starlight.", "epic", { style: "dots", colors: ["#ffe08a", "#fff6d6", "#ffb21e"], glow: "rgba(255,210,90,.6)", ornaments: ["starfall"] }),
   fr("angel", "Angelic", "A shining halo and feathered wings.", "legendary", { style: "sweep", colors: ["#d9c58b", "#fffaf0", "#ffffff", "#f1e3b0"], glow: "rgba(255,248,220,.8)", ornaments: ["halo", "wings"] }),
-  fr("demon", "Demonic", "Burning red ring and curling horns.", "legendary", { style: "flame", colors: ["#2b0000", "#ff1e1e", "#ff7a00"], glow: "rgba(255,40,0,.7)", ornaments: ["horns"] }),
-  fr("kitty", "Kitty Ears", "A playful ring with fluffy cat ears on top.", "rare", { style: "spin", colors: ["#ffb3c6", "#ffd6e0", "#ff8fab"], glow: "rgba(255,143,171,.5)", ornaments: ["ears"], ornament: "#ffb3c6" }),
-  fr("foxears", "Fox Ears", "Orange fox ears on a warm autumn ring.", "rare", { style: "spin", colors: ["#ff8a3d", "#ffd0a1", "#c4501b"], glow: "rgba(255,138,61,.5)", ornaments: ["foxears"], ornament: "#ff8a3d" }),
+  fr("demon", "Demonic", "Curling horns, a thorny vine and a flicking devil tail.", "legendary", { style: "flame", colors: ["#2b0000", "#ff1e1e", "#ff7a00"], glow: "rgba(255,40,0,.7)", ornaments: ["horns", "thorns", "tail"] }),
+  fr("kitty", "Kitty Ears", "Fluffy cat ears, whiskers and a satin bow.", "rare", { style: "spin", colors: ["#ffb3c6", "#ffd6e0", "#ff8fab"], glow: "rgba(255,143,171,.5)", ornament: "#ffb3c6", ornaments: ["ears", "whiskers", "bow"] }),
+  fr("foxears", "Fox Ears", "Fox ears and a big fluffy tail on a warm autumn ring.", "rare", { style: "spin", colors: ["#ff8a3d", "#ffd0a1", "#c4501b"], glow: "rgba(255,138,61,.5)", ornament: "#ff8a3d", ornaments: ["foxears", "foxtail"] }),
   fr("wreath", "Forest Wreath", "A leafy green wreath around a golden ring.", "rare", { style: "sweep", colors: ["#1f5f3a", "#a8e6a3", "#f5ffe6", "#3f8f4f"], glow: "rgba(120,220,140,.5)", ornaments: ["wreath"] }),
-  fr("frost", "Frostbite", "An icy ring dusted with snowflakes.", "epic", { style: "spin", colors: ["#bfefff", "#5ac8fa", "#ffffff"], glow: "rgba(140,220,255,.7)", ornaments: ["snow"] }),
+  fr("frost", "Frostbite", "An icy ring hung with icicles and snowflakes.", "epic", { style: "spin", colors: ["#bfefff", "#5ac8fa", "#ffffff"], glow: "rgba(140,220,255,.7)", ornaments: ["snow", "icicles"] }),
   fr("phoenix", "Phoenix", "A firebird spreads its burning wings around a ring of living flame.", "legendary", { style: "flame", colors: ["#ff3d00", "#ffb300", "#fff176"], glow: "rgba(255,120,0,.8)", ornaments: ["flames", "phoenix"] }),
-  fr("electric", "Electric", "Crackling arcs of lightning dancing around your avatar.", "epic", { style: "dots", colors: ["#fff200", "#ffe066", "#ffffff"], glow: "rgba(255,242,0,.75)", ornaments: ["bolts"], speed: 2 }),
-  fr("prism", "Prism", "Every color of the rainbow, always moving.", "legendary", { style: "prism", colors: ["#ff4d4d", "#ffd84d", "#4dff88", "#4dc3ff", "#b44dff"], glow: "rgba(255,255,255,.55)" }),
-  fr("void", "Void", "A dark ring that swallows the light.", "epic", { style: "dual", colors: ["#000000", "#3c096c", "#9d4edd"], glow: "rgba(157,78,221,.65)" }),
-  fr("moonlit", "Moonlit", "Silver moonlight with a crescent moon.", "rare", { style: "spin", colors: ["#c9d6ff", "#e2e2e2", "#7f8fd8"], glow: "rgba(201,214,255,.6)", ornaments: ["moon"] }),
-  fr("sunflower", "Sunflower", "Bright golden petals all the way around.", "epic", { style: "sweep", colors: ["#7a4a12", "#ffd23f", "#fff3a0", "#f4a259"], glow: "rgba(255,210,63,.6)", ornaments: ["petals"], ornament: "#ffd23f" }),
+  fr("electric", "Electric", "Crackling arcs of lightning dancing around your avatar.", "epic", { style: "dots", colors: ["#fff200", "#ffe066", "#ffffff"], glow: "rgba(255,242,0,.75)", speed: 2, ornaments: ["bolts"] }),
+  fr("prism", "Prism", "A rainbow ring with floating prisms throwing light.", "legendary", { style: "prism", colors: ["#ff4d4d", "#ffd84d", "#4dff88", "#4dc3ff", "#b44dff"], glow: "rgba(255,255,255,.55)", ornaments: ["crystals"] }),
+  fr("void", "Void", "A black hole ring pulling in violet spiral arms.", "epic", { style: "dual", colors: ["#000000", "#3c096c", "#9d4edd"], glow: "rgba(157,78,221,.65)", ornaments: ["vortex"] }),
+  fr("moonlit", "Moonlit", "Silver moonlight, a crescent moon and drifting clouds.", "rare", { style: "spin", colors: ["#c9d6ff", "#e2e2e2", "#7f8fd8"], glow: "rgba(201,214,255,.6)", ornaments: ["moon", "clouds"] }),
+  fr("sunflower", "Sunflower", "Golden sunflower petals with a buzzing bee.", "epic", { style: "sweep", colors: ["#7a4a12", "#ffd23f", "#fff3a0", "#f4a259"], glow: "rgba(255,210,63,.6)", ornament: "#ffd23f", ornaments: ["petals", "bee"] }),
 
   // ================= NAME EFFECTS =================
   nm("frost", "Frostbite", "Your name in icy blue with a frosty glint.", "rare", { style: "sweep", colors: ["#7fd3ff", "#e8f9ff", "#5ab7ff"] }, {}, 5000),

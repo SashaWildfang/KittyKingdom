@@ -18,13 +18,13 @@ export async function GET(request: Request, { params }: { params: { id: string }
   return NextResponse.json({ ok: true, me: me.discordId, ...t }, { headers: { "Cache-Control": "no-store" } });
 }
 
-/** { text } sends a message · { request: "accept"|"decline" } answers a request · { hide: true } · { unsend: messageId } */
+/** { text } sends a message · { request: "accept"|"decline" } answers a request · { hide: true } · { unsend: messageId } (for everyone) · { deleteForMe: messageId } */
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   if (!sameOrigin(request)) return NextResponse.json({ ok: false, error: "Invalid request origin." }, { status: 403 });
   const me = await requireDating();
   if (me instanceof NextResponse) return me;
   if (!isSnowflake(params.id)) return NextResponse.json({ ok: false, error: "Unknown member." }, { status: 404 });
-  const body = (await request.json().catch(() => null)) as { text?: unknown; request?: unknown; hide?: unknown; unsend?: unknown } | null;
+  const body = (await request.json().catch(() => null)) as { text?: unknown; request?: unknown; hide?: unknown; unsend?: unknown; deleteForMe?: unknown } | null;
   if (!body) return NextResponse.json({ ok: false, error: "Invalid request." }, { status: 400 });
   await touchActive(me.discordId).catch(() => undefined);
   if (body.request === "accept" || body.request === "decline") {
@@ -36,7 +36,11 @@ export async function POST(request: Request, { params }: { params: { id: string 
     return NextResponse.json({ ok: true });
   }
   if (typeof body.unsend === "string") {
-    await deleteMessage(me.discordId, body.unsend);
+    await deleteMessage(me.discordId, body.unsend, "everyone");
+    return NextResponse.json({ ok: true });
+  }
+  if (typeof body.deleteForMe === "string") {
+    await deleteMessage(me.discordId, body.deleteForMe, "me");
     return NextResponse.json({ ok: true });
   }
   if (typeof body.text !== "string") return NextResponse.json({ ok: false, error: "Write a message first." }, { status: 400 });
