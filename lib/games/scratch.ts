@@ -92,6 +92,29 @@ function generate(ticket: Ticket) {
 
 const today = () => new Date().toISOString().slice(0, 10);
 
+/** The member's latest ticket, kept so it can be watched while it's scratched (`_id: "sc:<discordId>"`). */
+export type ScratchSession = { _id: string; discordId: string; ticket: string; grid: string[]; winSymbol: string | null; payout: number; revealed: number[]; finished: boolean; startedAt: Date; updatedAt: Date };
+
+async function openScratch(discordId: string, ticket: string, grid: string[], winSymbol: string | null, payout: number) {
+  const { sessions } = await gameCollections();
+  const now = new Date();
+  const doc: ScratchSession = { _id: `sc:${discordId}`, discordId, ticket, grid, winSymbol, payout, revealed: [], finished: false, startedAt: now, updatedAt: now };
+  await sessions.replaceOne({ _id: doc._id } as never, doc as never, { upsert: true });
+}
+
+/** The player reports which cells they've scratched open (only for spectators: the result was settled at purchase). */
+export async function scratchProgress(discordId: string, raw: unknown) {
+  const cells = Array.isArray(raw) ? raw.map(Number).filter((n) => Number.isInteger(n) && n >= 0 && n < 9) : [];
+  const { sessions } = await gameCollections();
+  const doc = (await sessions.findOneAndUpdate(
+    { _id: `sc:${discordId}`, finished: false } as never,
+    { $addToSet: { revealed: { $each: cells } }, $set: { updatedAt: new Date() } },
+    { returnDocument: "after" },
+  )) as unknown as ScratchSession | null;
+  if (doc && doc.revealed.length >= 9) await sessions.updateOne({ _id: doc._id } as never, { $set: { finished: true, updatedAt: new Date() } });
+  return { saved: true };
+}
+
 async function isNitro(discordId: string) {
   const roles = await getMemberRoleIds(discordId).catch(() => null);
   return Boolean(roles?.includes(NITRO_ROLE_ID));
@@ -142,6 +165,7 @@ export async function buyTicket(discordId: string, ticketId: unknown) {
   else await addToJackpot(ticket.cost);
   await recordGame(discordId, "scratchoff", ticket.cost, payout, `Scratch: ${grid.slice(0, 3).join("")} | ${grid.slice(3, 6).join("")} | ${grid.slice(6).join("")}`);
 
+  await openScratch(discordId, ticket.id, grid, win?.symbol ?? null, payout).catch(() => undefined);
   const status = await scratchStatus(discordId);
   return { ticket: ticket.id, grid, winSymbol: win?.symbol ?? null, payout, ...status };
 }

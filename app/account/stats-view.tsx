@@ -63,11 +63,12 @@ import { BadgeCollection } from "./stats-badges";
 import { FriendshipMap, PeopleExplorer } from "./stats-social";
 import { TopicMap } from "./stats-topics";
 import { TrendsCard } from "./stats-trends";
+import { PersonalGamesStats } from "../games/stats-ui";
 
 const POLL_MS = 7_000;
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const FULL_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-type Tab = "overview" | "social" | "activity" | "topics" | "voice" | "economy" | "badges";
+type Tab = "overview" | "social" | "activity" | "topics" | "voice" | "economy" | "games" | "badges";
 const TABS: { key: Tab; label: string; icon: LucideIcon }[] = [
   { key: "overview", label: "Overview", icon: Sparkles },
   { key: "social", label: "Social", icon: Heart },
@@ -75,6 +76,7 @@ const TABS: { key: Tab; label: string; icon: LucideIcon }[] = [
   { key: "topics", label: "Topics", icon: Shapes },
   { key: "voice", label: "Voice", icon: Headphones },
   { key: "economy", label: "Leaves & store", icon: ShoppingBag },
+  { key: "games", label: "Games", icon: Dices },
   { key: "badges", label: "Badges", icon: Award },
 ];
 
@@ -1262,16 +1264,16 @@ export function StatsView({ onBack }: { onBack: () => void }) {
           </Card>
 
           {g ? (
-            <Card title="Slots" icon={<Dices size={17} />}>
+            <Card title="Games" icon={<Dices size={17} />} aside={<button type="button" className="st-link" onClick={() => go("games")}>All game stats</button>}>
               <dl className="st-dl">
-                <div><dt>Spins</dt><dd>{fmt(g.spins)}</dd></div>
+                <div><dt>Games</dt><dd>{fmt(g.spins)}</dd></div>
                 <div><dt>Net</dt><dd className={g.net >= 0 ? "st-up" : "st-down"}>{g.net >= 0 ? "+" : ""}{compact(g.net)}</dd></div>
                 <div><dt>Biggest win</dt><dd>{compact(g.biggestWin)}</dd></div>
                 <div><dt>Return</dt><dd>{g.spent ? pct(g.won / g.spent) : "—"}</dd></div>
               </dl>
               {s.games.recent.length ? (
                 <>
-                  <p className="st-note">Recent spins</p>
+                  <p className="st-note">Recent games</p>
                   <ul className="st-spins">
                     {s.games.recent.map((r, i) => (
                       <li key={i} className={r.net > 0 ? "is-win" : r.net < 0 ? "is-loss" : undefined} title={r.at ? new Date(r.at).toLocaleString() : undefined}>
@@ -1304,6 +1306,12 @@ export function StatsView({ onBack }: { onBack: () => void }) {
               </div>
             ) : null}
           </Card>
+        </div>
+      ) : null}
+
+      {tab === "games" ? (
+        <div className="st-tab" key="games">
+          <PersonalGamesStats />
         </div>
       ) : null}
 
