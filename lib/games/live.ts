@@ -8,40 +8,21 @@
 
 import type { Document } from "mongodb";
 import { people } from "../admin-people";
-import { getBotCollection } from "../mongodb";
 import { view, type PublicTable, type Session } from "./blackjack";
-import { gameCollections, GameError, num, userFilter } from "./core";
+import { gameCollections, GameError, userFilter } from "./core";
+import { checkInTable as checkIn, viewerCounts } from "./viewers";
+
+export { viewerCounts };
+import { rouletteLive } from "./roulette";
 import { TICKETS, type ScratchSession } from "./scratch";
 import { getJackpot, type SlotsSession, type SpinResult } from "./slots";
 
-const VIEWER_TTL_MS = 12_000;
 const BJ_IDLE_MS = 15 * 60_000;
 const BJ_DONE_MS = 45_000;
 const SC_IDLE_MS = 5 * 60_000;
 const SC_DONE_MS = 30_000;
 const SL_LIVE_MS = 60_000;
 const SL_DONE_MS = 3 * 60_000;
-
-let indexed: Promise<unknown> | null = null;
-async function viewersCol() {
-  const col = await getBotCollection("web_game_viewers");
-  indexed ??= col.createIndex({ at: 1 }, { expireAfterSeconds: 120 }).catch(() => undefined);
-  await indexed;
-  return col;
-}
-
-/** How many people are watching each table right now. */
-export async function viewerCounts(tables: string[]) {
-  if (!tables.length) return {} as Record<string, number>;
-  const col = await viewersCol();
-  const rows = await col.aggregate([{ $match: { table: { $in: tables }, at: { $gt: new Date(Date.now() - VIEWER_TTL_MS) } } }, { $group: { _id: "$table", n: { $sum: 1 } } }]).toArray();
-  return Object.fromEntries(rows.map((r) => [String(r._id), num(r.n)])) as Record<string, number>;
-}
-
-async function checkIn(table: string, viewer: string) {
-  const col = await viewersCol();
-  await col.updateOne({ _id: `${table}:${viewer}` } as never, { $set: { table, viewer, at: new Date() } }, { upsert: true });
-}
 
 /** Members who asked not to be watched. */
 async function privateIds(ids: string[]) {
@@ -104,7 +85,7 @@ function slotsStatusText(s: SlotsSession) {
 
 export type LiveEntry = {
   id: string;
-  game: "blackjack" | "scratchoff" | "slots";
+  game: "blackjack" | "scratchoff" | "slots" | "roulette";
   player: { id: string; name: string; avatar: string | null };
   /** Total wagered on the table now (blackjack) or the ticket price */
   stake: number;
@@ -142,8 +123,13 @@ export async function liveList(opts: { staff?: boolean; viewer?: string } = {}):
     .limit(60)
     .toArray()) as unknown as (Session | ScratchSession | SlotsSession)[];
   const ids = Array.from(new Set(docs.map((d) => String(d.discordId))));
+  const roulette = await rouletteLive().catch(() => null);
+  const table: LiveEntry[] =
+    roulette && roulette.players > 0
+      ? [{ id: "rl:table", game: "roulette", player: { id: "", name: "Roulette table", avatar: null }, stake: roulette.total, status: `${roulette.players} ${roulette.players === 1 ? "player" : "players"} betting`, live: true, viewers: (await viewerCounts(["rl:table"]))["rl:table"] ?? 0, updatedAt: new Date().toISOString() }]
+      : [];
   const [hidden, who, viewers] = await Promise.all([opts.staff ? Promise.resolve(new Set<string>()) : privateIds(ids), people(ids), viewerCounts(docs.map((d) => String(d._id)))]);
-  return docs
+  return table.concat(docs
     .filter((d) => !hidden.has(String(d.discordId)) && (opts.staff || String(d.discordId) !== opts.viewer))
     .map((d): LiveEntry => {
       const id = String(d._id);
@@ -172,7 +158,7 @@ export async function liveList(opts: { staff?: boolean; viewer?: string } = {}):
         updatedAt: new Date(s.updatedAt).toISOString(),
         ticket: t ? { name: t.name, icon: t.icon } : undefined,
       };
-    });
+    }));
 }
 
 // ---------- spectating ----------

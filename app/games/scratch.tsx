@@ -1,7 +1,7 @@
 "use client";
 
-import { ArrowLeft, ChevronDown, Eye, Lock, RefreshCw, Wand2 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type MutableRefObject } from "react";
+import { ArrowLeft, ChevronDown, Eye, Gem, Lock, RefreshCw, Wand2 } from "lucide-react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type MutableRefObject } from "react";
 import type { PublicScratch } from "../../lib/games/live";
 import type { Ticket } from "../../lib/games/scratch";
 import { LeafEmote } from "../ui-icons";
@@ -21,6 +21,9 @@ type Play = { ticket: Ticket; grid: string[]; winSymbol: string | null; payout: 
 const topPrize = (t: Ticket) => Math.max(...t.prizes.map((p) => p.payout));
 const compact = (n: number) => (n >= 1_000_000 ? `${+(n / 1_000_000).toFixed(1)}M` : n >= 1000 ? `${+(n / 1000).toFixed(1)}K` : String(n));
 
+// One context for the foil, set up for the frequent pixel reads that check how much is scratched
+const ctx2d = (c: HTMLCanvasElement) => c.getContext("2d", { willReadFrequently: true })!;
+
 /** The foil over the 3×3 grid: a canvas you scratch away. */
 function Foil({ play, revealed, onReveal, auto }: { play: Play; revealed: boolean[]; onReveal: (i: number) => void; auto: number }) {
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -31,18 +34,30 @@ function Foil({ play, revealed, onReveal, auto }: { play: Play; revealed: boolea
   const revealedRef = useRef(revealed);
   revealedRef.current = revealed;
   const shaveId = useRef(0);
+  const lastShave = useRef(0);
+  const [size, setSize] = useState<{ w: number; h: number } | null>(null);
 
-  // Paint the foil
-  useEffect(() => {
-    const c = canvas.current;
+  // Track the grid's layout size (not its on-screen box, which is scaled while the ticket animates in)
+  useLayoutEffect(() => {
     const w = wrap.current;
-    if (!c || !w) return;
+    if (!w) return;
+    const measure = () => setSize((s) => (s && s.w === w.offsetWidth && s.h === w.offsetHeight ? s : { w: w.offsetWidth, h: w.offsetHeight }));
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(w);
+    return () => ro.disconnect();
+  }, []);
+
+  // Paint the foil (and open any cells already revealed, if it's repainted after a resize)
+  useLayoutEffect(() => {
+    const c = canvas.current;
+    if (!c || !size) return;
     const dpr = Math.min(2, window.devicePixelRatio || 1);
-    const { width, height } = w.getBoundingClientRect();
+    const { w: width, h: height } = size;
     c.width = Math.round(width * dpr);
     c.height = Math.round(height * dpr);
-    const ctx = c.getContext("2d")!;
-    ctx.scale(dpr, dpr);
+    const ctx = ctx2d(c);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const [c1] = play.ticket.colors;
     const g = ctx.createLinearGradient(0, 0, width, height);
     g.addColorStop(0, "#e9edf2");
@@ -92,7 +107,14 @@ function Foil({ play, revealed, onReveal, auto }: { play: Play; revealed: boolea
     sheen.addColorStop(0.58, "rgba(255,255,255,0)");
     ctx.fillStyle = sheen;
     ctx.fillRect(0, 0, width, height);
-  }, [play]);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    revealedRef.current.forEach((open, i) => {
+      if (!open) return;
+      const r = cellRect(i);
+      ctx.clearRect(r.x, r.y, r.w, r.h);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [play, size]);
 
   const cellRect = (i: number) => {
     const c = canvas.current!;
@@ -105,7 +127,7 @@ function Foil({ play, revealed, onReveal, auto }: { play: Play; revealed: boolea
   const check = useCallback(() => {
     const c = canvas.current;
     if (!c) return;
-    const ctx = c.getContext("2d")!;
+    const ctx = ctx2d(c);
     for (let i = 0; i < 9; i++) {
       if (revealedRef.current[i]) continue;
       const r = cellRect(i);
@@ -123,11 +145,12 @@ function Foil({ play, revealed, onReveal, auto }: { play: Play; revealed: boolea
     }
   }, [onReveal]);
 
+  /** Scratch a line to (x, y), in the grid's layout pixels. */
   const scratchTo = (x: number, y: number) => {
     const c = canvas.current;
-    if (!c) return;
-    const ctx = c.getContext("2d")!;
-    const dpr = c.width / c.getBoundingClientRect().width;
+    if (!c || !c.offsetWidth) return;
+    const ctx = ctx2d(c);
+    const dpr = c.width / c.offsetWidth;
     ctx.globalCompositeOperation = "destination-out";
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
@@ -139,16 +162,20 @@ function Foil({ play, revealed, onReveal, auto }: { play: Play; revealed: boolea
     ctx.stroke();
     ctx.globalCompositeOperation = "source-over";
     last.current = { x, y };
-    // A few foil shavings fly off
-    if (Math.random() < 0.35) {
+    // A few foil shavings fly off (rationed, so scratching stays smooth)
+    const now = performance.now();
+    if (now - lastShave.current > 70 && Math.random() < 0.6) {
+      lastShave.current = now;
       const id = ++shaveId.current;
       setShavings((s) => [...s.slice(-24), { id, x, y, dx: (Math.random() - 0.5) * 60 }]);
     }
   };
 
+  /** The pointer in the grid's layout pixels (correct even while the ticket is scaled or tilted). */
   const point = (e: React.PointerEvent) => {
-    const r = canvas.current!.getBoundingClientRect();
-    return { x: e.clientX - r.left, y: e.clientY - r.top };
+    const c = canvas.current!;
+    const r = c.getBoundingClientRect();
+    return { x: ((e.clientX - r.left) * c.offsetWidth) / (r.width || 1), y: ((e.clientY - r.top) * c.offsetHeight) / (r.height || 1) };
   };
 
   const lastCheck = useRef(0);
@@ -169,9 +196,8 @@ function Foil({ play, revealed, onReveal, auto }: { play: Play; revealed: boolea
     let cancelled = false;
     const c = canvas.current;
     if (!c) return;
-    const rect = c.getBoundingClientRect();
-    const cw = rect.width / 3;
-    const ch = rect.height / 3;
+    const cw = c.offsetWidth / 3;
+    const ch = c.offsetHeight / 3;
     const hidden = Array.from({ length: 9 }, (_, i) => i).filter((i) => !revealedRef.current[i]);
     const run = async () => {
       for (const i of hidden) {
@@ -188,7 +214,7 @@ function Foil({ play, revealed, onReveal, auto }: { play: Play; revealed: boolea
           await new Promise((r) => setTimeout(r, 14));
         }
         last.current = null;
-        const ctx = c.getContext("2d")!;
+        const ctx = ctx2d(c);
         const r = cellRect(i);
         ctx.clearRect(r.x, r.y, r.w, r.h);
         onReveal(i);
@@ -328,6 +354,7 @@ export function ScratchOffs({
     };
   }, [control]);
 
+  const premium = tickets.filter((t) => t.nitro);
   const outcome = !play || !finished ? null : play.payout > play.ticket.cost ? "win" : play.payout === play.ticket.cost ? "free" : "lose";
 
   return (
@@ -411,6 +438,16 @@ export function ScratchOffs({
         </div>
       ) : (
         <div className="sc-gallery">
+          <div className={`gm-note${status.nitro ? " is-nitro" : ""}`}>
+            <Gem size={16} aria-hidden="true" />
+            <span>
+              <b>Premium tickets are for Nitro boosters.</b>{" "}
+              {status.nitro
+                ? `You're boosting, so ${premium.map((t) => t.name).join(", ")} ${premium.length === 1 ? "is" : "are"} unlocked for you.`
+                : `${premium.map((t) => `${t.icon} ${t.name}`).join(", ")} ${premium.length === 1 ? "unlocks" : "unlock"} when you boost the server.`}{" "}
+              No daily limit on any ticket.
+            </span>
+          </div>
           {TIERS.map((tier) => (
             <section key={tier.key} className={`sc-tier is-${tier.key}`}>
               <header>
@@ -434,6 +471,7 @@ export function ScratchOffs({
                         title={locked ? "Nitro boosters only" : short ? "Not enough leaves" : `Buy ${t.name}`}
                       >
                         <span className="sc-card-shine" aria-hidden="true" />
+                        {t.nitro ? <span className="sc-premium">Premium</span> : null}
                         <span className="sc-ticket-icon">{t.icon}</span>
                         <strong>{t.name}</strong>
                         <small>

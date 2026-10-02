@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Eye, FastForward, Lock, X } from "lucide-react";
+import { ChevronDown, Eye, FastForward, Lock, Sparkles, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { PublicSlots } from "../../lib/games/live";
 import { emojiUrl, SLOT_SYMBOLS as symbols, type SlotSymbol } from "../../lib/games/slot-symbols";
@@ -302,6 +302,15 @@ export function Slots({ balance, onBalance, initialStatus, viewers = 0 }: { bala
             );
           })}
         </div>
+        {status.maxSpins <= 1 ? (
+          <p className="sl-nitro-note">
+            <Lock size={13} aria-hidden="true" /> Extra spins (×5, ×10, ×25) are for <b>Nitro boosters</b> only.
+          </p>
+        ) : (
+          <p className="sl-nitro-note is-on">
+            <Sparkles size={13} aria-hidden="true" /> Nitro booster: spin up to 25 times at once.
+          </p>
+        )}
         {playing && many ? (
           <button type="button" className="sl-pull is-skip" onClick={() => setSkip(Date.now())}>
             <FastForward size={18} aria-hidden="true" /> Skip to the end
