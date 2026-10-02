@@ -31165,3 +31165,124 @@ a.apl-chip {
   -webkit-text-stroke: 1.4px var(--n1);
   text-shadow: 0 0 12px var(--n2), 0 2px 0 rgba(0, 0, 0, 0.4);
 }
+
+/* Store card tilt: follow the pointer smoothly instead of lagging behind with a long transform transition */
+.store-card {
+  transition: transform 0.12s ease-out, border-color 0.2s ease;
+}
+
+/* Admin message viewer: unsent messages keep their text, flagged */
+.amx-bubble.is-deleted {
+  font-style: normal;
+  opacity: 1;
+  border: 1px dashed rgba(229, 72, 77, 0.6);
+  background: rgba(229, 72, 77, 0.08);
+}
+
+.amx-msg-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.2rem;
+}
+
+.amx-msg--right .amx-msg-flags {
+  justify-content: flex-end;
+}
+
+.amx-flag {
+  border-radius: 999px;
+  padding: 0.05rem 0.45rem;
+  background: rgba(139, 141, 152, 0.18);
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.amx-flag--unsent {
+  background: rgba(229, 72, 77, 0.15);
+  color: #ff8a8e;
+}
+
+/* ==========================================
+   Frames v4: every frame has its own band texture (lit from above) and its own ornaments
+   ========================================== */
+.cos-orn {
+  filter: drop-shadow(0 2px 2.5px rgba(0, 0, 0, 0.45));
+}
+
+.cos-ring {
+  padding: 4px;
+  inset: -4.5px;
+  --bevel: linear-gradient(180deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.05) 35%, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.4));
+}
+
+.cos-frame.dt-hero-frame .cos-ring { border-radius: 32.5px; }
+.cos-frame.smini-frame .cos-ring { border-radius: 22.5px; }
+
+.cos-fk-ember .cos-ring { background: var(--bevel), repeating-conic-gradient(from var(--cos-a), #2a1006 0 6deg, #ff6a00 6deg 10deg, #ffb347 10deg 12deg, #3a1608 12deg 19deg, #ff8a1f 19deg 23deg); }
+.cos-fk-sakura .cos-ring { background: var(--bevel), radial-gradient(circle, #fff 0 1px, transparent 1.5px) 0 0 / 6px 6px, linear-gradient(135deg, #ffd1e3, #ff86b6, #ffd1e3); }
+.cos-fk-neon .cos-ring { background: linear-gradient(90deg, #ff2bd6, #ff8ae8 30%, #00e5ff 70%, #ff2bd6); animation: cos-neonflick 5s infinite; }
+.cos-fk-aurora .cos-ring { background: var(--bevel), conic-gradient(from var(--cos-a), #3dffb4, #2bb8ff, #b46cff, #3dffb4); filter: drop-shadow(0 0 6px rgba(61, 255, 180, 0.6)); }
+.cos-fk-gold .cos-ring { background: var(--bevel), repeating-conic-gradient(from 0deg, rgba(122, 78, 0, 0.55) 0 1deg, transparent 1deg 8deg), linear-gradient(110deg, #8a5a00, #ffd56a 25%, #fff6c9 32%, #e0a526 45%, #8a5a00 65%, #ffd56a 85%); background-size: auto, auto, 250% 100%; animation: cos-sweep 4s linear infinite; }
+.cos-fk-galaxy .cos-ring { background: var(--bevel), radial-gradient(circle, #fff 0 0.8px, transparent 1.2px) 0 0 / 7px 9px, conic-gradient(from var(--cos-a), #1b1464, #8a2be2, #4fc3ff, #ff4dd8, #1b1464); }
+.cos-fk-haunted .cos-ring { background: var(--bevel), linear-gradient(160deg, #c8ffe0, #3b6e58 50%, #c8ffe0); filter: drop-shadow(0 0 8px rgba(125, 255, 184, 0.8)); }
+.cos-fk-batwing .cos-ring { background: var(--bevel), repeating-conic-gradient(from var(--cos-a), #12040a 0 8deg, #c1121f 8deg 10deg, #2a0a14 10deg 20deg); }
+.cos-fk-crown .cos-ring { background: var(--bevel), repeating-conic-gradient(from 0deg, transparent 0 40deg, #ff3d7f 40deg 42deg, transparent 42deg 85deg, #3fa9ff 85deg 87deg, transparent 87deg 90deg), linear-gradient(110deg, #8a5a00, #ffe9a0 25%, #fff8dc 32%, #d4a017 45%, #8a5a00 65%, #ffe9a0 85%); background-size: auto, auto, 250% 100%; animation: cos-sweep 3s linear infinite; filter: drop-shadow(0 0 8px rgba(255, 200, 60, 0.8)); }
+.cos-fk-silver .cos-ring { background: var(--bevel), repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.25) 0 1px, transparent 1px 3px), linear-gradient(110deg, #6b7280, #e5e7eb 25%, #ffffff 32%, #9ca3af 45%, #6b7280 65%, #e5e7eb 85%); background-size: auto, auto, 250% 100%; animation: cos-sweep 4.5s linear infinite; }
+.cos-fk-rosegold .cos-ring { background: var(--bevel), linear-gradient(110deg, #9e5a4f, #f4c2b6 25%, #fff1ec 32%, #d4877a 45%, #9e5a4f 65%, #f4c2b6 85%); background-size: auto, 250% 100%; animation: cos-sweep 4s linear infinite; }
+.cos-fk-obsidian .cos-ring { background: var(--bevel), conic-gradient(from 20deg, #050505, #1a1424 20%, #9b7bd4 22%, #050505 24%, #2a2038 50%, #050505 70%, #9b7bd4 72%, #050505 74%, #1a1424); }
+.cos-fk-tide .cos-ring { background: var(--bevel), repeating-conic-gradient(from var(--cos-a), #0b3d91 0 15deg, #1fa2ff 15deg 25deg, #a6ffcb 25deg 27deg, #1fa2ff 27deg 30deg); }
+.cos-fk-toxic .cos-ring { background: var(--bevel), radial-gradient(circle, #e6ff8a 0 1.2px, transparent 1.6px) 0 0 / 8px 6px, linear-gradient(135deg, #39ff14, #1a8a0a, #b6ff00); filter: drop-shadow(0 0 7px rgba(57, 255, 20, 0.8)); }
+.cos-fk-candy .cos-ring { background: var(--bevel), repeating-conic-gradient(from var(--cos-a), #ff5c9e 0 10deg, #ffffff 10deg 20deg, #8fd3ff 20deg 30deg, #ffffff 30deg 40deg); }
+.cos-fk-heartbeat .cos-ring { background: var(--bevel), linear-gradient(135deg, #ff4d8d, #ffb3cf, #ff4d8d); animation: cos-heartring 1.1s ease-in-out infinite; }
+.cos-fk-starfall .cos-ring { background: var(--bevel), radial-gradient(circle, #ffe08a 0 1px, transparent 1.5px) 0 0 / 6px 6px, linear-gradient(180deg, #1b2560, #0b0f2e); }
+.cos-fk-angel .cos-ring { background: var(--bevel), linear-gradient(110deg, #d9c58b, #fffaf0 25%, #ffffff 32%, #f1e3b0 45%, #d9c58b 65%, #fffaf0 85%); background-size: auto, 250% 100%; animation: cos-sweep 5s linear infinite; filter: drop-shadow(0 0 8px rgba(255, 248, 220, 0.9)); }
+.cos-fk-demon .cos-ring { background: var(--bevel), conic-gradient(from var(--cos-a), #2b0000, #ff1e1e, #ff7a00, #2b0000, #ff1e1e, #2b0000); }
+.cos-fk-kitty .cos-ring { background: var(--bevel), radial-gradient(circle, #fff 0 1.2px, transparent 1.7px) 0 0 / 7px 7px, linear-gradient(135deg, #ffd6e0, #ff8fab, #ffd6e0); }
+.cos-fk-foxears .cos-ring { background: var(--bevel), repeating-conic-gradient(from var(--cos-a), #ff8a3d 0 14deg, #ffd0a1 14deg 18deg, #c4501b 18deg 26deg); }
+.cos-fk-wreath .cos-ring { background: var(--bevel), linear-gradient(110deg, #8a5a00, #ffd56a 30%, #fff3b0 40%, #c99a2e 60%, #8a5a00); }
+.cos-fk-frost .cos-ring { background: var(--bevel), repeating-conic-gradient(from 0deg, rgba(255, 255, 255, 0.9) 0 2deg, transparent 2deg 15deg), linear-gradient(135deg, #e8f9ff, #5ac8fa, #ffffff, #5ac8fa); filter: drop-shadow(0 0 7px rgba(140, 220, 255, 0.9)); }
+.cos-fk-phoenix .cos-ring { background: var(--bevel), conic-gradient(from var(--cos-a), #ff3d00, #ffb300, #fff176, #ffb300, #ff3d00); }
+.cos-fk-electric .cos-ring { background: repeating-conic-gradient(from var(--cos-a), #fff200 0 6deg, #fff 6deg 8deg, transparent 8deg 14deg); filter: drop-shadow(0 0 4px #fff200) drop-shadow(0 0 10px rgba(255, 242, 0, 0.7)); animation: cos-spin 1.2s linear infinite; }
+.cos-fk-prism .cos-ring { background: var(--bevel), conic-gradient(from var(--cos-a), #ff4d4d, #ffd84d, #4dff88, #4dc3ff, #b44dff, #ff4d4d); filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.7)); }
+.cos-fk-void .cos-ring { background: conic-gradient(from calc(var(--cos-a) * -1), #000, #3c096c, #9d4edd, #000 40%, #000); filter: drop-shadow(0 0 8px rgba(157, 78, 221, 0.9)); }
+.cos-fk-moonlit .cos-ring { background: var(--bevel), linear-gradient(160deg, #e2e8ff, #7f8fd8 55%, #c9d6ff); }
+.cos-fk-sunflower .cos-ring { background: var(--bevel), repeating-conic-gradient(from 0deg, #ffd23f 0 9deg, #f4a259 9deg 12deg); }
+
+@keyframes cos-neonflick { 0%, 18%, 22%, 25%, 53%, 57%, 100% { opacity: 1; } 20%, 24%, 55% { opacity: 0.4; } }
+@keyframes cos-heartring { 0%, 45%, 100% { transform: scale(1); } 15% { transform: scale(1.035); } 30% { transform: scale(1.01); } }
+
+/* New ornament motion */
+.cos-orn .orn-pop,
+.cos-orn .orn-buzz { transform-box: fill-box; transform-origin: center; }
+.cos-orn .orn-dangle { transform-box: fill-box; transform-origin: 50% 0; animation: orn-dangle 2.6s ease-in-out infinite alternate; }
+.cos-orn .orn-flicktail { transform-box: fill-box; transform-origin: 0 20%; animation: orn-flicktail 1.8s ease-in-out infinite alternate; }
+.cos-orn .orn-wag { transform-box: fill-box; transform-origin: 100% 90%; animation: orn-wag 2.6s ease-in-out infinite alternate; }
+.cos-orn .orn-rise { animation: orn-rise 2.6s ease-out infinite; }
+.cos-orn .orn-petalfall { animation: orn-petalfall 4.5s linear infinite; }
+.cos-orn .orn-neon { animation: cos-neonflick 5s infinite; }
+.cos-orn .orn-shimmer { animation: orn-shimmer 3.5s ease-in-out infinite alternate; }
+.cos-orn .orn-drift { animation: orn-drift 6s ease-in-out infinite alternate; }
+.cos-orn .orn-drip { animation: orn-drip 2.4s ease-in infinite; }
+.cos-orn .orn-pop { animation: orn-pop 2s ease-out infinite; }
+.cos-orn .orn-trace { animation: orn-trace 1.8s linear infinite; }
+.cos-orn .orn-buzz { animation: orn-buzz 0.08s linear infinite alternate; }
+
+@keyframes orn-dangle { from { transform: rotate(-9deg); } to { transform: rotate(9deg); } }
+@keyframes orn-flicktail { from { transform: rotate(-8deg); } to { transform: rotate(10deg); } }
+@keyframes orn-wag { from { transform: rotate(-6deg); } to { transform: rotate(5deg); } }
+@keyframes orn-rise { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(-34px); opacity: 0; } }
+@keyframes orn-petalfall { 0% { transform: translate(0, 0) rotate(0deg); opacity: 0; } 10% { opacity: 1; } 100% { transform: translate(16px, 70px) rotate(300deg); opacity: 0; } }
+@keyframes orn-shimmer { from { opacity: 0.6; transform: translateX(-1.5px); } to { opacity: 1; transform: translateX(1.5px); } }
+@keyframes orn-drift { from { transform: translateX(-4px); } to { transform: translateX(4px); } }
+@keyframes orn-drip { 0%, 30% { transform: translateY(0); opacity: 0; } 40% { opacity: 1; } 100% { transform: translateY(26px); opacity: 0; } }
+@keyframes orn-pop { 0% { transform: scale(0.2); opacity: 0; } 50% { opacity: 1; } 90% { transform: scale(1.2); opacity: 0.8; } 100% { transform: scale(1.4); opacity: 0; } }
+@keyframes orn-trace { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
+@keyframes orn-buzz { from { transform: scaleY(1); } to { transform: scaleY(0.4); } }
+
+/* A ring's own glow is clipped by its mask, so glowing bands light up the frame's halo instead */
+.cos-fk-neon::after { background: radial-gradient(closest-side, rgba(255, 43, 214, 0.75), rgba(0, 229, 255, 0.25) 70%, transparent); opacity: 0.85; }
+.cos-fk-toxic::after { background: radial-gradient(closest-side, rgba(57, 255, 20, 0.6), transparent); opacity: 0.7; }
+.cos-fk-electric::after { background: radial-gradient(closest-side, rgba(255, 242, 0, 0.6), transparent); opacity: 0.75; }
+.cos-fk-void::after { background: radial-gradient(closest-side, rgba(157, 78, 221, 0.7), transparent); opacity: 0.8; }

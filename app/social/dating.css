@@ -4550,3 +4550,49 @@ a.dt-partner-chip:hover {
   flex-wrap: wrap;
   gap: 0.35rem;
 }
+
+/* Tile corner: Spotlight, score, New and the chips stack instead of overlapping */
+.dt-tile-corner {
+  position: absolute;
+  top: 0.6rem;
+  left: 0.6rem;
+  right: 0.6rem;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+  pointer-events: none;
+}
+.dt-tile-corner .dt-tile-badges,
+.dt-tile-corner .dt-tile-tags,
+.dt-tile-corner .dt-spotlight-ribbon {
+  position: static;
+}
+.dt-tile-corner .dt-tile-badges {
+  flex-wrap: wrap;
+  align-items: center;
+}
+.dt-tile-corner .dt-tile-badges > * {
+  pointer-events: auto;
+}
+
+/* Message actions: labelled so "Unsend" (both sides) and "Delete for me" are clear */
+.dt-msg-tools button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: 6px;
+}
+.dt-msg-tools button:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+.dt-msg.is-mine .dt-msg-tools {
+  justify-content: flex-end;
+}
+.dt-bubble:focus {
+  outline: none;
+}

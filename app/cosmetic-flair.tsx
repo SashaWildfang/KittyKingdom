@@ -27,6 +27,9 @@ function frameStyle(spec: FrameSpec): CSSProperties {
   } as CSSProperties;
 }
 
+/** Ornaments that reach out past the sides (the Social photo makes room for them). */
+const WIDE = new Set(["wings", "batwings", "phoenix", "foxtail", "whiskers", "vortex"]);
+
 /** An avatar or photo with an equipped frame around it (works on any corner radius). */
 export function Framed({ frame, children, className }: { frame: string | null | undefined; children: ReactNode; className?: string }) {
   const uid = `o${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
@@ -35,7 +38,7 @@ export function Framed({ frame, children, className }: { frame: string | null | 
   const spec = def.frame;
   return (
     <span
-      className={`cos-frame cos-frame--${spec.style}${spec.ornaments?.some((o) => o === "wings" || o === "batwings" || o === "phoenix") ? " has-wings" : ""}${className ? ` ${className}` : ""}`}
+      className={`cos-frame cos-frame--${spec.style} cos-fk-${def.key}${spec.ornaments?.some((o) => WIDE.has(o)) ? " has-wings" : ""}${className ? ` ${className}` : ""}`}
       style={frameStyle(spec)}
     >
       {children}
@@ -57,7 +60,7 @@ export function FrameRing({ frame, className }: { frame: string | null | undefin
   const spec = specOf("frame", frame)?.frame;
   if (!spec) return null;
   return (
-    <span className={`cos-ringbox cos-frame--${spec.style}${className ? ` ${className}` : ""}`} style={frameStyle(spec)} aria-hidden="true">
+    <span className={`cos-ringbox cos-frame--${spec.style} cos-fk-${frame}${className ? ` ${className}` : ""}`} style={frameStyle(spec)} aria-hidden="true">
       <span className="cos-ring" />
     </span>
   );

@@ -77,25 +77,45 @@ export function CountUp({ value }: { value: number }) {
   return <>{shown.toLocaleString()}</>;
 }
 
-/** Card tilt that follows the pointer (sets --rx/--ry/--mx/--my on the card). */
+/**
+ * Card tilt that follows the pointer (sets --rx/--ry/--mx/--my on the card).
+ * The card's box is measured once on enter, before it tilts and lifts: measuring a tilted card
+ * every move fed its own tilt back in and could swing it hard near the edges.
+ */
+const tiltBox = new WeakMap<HTMLElement, { left: number; top: number; width: number; height: number; sx: number; sy: number }>();
+const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+
 export function tiltHandlers() {
+  const reset = (el: HTMLElement) => {
+    tiltBox.delete(el);
+    el.style.setProperty("--rx", "0deg");
+    el.style.setProperty("--ry", "0deg");
+  };
   return {
+    onPointerEnter: (e: PointerEvent<HTMLElement>) => {
+      if (e.pointerType !== "mouse") return;
+      const el = e.currentTarget;
+      // offsetWidth/Height ignore transforms; the rect's corner is close enough before the lift starts
+      const r = el.getBoundingClientRect();
+      tiltBox.set(el, { left: r.left + (r.width - el.offsetWidth) / 2, top: r.top + (r.height - el.offsetHeight) / 2, width: el.offsetWidth, height: el.offsetHeight, sx: window.scrollX, sy: window.scrollY });
+    },
     onPointerMove: (e: PointerEvent<HTMLElement>) => {
       if (e.pointerType !== "mouse") return;
       const el = e.currentTarget;
-      const r = el.getBoundingClientRect();
-      const x = (e.clientX - r.left) / r.width;
-      const y = (e.clientY - r.top) / r.height;
-      el.style.setProperty("--rx", `${(0.5 - y) * 7}deg`);
-      el.style.setProperty("--ry", `${(x - 0.5) * 9}deg`);
-      el.style.setProperty("--mx", `${x * 100}%`);
-      el.style.setProperty("--my", `${y * 100}%`);
+      const box = tiltBox.get(el);
+      if (!box || !box.width || !box.height) return;
+      // Scrolling while hovering moves the card under the pointer
+      const left = box.left - (window.scrollX - box.sx);
+      const top = box.top - (window.scrollY - box.sy);
+      const x = clamp01((e.clientX - left) / box.width);
+      const y = clamp01((e.clientY - top) / box.height);
+      el.style.setProperty("--rx", `${((0.5 - y) * 5).toFixed(2)}deg`);
+      el.style.setProperty("--ry", `${((x - 0.5) * 6).toFixed(2)}deg`);
+      el.style.setProperty("--mx", `${(x * 100).toFixed(1)}%`);
+      el.style.setProperty("--my", `${(y * 100).toFixed(1)}%`);
     },
-    onPointerLeave: (e: PointerEvent<HTMLElement>) => {
-      const el = e.currentTarget;
-      el.style.setProperty("--rx", "0deg");
-      el.style.setProperty("--ry", "0deg");
-    },
+    onPointerLeave: (e: PointerEvent<HTMLElement>) => reset(e.currentTarget),
+    onPointerCancel: (e: PointerEvent<HTMLElement>) => reset(e.currentTarget),
   };
 }
 
