@@ -125,7 +125,7 @@ export async function memberStats(discordId: string, timeZone: string) {
       qotd.countDocuments({ user_id: { $in: [Long.fromString(discordId), discordId] } } as never),
       active.find({ opened_by: discordId }, { projection: { ticket_type: 1, created: 1 } }).toArray(),
       resolved.find({ opened_by: discordId }, { projection: { ticket_type: 1, created: 1 } }).toArray(),
-      boosters.findOne({ discordId }) as Promise<Document | null>,
+      boosters.find({ discordId, end_time: { $gt: new Date() } }).sort({ end_time: 1 }).toArray() as Promise<Document[]>,
       globals.findOne({}) as Promise<Document | null>,
       getMemberProfile(discordId).catch(() => null),
       getGuildRoles().catch(() => new Map()),
@@ -197,12 +197,12 @@ export async function memberStats(discordId: string, timeZone: string) {
   const globalBoost = global?.isBoosterActive ? num(global.boosterMultiplier) || 1 : 1;
   let xpMultiplier = 1 + (patreon?.bonus ?? 0) + (isBooster ? 0.15 : 0) + (weekend - 1) + (globalBoost - 1);
   let leafMultiplier = 1 + (isBooster ? 0.15 : 0);
-  const boosterEnds = booster?.end_time instanceof Date ? booster.end_time : null;
-  const consumable = booster && (!boosterEnds || boosterEnds.getTime() > Date.now())
-    ? { name: String(booster.item_name ?? "Booster"), endsAt: iso(boosterEnds) }
-    : null;
-  if (consumable && booster?.item_id === "booster_xp") xpMultiplier *= 2;
-  if (consumable && booster?.item_id === "booster_balance") leafMultiplier *= 2;
+  // Every booster still running (several can run at once: the bot applies each of them)
+  const running = (booster ?? []) as Document[];
+  const earning = running.filter((b) => b.item_id === "booster_xp" || b.item_id === "booster_balance");
+  const consumable = earning.length ? { name: earning.map((b) => String(b.item_name ?? "Booster")).join(" + "), endsAt: iso(earning[0].end_time instanceof Date ? earning[0].end_time : null) } : null;
+  if (running.some((b) => b.item_id === "booster_xp")) xpMultiplier *= 2;
+  if (running.some((b) => b.item_id === "booster_balance")) leafMultiplier *= 2;
 
   // ---------- Activity ----------
   const a = activity ?? {};

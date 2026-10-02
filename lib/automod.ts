@@ -30,7 +30,7 @@ export const RULE_NUMBERS: Partial<Record<RuleKey, { key: "limit" | "channels" |
   mentions: { key: "limit", label: "People per message", min: 2, max: 50 },
   pings: { key: "limit", label: "Pings of one person in 30s", min: 2, max: 20 },
   crosspost: { key: "channels", label: "Channels within 30s", min: 2, max: 10 },
-  media: { key: "limit", label: "Files within 10s", min: 2, max: 30 },
+  media: { key: "limit", label: "Media posts within 10s", min: 2, max: 30 },
   formatting: { key: "lines", label: "Lines per message", min: 5, max: 200 },
   emoji: { key: "limit", label: "Emojis per message", min: 5, max: 100 },
   newcomers: { key: "minutes", label: "Minutes after joining", min: 1, max: 1440 },
