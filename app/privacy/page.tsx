@@ -336,7 +336,7 @@ const sections: LegalSection[] = [
               <tr><td>Site statistics</td><td>About 13 months, then deleted automatically</td></tr>
               <tr><td>Live chat mirror</td><td>72 hours, then deleted automatically</td></tr>
               <tr><td>Dating profile, photos, likes and matches</td><td>Until you delete your dating profile (deleting it removes your photos, likes and matches)</td></tr>
-              <tr><td>Dating messages</td><td>While both members keep the conversation; a message you unsend is removed. Reports keep a copy of what was reported for as long as needed for safety</td></tr>
+              <tr><td>Dating messages</td><td>While both members keep the conversation. A message you unsend (delete for everyone) disappears for both of you, and one you delete for yourself disappears only for you, but site admins can still see both for safety and moderation. Reports keep a copy of what was reported for as long as needed for safety</td></tr>
               <tr><td>Notifications</td><td>60 days, then deleted automatically</td></tr>
               <tr><td>Online count, rate limits, link codes</td><td>Minutes to hours, deleted automatically</td></tr>
               <tr><td>Ticket activity (while a ticket is open)</td><td>Until the ticket is closed and its transcript saved (at most 21 days if it is never closed)</td></tr>
@@ -376,7 +376,7 @@ const sections: LegalSection[] = [
           <li>unlink Discord at any time (Discord-only features stop working until you link again);</li>
           <li>delete your Site account from My Account. This deletes your account and sign-in sessions. Staff accounts must first have their staff role removed;</li>
           <li>turn off Site statistics for yourself by enabling Do Not Track or Global Privacy Control in your browser; and</li>
-          <li>edit, pause or delete your dating profile, hide your age or activity, unsend your messages, and block members on the Social page.</li>
+          <li>edit, pause or delete your dating profile, hide your age or activity, unsend your messages or delete them for yourself (admins can still see them for safety), and block members on the Social page.</li>
         </ul>
         <p>
           Depending on where you live (for example under the EU or UK GDPR, or California and other US state privacy laws), you may also have the right to

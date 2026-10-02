@@ -1,7 +1,9 @@
 // Private messages between 18+ Verified members.
 //   dating_conversations {_id: "lo-hi", users, state: "open"|"request"|"declined", requestFrom, lastAt,
 //                         lastText, lastFrom, unread: {id: n}, declinedAt}
-//   dating_messages      {conv, from, text, at, deleted?}
+//   dating_messages      {conv, from, text, at, deleted?, deletedAt?, hiddenFor?: [ids]}
+// Unsending ("delete for everyone") hides a message from both members but keeps its text for admins;
+// "delete for me" only hides it from that one member.
 // Matches and friends chat freely; anyone else starts in the other person's Message Requests
 // (they wait in a Requests tab until accepted). Blocking hides everything both ways. AutoMod's severe words
 // and scam-link checks apply here too.
@@ -87,7 +89,7 @@ export async function thread(me: string, other: string, before?: string, opts: {
   const { convs, msgs } = await cols();
   const id = pairId(me, other);
   const conv = await convs.findOne({ _id: id } as never);
-  const q: Document = { conv: id };
+  const q: Document = { conv: id, hiddenFor: { $ne: me } };
   if (before && ObjectId.isValid(before)) q._id = { $lt: new ObjectId(before) };
   const rows = conv ? await msgs.find(q).sort({ _id: -1 }).limit(50).toArray() : [];
   // Opening the thread reads it (not while an admin is only viewing as them)
@@ -194,11 +196,21 @@ export async function hideConversation(me: string, other: string) {
   await convs.updateOne({ _id: pairId(me, other) } as never, { $set: { [`hidden.${me}`]: true, [`unread.${me}`]: 0 } });
 }
 
-/** Unsends one of your own messages. */
-export async function deleteMessage(me: string, messageId: string) {
+/**
+ * Deletes a message. "everyone" unsends one of your own messages: it shows as "Message unsent" to both
+ * of you, and only admins can still read it. "me" hides any message in your chat from you alone.
+ */
+export async function deleteMessage(me: string, messageId: string, scope: "everyone" | "me" = "everyone") {
   if (!ObjectId.isValid(messageId)) return;
-  const { msgs } = await cols();
-  await msgs.updateOne({ _id: new ObjectId(messageId), from: me }, { $set: { deleted: true, text: "", deletedAt: new Date() } });
+  const { convs, msgs } = await cols();
+  const _id = new ObjectId(messageId);
+  if (scope === "me") {
+    await msgs.updateOne({ _id, $or: [{ from: me }, { to: me }] }, { $addToSet: { hiddenFor: me } });
+    return;
+  }
+  const m = await msgs.findOneAndUpdate({ _id, from: me, deleted: { $ne: true } }, { $set: { deleted: true, deletedAt: new Date() } });
+  // If it was the latest message, the chat list stops previewing it
+  if (m) await convs.updateOne({ _id: m.conv, lastAt: m.at } as never, { $set: { lastText: "Message unsent" } });
 }
 
 /** A reported message with a little context (two before and after), for staff. */
@@ -281,7 +293,16 @@ export async function adminThread(a: string, b: string, opts: { before?: string 
     state: String(conv?.state ?? "none"),
     requestFrom: conv?.requestFrom ? String(conv.requestFrom) : null,
     readAt: { [a]: readAt(a), [b]: readAt(b) } as Record<string, string | null>,
-    messages: rows.map((m) => ({ id: String(m._id), from: String(m.from), text: m.deleted ? "" : String(m.text ?? ""), deleted: Boolean(m.deleted), at: (m.at as Date).toISOString() })),
+    // Admins see unsent messages (marked) and who deleted a message for themselves
+    messages: rows.map((m) => ({
+      id: String(m._id),
+      from: String(m.from),
+      text: String(m.text ?? ""),
+      deleted: Boolean(m.deleted),
+      deletedAt: m.deletedAt instanceof Date ? m.deletedAt.toISOString() : null,
+      hiddenFor: Array.isArray(m.hiddenFor) ? (m.hiddenFor as unknown[]).map(String) : [],
+      at: (m.at as Date).toISOString(),
+    })),
     more: !opts.after && rows.length === 100,
   };
 }
