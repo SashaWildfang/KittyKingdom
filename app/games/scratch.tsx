@@ -443,8 +443,8 @@ export function ScratchOffs({
             <span>
               <b>Premium tickets are for Nitro boosters.</b>{" "}
               {status.nitro
-                ? `You're boosting, so ${premium.map((t) => t.name).join(", ")} ${premium.length === 1 ? "is" : "are"} unlocked for you.`
-                : `${premium.map((t) => `${t.icon} ${t.name}`).join(", ")} ${premium.length === 1 ? "unlocks" : "unlock"} when you boost the server.`}{" "}
+                ? `You're boosting, so all ${premium.length} premium tickets (💎 Black Diamond and up) are unlocked for you.`
+                : `💎 Black Diamond and every ticket above it (${premium.length} in all) unlock when you boost the server.`}{" "}
               No daily limit on any ticket.
             </span>
           </div>
@@ -513,7 +513,7 @@ export function ScratchOffs({
               </div>
             ))}
             <p className="gm-fine">
-              No daily limit. Black Diamond tickets are for Nitro boosters. Most wins are a free ticket (your cost back).
+              No daily limit. Black Diamond and every ticket above it are for Nitro boosters. Most wins are a free ticket (your cost back).
             </p>
           </div>
         ) : null}
