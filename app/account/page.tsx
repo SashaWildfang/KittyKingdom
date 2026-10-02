@@ -1,6 +1,6 @@
 import { userTimeZone } from "../../lib/timezone";
 import { accountGreeting } from "../../lib/greeting";
-import { Backpack, ChevronDown, Gift, ShieldCheck, Check, CircleAlert, ClipboardList, FileText, Gavel, KeyRound, Lock, Mail, MessageCircle, Sparkles, TriangleAlert, UserRound } from "lucide-react";
+import { Backpack, ChevronDown, Gift, ShieldCheck, Check, CircleAlert, ClipboardList, FileText, Gavel, KeyRound, Lock, Mail, MessageCircle, Rocket, Sparkles, TriangleAlert, UserRound } from "lucide-react";
 import { LeafEmote } from "../ui-icons";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -20,6 +20,7 @@ import { LiveServerStatus } from "./live-server-status";
 import { TwoFactorSettings } from "./two-factor-settings";
 import { ChangePasswordForm } from "./change-password-form";
 import { twoFactorStatus } from "../../lib/two-factor-account";
+import { BoostsCard } from "./boosts-card";
 import { DailyCard } from "./daily-card";
 import { getDailyStatus } from "../../lib/daily";
 import { AccountInventory } from "./account-inventory";
@@ -83,7 +84,7 @@ const statusMessages: Record<string, string> = {
 
 const successStatuses = new Set(["password-reset", "username-saved", "name-saved", "password-saved", "success", "linked", "unlinked", "contact-saved"]);
 
-const PUNISHMENT_WORDS: Record<string, string> = { ban: "Ban", kick: "Kick", kick_unverified: "Kick", tempmute: "Mute", mute: "Mute", timeout: "Timeout", warn: "Warning" };
+const PUNISHMENT_WORDS: Record<string, string> = { ban: "Ban", kick: "Kick", kick_unverified: "Kick", tempmute: "Mute", mute: "Mute", muzzle: "Muzzle", timeout: "Timeout", warn: "Warning" };
 
 function formatMonthYear(date: Date) {
   return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: userTimeZone() }).format(date);
@@ -226,11 +227,12 @@ export default async function AccountPage({
           </div>
 
           <nav className="acct-nav" aria-label="Account sections">
+            {discordLinked ? <a href="#daily"><Gift size={16} aria-hidden="true" /> Daily Reward<DailyReadyDot ready={dailyReady} /></a> : null}
             <a href="#discord-account"><MessageCircle size={16} aria-hidden="true" /> Discord</a>
             <a href="#overview"><ClipboardList size={16} aria-hidden="true" /> Overview</a>
             {discordLinked ? <a href="#roles"><Sparkles size={16} aria-hidden="true" /> Server roles</a> : null}
-            {discordLinked ? <a href="#daily"><Gift size={16} aria-hidden="true" /> Daily Reward<DailyReadyDot ready={dailyReady} /></a> : null}
             {discordLinked ? <a href="#inventory"><Backpack size={16} aria-hidden="true" /> Inventory</a> : null}
+            {discordLinked ? <a href="#boosts"><Rocket size={16} aria-hidden="true" /> Boosters & odds</a> : null}
             {discordLinked ? <a href="#transcripts"><FileText size={16} aria-hidden="true" /> Transcripts</a> : null}
             {discordLinked ? <a href="#punishments"><Gavel size={16} aria-hidden="true" /> Punishments{activeCount ? <span className="acct-nav-dot" title={`${activeCount} active`} /> : null}</a> : null}
             <a href="#profile"><UserRound size={16} aria-hidden="true" /> Profile</a>
@@ -241,6 +243,12 @@ export default async function AccountPage({
 
         {/* ---------- Main column (swaps to the stats page on #stats) ---------- */}
         <AccountViews>
+          {discordLinked ? (
+            <CollapsibleCard id="daily" defaultOpen={!collapsed.has("daily")} title="Daily Reward" description="Claim free leaves once a day. Claim every day to build your streak." summary={dailyReady ? "🎁 Ready to claim!" : undefined}>
+              <DailyCard initial={dailyStatus} guildId={serverId} />
+            </CollapsibleCard>
+          ) : null}
+
           <section className="acct-card acct-discord" id="discord-account">
             <span className="acct-discord-icon">
               <DiscordIcon />
@@ -316,14 +324,14 @@ export default async function AccountPage({
           ) : null}
 
           {discordLinked ? (
-            <CollapsibleCard id="daily" defaultOpen={!collapsed.has("daily")} title="Daily Reward" description="Claim free leaves once a day. Claim every day to build your streak." summary={dailyReady ? "🎁 Ready to claim!" : undefined}>
-              <DailyCard initial={dailyStatus} guildId={serverId} />
+            <CollapsibleCard id="inventory" defaultOpen={!collapsed.has("inventory")} title="Inventory" description="Everything you've bought or been gifted. Equip roles, use boosters and send gifts right here.">
+              <AccountInventory />
             </CollapsibleCard>
           ) : null}
 
           {discordLinked ? (
-            <CollapsibleCard id="inventory" defaultOpen={!collapsed.has("inventory")} title="Inventory" description="Everything you've bought or been gifted. Equip roles, use boosters and send gifts right here.">
-              <AccountInventory />
+            <CollapsibleCard id="boosts" defaultOpen={!collapsed.has("boosts")} title="Boosters & odds" description="Boosters running right now, what you earn at, and your chances of being featured on Social.">
+              <BoostsCard />
             </CollapsibleCard>
           ) : null}
 

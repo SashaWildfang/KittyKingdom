@@ -145,7 +145,15 @@ function toPunishment(doc: Document, bans: Set<string> | null): Punishment {
     issuerId: doc.n_issuer ? String(doc.n_issuer) : null,
     reason: String(doc.reason ?? ""),
     timestamp: (doc.timestamp instanceof Date ? doc.timestamp : new Date(0)).toISOString(),
-    durationSeconds: typeof doc.n_duration === "number" ? doc.n_duration : doc.n_duration ? Number(doc.n_duration) : null,
+    // Older mutes didn't save a length: work it out from when it was given and when it ends
+    durationSeconds:
+      typeof doc.n_duration === "number"
+        ? doc.n_duration
+        : doc.n_duration
+          ? Number(doc.n_duration)
+          : expires && doc.timestamp instanceof Date && expires.getTime() > doc.timestamp.getTime()
+            ? Math.round((expires.getTime() - doc.timestamp.getTime()) / 1000)
+            : null,
     expiresAt: expires ? expires.toISOString() : null,
     extraInfo: doc.n_extra ? String(doc.n_extra) : null,
     messageContent: doc.messageContent ? String(doc.messageContent) : null,
