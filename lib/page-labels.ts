@@ -31,6 +31,7 @@ export function describePage(path: string | null | undefined, names: Record<stri
   if (p === "/" || p === "/home") return { label: "On the home page", icon: "home" };
   if (p === "/store") return { label: url.searchParams.get("item") ? "Looking at an item in the Store" : "Browsing the Store", icon: "store" };
   if (p === "/leaderboards") return { label: "Checking the Leaderboards", icon: "trophy" };
+  if (p === "/games") return { label: url.searchParams.get("game") === "scratch" ? "Playing scratch-offs" : "Playing blackjack", icon: "store" };
   if (p.startsWith("/news/")) return { label: "Reading a news post", icon: "news" };
   if (p === "/news") return { label: "Reading the News", icon: "news" };
   if (p === "/staff") return { label: "Viewing the Staff page", icon: "staff" };
