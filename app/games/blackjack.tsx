@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Hand, Plus, RotateCcw, Scissors, Split, X } from "lucide-react";
+import { ChevronDown, Eye, Hand, Plus, RotateCcw, Scissors, Split, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { Card, HandResult, PublicCard, PublicTable } from "../../lib/games/blackjack";
 import { LeafEmote } from "../ui-icons";
@@ -84,7 +84,22 @@ async function post(body: Record<string, unknown>) {
   return (await res.json().catch(() => ({ ok: false, error: "Something went wrong." }))) as { ok: boolean; error?: string; table?: PublicTable | null; balance?: number };
 }
 
-export function BlackjackTable({ initialTable, balance, onBalance, minBet }: { initialTable: PublicTable | null; balance: number; onBalance: (n: number) => void; minBet: number }) {
+/** The table. With `watch`, it's a spectator's view: no controls, kept up to date by polling `watch.url`. */
+export function BlackjackTable({
+  initialTable,
+  balance = 0,
+  onBalance = () => undefined,
+  minBet,
+  watch,
+  viewers = 0,
+}: {
+  initialTable: PublicTable | null;
+  balance?: number;
+  onBalance?: (n: number) => void;
+  minBet: number;
+  watch?: { url: string; onData?: (d: { viewers: number }) => void };
+  viewers?: number;
+}) {
   const [table, setTable] = useState<PublicTable | null>(initialTable);
   const [bet, setBet] = useState(Math.max(minBet, 100));
   const [busy, setBusy] = useState(false);
@@ -99,16 +114,16 @@ export function BlackjackTable({ initialTable, balance, onBalance, minBet }: { i
   const seen = useRef<Set<string>>(new Set());
   const delays = useRef<Map<string, number>>(new Map());
   const pendingBalance = useRef<number | null>(null);
-  // Set when a fresh hand is dealt, so its four cards come out of the shoe in dealing order
-  const newDeal = useRef(false);
+  // A new hand id means a fresh deal: its four cards come out of the shoe in dealing order
+  const lastHand = useRef<number | null>(initialTable?.handId ?? null);
 
   // Work out deal-in delays for cards that weren't there before
   const order = useMemo(() => {
     if (!table) return { resultDelay: 0 };
     const fresh: string[] = [];
-    const isNewDeal = newDeal.current;
+    const isNewDeal = table.handId !== lastHand.current;
     if (isNewDeal) {
-      newDeal.current = false;
+      lastHand.current = table.handId;
       seen.current = new Set();
       delays.current = new Map();
       const p = table.hands[0].cards;
@@ -185,7 +200,6 @@ export function BlackjackTable({ initialTable, balance, onBalance, minBet }: { i
       } else if (typeof res.balance === "number") {
         onBalance(res.balance);
       }
-      if (body.action === "deal") newDeal.current = true;
       setFresh(true);
       setTable(res.table ?? null);
     },
@@ -203,10 +217,38 @@ export function BlackjackTable({ initialTable, balance, onBalance, minBet }: { i
     [act, balance, minBet],
   );
 
+  // Spectating: follow the table; a hand finishing while you watch gets the full reveal
+  const watchUrl = watch?.url;
+  const onWatchData = watch?.onData;
+  useEffect(() => {
+    if (!watchUrl) return;
+    let stop = false;
+    let last = "";
+    const tick = async () => {
+      const res = await fetch(watchUrl, { cache: "no-store" }).then((r) => r.json()).catch(() => null);
+      if (stop || !res?.ok) return;
+      onWatchData?.({ viewers: res.table?.viewers ?? 0 });
+      const next = res.table?.blackjack as PublicTable | null;
+      const key = JSON.stringify(next);
+      if (key !== last) {
+        if (last && next?.phase === "done") setFresh(true);
+        last = key;
+        setTable(next);
+      }
+    };
+    void tick();
+    const t = setInterval(tick, 1200);
+    return () => {
+      stop = true;
+      clearInterval(t);
+    };
+  }, [watchUrl, onWatchData]);
+
   const playing = table?.phase === "player";
 
   // Keyboard: H hit, S stand, D double, P split, Enter deal
   useEffect(() => {
+    if (watch) return;
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.tagName === "INPUT" || e.metaKey || e.ctrlKey) return;
       const k = e.key.toLowerCase();
@@ -219,7 +261,7 @@ export function BlackjackTable({ initialTable, balance, onBalance, minBet }: { i
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [playing, table, act, deal, bet]);
+  }, [playing, table, act, deal, bet, watch]);
 
   const dealt = new Set((order as { fresh?: string[] }).fresh ?? []);
   const dealerCards = table?.dealer.cards ?? [];
@@ -238,6 +280,11 @@ export function BlackjackTable({ initialTable, balance, onBalance, minBet }: { i
           <span />
         </div>
         <div className="bj-discard" aria-hidden="true" />
+        {viewers > 0 ? (
+          <span className="gm-watching" title={`${viewers} watching`}>
+            <Eye size={13} aria-hidden="true" /> {viewers} watching
+          </span>
+        ) : null}
 
         {/* Dealer */}
         <div className="bj-row bj-dealer">
@@ -293,7 +340,7 @@ export function BlackjackTable({ initialTable, balance, onBalance, minBet }: { i
 
         {/* Bet spot */}
         <div className="bj-spot" aria-hidden="true">
-          <ChipStack amount={playing ? table!.totalBet : bet} />
+          <ChipStack amount={watch ? (table?.totalBet ?? 0) : playing ? table!.totalBet : bet} />
         </div>
 
         {/* Outcome banner */}
@@ -319,7 +366,7 @@ export function BlackjackTable({ initialTable, balance, onBalance, minBet }: { i
       ) : null}
 
       {/* Controls */}
-      {playing ? (
+      {watch ? null : playing ? (
         <div className="bj-actions">
           <button type="button" className="bj-btn is-hit" disabled={busy} onClick={() => act({ action: "hit" })}>
             <Plus size={18} aria-hidden="true" /> Hit <kbd>H</kbd>
@@ -383,6 +430,7 @@ export function BlackjackTable({ initialTable, balance, onBalance, minBet }: { i
         </div>
       ) : null}
 
+      {watch ? null : (
       <div className={`gm-rules${rules ? " is-open" : ""}`}>
         <button type="button" onClick={() => setRules((r) => !r)} aria-expanded={rules}>
           How it works <ChevronDown size={16} aria-hidden="true" />
@@ -411,6 +459,7 @@ export function BlackjackTable({ initialTable, balance, onBalance, minBet }: { i
           </div>
         ) : null}
       </div>
+      )}
     </div>
   );
 }

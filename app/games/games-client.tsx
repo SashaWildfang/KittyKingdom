@@ -1,11 +1,12 @@
 "use client";
 
-import { Dices, Spade, Ticket as TicketIcon } from "lucide-react";
+import { Dices, Radio, Spade, Ticket as TicketIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { PublicTable } from "../../lib/games/blackjack";
 import type { Ticket } from "../../lib/games/scratch";
 import { LeafEmote } from "../ui-icons";
 import { BlackjackTable } from "./blackjack";
+import { LiveGames } from "./live";
 import { ScratchOffs } from "./scratch";
 
 export type ScratchStatus = { used: number; limit: number | null; nitro: boolean };
@@ -63,8 +64,11 @@ export function Confetti({ burst, big }: { burst: number; big?: boolean }) {
   );
 }
 
+const memberTable = (id: string) => `/api/games/live?table=${encodeURIComponent(id)}`;
+
 export function GamesClient({
   initialGame,
+  initialWatch = null,
   initialBalance,
   initialTable,
   initialScratch,
@@ -72,7 +76,8 @@ export function GamesClient({
   minBet,
   loadError,
 }: {
-  initialGame: "blackjack" | "scratch";
+  initialGame: "blackjack" | "scratch" | "live";
+  initialWatch?: string | null;
   initialBalance: number;
   initialTable: PublicTable | null;
   initialScratch: ScratchStatus;
@@ -83,12 +88,51 @@ export function GamesClient({
   const [game, setGame] = useState(initialGame);
   const [balance, setBalance] = useState(initialBalance);
 
-  const pick = (g: "blackjack" | "scratch") => {
+  const [liveCount, setLiveCount] = useState<number | null>(null);
+  const [audience, setAudience] = useState({ blackjack: 0, scratch: 0 });
+
+  const pick = (g: "blackjack" | "scratch" | "live") => {
     setGame(g);
     const url = new URL(window.location.href);
     url.searchParams.set("game", g);
+    url.searchParams.delete("watch");
     window.history.replaceState(null, "", url);
   };
+
+  // While you play, keep an eye on how many people are watching you
+  useEffect(() => {
+    if (game === "live") return;
+    let stop = false;
+    const tick = () =>
+      fetch("/api/games/audience", { cache: "no-store" })
+        .then((r) => r.json())
+        .then((r) => !stop && r?.ok && setAudience({ blackjack: r.blackjack, scratch: r.scratch }))
+        .catch(() => undefined);
+    void tick();
+    const t = setInterval(tick, 5000);
+    return () => {
+      stop = true;
+      clearInterval(t);
+    };
+  }, [game]);
+
+  // The live-table count on the Live tab, even while you're on another tab
+  useEffect(() => {
+    if (game === "live") return;
+    let stop = false;
+    const tick = () =>
+      fetch("/api/games/live", { cache: "no-store" })
+        .then((r) => r.json())
+        .then((r) => !stop && r?.ok && setLiveCount(r.live.filter((x: { live: boolean }) => x.live).length))
+        .catch(() => undefined);
+    void tick();
+    const t = setInterval(tick, 15000);
+    return () => {
+      stop = true;
+      clearInterval(t);
+    };
+  }, [game]);
+  const tabIndex = game === "blackjack" ? 0 : game === "scratch" ? 1 : 2;
 
   return (
     <section className="gm">
@@ -118,16 +162,22 @@ export function GamesClient({
         <button type="button" role="tab" aria-selected={game === "scratch"} className={game === "scratch" ? "is-on" : ""} onClick={() => pick("scratch")}>
           <TicketIcon size={16} aria-hidden="true" /> Scratch-offs
         </button>
-        <span className="gm-tab-ink" style={{ transform: `translateX(${game === "blackjack" ? 0 : 100}%)` }} aria-hidden="true" />
+        <button type="button" role="tab" aria-selected={game === "live"} className={game === "live" ? "is-on" : ""} onClick={() => pick("live")}>
+          <Radio size={16} aria-hidden="true" /> Live
+          {liveCount ? <span className="gm-tab-badge">{liveCount}</span> : null}
+        </button>
+        <span className="gm-tab-ink" style={{ transform: `translateX(${tabIndex * 100}%)` }} aria-hidden="true" />
       </nav>
 
       {loadError ? <p className="gm-error">Some game data didn&apos;t load. Refresh the page if something looks off.</p> : null}
 
       <div className="gm-stage">
         {game === "blackjack" ? (
-          <BlackjackTable initialTable={initialTable} balance={balance} onBalance={setBalance} minBet={minBet} />
+          <BlackjackTable initialTable={initialTable} balance={balance} onBalance={setBalance} minBet={minBet} viewers={audience.blackjack} />
+        ) : game === "scratch" ? (
+          <ScratchOffs tickets={tickets} balance={balance} onBalance={setBalance} initialStatus={initialScratch} viewers={audience.scratch} />
         ) : (
-          <ScratchOffs tickets={tickets} balance={balance} onBalance={setBalance} initialStatus={initialScratch} />
+          <LiveGames listUrl="/api/games/live" tableUrl={memberTable} minBet={minBet} initialWatch={initialWatch} privacy onCount={setLiveCount} />
         )}
       </div>
     </section>

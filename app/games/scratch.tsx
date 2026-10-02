@@ -1,7 +1,8 @@
 "use client";
 
-import { ArrowLeft, ChevronDown, Lock, RefreshCw, Sparkles, Wand2 } from "lucide-react";
+import { ArrowLeft, ChevronDown, Eye, Lock, RefreshCw, Sparkles, Wand2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import type { PublicScratch } from "../../lib/games/live";
 import type { Ticket } from "../../lib/games/scratch";
 import { LeafEmote } from "../ui-icons";
 import { Confetti, CountUp, type ScratchStatus } from "./games-client";
@@ -231,7 +232,7 @@ function Foil({ play, revealed, onReveal, auto }: { play: Play; revealed: boolea
   );
 }
 
-export function ScratchOffs({ tickets, balance, onBalance, initialStatus }: { tickets: Ticket[]; balance: number; onBalance: (n: number) => void; initialStatus: ScratchStatus }) {
+export function ScratchOffs({ tickets, balance, onBalance, initialStatus, viewers = 0 }: { tickets: Ticket[]; balance: number; onBalance: (n: number) => void; initialStatus: ScratchStatus; viewers?: number }) {
   const [status, setStatus] = useState(initialStatus);
   const [play, setPlay] = useState<Play | null>(null);
   const [revealed, setRevealed] = useState<boolean[]>(Array(9).fill(false));
@@ -257,6 +258,7 @@ export function ScratchOffs({ tickets, balance, onBalance, initialStatus }: { ti
     // Show the cost now; the prize lands when the ticket is fully revealed
     onBalance(res.balance - res.payout);
     setRevealed(Array(9).fill(false));
+    sent.current = 0;
     setFinished(false);
     setAuto(0);
     setPlay({ ticket: t, grid: res.grid, winSymbol: res.winSymbol, payout: res.payout, balance: res.balance, serial: Date.now().toString(36).toUpperCase().slice(-6) });
@@ -264,6 +266,19 @@ export function ScratchOffs({ tickets, balance, onBalance, initialStatus }: { ti
   };
 
   const onReveal = useCallback((i: number) => setRevealed((r) => (r[i] ? r : r.map((v, j) => (j === i ? true : v)))), []);
+
+  // Tell spectators which cells are open (batched, so a fast scratch is one request)
+  const sent = useRef(0);
+  useEffect(() => {
+    if (!play) return;
+    const open = revealed.map((v, i) => (v ? i : -1)).filter((i) => i >= 0);
+    if (open.length === sent.current) return;
+    const t = setTimeout(() => {
+      sent.current = open.length;
+      void fetch("/api/games/scratch", { method: "POST", headers: { "Content-Type": "application/json", "x-kk-progress": "1" }, body: JSON.stringify({ revealed: open }) }).catch(() => undefined);
+    }, 250);
+    return () => clearTimeout(t);
+  }, [revealed, play]);
 
   // Finish when everything's revealed, or as soon as the three winning symbols are showing
   useEffect(() => {
@@ -312,6 +327,11 @@ export function ScratchOffs({ tickets, balance, onBalance, initialStatus }: { ti
             <ArrowLeft size={16} aria-hidden="true" /> All tickets
           </button>
           <div className="sc-ticket is-live" style={{ "--t1": play.ticket.colors[0], "--t2": play.ticket.colors[1] } as CSSProperties}>
+            {viewers > 0 ? (
+              <span className="gm-watching is-ticket">
+                <Eye size={13} aria-hidden="true" /> {viewers} watching
+              </span>
+            ) : null}
             <div className="sc-ticket-head">
               <span className="sc-ticket-icon">{play.ticket.icon}</span>
               <div>
@@ -447,6 +467,70 @@ export function ScratchOffs({ tickets, balance, onBalance, initialStatus }: { ti
           </div>
         ) : null}
       </div>
+    </div>
+  );
+}
+
+/** A ticket as a spectator sees it: only cells the player has scratched are shown. */
+export function ScratchSpectator({ scratch }: { scratch: PublicScratch | null }) {
+  const [burst, setBurst] = useState(0);
+  const wasDone = useRef(scratch?.finished ?? false);
+  useEffect(() => {
+    if (scratch?.finished && !wasDone.current && (scratch.payout ?? 0) > scratch.ticket.cost) setBurst(Date.now());
+    wasDone.current = Boolean(scratch?.finished);
+  }, [scratch]);
+  if (!scratch) return <p className="sc-tip">Waiting for the next ticket…</p>;
+  const t = scratch.ticket;
+  const outcome = !scratch.finished ? null : (scratch.payout ?? 0) > t.cost ? "win" : scratch.payout === t.cost ? "free" : "lose";
+  return (
+    <div className={`sc-stage${outcome ? ` is-${outcome}` : ""}`}>
+      <div className="sc-ticket is-live is-watch" style={{ "--t1": t.colors[0], "--t2": t.colors[1] } as CSSProperties}>
+        <div className="sc-ticket-head">
+          <span className="sc-ticket-icon">{t.icon}</span>
+          <div>
+            <strong>{t.name}</strong>
+            <small>Match 3 to win</small>
+          </div>
+          <span className="sc-cost">
+            {t.cost.toLocaleString()} <LeafEmote size={14} />
+          </span>
+        </div>
+        <div className="sc-legend">
+          {t.prizes.map((p) => (
+            <span key={p.symbol} className={scratch.finished && p.symbol === scratch.winSymbol ? "is-hit" : ""}>
+              <em>{p.symbol}</em> {compact(p.payout)}
+            </span>
+          ))}
+        </div>
+        <div className="sc-grid-wrap">
+          <div className="sc-grid">
+            {scratch.cells.map((sym, i) =>
+              sym ? (
+                <div key={`${i}-open`} className={`sc-cell is-open${scratch.finished && sym === scratch.winSymbol ? " is-win" : ""}`}>
+                  <span>{sym}</span>
+                </div>
+              ) : (
+                <div key={`${i}-foil`} className="sc-cell is-foil">
+                  <span>{t.icon}</span>
+                </div>
+              ),
+            )}
+          </div>
+        </div>
+        <Confetti burst={burst} />
+      </div>
+      {scratch.finished ? (
+        <div className={`sc-result is-${outcome}`} role="status">
+          <strong>{outcome === "win" ? "Winner!" : outcome === "free" ? "Free ticket!" : "No luck this time"}</strong>
+          {outcome !== "lose" ? (
+            <span>
+              Three {scratch.winSymbol} · +{(scratch.payout ?? 0).toLocaleString()} <LeafEmote size={16} />
+            </span>
+          ) : null}
+        </div>
+      ) : (
+        <p className="sc-tip">Scratching… {scratch.cells.filter(Boolean).length}/9 revealed</p>
+      )}
     </div>
   );
 }
