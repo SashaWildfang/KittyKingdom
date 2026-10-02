@@ -38,7 +38,7 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
     { href: PATREON_URL, label: "Patreon", icon: "patreon" as const, external: true },
     ...(staffPage ? [{ href: "/staff", label: "Staff", icon: "staff" as const }] : []),
     ...(dating ? [{ href: "/social", label: "Social", icon: "dating" as const }] : []),
-    ...(linked ? [{ href: "/store", label: "Store", icon: "store" as const }, { href: "/leaderboards", label: "Leaderboards", icon: "leaderboards" as const }] : []),
+    ...(linked ? [{ href: "/store", label: "Store", icon: "store" as const }, { href: "/games", label: "Games", icon: "games" as const }, { href: "/leaderboards", label: "Leaderboards", icon: "leaderboards" as const }] : []),
     ...(panel ? [{ href: "/admin", label: panel.level === "admin" ? "Admin" : "Staff Panel", icon: "admin" as const }] : []),
     ...(signedIn ? [{ href: "/settings", label: "Settings", icon: "settings" as const }] : []),
   ];
@@ -68,6 +68,7 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
           </a>
         ) : null}
         {linked ? <a href="/store">Store</a> : null}
+        {linked ? <a href="/games">Games</a> : null}
         {linked ? <a href="/leaderboards">Leaderboards</a> : null}
       </div>
       <div className="nav-actions">

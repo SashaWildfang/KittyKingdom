@@ -1,0 +1,14 @@
+import { buyTicket, scratchStatus } from "../../../../lib/games/scratch";
+import { gameRoute } from "../../../../lib/games/route";
+
+export const dynamic = "force-dynamic";
+
+/** Balance, today's scratch-offs used and whether the member is a Nitro booster. */
+export async function GET(request: Request) {
+  return gameRoute(request, null, (discordId) => scratchStatus(discordId));
+}
+
+/** { ticket } buys one ticket; the result comes back with it and is revealed by scratching. */
+export async function POST(request: Request) {
+  return gameRoute(request, { key: "scratch", perMinute: 30 }, (discordId, body) => buyTicket(discordId, body.ticket));
+}
