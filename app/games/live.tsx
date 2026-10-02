@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { LiveEntry, PublicScratch, PublicSlots, Spectate } from "../../lib/games/live";
 import { LeafEmote } from "../ui-icons";
 import { BlackjackTable } from "./blackjack";
+import { Roulette } from "./roulette";
 import { ScratchSpectator } from "./scratch";
 import { SlotsSpectator } from "./slots";
 
@@ -95,6 +96,8 @@ export function LiveGames({
   initialWatch = null,
   privacy = false,
   onCount,
+  onRoulette,
+  rouletteUrl = "/api/games/roulette",
 }: {
   listUrl: string;
   tableUrl: (id: string) => string;
@@ -103,6 +106,9 @@ export function LiveGames({
   /** Show the "let others watch my games" switch (members) */
   privacy?: boolean;
   onCount?: (n: number) => void;
+  /** Members go to the Roulette tab to join in; staff watch it here */
+  onRoulette?: () => void;
+  rouletteUrl?: string;
 }) {
   const [list, setList] = useState<LiveEntry[] | null>(null);
   const [watching, setWatching] = useState<string | null>(initialWatch);
@@ -149,6 +155,18 @@ export function LiveGames({
     await fetch("/api/games/audience", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ private: next }) }).catch(() => undefined);
   };
 
+  if (watching === "rl:table")
+    return (
+      <div className="lv-watch">
+        <div className="lv-watch-head">
+          <button type="button" className="sc-back" onClick={() => pick(null)}>
+            <ArrowLeft size={16} aria-hidden="true" /> All live games
+          </button>
+          <span className="lv-watch-who">Watching the roulette table</span>
+        </div>
+        <Roulette stateUrl={rouletteUrl} watch />
+      </div>
+    );
   if (watching) return <Watch id={watching} entry={list?.find((x) => x.id === watching) ?? null} tableUrl={tableUrl} minBet={minBet} onBack={() => pick(null)} />;
 
   const live = (list ?? []).filter((x) => x.live);
@@ -181,7 +199,7 @@ export function LiveGames({
         <>
           <div className="lv-grid">
             {live.map((x, i) => (
-              <LiveCard key={x.id} x={x} i={i} onWatch={() => pick(x.id)} />
+              <LiveCard key={x.id} x={x} i={i} onWatch={() => (x.id === "rl:table" && onRoulette ? onRoulette() : pick(x.id))} />
             ))}
           </div>
           {recent.length ? (
@@ -208,7 +226,7 @@ function LiveCard({ x, i, onWatch }: { x: LiveEntry; i: number; onWatch: () => v
         <Avatar src={x.player.avatar} name={x.player.name} />
         <span className="lv-card-who">
           <b>{x.player.name}</b>
-          <small>{x.game === "blackjack" ? "🃏 Blackjack" : x.game === "slots" ? "🎰 Slots" : `${x.ticket?.icon ?? "🎟️"} ${x.ticket?.name ?? "Scratch-off"}`}</small>
+          <small>{x.game === "blackjack" ? "🃏 Blackjack" : x.game === "slots" ? "🎰 Slots" : x.game === "roulette" ? "🎡 Live roulette" : `${x.ticket?.icon ?? "🎟️"} ${x.ticket?.name ?? "Scratch-off"}`}</small>
         </span>
         {x.live ? <span className="lv-live">LIVE</span> : <span className="lv-ago">{ago(x.updatedAt)}</span>}
       </span>

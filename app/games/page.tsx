@@ -12,7 +12,7 @@ export const maxDuration = 10;
 
 export const metadata = { title: "Games | Kitty Kingdom" };
 
-/** Blackjack, slots and scratch-offs with your leaves (signed-in members with Discord linked). */
+/** Blackjack, roulette, slots and scratch-offs with your leaves (signed-in members with Discord linked). */
 export default async function GamesPage({ searchParams }: { searchParams: { game?: string; watch?: string } }) {
   const [user, discord] = await Promise.all([getCurrentUser(), getDiscordInviteSummary()]);
   if (!user) redirect("/login?account=login-required");
@@ -25,12 +25,13 @@ export default async function GamesPage({ searchParams }: { searchParams: { game
     <main className="site-shell games-shell">
       <SiteNav signedIn discordOnline={discord.online} />
       <GamesClient
-        initialGame={searchParams.watch || searchParams.game === "live" ? "live" : searchParams.game === "scratch" ? "scratch" : searchParams.game === "slots" ? "slots" : "blackjack"}
+        initialGame={searchParams.watch || searchParams.game === "live" ? "live" : searchParams.game === "scratch" ? "scratch" : searchParams.game === "slots" ? "slots" : searchParams.game === "roulette" ? "roulette" : "blackjack"}
         initialWatch={typeof searchParams.watch === "string" && /^(bj|sc|sl):\d{5,25}$/.test(searchParams.watch) ? searchParams.watch : null}
         initialBalance={bj?.balance ?? scratch?.balance ?? 0}
         initialTable={bj?.table ?? null}
         initialScratch={{ nitro: scratch?.nitro ?? false }}
         initialSlots={{ nitro: slots?.nitro ?? false, jackpot: slots?.jackpot ?? 0, maxSpins: slots?.maxSpins ?? 1 }}
+        myId={discordId}
         tickets={TICKETS}
         minBet={MIN_BET}
         loadError={!bj || !scratch}
