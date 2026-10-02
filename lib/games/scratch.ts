@@ -1,7 +1,7 @@
 // Scratch-off tickets for the website, with the same tickets, odds and prizes as the bot
 // (Economy/cmds/scratchoff.py). A ticket is generated and settled the moment it's bought, so the
 // scratching on screen is only the reveal: closing the page can't change the result. There's no daily
-// limit; Black Diamond tickets stay Nitro-only.
+// limit; Black Diamond and every ticket above it are Nitro-only.
 
 import { getMemberRoleIds } from "../discord-member";
 import { addToJackpot, charge, credit, gameCollections, GameError, num, random, recordGame, shuffle, userFilter } from "./core";
@@ -49,6 +49,12 @@ export const TICKETS: Ticket[] = [
   t("cosmic", "🌌", "Cosmic Jackpot", "vip", 75000, 0.09, ["#b46cff", "#020414"], [["🎟️", 75000, 9700], ["🌠", 120000, 175], ["🪐", 250000, 75], ["☄️", 750000, 49], ["🌌", 4000000, 1]]),
   t("whale", "🐋", "Whale's Wealth", "vip", 100000, 0.08, ["#2bb8ff", "#021a3a"], [["🎟️", 100000, 9800], ["🦐", 150000, 100], ["🐙", 300000, 50], ["🔱", 1000000, 49], ["🐋", 10000000, 1]]),
 ];
+
+// Black Diamond and every ticket above it are premium: Nitro boosters only (same as /scratchoff)
+const PREMIUM_FROM = TICKETS.findIndex((x) => x.id === "nitro");
+TICKETS.forEach((x, i) => {
+  if (i >= PREMIUM_FROM) x.nitro = true;
+});
 
 const byId = new Map(TICKETS.map((x) => [x.id, x]));
 
@@ -127,7 +133,7 @@ export async function buyTicket(discordId: string, ticketId: unknown) {
   const ticket = typeof ticketId === "string" ? byId.get(ticketId) : undefined;
   if (!ticket) throw new GameError("Pick a ticket.");
   const nitro = await isNitro(discordId);
-  if (ticket.nitro && !nitro) throw new GameError("The Black Diamond ticket is only for Nitro boosters.", 403);
+  if (ticket.nitro && !nitro) throw new GameError(`${ticket.name} is a premium ticket: Black Diamond and up are for Nitro boosters.`, 403);
 
   await charge(discordId, ticket.cost).catch(() => {
     throw new GameError(`You need ${ticket.cost.toLocaleString()} leaves for a ${ticket.name} ticket.`);

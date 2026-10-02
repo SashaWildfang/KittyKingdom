@@ -2979,17 +2979,91 @@
   box-shadow: 0 0 0 1px #0f4a28;
 }
 
-.rl-mychip.bj-chip {
+/* Your chips on a spot: a thin gold outline and a small amount tucked in the corner */
+.rl-spot.is-mine {
+  box-shadow: inset 0 0 0 2px rgba(255, 213, 106, 0.9);
+}
+
+.rl-spot.is-mine.is-win {
+  box-shadow: 0 0 0 3px #ffd56a, 0 0 18px rgba(255, 213, 106, 0.8);
+}
+
+.rl-players ul {
+  max-height: 300px;
+}
+
+.rl-mybet {
   position: absolute;
-  right: -6px;
-  bottom: -6px;
+  right: 2px;
+  bottom: 2px;
   z-index: 2;
-  width: 30px;
-  height: 30px;
-  font-size: 0.58rem;
+  padding: 0 4px;
+  border-radius: 6px;
+  background: rgba(255, 213, 106, 0.95);
+  color: #3a2400;
+  font-size: 0.62rem;
+  font-weight: 900;
+  line-height: 1.35;
   pointer-events: none;
   animation: bj-chip-drop 0.3s cubic-bezier(0.3, 1.5, 0.5, 1) both;
 }
+
+/* Who's betting on what */
+.rl-players li.rl-player {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.rl-player-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.rl-player-row > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rl-player-row b {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.rl-players li.is-me .rl-player-row > span { color: #ffd56a; font-weight: 900; }
+
+.rl-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding-left: calc(24px + 0.45rem);
+}
+
+.rl-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 0.72rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.rl-tag i {
+  font-style: normal;
+  opacity: 0.8;
+}
+
+.rl-tag.is-red { background: rgba(200, 32, 46, 0.55); }
+.rl-tag.is-black { background: rgba(10, 10, 16, 0.75); }
+.rl-tag.is-green { background: rgba(31, 138, 76, 0.7); }
 
 .rl-controls {
   display: grid;
