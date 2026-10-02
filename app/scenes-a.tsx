@@ -2,12 +2,13 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import type { BannerSpec } from "../lib/cosmetics";
+import { Chalet, Deer, FairyLights, FairyTree, Graveyard, HayBales, Holograms, Bridge, Igloo, KoiPond, LakeCamp, Lighthouse, PlanetHorizon, RainStreet, RedSun, River, Scarecrow, CornRows, SeaStacks, SpiralGalaxy, Wisteria } from "./scenes-d";
 import { anim, Bird, Cloud, CloudDefs, dk, H, Hill, hillY, LG, lt, lum, Mist, mix, Orb, Pine, R, RG, RoundTree, Sky, Stars, url, Vignette, W, waveEdge, wavePath } from "./scene-kit";
 
 export type Opts = BannerSpec & { id: string };
 
 // ============ Pumpkin patch ============
-export function Pumpkins({ p, id }: Opts) {
+export function Pumpkins({ p, id, v }: Opts) {
   const [sky1, sky2, moon, far, near, body, shade, glow] = p;
   const pumpkin = (x: number, y: number, s: number, face: boolean, k: number) => {
     const lobes: [number, number, number, number][] = [
@@ -69,16 +70,24 @@ export function Pumpkins({ p, id }: Opts) {
         <LG id={`${id}bark`} x2={1} y2={0} s={[[0, dk(far, 0.55)], [0.6, dk(far, 0.3)], [1, dk(far, 0.6)]]} />
       </defs>
       <Stars n={60} top={120} seed={2} color={lt(moon, 0.3)} />
-      <Orb id={id} x={640} y={92} r={30} color={moon} moon />
+      {v === "harvest" ? <Orb id={id} x={600} y={124} r={44} color={moon} rays /> : <Orb id={id} x={640} y={92} r={30} color={moon} moon />}
       <g {...anim("sc-drift", 22)}>
         <ellipse cx="610" cy="104" rx="90" ry="5" fill={dk(sky1, 0.2)} opacity="0.55" />
         <ellipse cx="700" cy="84" rx="60" ry="3.5" fill={dk(sky1, 0.2)} opacity="0.45" />
       </g>
-      {bat(380, 80, 1, 1)}
-      {bat(470, 68, 0.7, 2)}
-      {bat(560, 112, 0.85, 3)}
-      {bat(300, 96, 0.6, 4)}
+      {v === "harvest" ? (
+        [0, 1, 2].map((i) => <Bird key={i} x={380 + i * 36} y={80 + (i % 2) * 12} s={1.4} color="#1a0a10" k={i} />)
+      ) : (
+        <>
+          {bat(380, 80, 1, 1)}
+          {bat(470, 68, 0.7, 2)}
+          {bat(560, 112, 0.85, 3)}
+          {bat(300, 96, 0.6, 4)}
+        </>
+      )}
       <Hill id={id} k="h1" y={142} amp={14} seed={1.2} waves={2} color={far} rim={moon} rimOpacity={0.3} />
+      {v !== "harvest" ? (
+        <>
       {/* A crooked old tree with a sleepy owl */}
       <g>
         <path d="M230 150 C228 120 236 100 226 76 C222 66 214 60 206 58 M228 100 C240 90 254 88 266 76 M226 82 C214 76 206 66 204 52 M246 92 C252 80 250 70 258 62 M214 70 C202 68 196 60 188 60" fill="none" stroke={url(`${id}bark`)} strokeWidth="5" strokeLinecap="round" />
@@ -94,6 +103,15 @@ export function Pumpkins({ p, id }: Opts) {
           <path d="M-5 -8 L-6 -12 L-3 -9 M5 -8 L6 -12 L3 -9" fill={dk(far, 0.2)} stroke={dk(far, 0.2)} strokeWidth="1.5" />
         </g>
       </g>
+        </>
+      ) : (
+        <>
+          <CornRows y={156} />
+          <Scarecrow id={id} x={250} y={166} />
+        </>
+      )}
+      {!v || v === "pumpkin" ? (
+        <>
       {/* Wonky fence */}
       <g fill={dk(far, 0.15)}>
         {Array.from({ length: 9 }, (_, i) => {
@@ -103,7 +121,10 @@ export function Pumpkins({ p, id }: Opts) {
         })}
         <rect x="634" y={hillY(700, 160, 8, 2.4, 2.2) - 18} width="220" height="3" rx="1.5" transform="rotate(-1.5 740 140)" />
       </g>
+        </>
+      ) : v === "harvest" ? <HayBales id={id} x={760} y={170} /> : null}
       <Hill id={id} k="h2" y={168} amp={8} seed={2.4} waves={2.2} color={near} rim={mix(near, glow, 0.6)} rimOpacity={0.35} />
+      {v === "graveyard" ? <Graveyard id={id} y={172} /> : null}
       <Mist id={id} k="m1" y={148} h={36} color={lt(sky2, 0.3)} opacity={0.22} dur={20} />
       <path d="M120 206 C180 188 240 210 300 196 S420 186 470 200 S600 190 660 204 S800 194 880 206" fill="none" stroke="#2c4a1a" strokeWidth="2.4" opacity="0.8" />
       {pumpkin(300, 192, 0.62, false, 0)}
@@ -169,7 +190,7 @@ function MountainLayer({ pts, color, light, shadow, snow, snowShade, snowLine = 
   );
 }
 
-export function Mountains({ p, id, stars, snow }: Opts) {
+export function Mountains({ p, id, stars, snow, v }: Opts) {
   const [sky1, sky2, orb, farC, midC, nearC, snowC] = p;
   const night = Boolean(stars);
   const far = ridge(3, 150, 60, 105, 14);
@@ -191,6 +212,7 @@ export function Mountains({ p, id, stars, snow }: Opts) {
       <MountainLayer pts={mid} color={midC} light={lt(midC, 0.3)} shadow={dk(midC, 0.22)} snow={snow ? snowC : undefined} snowShade={mix(snowC, sky1, 0.45)} snowLine={0.2} />
       <Mist id={id} k="m2" y={150} h={44} color={haze} opacity={0.35} dur={18} />
       <MountainLayer pts={nearR} color={nearC} light={lt(nearC, 0.18)} shadow={dk(nearC, 0.25)} />
+      {v === "dusk" ? <River id={id} color={mix(sky2, orb, 0.35)} y0={150} /> : null}
       {Array.from({ length: 22 }, (_, i) => {
         const x = 10 + i * 46 + R(i, 61) * 20;
         const h = 18 + R(i, 62) * 16;
@@ -199,13 +221,15 @@ export function Mountains({ p, id, stars, snow }: Opts) {
       {[0, 1, 2, 3].map((i) => (
         <Bird key={i} x={300 + i * 26} y={92 + (i % 2) * 10} s={1} color={dk(midC, 0.3)} k={i} />
       ))}
+      {v === "starry" ? <LakeCamp id={id} moon={orb} sky={sky1} /> : null}
+      {v === "alpine" ? <Chalet id={id} x={690} y={200} /> : null}
       <Vignette id={id} strength={0.3} />
     </>
   );
 }
 
 // ============ Ocean ============
-export function Ocean({ p, id, stars }: Opts) {
+export function Ocean({ p, id, stars, v }: Opts) {
   const [sky1, sky2, sun, s1, s2, s3, foam] = p;
   const night = Boolean(stars);
   const hz = 128;
@@ -230,6 +254,8 @@ export function Ocean({ p, id, stars }: Opts) {
           <ellipse key={i} cx={300 + i * 170} cy={night ? 96 + i * 6 : 84 + i * 9} rx={110 - i * 14} ry={4 + (i % 2) * 2} fill={mix(sky1, sun, night ? 0.15 : 0.45)} opacity={0.55} />
         ))}
       </g>
+      {!v ? (
+        <>
       {/* A little island with swaying palms */}
       <g>
         <path d={`M200 ${hz + 1} Q240 ${hz - 16} 290 ${hz - 12} Q330 ${hz - 10} 360 ${hz + 1} Z`} fill={dk(s1, 0.45)} />
@@ -242,6 +268,8 @@ export function Ocean({ p, id, stars }: Opts) {
           </g>
         ))}
       </g>
+        </>
+      ) : null}
       <rect y={hz} width={W} height={H - hz} fill={dk(s1, 0.1)} />
       {/* Sun glitter on the water */}
       {Array.from({ length: 14 }, (_, i) => {
@@ -249,6 +277,8 @@ export function Ocean({ p, id, stars }: Opts) {
         const w = 20 + i * 7 + R(i, 3) * 14;
         return <rect key={i} x={560 - w / 2 + (R(i, 4) - 0.5) * 16} y={y} width={w} height={1.6 + i * 0.12} rx="1" fill={lt(sun, 0.3)} opacity={0.75 - i * 0.04} {...anim("sc-shimmer", 1.4 + R(i) * 1.6, -R(i, 2) * 2)} />;
       })}
+      {!v || v === "sunsetsea" ? (
+        <>
       {/* A little sailboat bobbing on the horizon */}
       <g transform={`translate(700 ${hz + 4})`}>
         <g {...anim("sc-rock", 3.4)}>
@@ -259,6 +289,8 @@ export function Ocean({ p, id, stars }: Opts) {
           <line x1="0" y1="-32" x2="0" y2="2" stroke={dk(s3, 0.4)} strokeWidth="1.2" />
         </g>
       </g>
+        </>
+      ) : null}
       <defs>
         <LG id={`${id}sail`} x2={1} y2={0} s={[[0, "#000", 0.25], [1, "#000", 0]]} />
       </defs>
@@ -266,6 +298,8 @@ export function Ocean({ p, id, stars }: Opts) {
       {layer(1, hz + 30, 4, 90, s2, 7, 0.35)}
       {layer(2, hz + 56, 6.5, 130, s3, 6, 0.5)}
       {layer(3, hz + 80, 9, 180, dk(s3, 0.15), 5, 0.6)}
+      {v === "ocean" ? <Lighthouse id={id} hz={hz} /> : null}
+      {v === "sunsetsea" ? <SeaStacks id={id} hz={hz} color={dk(s3, 0.3)} /> : null}
       {Array.from({ length: 12 }, (_, i) => {
         const x = 260 + R(i, 71) * 480;
         const y = hz + 14 + R(i, 72) * 70;
@@ -282,7 +316,7 @@ export function Ocean({ p, id, stars }: Opts) {
 }
 
 // ============ Forest ============
-export function Forest({ p, id, stars, alt }: Opts) {
+export function Forest({ p, id, stars, alt, v }: Opts) {
   const [sky1, sky2, orb, t1, t2, t3, fog, fly] = p;
   const dark = lum(sky1) < 0.3;
   const tones = [t1, t2, mix(t1, fly, 0.45), dk(t2, 0.12), mix(t1, "#d62828", 0.35)];
@@ -339,9 +373,12 @@ export function Forest({ p, id, stars, alt }: Opts) {
       {alt ? layer(26, 156, 34, 52, mix(t1, fog, 0.45), 1) : layer(20, 150, 50, 82, mix(t1, fog, 0.35), 1)}
       <Mist id={id} k="m1" y={110} h={56} color={fog} opacity={0.3} dur={18} />
       {alt ? layer(16, 186, 50, 74, t2, 4) : layer(15, 184, 70, 108, t2, 4)}
+      {v === "mistwood" ? <Deer x={430} y={190} color={dk(t2, 0.35)} /> : null}
       <Mist id={id} k="m2" y={146} h={50} color={fog} opacity={0.24} dur={22} />
       <rect y="196" width={W} height="24" fill={url(`${id}gnd`)} />
+      {v === "enchanted" ? <FairyTree id={id} x={500} base={214} color={t3} glow={fly} /> : null}
       {alt ? layer(8, 228, 110, 150, t3, 9, true) : layer(10, 226, 104, 150, t3, 9)}
+      {v === "enchanted" ? <FairyLights id={id} /> : null}
       {mush(300, 212, 1.1, 1)}
       {mush(318, 214, 0.75, 2)}
       {mush(690, 210, 1.25, 3)}
@@ -384,7 +421,7 @@ function TreeAlt({ id, x, base, h, seed, leaf }: { id: string; x: number; base: 
 }
 
 // ============ City ============
-export function City({ p, id, alt }: Opts) {
+export function City({ p, id, alt, v }: Opts) {
   const [sky1, sky2, moon, bFar, bNear, win, neon] = p;
   const light = lum(sky1) > 0.45;
   const buildings = Array.from({ length: 17 }, (_, i) => {
@@ -464,6 +501,7 @@ export function City({ p, id, alt }: Opts) {
         <path d="M0 10 C-3 7 -13 2 -13 -5 A6 6 0 0 1 0 -8 A6 6 0 0 1 13 -5 C13 2 3 7 0 10 Z" fill="none" stroke={neon} strokeWidth="4" filter={url(`${id}glow`)} />
         <path d="M0 10 C-3 7 -13 2 -13 -5 A6 6 0 0 1 0 -8 A6 6 0 0 1 13 -5 C13 2 3 7 0 10 Z" fill="none" stroke={lt(neon, 0.6)} strokeWidth="1.6" />
       </g>
+      {v === "neoncity" ? <Holograms id={id} neon={neon} win={win} /> : null}
       {/* Wet street with reflections and passing cars */}
       <rect y="196" width={W} height="24" fill={url(`${id}road`)} />
       {buildings.map(({ x, w, i }) => (
@@ -484,13 +522,15 @@ export function City({ p, id, alt }: Opts) {
             <line key={i} x1={R(i, 81) * W} y1={-20} x2={R(i, 81) * W - 4} y2={-6} stroke={lt(sky2, 0.5)} strokeWidth="1" opacity="0.55" {...anim("sc-rain", 0.7 + R(i, 82) * 0.5, -R(i, 83) * 2)} />
           ))
         : null}
+      {v === "goldenhour" ? <Bridge id={id} color={bNear} glow={win} /> : null}
+      {v === "rainynight" ? <RainStreet id={id} lamp={win} /> : null}
       <Vignette id={id} strength={0.4} />
     </>
   );
 }
 
 // ============ Space ============
-export function Space({ p, id }: Opts) {
+export function Space({ p, id, v }: Opts) {
   const [bg1, bg2, n1, n2, pl1, pl2, ring] = p;
   const px = 640;
   const py = 128;
@@ -522,6 +562,8 @@ export function Space({ p, id }: Opts) {
       </g>
       <Stars n={120} top={H} seed={17} />
       <Stars n={14} top={H} seed={18} color={lt(n1, 0.5)} />
+      {!v || v === "nebula" ? (
+        <>
       {/* Ringed planet: back half of the ring, banded body, terminator shadow, front half */}
       <g transform={`rotate(-14 ${px} ${py})`}>
         <ellipse cx={px} cy={py} rx={pr * 1.9} ry={pr * 0.42} fill="none" stroke={url(`${id}ring`)} strokeWidth="9" opacity="0.6" />
@@ -543,6 +585,13 @@ export function Space({ p, id }: Opts) {
         <path d={`M${px - pr * 1.9} ${py} A${pr * 1.9} ${pr * 0.42} 0 0 0 ${px + pr * 1.9} ${py}`} fill="none" stroke={url(`${id}ring`)} strokeWidth="9" />
         <path d={`M${px - pr * 1.72} ${py + 2} A${pr * 1.72} ${pr * 0.36} 0 0 0 ${px + pr * 1.72} ${py + 2}`} fill="none" stroke={dk(ring, 0.4)} strokeWidth="1.2" opacity="0.6" />
       </g>
+        </>
+      ) : (
+        <>
+          {v === "cosmos" ? <SpiralGalaxy id={id} a={n1} b={n2} /> : null}
+          {v === "redgiant" ? <RedSun id={id} c1={n1} c2={n2} /> : null}
+        </>
+      )}
       {/* Little moon */}
       <g {...anim("sc-bob", 7)}>
         <circle cx="420" cy="80" r="13" fill={url(`${id}moon`)} />
@@ -566,13 +615,14 @@ export function Space({ p, id }: Opts) {
           <circle cx="70" cy="22" r="1.6" fill="#fff" />
         </g>
       ))}
+      {v === "cosmos" ? <PlanetHorizon id={id} c1={pl1} c2={pl2} atm={n1} /> : null}
       <Vignette id={id} strength={0.45} />
     </>
   );
 }
 
 // ============ Aurora ============
-export function Aurora({ p, id }: Opts) {
+export function Aurora({ p, id, v }: Opts) {
   const [sky1, sky2, a1, a2, a3, snowC, tree] = p;
   const curtain = (c: string, y0: number, amp: number, k: number) => {
     const rays = 70;
@@ -614,6 +664,8 @@ export function Aurora({ p, id }: Opts) {
         if (x > 520 && x < 620) return null;
         return <Pine key={i} x={x} base={190 + Math.sin(i) * 4} h={34 + R(i, 72) * 26} color={tree} light={lt(tree, 0.12)} snow={snowC} />;
       })}
+      {v !== "pinkaurora" ? (
+        <>
       {/* A cosy cabin */}
       <g transform="translate(570 188)">
         <ellipse cx="0" cy="6" rx="60" ry="10" fill={url(`${id}spill`)} />
@@ -628,6 +680,8 @@ export function Aurora({ p, id }: Opts) {
           <circle key={s} cx="13" cy="-46" r={3 + s} fill="#fff" opacity="0.3" {...anim("sc-smoke", 4.5, -s * 1.5)} />
         ))}
       </g>
+        </>
+      ) : <Igloo id={id} snow={snowC} />}
       {Array.from({ length: 14 }, (_, i) => (
         <circle key={i} cx={R(i, 91) * W} cy={192 + R(i, 92) * 24} r="0.9" fill="#fff" {...anim("sc-tw", 1.2 + R(i, 93) * 2, -R(i, 94) * 2)} />
       ))}
@@ -637,7 +691,7 @@ export function Aurora({ p, id }: Opts) {
 }
 
 // ============ Sakura ============
-export function Sakura({ p, id }: Opts) {
+export function Sakura({ p, id, v }: Opts) {
   const [sky1, sky2, hill, branch, b1, b2, petal] = p;
   const night = lum(sky1) < 0.3;
   const flower = (x: number, y: number, r: number, c: string, k: number, rot = 0) => (
@@ -675,6 +729,8 @@ export function Sakura({ p, id }: Opts) {
       </defs>
       {night ? <Stars n={50} top={110} seed={81} /> : null}
       <Orb id={id} x={600} y={92} r={34} color={night ? "#fff8e6" : lt(b1, 0.6)} moon={night} />
+      {!v || v === "sakura" ? (
+        <>
       {/* Distant snowy peak and a pagoda in the mist */}
       <path d="M380 150 L480 76 Q500 66 520 76 L640 150 Z" fill={url(`${id}fuji`)} opacity="0.85" />
       <path d="M480 76 Q500 66 520 76 L540 92 L528 88 L516 96 L504 86 L492 96 L480 88 L462 92 Z" fill={night ? "#e6e0ff" : "#ffffff"} opacity="0.9" />
@@ -688,9 +744,15 @@ export function Sakura({ p, id }: Opts) {
         ))}
         <rect x="-1" y="-62" width="2" height="14" />
       </g>
+        </>
+      ) : <Hill id={id} k="h1" y={150} amp={10} seed={0.8} waves={2} color={mix(hill, sky2, 0.35)} />}
       <Mist id={id} k="m1" y={130} h={40} color={lt(sky2, 0.5)} opacity={0.5} dur={22} />
       <Hill id={id} k="h2" y={176} amp={10} seed={2.2} waves={2.5} color={hill} rim={lt(hill, 0.4)} rimOpacity={0.5} />
       <Hill id={id} k="h3" y={202} amp={6} seed={3.4} waves={3} color={mix(hill, b1, 0.35)} />
+      {v === "plum" ? <KoiPond id={id} /> : null}
+      {v === "wisteria" ? <Wisteria id={id} c1={b1} c2={b2} /> : null}
+      {v !== "wisteria" ? (
+        <>
       <g transform="translate(0 30)">
       {/* Branches (dark bark with a lit top edge) */}
       {[
@@ -726,6 +788,8 @@ export function Sakura({ p, id }: Opts) {
         </g>
       ))}
       </g>
+        </>
+      ) : null}
       {Array.from({ length: 24 }, (_, i) => (
         <g key={i} transform={`translate(${R(i, 81) * W} 30)`}>
           <g {...anim("sc-petal", 8 + R(i, 82) * 7, -R(i, 83) * 14)}>

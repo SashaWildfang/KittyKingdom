@@ -80,9 +80,9 @@ export const ITEM = {
 // ---------- recipes ----------
 export type Ornament =
   | "crown" | "halo" | "wings" | "batwings" | "horns" | "ears" | "foxears" | "wreath" | "snow" | "flames" | "phoenix" | "hearts" | "stars" | "starfall"
-  | "blossoms" | "moon" | "wisps" | "bolts" | "petals" | "coals" | "branch" | "neontube" | "ribbon" | "filigree" | "planets" | "mist" | "cobweb" | "laurel"
+  | "blossoms" | "moon" | "wisps" | "bolts" | "coals" | "branch" | "neontube" | "ribbon" | "filigree" | "planets" | "mist" | "cobweb" | "laurel"
   | "chain" | "roses" | "shards" | "wave" | "slime" | "sweets" | "ecg" | "thorns" | "tail" | "whiskers" | "bow" | "foxtail" | "icicles" | "crystals" | "vortex"
-  | "clouds" | "bee";
+  | "clouds" | "bee" | "swoosh" | "sunflowers";
 export type FrameSpec = { style: "spin" | "dual" | "pulse" | "sweep" | "dots" | "flame" | "prism"; colors: string[]; glow: string; speed?: number; ornaments?: Ornament[]; ornament?: string };
 export type Scene = "pumpkins" | "mountains" | "ocean" | "forest" | "city" | "space" | "aurora" | "sakura" | "candy" | "desert" | "underwater" | "retro" | "clouds" | "meadow" | "village" | "lava";
 export type BannerSpec = { scene: Scene; p: string[]; stars?: boolean; snow?: boolean; alt?: boolean; v?: string };
@@ -124,93 +124,93 @@ const th = (key: string, name: string, desc: string, rarity: Rarity, theme: Them
 export const COSMETIC_DEFS: CosmeticDef[] = [
   // ================= BANNERS (illustrated scenes) =================
   bn("pumpkin", "Pumpkin Patch", "Carved jack-o'-lanterns glowing under a harvest moon, with bats on the wind. Halloween 2026 only.", "epic", { scene: "pumpkins", p: ["#140726", "#3b1450", "#fff2c2", "#24103a", "#1a0b22", "#ff8a1f", "#c4560b", "#ffd75e"] }, { window: HALLOWEEN }, 6666),
-  bn("harvest", "Harvest Dusk", "A pumpkin patch at sunset, every lantern lit. Halloween 2026 only.", "rare", { scene: "pumpkins", p: ["#3a1240", "#ff7b39", "#ffe3a1", "#5a2330", "#2c1018", "#ff9a2e", "#c9600f", "#fff1a8"] }, { window: HALLOWEEN }, 4000),
-  bn("graveyard", "Witching Hour", "Eerie green pumpkins in a haunted glow. Halloween 2026 only.", "legendary", { scene: "pumpkins", p: ["#02130e", "#0f3b2c", "#d8ffe9", "#0b241c", "#04140f", "#8bff7a", "#2fa84f", "#e9ff8a"] }, { window: HALLOWEEN }, 13000),
+  bn("harvest", "Harvest Dusk", "A harvest field at sunset: a scarecrow, hay bales and corn. Halloween 2026 only.", "rare", { scene: "pumpkins", p: ["#3a1240", "#ff7b39", "#ffe3a1", "#5a2330", "#2c1018", "#ff9a2e", "#c9600f", "#fff1a8"] }, { window: HALLOWEEN }, 4000),
+  bn("graveyard", "Witching Hour", "A haunted graveyard: tombstones, an iron fence and drifting ghosts. Halloween 2026 only.", "legendary", { scene: "pumpkins", p: ["#02130e", "#0f3b2c", "#d8ffe9", "#0b241c", "#04140f", "#8bff7a", "#2fa84f", "#e9ff8a"] }, { window: HALLOWEEN }, 13000),
 
-  bn("starry", "Starry Night", "Snowy peaks under a sky full of twinkling stars and a silver moon.", "epic", { scene: "mountains", p: ["#050816", "#1b2560", "#f4f1ff", "#2b3470", "#1a2050", "#0d1235", "#e8ecff"], stars: true, snow: true }, {}, 9000),
-  bn("alpine", "Alpine Dawn", "Golden sunrise over snowy mountains.", "rare", { scene: "mountains", p: ["#ffb88a", "#ffe3b0", "#fff2c7", "#9aa7c7", "#6b7aa8", "#3d4a78", "#ffffff"], snow: true }),
-  bn("dusk", "Purple Dusk", "Layered violet ridges fading into twilight.", "rare", { scene: "mountains", p: ["#2a0f4a", "#ff7eb3", "#ffd6a5", "#7b3f8f", "#52296b", "#2e1745", "#f3d1ff"], stars: true }),
-  bn("highlands", "Misty Highlands", "Soft green hills under a pale morning sun.", "common", { scene: "mountains", p: ["#cfe9e1", "#f6fbe9", "#fffbe0", "#8fc1a9", "#5f9d82", "#356b55", "#ffffff"] }),
+  bn("starry", "Starry Night", "Snowy peaks over a moonlit lake, with a tent and a crackling campfire.", "epic", { scene: "mountains", p: ["#050816", "#1b2560", "#f4f1ff", "#2b3470", "#1a2050", "#0d1235", "#e8ecff"], stars: true, snow: true }, {}, 9000),
+  bn("alpine", "Alpine Dawn", "Golden sunrise over snowy mountains and a little alpine chalet.", "rare", { scene: "mountains", p: ["#ffb88a", "#ffe3b0", "#fff2c7", "#9aa7c7", "#6b7aa8", "#3d4a78", "#ffffff"], snow: true }),
+  bn("dusk", "Purple Dusk", "Violet ridges at twilight with a river winding through the valley.", "rare", { scene: "mountains", p: ["#2a0f4a", "#ff7eb3", "#ffd6a5", "#7b3f8f", "#52296b", "#2e1745", "#f3d1ff"], stars: true }),
+  bn("highlands", "Misty Highlands", "Misty patchwork hills, stone walls, grazing sheep and a stone cottage.", "common", { scene: "mountains", p: ["#cfe9e1", "#f6fbe9", "#fffbe0", "#8fc1a9", "#5f9d82", "#356b55", "#ffffff"] }),
 
-  bn("ocean", "Deep Ocean", "Rolling waves under a glittering moonlit sky.", "rare", { scene: "ocean", p: ["#061633", "#1d3b78", "#f4f6ff", "#123e7a", "#0b2c5e", "#071d40", "#cfe6ff"], stars: true }, {}, 4500),
-  bn("tropical", "Tropical Tide", "Turquoise waves and a bright island sun.", "rare", { scene: "ocean", p: ["#4fc3f7", "#c8f3ff", "#fff59d", "#26c6da", "#00acc1", "#00838f", "#ffffff"] }),
-  bn("sunsetsea", "Sunset Sea", "A blazing sun melting into the waves.", "epic", { scene: "ocean", p: ["#3b0f5c", "#ff6f61", "#ffd27a", "#b0306a", "#7a1f5c", "#42124a", "#ffd0b5"] }),
+  bn("ocean", "Deep Ocean", "A lighthouse sweeping its beam over a moonlit sea.", "rare", { scene: "ocean", p: ["#061633", "#1d3b78", "#f4f6ff", "#123e7a", "#0b2c5e", "#071d40", "#cfe6ff"], stars: true }, {}, 4500),
+  bn("tropical", "Tropical Tide", "A sunny beach: palms, a striped umbrella, a sandcastle and lapping turquoise water.", "rare", { scene: "ocean", p: ["#4fc3f7", "#c8f3ff", "#fff59d", "#26c6da", "#00acc1", "#00838f", "#ffffff"] }),
+  bn("sunsetsea", "Sunset Sea", "A blazing sun over sea stacks, a sailboat and leaping dolphins.", "epic", { scene: "ocean", p: ["#3b0f5c", "#ff6f61", "#ffd27a", "#b0306a", "#7a1f5c", "#42124a", "#ffd0b5"] }),
 
-  bn("autumn", "Autumn Canopy", "A golden autumn forest, leaves drifting through warm light.", "rare", { scene: "forest", p: ["#ffcf8a", "#ff8e53", "#fff1c1", "#e0782a", "#b84a14", "#7a2c0c", "#ffd9a0", "#ffe08a"], alt: true }, {}, 3500),
-  bn("mistwood", "Mistwood", "Pine forest wrapped in silver fog and fireflies.", "epic", { scene: "forest", p: ["#0d2a2a", "#3f6f6a", "#e8fff4", "#25524b", "#163a35", "#0a221f", "#cfeee4", "#d6ff8a"] }),
-  bn("enchanted", "Enchanted Grove", "A violet forest glowing with magic fireflies.", "legendary", { scene: "forest", p: ["#1a0b3a", "#5b2a86", "#ffd6ff", "#43206b", "#2c1450", "#1a0b35", "#e3c2ff", "#9dfcff"] }),
+  bn("autumn", "Autumn Canopy", "A cozy cabin under blazing autumn trees, leaves drifting through golden light.", "rare", { scene: "forest", p: ["#ffcf8a", "#ff8e53", "#fff1c1", "#e0782a", "#b84a14", "#7a2c0c", "#ffd9a0", "#ffe08a"], alt: true }, {}, 3500),
+  bn("mistwood", "Mistwood", "Pine forest in silver fog, fireflies and a watchful deer.", "epic", { scene: "forest", p: ["#0d2a2a", "#3f6f6a", "#e8fff4", "#25524b", "#163a35", "#0a221f", "#cfeee4", "#d6ff8a"] }),
+  bn("enchanted", "Enchanted Grove", "A violet forest with a glowing fairy door and strings of fairy lights.", "legendary", { scene: "forest", p: ["#1a0b3a", "#5b2a86", "#ffd6ff", "#43206b", "#2c1450", "#1a0b35", "#e3c2ff", "#9dfcff"] }),
 
-  bn("neoncity", "Neon City", "A cyberpunk skyline glowing under a pink moon.", "epic", { scene: "city", p: ["#0b0221", "#3a0f6b", "#ff4dd8", "#26104d", "#140733", "#ffe66d", "#00f0ff"] }),
-  bn("goldenhour", "Golden Hour City", "Warm city lights as the sun goes down.", "rare", { scene: "city", p: ["#ff9a5a", "#ffd6a0", "#fff1c9", "#7a3e4a", "#4a2034", "#ffe08a", "#ffffff"] }),
-  bn("rainynight", "Rainy Night", "A quiet blue city in the rain.", "rare", { scene: "city", p: ["#0a1830", "#1f3d66", "#cfe2ff", "#1d3557", "#11223d", "#9bd1ff", "#7fd3ff"], alt: true }),
+  bn("neoncity", "Neon City", "A cyberpunk skyline with holograms and flying cars under a pink moon.", "epic", { scene: "city", p: ["#0b0221", "#3a0f6b", "#ff4dd8", "#26104d", "#140733", "#ffe66d", "#00f0ff"] }),
+  bn("goldenhour", "Golden Hour City", "A suspension bridge over a glittering river as the sun goes down.", "rare", { scene: "city", p: ["#ff9a5a", "#ffd6a0", "#fff1c9", "#7a3e4a", "#4a2034", "#ffe08a", "#ffffff"] }),
+  bn("rainynight", "Rainy Night", "Rain on a quiet blue street: lamplight, puddles and a red umbrella.", "rare", { scene: "city", p: ["#0a1830", "#1f3d66", "#cfe2ff", "#1d3557", "#11223d", "#9bd1ff", "#7fd3ff"], alt: true }),
 
   bn("nebula", "Nebula", "Swirling violet nebula and a ringed planet.", "legendary", { scene: "space", p: ["#05010f", "#1a0638", "#b46cff", "#ff4dd8", "#ffcf8a", "#c4602f", "#ffe9c4"] }),
-  bn("cosmos", "Cosmic Teal", "Deep space in teal and blue with a giant planet.", "epic", { scene: "space", p: ["#010a12", "#06283d", "#2bd9c7", "#3e9bff", "#7ee8fa", "#2a6f97", "#d4fbff"] }),
-  bn("redgiant", "Red Giant", "A crimson nebula around a burning planet.", "epic", { scene: "space", p: ["#0f0103", "#3d0710", "#ff4d4d", "#ff9a3c", "#ffb38a", "#a8321e", "#ffe0c4"] }),
+  bn("cosmos", "Cosmic Teal", "A spiral galaxy over a planet's glowing horizon, with a satellite drifting by.", "epic", { scene: "space", p: ["#010a12", "#06283d", "#2bd9c7", "#3e9bff", "#7ee8fa", "#2a6f97", "#d4fbff"] }),
+  bn("redgiant", "Red Giant", "A swollen red sun with solar flares and an asteroid belt.", "epic", { scene: "space", p: ["#0f0103", "#3d0710", "#ff4d4d", "#ff9a3c", "#ffb38a", "#a8321e", "#ffe0c4"] }),
 
   bn("aurora", "Northern Lights", "Living ribbons of aurora over snowy pines.", "legendary", { scene: "aurora", p: ["#020b1a", "#0b2645", "#3dffb4", "#2bb8ff", "#b46cff", "#dfeaf6", "#0e2337"] }, {}, 20000),
-  bn("pinkaurora", "Rose Aurora", "Pink and violet lights dancing in the sky.", "epic", { scene: "aurora", p: ["#12041f", "#2d0d3f", "#ff6fd8", "#b46cff", "#ffd1f0", "#f1e4ff", "#24123a"] }),
+  bn("pinkaurora", "Rose Aurora", "Pink and violet lights over an igloo and two curious penguins.", "epic", { scene: "aurora", p: ["#12041f", "#2d0d3f", "#ff6fd8", "#b46cff", "#ffd1f0", "#f1e4ff", "#24123a"] }),
 
   bn("sakura", "Sakura Spring", "Cherry blossoms in full bloom, petals on the breeze.", "epic", { scene: "sakura", p: ["#ffe3ef", "#fff7fb", "#f4c6da", "#5b3a3a", "#ff9cc7", "#ffd1e3", "#ffb3d1"] }),
-  bn("plum", "Moon Plum", "White plum blossoms under a night sky.", "rare", { scene: "sakura", p: ["#1b1838", "#3d3570", "#4b4486", "#2a1f2e", "#ffffff", "#e6e0ff", "#f3eefe"] }),
-  bn("wisteria", "Wisteria", "Lavender blooms over soft purple hills.", "rare", { scene: "sakura", p: ["#efe4ff", "#fbf8ff", "#d8c7f5", "#5a4a6b", "#b98cf0", "#d9c2ff", "#c9a7ff"] }),
+  bn("plum", "Moon Plum", "White plum blossoms, a stone lantern and a koi pond by moonlight.", "rare", { scene: "sakura", p: ["#1b1838", "#3d3570", "#4b4486", "#2a1f2e", "#ffffff", "#e6e0ff", "#f3eefe"] }),
+  bn("wisteria", "Wisteria", "Hanging wisteria over a red arched bridge.", "rare", { scene: "sakura", p: ["#efe4ff", "#fbf8ff", "#d8c7f5", "#5a4a6b", "#b98cf0", "#d9c2ff", "#c9a7ff"] }),
 
   bn("candy", "Cotton Candy", "Candy clouds, lollipops and gumdrop hills.", "common", { scene: "candy", p: ["#ffc8e6", "#c8e3ff", "#ffffff", "#ff7eb6", "#7ec8ff", "#ffe066", "#ffb3d9"] }, {}, 1500),
-  bn("berry", "Berry Sweet", "A berry-pink candy land.", "rare", { scene: "candy", p: ["#ff9ac1", "#ffd1e3", "#fff0f6", "#e8457c", "#9b5de5", "#ffd166", "#ff6f9f"] }),
-  bn("mintcandy", "Mint Swirl", "Cool mint candy hills and swirls.", "common", { scene: "candy", p: ["#c9fff0", "#e8f9ff", "#ffffff", "#2ec4b6", "#ff9f80", "#ffd6a5", "#9be7d8"] }),
+  bn("berry", "Berry Sweet", "Layer-cake mountains crowned with strawberries in a berry-pink candy land.", "rare", { scene: "candy", p: ["#ff9ac1", "#ffd1e3", "#fff0f6", "#e8457c", "#9b5de5", "#ffd166", "#ff6f9f"] }),
+  bn("mintcandy", "Mint Swirl", "Ice-cream scoop mountains and spinning peppermints.", "common", { scene: "candy", p: ["#c9fff0", "#e8f9ff", "#ffffff", "#2ec4b6", "#ff9f80", "#ffd6a5", "#9be7d8"] }),
 
-  bn("dunes", "Golden Dunes", "Rolling desert dunes under a blazing sun.", "common", { scene: "desert", p: ["#ffd59e", "#fff3d6", "#fff6b0", "#f2b36b", "#e09a4f", "#c47a35", "#3d6b3f"] }),
-  bn("desertnight", "Desert Night", "Starry desert dunes and silhouetted cacti.", "rare", { scene: "desert", p: ["#0c1029", "#2a2d5c", "#f3f0d7", "#3a3560", "#2a2648", "#1c1933", "#0f2a1c"], stars: true }),
+  bn("dunes", "Golden Dunes", "Rolling dunes, saguaros and a camel caravan on the ridge.", "common", { scene: "desert", p: ["#ffd59e", "#fff3d6", "#fff6b0", "#f2b36b", "#e09a4f", "#c47a35", "#3d6b3f"] }),
+  bn("desertnight", "Desert Night", "A starlit oasis with palms, a glowing tent and the moon on the water.", "rare", { scene: "desert", p: ["#0c1029", "#2a2d5c", "#f3f0d7", "#3a3560", "#2a2648", "#1c1933", "#0f2a1c"], stars: true }),
 
-  bn("reef", "Coral Reef", "Sunlit water, swaying seaweed and bright coral.", "epic", { scene: "underwater", p: ["#0aa3c2", "#04496b", "#c8fbff", "#2e8b57", "#ff7f7f", "#ffb86b", "#e6fbff"] }),
-  bn("abyss", "Abyss", "The deep sea, lit by drifting glowing bubbles.", "legendary", { scene: "underwater", p: ["#04182b", "#000814", "#5ee7ff", "#0f3d3e", "#b46cff", "#ff4dd8", "#9ef6ff"] }),
+  bn("reef", "Coral Reef", "Sunlit water, swaying kelp, bright coral and a sea turtle.", "epic", { scene: "underwater", p: ["#0aa3c2", "#04496b", "#c8fbff", "#2e8b57", "#ff7f7f", "#ffb86b", "#e6fbff"] }),
+  bn("abyss", "Abyss", "The deep sea: glowing jellyfish and an anglerfish with its lure.", "legendary", { scene: "underwater", p: ["#04182b", "#000814", "#5ee7ff", "#0f3d3e", "#b46cff", "#ff4dd8", "#9ef6ff"] }),
 
-  bn("sunset", "Sunset Drive", "A synthwave sun over a glowing neon grid.", "rare", { scene: "retro", p: ["#120024", "#ff2a6d", "#ffd319", "#ff2975", "#f222ff", "#1a0033", "#8c1eff"] }, {}, 4500),
-  bn("vaporwave", "Vaporwave", "Cyan and pink retro horizon.", "epic", { scene: "retro", p: ["#06021f", "#5f3dc4", "#7df9ff", "#ff71ce", "#01cdfe", "#120a3a", "#b967ff"] }),
+  bn("sunset", "Sunset Drive", "A synthwave sun, a neon grid and a car racing down the road.", "rare", { scene: "retro", p: ["#120024", "#ff2a6d", "#ffd319", "#ff2975", "#f222ff", "#1a0033", "#8c1eff"] }, {}, 4500),
+  bn("vaporwave", "Vaporwave", "Marble columns on a checkerboard floor under a vaporwave sun.", "epic", { scene: "retro", p: ["#06021f", "#5f3dc4", "#7df9ff", "#ff71ce", "#01cdfe", "#120a3a", "#b967ff"] }),
 
   bn("skyday", "Blue Skies", "Fluffy clouds drifting across a sunny sky.", "common", { scene: "clouds", p: ["#7cc6ff", "#d9f1ff", "#fff3a8", "#ffffff", "#eaf6ff", "#cfe9ff"] }),
-  bn("pastelsky", "Pastel Sky", "Peach and lilac clouds at golden hour.", "rare", { scene: "clouds", p: ["#ffb7c5", "#ffe5c4", "#fff6d6", "#fff4f8", "#ffd9e6", "#f1d4ff"] }),
+  bn("pastelsky", "Pastel Sky", "Floating islands with waterfalls and a rainbow in a peach sky.", "rare", { scene: "clouds", p: ["#ffb7c5", "#ffe5c4", "#fff6d6", "#fff4f8", "#ffd9e6", "#f1d4ff"] }),
   bn("storm", "Stormfront", "Dark rolling storm clouds lit by distant light.", "epic", { scene: "clouds", p: ["#1b2333", "#46546e", "#cfd8ea", "#58657e", "#3d4860", "#2a3346"] }),
 
   bn("meadow", "Spring Meadow", "Rolling green hills covered in wildflowers.", "common", { scene: "meadow", p: ["#a8e0ff", "#e9f8ff", "#fff3a1", "#7cc576", "#5aa65a", "#ff8fab", "#ffe066"] }),
-  bn("lavender", "Lavender Fields", "Rows of lavender under a warm evening sky.", "rare", { scene: "meadow", p: ["#ffc6a8", "#ffe9d6", "#fff1c1", "#8f6bbd", "#6d4c9e", "#c39bff", "#f3e1ff"], v: "lavender" }),
-  bn("sunflower", "Sunflower Hills", "Sunny hills dotted with sunflowers.", "rare", { scene: "meadow", p: ["#8fd3ff", "#e7f7ff", "#fff59d", "#9ccc65", "#7cb342", "#ffca28", "#ffa000"], v: "sunflower" }),
+  bn("lavender", "Lavender Fields", "Provence lavender rows running to a farmhouse and cypress trees at sunset.", "rare", { scene: "meadow", p: ["#ffc6a8", "#ffe9d6", "#fff1c1", "#8f6bbd", "#6d4c9e", "#c39bff", "#f3e1ff"], v: "lavender" }),
+  bn("sunflower", "Sunflower Hills", "Sunflower hills with a red barn and silo.", "rare", { scene: "meadow", p: ["#8fd3ff", "#e7f7ff", "#fff59d", "#9ccc65", "#7cb342", "#ffca28", "#ffa000"], v: "sunflower" }),
 
   bn("village", "Cozy Village", "A snowy village at night, every window glowing warm.", "epic", { scene: "village", p: ["#0d1b3a", "#2c4a7a", "#f2f7ff", "#5a3a2e", "#ffffff", "#ffc56b", "#1e3d33"], stars: true, snow: true }),
 
-  bn("volcano", "Volcano", "An erupting volcano with rivers of flowing lava and rising embers.", "legendary", { scene: "lava", p: ["#14070a", "#5a1608", "#3a2420", "#24140f", "#ff4d0d", "#ffc23a", "#ffe08a"] }),
-  bn("emberforge", "Ember Forge", "A volcano of molten gold under a smoky violet sky.", "epic", { scene: "lava", p: ["#120a1f", "#4a2a3a", "#3b3040", "#211a28", "#f59e0b", "#fff1a8", "#ffe8a3"] }),
+  bn("volcano", "Volcano", "An erupting volcano: lava rivers, an ash column with lightning and glowing fissures.", "legendary", { scene: "lava", p: ["#14070a", "#5a1608", "#3a2420", "#24140f", "#ff4d0d", "#ffc23a", "#ffe08a"] }),
+  bn("emberforge", "Ember Forge", "A waterfall of molten gold pouring between basalt columns under a smoky violet sky.", "epic", { scene: "lava", p: ["#120a1f", "#4a2a3a", "#3b3040", "#211a28", "#f59e0b", "#fff1a8", "#ffe8a3"] }),
 
   // ================= FRAMES =================
   fr("ember", "Ember Ring", "A ring of glowing coals with sparks drifting up.", "rare", { style: "spin", colors: ["#ffb347", "#ff6a00", "#ffe08a"], glow: "rgba(255,120,0,.6)", ornaments: ["coals"] }, {}, 3000),
   fr("sakura", "Sakura", "A blossoming cherry branch arching over a soft pink ring, petals drifting down.", "rare", { style: "spin", colors: ["#ffd1e3", "#ff86b6", "#fff0f6"], glow: "rgba(255,134,182,.55)", speed: 10, ornaments: ["branch"] }, {}, 4000),
-  fr("neon", "Neon Pulse", "A buzzing neon tube ring with a flickering heart sign.", "rare", { style: "pulse", colors: ["#ff2bd6", "#00e5ff"], glow: "rgba(0,229,255,.7)", ornaments: ["neontube"] }, {}, 5000),
+  fr("neon", "Neon Pulse", "A double neon tube with flickering heart, star and bolt signs.", "rare", { style: "dual", colors: ["#ff2bd6", "#ff8ae8", "#00e5ff"], glow: "rgba(0,229,255,.7)", ornaments: ["neontube"] }, {}, 5000),
   fr("aurora", "Aurora", "A ribbon of northern lights draped over your avatar.", "epic", { style: "spin", colors: ["#3dffb4", "#2bb8ff", "#b46cff"], glow: "rgba(61,255,180,.5)", speed: 8, ornaments: ["ribbon"] }, {}, 8000),
   fr("gold", "Royal Gold", "Polished gold with hand-cut scrollwork and a sapphire.", "epic", { style: "sweep", colors: ["#8a5a00", "#ffd56a", "#fff6c9", "#e0a526"], glow: "rgba(255,196,64,.6)", ornaments: ["filigree"] }, {}, 12000),
   fr("galaxy", "Galaxy", "A nebula ring with little planets in orbit.", "legendary", { style: "spin", colors: ["#1b1464", "#8a2be2", "#4fc3ff", "#ff4dd8"], glow: "rgba(138,43,226,.65)", speed: 5, ornaments: ["planets"] }, {}, 25000),
   fr("haunted", "Haunted", "Little ghosts drifting around a pale green ring. Halloween 2026 only.", "epic", { style: "pulse", colors: ["#3b6e58", "#c8ffe0"], glow: "rgba(125,255,184,.7)", ornaments: ["wisps", "mist"] }, { window: HALLOWEEN }, 6666),
   fr("batwing", "Bat Wings", "Leathery bat wings, a cobweb and a dangling spider. Halloween 2026 only.", "legendary", { style: "dual", colors: ["#2a0a14", "#c1121f", "#ff4d4d"], glow: "rgba(193,18,31,.6)", ornaments: ["batwings", "cobweb"] }, { window: HALLOWEEN }, 13000),
   fr("crown", "Kingdom Crown", "The rarest frame in the Kingdom: a jewelled crown and golden laurels. Only 25 will ever exist.", "mythic", { style: "sweep", colors: ["#8a5a00", "#ffe9a0", "#fff8dc", "#d4a017"], glow: "rgba(255,200,60,.85)", ornaments: ["crown", "laurel"] }, { window: { kind: "limited", from: "2026-10-01T00:00:00Z", until: "2026-10-15T00:00:00Z", season: "Launch drop", quantity: 25 } }, 100000),
-  fr("silver", "Silver Sweep", "Brushed silver with a draped chain and a star charm.", "common", { style: "sweep", colors: ["#6b7280", "#e5e7eb", "#ffffff", "#9ca3af"], glow: "rgba(229,231,235,.45)", ornaments: ["chain"] }),
+  fr("silver", "Silver Sweep", "Polished silver blades sweeping round your avatar, with a travelling glint.", "common", { style: "sweep", colors: ["#6b7280", "#e5e7eb", "#ffffff", "#9ca3af"], glow: "rgba(229,231,235,.45)", ornaments: ["swoosh"] }),
   fr("rosegold", "Rose Gold", "Warm rose gold with roses and pearls.", "rare", { style: "sweep", colors: ["#9e5a4f", "#f4c2b6", "#fff1ec", "#d4877a"], glow: "rgba(244,194,182,.55)", ornaments: ["roses"] }),
-  fr("obsidian", "Obsidian", "Black volcanic glass shards lit violet from within.", "rare", { style: "sweep", colors: ["#050505", "#3a2a4a", "#9b7bd4", "#1a1424"], glow: "rgba(155,123,212,.5)", ornaments: ["shards"] }),
-  fr("tide", "Ocean Tide", "A curling ocean wave with rising bubbles.", "common", { style: "spin", colors: ["#0b3d91", "#1fa2ff", "#a6ffcb"], glow: "rgba(31,162,255,.5)", ornaments: ["wave"] }),
+  fr("obsidian", "Obsidian", "Clusters of black volcanic glass crystals lit violet from within.", "rare", { style: "sweep", colors: ["#050505", "#3a2a4a", "#9b7bd4", "#1a1424"], glow: "rgba(155,123,212,.5)", ornaments: ["shards"] }),
+  fr("tide", "Ocean Tide", "Waves breaking below, a leaping dolphin, a starfish and a shell.", "common", { style: "spin", colors: ["#0b3d91", "#1fa2ff", "#a6ffcb"], glow: "rgba(31,162,255,.5)", ornaments: ["wave"] }),
   fr("toxic", "Toxic", "Radioactive slime dripping down a glowing ring.", "rare", { style: "pulse", colors: ["#39ff14", "#b6ff00"], glow: "rgba(57,255,20,.7)", ornaments: ["slime"] }),
   fr("candy", "Candy Stripe", "A candy-stripe ring with sweets and sprinkles.", "common", { style: "dots", colors: ["#ff8fc7", "#8fd3ff", "#ffe066"], glow: "rgba(255,143,199,.45)", ornaments: ["sweets"] }),
   fr("heartbeat", "Heartbeat", "Hearts in orbit and a heartbeat line that never stops.", "epic", { style: "pulse", colors: ["#ff4d8d", "#ffb3cf"], glow: "rgba(255,77,141,.65)", ornaments: ["hearts", "ecg"] }),
-  fr("starfall", "Starfall", "Shooting stars streaking past a ring of golden starlight.", "epic", { style: "dots", colors: ["#ffe08a", "#fff6d6", "#ffb21e"], glow: "rgba(255,210,90,.6)", ornaments: ["starfall"] }),
+  fr("starfall", "Starfall", "A comet sweeping round a starry ring, with a constellation.", "epic", { style: "dots", colors: ["#ffe08a", "#fff6d6", "#ffb21e"], glow: "rgba(255,210,90,.6)", ornaments: ["starfall"] }),
   fr("angel", "Angelic", "A shining halo and feathered wings.", "legendary", { style: "sweep", colors: ["#d9c58b", "#fffaf0", "#ffffff", "#f1e3b0"], glow: "rgba(255,248,220,.8)", ornaments: ["halo", "wings"] }),
   fr("demon", "Demonic", "Curling horns, a thorny vine and a flicking devil tail.", "legendary", { style: "flame", colors: ["#2b0000", "#ff1e1e", "#ff7a00"], glow: "rgba(255,40,0,.7)", ornaments: ["horns", "thorns", "tail"] }),
   fr("kitty", "Kitty Ears", "Fluffy cat ears, whiskers and a satin bow.", "rare", { style: "spin", colors: ["#ffb3c6", "#ffd6e0", "#ff8fab"], glow: "rgba(255,143,171,.5)", ornament: "#ffb3c6", ornaments: ["ears", "whiskers", "bow"] }),
   fr("foxears", "Fox Ears", "Fox ears and a big fluffy tail on a warm autumn ring.", "rare", { style: "spin", colors: ["#ff8a3d", "#ffd0a1", "#c4501b"], glow: "rgba(255,138,61,.5)", ornament: "#ff8a3d", ornaments: ["foxears", "foxtail"] }),
   fr("wreath", "Forest Wreath", "A leafy green wreath around a golden ring.", "rare", { style: "sweep", colors: ["#1f5f3a", "#a8e6a3", "#f5ffe6", "#3f8f4f"], glow: "rgba(120,220,140,.5)", ornaments: ["wreath"] }),
   fr("frost", "Frostbite", "An icy ring hung with icicles and snowflakes.", "epic", { style: "spin", colors: ["#bfefff", "#5ac8fa", "#ffffff"], glow: "rgba(140,220,255,.7)", ornaments: ["snow", "icicles"] }),
-  fr("phoenix", "Phoenix", "A firebird spreads its burning wings around a ring of living flame.", "legendary", { style: "flame", colors: ["#ff3d00", "#ffb300", "#fff176"], glow: "rgba(255,120,0,.8)", ornaments: ["flames", "phoenix"] }),
-  fr("electric", "Electric", "Crackling arcs of lightning dancing around your avatar.", "epic", { style: "dots", colors: ["#fff200", "#ffe066", "#ffffff"], glow: "rgba(255,242,0,.75)", speed: 2, ornaments: ["bolts"] }),
-  fr("prism", "Prism", "A rainbow ring with floating prisms throwing light.", "legendary", { style: "prism", colors: ["#ff4d4d", "#ffd84d", "#4dff88", "#4dc3ff", "#b44dff"], glow: "rgba(255,255,255,.55)", ornaments: ["crystals"] }),
+  fr("phoenix", "Phoenix", "A firebird perched on top, wings of flame raised and tail streamers trailing down.", "legendary", { style: "flame", colors: ["#ff3d00", "#ffb300", "#fff176"], glow: "rgba(255,120,0,.8)", ornaments: ["phoenix"] }),
+  fr("electric", "Electric", "Branching lightning leaping off the ring, sparks racing round it.", "epic", { style: "dots", colors: ["#fff200", "#ffe066", "#ffffff"], glow: "rgba(255,242,0,.75)", speed: 2, ornaments: ["bolts"] }),
+  fr("prism", "Prism", "A glass prism splitting light into a rainbow that wraps your avatar.", "legendary", { style: "prism", colors: ["#ff4d4d", "#ffd84d", "#4dff88", "#4dc3ff", "#b44dff"], glow: "rgba(255,255,255,.55)", ornaments: ["crystals"] }),
   fr("void", "Void", "A black hole ring pulling in violet spiral arms.", "epic", { style: "dual", colors: ["#000000", "#3c096c", "#9d4edd"], glow: "rgba(157,78,221,.65)", ornaments: ["vortex"] }),
   fr("moonlit", "Moonlit", "Silver moonlight, a crescent moon and drifting clouds.", "rare", { style: "spin", colors: ["#c9d6ff", "#e2e2e2", "#7f8fd8"], glow: "rgba(201,214,255,.6)", ornaments: ["moon", "clouds"] }),
-  fr("sunflower", "Sunflower", "Golden sunflower petals with a buzzing bee.", "epic", { style: "sweep", colors: ["#7a4a12", "#ffd23f", "#fff3a0", "#f4a259"], glow: "rgba(255,210,63,.6)", ornament: "#ffd23f", ornaments: ["petals", "bee"] }),
+  fr("sunflower", "Sunflower", "Two sunflowers in full bloom and a buzzing bee.", "epic", { style: "sweep", colors: ["#7a4a12", "#ffd23f", "#fff3a0", "#f4a259"], glow: "rgba(255,210,63,.6)", ornament: "#ffd23f", ornaments: ["sunflowers", "bee"] }),
 
   // ================= NAME EFFECTS =================
   nm("frost", "Frostbite", "Your name in icy blue with a frosty glint.", "rare", { style: "sweep", colors: ["#7fd3ff", "#e8f9ff", "#5ab7ff"] }, {}, 5000),

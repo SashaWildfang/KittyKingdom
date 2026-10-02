@@ -3,6 +3,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { Ornament } from "../lib/cosmetics";
 import { dk, lt, mix, R } from "./scene-kit";
+import { HeroOrnament } from "./cosmetic-ornaments-hero";
 import { MoreOrnament } from "./cosmetic-ornaments-more";
 
 // Hand-shaded frame ornaments, drawn around an avatar of radius 50 (viewBox -72..72, centred on 0,0).
@@ -41,6 +42,8 @@ const FLAME = "M0 0 C-7 -6 -6 -14 -2 -20 C-1 -14 2 -13 2 -18 C7 -12 8 -5 0 0 Z";
 /** One ornament layer. `uid` keeps gradient ids unique per frame on the page. */
 export function OrnamentArt({ kind, color, glow, uid }: { kind: Ornament; color?: string; glow: string; uid: string }) {
   const k = `${uid}${kind}`;
+  const hero = HeroOrnament({ kind, k });
+  if (hero) return hero;
   switch (kind) {
     case "crown":
       return (
@@ -75,28 +78,6 @@ export function OrnamentArt({ kind, color, glow, uid }: { kind: Ornament; color?
           <ellipse cx="0" cy="-64" rx="30" ry="8" fill="none" stroke={glow} strokeWidth="10" opacity="0.45" />
           <ellipse cx="0" cy="-64" rx="30" ry="8" fill="none" stroke={u(`${k}g`)} strokeWidth="4.5" />
           <ellipse cx="0" cy="-65.2" rx="28" ry="6.6" fill="none" stroke="#fff" strokeWidth="1" opacity="0.8" />
-        </g>
-      );
-    case "wings":
-      return (
-        <g>
-          <defs>{lg(`${k}f`, [[0, "#ffffff"], [0.7, "#f4ecd6"], [1, "#d9c58b"]], 1, 1)}</defs>
-          <Mirror>
-            <g className="orn-flap" style={t(2.8)}>
-              {[
-                [-50, -30, 34, -38],
-                [-50, -22, 36, -24],
-                [-50, -14, 34, -10],
-                [-50, -6, 30, 4],
-                [-50, 2, 24, 16],
-              ].map(([x, y, len, ang], i) => (
-                <path key={i} d={`M0 0 C${-len * 0.3} -5 ${-len * 0.8} -5 ${-len} 0 C${-len * 0.8} 4 ${-len * 0.3} 4 0 0 Z`} fill={u(`${k}f`)} stroke="#cdb57a" strokeWidth="0.7" transform={`translate(${x} ${y}) rotate(${ang})`} />
-              ))}
-              {[[-52, -26, 22, -30], [-52, -16, 22, -14], [-52, -6, 20, 0]].map(([x, y, len, ang], i) => (
-                <path key={i} d={`M0 0 C${-len * 0.3} -4 ${-len * 0.8} -4 ${-len} 0 C${-len * 0.8} 3 ${-len * 0.3} 3 0 0 Z`} fill="#fff" stroke="#e2d2a3" strokeWidth="0.5" transform={`translate(${x} ${y}) rotate(${ang})`} />
-              ))}
-            </g>
-          </Mirror>
         </g>
       );
     case "batwings":
@@ -252,44 +233,6 @@ export function OrnamentArt({ kind, color, glow, uid }: { kind: Ornament; color?
           })}
         </g>
       );
-    case "phoenix":
-      return (
-        <g>
-          <defs>
-            {lg(`${k}w`, [[0, "#fff176"], [0.35, "#ffb300"], [0.75, "#ff3d00"], [1, "#b71c00", 0.6]], 1, 0.4)}
-            {lg(`${k}c`, [[0, "#fff8c4"], [1, "#ff6a00"]])}
-          </defs>
-          {/* Burning wings sweep up from behind the ring */}
-          <Mirror>
-            <g className="orn-flap" style={t(2.2)}>
-              {[
-                [-44, -24, 40, -62],
-                [-46, -18, 46, -46],
-                [-48, -10, 48, -30],
-                [-48, -2, 42, -14],
-                [-46, 6, 32, 2],
-              ].map(([x, y, len, ang], i) => (
-                <g key={i} transform={`translate(${x} ${y}) rotate(${ang})`}>
-                  <path className="orn-flick" style={t(0.7 + i * 0.12, -i * 0.2)} d={`M0 0 C${-len * 0.4} -7 ${-len * 0.8} -6 ${-len} -1 C${-len * 0.86} 0 ${-len * 0.9} 3 ${-len * 0.98} 6 C${-len * 0.7} 6 ${-len * 0.3} 5 0 0 Z`} fill={u(`${k}w`)} />
-                </g>
-              ))}
-            </g>
-          </Mirror>
-          {/* Crest */}
-          <g transform="translate(0 -52)">
-            {[-14, 0, 14].map((a, i) => (
-              <g key={a} transform={`rotate(${a})`}>
-                <path className="orn-flick" style={t(0.6 + i * 0.15, -i * 0.3)} d="M0 0 C-4 -6 -3 -14 0 -20 C3 -14 4 -6 0 0 Z" fill={u(`${k}c`)} />
-              </g>
-            ))}
-          </g>
-          {/* Tail feathers curl under the ring */}
-          {[-1, 1].map((f) => (
-            <path key={f} className="orn-flick" style={t(0.9, f * 0.2)} d={`M${f * 6} 50 C${f * 16} 62 ${f * 30} 64 ${f * 40} 58 C${f * 32} 60 ${f * 22} 58 ${f * 18} 52 Z`} fill={u(`${k}w`)} />
-          ))}
-          <path className="orn-flick" style={t(0.8)} d="M0 50 C-5 58 -4 66 0 72 C4 66 5 58 0 50 Z" fill={u(`${k}c`)} />
-        </g>
-      );
     case "hearts":
       return (
         <g className="orn-orbit">
@@ -316,33 +259,6 @@ export function OrnamentArt({ kind, color, glow, uid }: { kind: Ornament; color?
               </g>
             </g>
           ))}
-        </g>
-      );
-    case "starfall":
-      return (
-        <g>
-          <defs>
-            {lg(`${k}tr`, [[0, "#fff6d6", 0], [1, "#ffe08a", 0.95]], 1, 1)}
-            {lg(`${k}s`, [[0, "#ffffff"], [1, "#ffb21e"]])}
-          </defs>
-          {[[-62, -70, 0], [-26, -78, 1], [8, -74, 2], [-74, -36, 3]].map(([x, y, i]) => (
-            <g key={i} transform={`translate(${x} ${y})`}>
-              <g className="orn-fall" style={t(3.2 + i * 0.5, -i * 0.9)}>
-                <path d="M-26 -16 L0 0" stroke={u(`${k}tr`)} strokeWidth="2.4" strokeLinecap="round" />
-                <path d={STAR} transform="scale(0.45)" fill={u(`${k}s`)} />
-              </g>
-            </g>
-          ))}
-          {Array.from({ length: 8 }, (_, i) => {
-            const a = i * 0.8 + 0.3;
-            return (
-              <g key={i} transform={`translate(${Math.cos(a) * (58 + (i % 3) * 4)} ${Math.sin(a) * (58 + (i % 3) * 4)}) scale(${0.25 + (i % 3) * 0.12})`}>
-                <g className="orn-twinkle" style={t(1.6 + (i % 4) * 0.4, -i * 0.3)}>
-                  <path d={STAR} fill={u(`${k}s`)} />
-                </g>
-              </g>
-            );
-          })}
         </g>
       );
     case "blossoms":
@@ -410,64 +326,6 @@ export function OrnamentArt({ kind, color, glow, uid }: { kind: Ornament; color?
           ))}
         </g>
       );
-    case "bolts": {
-      const arc = (start: number, span: number, seed: number) => {
-        const pts: string[] = [];
-        const n = 9;
-        for (let i = 0; i <= n; i++) {
-          const a = ((start + (span * i) / n) * Math.PI) / 180;
-          const r = 55 + (i === 0 || i === n ? 0 : (R(i, seed) - 0.5) * 12);
-          pts.push(`${(Math.cos(a) * r).toFixed(1)},${(Math.sin(a) * r).toFixed(1)}`);
-        }
-        return pts.join(" ");
-      };
-      return (
-        <g>
-          <defs>
-            <filter id={`${k}gl`} x="-30%" y="-30%" width="160%" height="160%">
-              <feGaussianBlur stdDeviation="2" />
-            </filter>
-            {lg(`${k}b`, [[0, "#ffffff"], [0.4, "#fff200"], [1, "#e0a800"]])}
-          </defs>
-          {[[-150, 60, 1], [-40, 50, 2], [60, 70, 3], [170, 55, 4], [250, 45, 5]].map(([s, span, seed], i) => (
-            <g key={i} className="orn-zap" style={t(1.3 + i * 0.27, -i * 0.37)}>
-              <polyline points={arc(s, span, seed)} fill="none" stroke="#fff200" strokeWidth="4" filter={u(`${k}gl`)} />
-              <polyline points={arc(s, span, seed)} fill="none" stroke="#ffffff" strokeWidth="1.3" strokeLinejoin="round" />
-            </g>
-          ))}
-          <Mirror>
-            <g className="orn-jolt" style={t(2.4)}>
-              <path d="M-60 -24 L-71 -2 L-62 -2 L-69 20 L-51 -6 L-60 -6 L-53 -24 Z" fill={u(`${k}b`)} stroke="#a37a00" strokeWidth="1" strokeLinejoin="round" />
-              <path d="M-60 -24 L-71 -2 L-66 -2 Z" fill="#fff" opacity="0.6" />
-            </g>
-          </Mirror>
-          {Array.from({ length: 6 }, (_, i) => (
-            <circle key={i} className="orn-sparkle" style={t(0.9 + i * 0.2, -i * 0.3)} cx={Math.cos(i * 1.05 + 0.4) * 62} cy={Math.sin(i * 1.05 + 0.4) * 62} r="1.4" fill="#fff9b0" />
-          ))}
-        </g>
-      );
-    }
-    case "petals": {
-      const c = color ?? "#ffd23f";
-      return (
-        <g>
-          <defs>{lg(`${k}p`, [[0, lt(c, 0.5)], [0.5, c], [1, dk(mix(c, "#f4a259", 0.5), 0.15)]])}</defs>
-          <g className="orn-spin" style={t(60)}>
-            {Array.from({ length: 20 }, (_, i) => (
-              <g key={i} transform={`rotate(${i * 18 + 9}) translate(0 -58)`}>
-                <path d="M0 6 C-5 2 -5 -8 0 -13 C5 -8 5 2 0 6 Z" fill={dk(c, 0.2)} />
-              </g>
-            ))}
-            {Array.from({ length: 20 }, (_, i) => (
-              <g key={i} transform={`rotate(${i * 18}) translate(0 -58)`}>
-                <path d="M0 6 C-5.5 2 -5.5 -9 0 -14 C5.5 -9 5.5 2 0 6 Z" fill={u(`${k}p`)} stroke={dk(c, 0.3)} strokeWidth="0.5" />
-                <path d="M0 4 L0 -10" stroke={dk(c, 0.25)} strokeWidth="0.6" opacity="0.6" />
-              </g>
-            ))}
-          </g>
-        </g>
-      );
-    }
     default:
       return <MoreOrnament kind={kind} k={k} color={color} />;
   }
