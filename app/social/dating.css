@@ -4596,3 +4596,41 @@ a.dt-partner-chip:hover {
 .dt-bubble:focus {
   outline: none;
 }
+
+/* Tile overlays v2: one row up top (score + one status), chips along the photo's bottom */
+.dt-tile-media {
+  position: relative;
+  display: block;
+}
+.dt-tile-media > .dt-tile-corner {
+  position: absolute;
+  top: 0.6rem;
+  left: 0.6rem;
+  right: 3.6rem;
+  z-index: 3;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  pointer-events: none;
+}
+.dt-tile-media > .dt-tile-corner .dt-spotlight-ribbon {
+  position: static;
+  padding: 0.18rem 0.5rem;
+}
+.dt-tile-media > .dt-tile-corner .dt-new {
+  margin: 0;
+  height: 1.35rem;
+}
+.dt-tile-media > .dt-tile-tags {
+  position: absolute;
+  top: auto;
+  left: 0.6rem;
+  right: 0.6rem;
+  bottom: 0.6rem;
+  z-index: 3;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
