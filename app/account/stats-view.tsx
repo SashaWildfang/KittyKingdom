@@ -63,6 +63,7 @@ import { BadgeCollection } from "./stats-badges";
 import { FriendshipMap, PeopleExplorer } from "./stats-social";
 import { TopicMap } from "./stats-topics";
 import { TrendsCard } from "./stats-trends";
+import { EmojiText } from "../games/emoji-text";
 import { PersonalGamesStats } from "../games/stats-ui";
 
 const POLL_MS = 7_000;
@@ -1277,7 +1278,7 @@ export function StatsView({ onBack }: { onBack: () => void }) {
                   <ul className="st-spins">
                     {s.games.recent.map((r, i) => (
                       <li key={i} className={r.net > 0 ? "is-win" : r.net < 0 ? "is-loss" : undefined} title={r.at ? new Date(r.at).toLocaleString() : undefined}>
-                        <span>{r.symbols ?? r.game}</span>
+                        <span>{r.symbols ? <EmojiText text={r.symbols} size={16} /> : r.game}</span>
                         <b>
                           {r.net > 0 ? "+" : ""}
                           {compact(r.net)}

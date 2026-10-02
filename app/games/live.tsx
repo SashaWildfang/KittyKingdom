@@ -2,10 +2,11 @@
 
 import { ArrowLeft, Eye, EyeOff, Radio, Spade } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import type { LiveEntry, PublicScratch, Spectate } from "../../lib/games/live";
+import type { LiveEntry, PublicScratch, PublicSlots, Spectate } from "../../lib/games/live";
 import { LeafEmote } from "../ui-icons";
 import { BlackjackTable } from "./blackjack";
 import { ScratchSpectator } from "./scratch";
+import { SlotsSpectator } from "./slots";
 
 const ago = (iso: string) => {
   const s = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 1000));
@@ -29,6 +30,7 @@ function Watch({ id, entry, tableUrl, minBet, onBack }: { id: string; entry: Liv
   const [viewers, setViewers] = useState(entry?.viewers ?? 0);
   const [error, setError] = useState<string | null>(null);
   const isBj = id.startsWith("bj:");
+  const kind = isBj ? "blackjack" : id.startsWith("sl:") ? "the slots" : "a scratch-off";
 
   // First look (and, for tickets, keep following: blackjack follows itself)
   useEffect(() => {
@@ -62,7 +64,7 @@ function Watch({ id, entry, tableUrl, minBet, onBack }: { id: string; entry: Liv
         {player ? (
           <span className="lv-watch-who">
             <Avatar src={player.avatar} name={player.name} size={30} />
-            Watching <b>{player.name}</b> play {isBj ? "blackjack" : "a scratch-off"}
+            Watching <b>{player.name}</b> play {kind}
           </span>
         ) : null}
         <span className="lv-viewers" title="People watching this table">
@@ -73,6 +75,8 @@ function Watch({ id, entry, tableUrl, minBet, onBack }: { id: string; entry: Liv
       {data ? (
         isBj ? (
           <BlackjackTable key={id} initialTable={data.blackjack} minBet={minBet} watch={{ url: tableUrl(id), onData }} />
+        ) : id.startsWith("sl:") ? (
+          <SlotsSpectator slots={data.slots as PublicSlots | null} jackpot={(data.slots as PublicSlots | null)?.jackpot ?? 0} />
         ) : (
           <ScratchSpectator scratch={data.scratch as PublicScratch | null} />
         )
@@ -197,14 +201,14 @@ export function LiveGames({
 }
 
 function LiveCard({ x, i, onWatch }: { x: LiveEntry; i: number; onWatch: () => void }) {
-  const tone = /^(Won|Blackjack|Free)/.test(x.status) ? "is-up" : /^(Lost|No luck)/.test(x.status) ? "is-down" : "";
+  const tone = /(Won|Blackjack|Free|JACKPOT)/.test(x.status) ? "is-up" : /(Lost|No luck)/.test(x.status) ? "is-down" : "";
   return (
     <button type="button" className={`lv-card${x.live ? " is-live" : ""}`} style={{ "--i": i } as React.CSSProperties} onClick={onWatch}>
       <span className="lv-card-top">
         <Avatar src={x.player.avatar} name={x.player.name} />
         <span className="lv-card-who">
           <b>{x.player.name}</b>
-          <small>{x.game === "blackjack" ? "🃏 Blackjack" : `${x.ticket?.icon ?? "🎟️"} ${x.ticket?.name ?? "Scratch-off"}`}</small>
+          <small>{x.game === "blackjack" ? "🃏 Blackjack" : x.game === "slots" ? "🎰 Slots" : `${x.ticket?.icon ?? "🎟️"} ${x.ticket?.name ?? "Scratch-off"}`}</small>
         </span>
         {x.live ? <span className="lv-live">LIVE</span> : <span className="lv-ago">{ago(x.updatedAt)}</span>}
       </span>
