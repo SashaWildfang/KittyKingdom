@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "../../../lib/auth";
+import { monthlyBumps } from "../../../lib/bumps";
 import { loadDirectory, resolveMissing } from "../../../lib/member-directory";
 import {
   getBotUsersCollection,
@@ -216,7 +217,8 @@ function toLeaderboardRow(
     level: getNumber(source, sortFields.level),
     messages: getNumber(source, sortFields.messages),
     bumps: getNumber(source, sortFields.bumps),
-    monthly_bumps: getNumber(source, sortFields.monthly_bumps),
+    // Only counts from this month (the bot resets a member's count lazily, on their next bump)
+    monthly_bumps: monthlyBumps(source),
     total_vc_time: getNumber(source, sortFields.total_vc_time),
     monthly_vc_time: getNumber(source, sortFields.monthly_vc_time),
     isCurrentUser: Boolean(currentDiscordId && discordId === currentDiscordId),
