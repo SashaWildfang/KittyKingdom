@@ -73,51 +73,6 @@ export function CornRows({ y }: { y: number }) {
   );
 }
 
-export function Graveyard({ id, y }: { id: string; y: number }) {
-  return (
-    <g>
-      <defs>
-        <LG id={`${id}tomb`} x2={1} y2={0} s={[[0, "#8a9a92"], [0.6, "#5a6a62"], [1, "#3a4a42"]]} />
-        <LG id={`${id}gh`} s={[[0, "#ffffff", 0.9], [1, "#c8ffe0", 0.3]]} />
-      </defs>
-      {[[640, 0, 1], [700, 4, 0.8], [760, -2, 1.1], [820, 3, 0.9], [880, 0, 1]].map(([x, dy, s], i) => (
-        <g key={i} transform={`translate(${x} ${y + dy}) scale(${s}) rotate(${(R(i, 3) - 0.5) * 10})`}>
-          {i % 3 === 1 ? (
-            <path d="M-2.5 0 V-24 H-9 V-29 H-2.5 V-36 H2.5 V-29 H9 V-24 H2.5 V0 Z" fill={url(`${id}tomb`)} />
-          ) : (
-            <>
-              <path d="M-9 0 V-20 A9 9 0 0 1 9 -20 V0 Z" fill={url(`${id}tomb`)} />
-              <path d="M-5 -20 h10 M-5 -15 h10 M-3 -10 h6" stroke="#2a3a32" strokeWidth="0.9" opacity="0.6" />
-              <path d="M-9 -4 q4 -3 6 0" stroke="#4f7a3e" strokeWidth="1.4" fill="none" />
-            </>
-          )}
-        </g>
-      ))}
-      {/* Wrought iron fence */}
-      <g stroke="#1a1a22" strokeWidth="1.4">
-        <line x1="600" x2="940" y1={y - 26} y2={y - 26} />
-        <line x1="600" x2="940" y1={y - 8} y2={y - 8} />
-        {Array.from({ length: 24 }, (_, i) => (
-          <g key={i}>
-            <line x1={604 + i * 14} x2={604 + i * 14} y1={y} y2={y - 32} />
-            <path d={`M${601 + i * 14} ${y - 32} L${604 + i * 14} ${y - 38} L${607 + i * 14} ${y - 32}`} fill="#1a1a22" />
-          </g>
-        ))}
-      </g>
-      {[[420, 96, 1], [730, 84, 0.8], [300, 120, 0.7]].map(([x, gy, s], i) => (
-        <g key={i} transform={`translate(${x} ${gy}) scale(${s})`}>
-          <g {...anim("sc-ghost", 5 + i, -i * 1.5)}>
-            <path d="M-12 14 V-2 A12 12 0 0 1 12 -2 V14 L8 10 L4 14 L0 10 L-4 14 L-8 10 Z" fill={url(`${id}gh`)} />
-            <ellipse cx="-4" cy="-2" rx="1.8" ry="2.6" fill="#123" />
-            <ellipse cx="4" cy="-2" rx="1.8" ry="2.6" fill="#123" />
-            <ellipse cx="0" cy="5" rx="2" ry="2.6" fill="#123" />
-          </g>
-        </g>
-      ))}
-    </g>
-  );
-}
-
 // ---------- Mountain scenes ----------
 export function LakeCamp({ id, moon, sky }: { id: string; moon: string; sky: string }) {
   return (
@@ -512,43 +467,6 @@ export function KoiPond({ id }: { id: string }) {
   );
 }
 
-export function Wisteria({ id, c1, c2 }: { id: string; c1: string; c2: string }) {
-  return (
-    <g>
-      <defs>
-        <LG id={`${id}wis`} s={[[0, c1], [1, lt(c2, 0.4)]]} />
-        <LG id={`${id}br`} s={[[0, "#e5484d"], [1, "#9a1f24"]]} />
-      </defs>
-      {/* Arched red bridge over a stream */}
-      <path d={`M300 214 Q500 180 700 214`} fill="none" stroke={url(`${id}br`)} strokeWidth="9" />
-      <path d={`M300 200 Q500 166 700 200`} fill="none" stroke="#c43d42" strokeWidth="2.4" />
-      {Array.from({ length: 11 }, (_, i) => {
-        const x = 320 + i * 36;
-        const t = (x - 300) / 400;
-        const y = 200 - 4 * 34 * t * (1 - t);
-        return <line key={i} x1={x} y1={y} x2={x} y2={y + 14} stroke="#c43d42" strokeWidth="2" />;
-      })}
-      <path d={`M-20 214 Q300 206 500 216 T${W + 20} 212 V${H} H-20 Z`} fill="#6a8acb" opacity="0.5" />
-      {/* Hanging racemes across the top */}
-      <path d={`M-20 52 Q250 66 500 54 T${W + 20} 58`} fill="none" stroke="#5a4a3a" strokeWidth="5" />
-      <path d={`M-20 50 Q250 64 500 52 T${W + 20} 56`} fill="none" stroke="#8a7a62" strokeWidth="1.4" />
-      {Array.from({ length: 40 }, (_, i) => {
-        const x = 6 + i * 25 + R(i, 3) * 10;
-        const len = 34 + R(i, 4) * 56;
-        return (
-          <g key={i} {...anim("sc-sway", 4 + R(i, 5) * 2, -R(i, 6) * 3)}>
-            {Array.from({ length: Math.round(len / 4) }, (_, j) => {
-              const tt = j / (len / 4);
-              return <ellipse key={j} cx={x + Math.sin(j) * 2.2 * (1 - tt)} cy={58 + j * 4} rx={5 * (1 - tt * 0.7)} ry="2.8" fill={j % 3 === 0 ? dk(c1, 0.25) : j % 2 ? c1 : lt(c1, 0.25)} />;
-            })}
-            <path d={`M${x - 6} 56 q-6 6 -10 2 M${x + 6} 56 q6 6 10 2`} stroke="#5f8f4e" strokeWidth="2.2" fill="none" />
-          </g>
-        );
-      })}
-    </g>
-  );
-}
-
 // ---------- Candy ----------
 export function CakeMountains({ id, cream, berry }: { id: string; cream: string; berry: string }) {
   return (
@@ -817,22 +735,3 @@ export function FloatingIslands({ id, grass }: { id: string; grass: string }) {
     </g>
   );
 }
-
-// ---------- Meadow ----------
-export function Barn({ x, y }: { x: number; y: number }) {
-  return (
-    <g transform={`translate(${x} ${y})`}>
-      <ellipse cx="0" cy="1" rx="44" ry="4" fill="#000" opacity="0.15" />
-      <path d="M-24 0 V-24 L-12 -36 H12 L24 -24 V0 Z" fill="#c43d42" />
-      <path d="M-26 -24 L-12 -38 H12 L26 -24" fill="none" stroke="#fff" strokeWidth="2" />
-      <rect x="-8" y="-16" width="16" height="16" fill="#8a2a2e" stroke="#fff" strokeWidth="1.4" />
-      <path d="M-8 -16 L8 0 M8 -16 L-8 0" stroke="#fff" strokeWidth="1" />
-      <rect x="28" y="-46" width="14" height="46" rx="7" fill="#c9ccd4" />
-      <path d="M28 -46 A7 7 0 0 1 42 -46" fill="#9aa4b2" />
-      {[-36, -26, -16].map((yy) => (
-        <line key={yy} x1="28" x2="42" y1={yy} y2={yy} stroke="#9aa4b2" strokeWidth="0.8" />
-      ))}
-    </g>
-  );
-}
-

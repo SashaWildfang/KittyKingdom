@@ -2,7 +2,7 @@
 
 import { anim, Bird, Cloud, CloudDefs, dk, H, Hill, hillY, LG, lt, lum, Mist, mix, Orb, Pine, R, RG, RoundTree, Sky, Stars, url, Vignette, W } from "./scene-kit";
 import type { Opts } from "./scenes-a";
-import { Angler, Barn, CakeMountains, Caravan, FloatingIslands, GiantStrawberries, IceCreamMountains, Oasis, Peppermints, Road, Turtle, VaporTemple } from "./scenes-d";
+import { Angler, CakeMountains, Caravan, FloatingIslands, GiantStrawberries, IceCreamMountains, Oasis, Peppermints, Road, Turtle, VaporTemple } from "./scenes-d";
 
 // ============ Candy land ============
 export function Candy({ p, id, v }: Opts) {
@@ -569,8 +569,6 @@ export function Meadow({ p, id, v }: Opts) {
         <Cloud id={id} x={180} y={74} s={0.7} seed={3} opacity={0.9} />
       </g>
       <Hill id={id} k="h0" y={138} amp={10} seed={0.6} waves={2} color={mix(h1, sky2, 0.45)} />
-      {kind !== "sunflower" ? (
-        <>
       {/* Windmill on the far hill */}
       <g transform={`translate(640 ${hillY(640, 138, 10, 0.6, 2) + 2})`}>
         <path d="M-8 0 L-5 -38 L5 -38 L8 0 Z" fill={url(`${id}mill`)} />
@@ -588,8 +586,6 @@ export function Meadow({ p, id, v }: Opts) {
           </g>
         </g>
       </g>
-        </>
-      ) : <Barn x={650} y={hillY(650, 138, 10, 0.6, 2) + 4} />}
       {[200, 260, 820, 880].map((x, i) => (
         <RoundTree key={x} id={id} x={x} base={hillY(x, 138, 10, 0.6, 2) + 6} h={36 + (i % 2) * 10} seed={i} />
       ))}

@@ -31433,3 +31433,22 @@ a.apl-chip {
 /* Electric: bolts crackle most of the time instead of flashing briefly */
 .cos-fk-electric .cos-orn .orn-zap { animation-name: orn-zap2; }
 @keyframes orn-zap2 { 0% { opacity: 1; } 8% { opacity: 0.25; } 14% { opacity: 1; } 30% { opacity: 0.7; } 36% { opacity: 1; } 55% { opacity: 0; } 70% { opacity: 0; } 72% { opacity: 0.9; } 76% { opacity: 0; } 100% { opacity: 0; } }
+
+/* ==========================================
+   Frames round 4
+   ========================================== */
+.cos-orn .orn-flapup { transform-box: fill-box; transform-origin: 95% 95%; animation: orn-flapup 1.6s ease-in-out infinite; }
+@keyframes orn-flapup { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(16deg) scaleY(0.92); } }
+
+/* Ember Ring: dark forged iron split by glowing molten cracks that drift round */
+.cos-fk-ember .cos-ring {
+  background: var(--bevel), conic-gradient(from var(--cos-a), #ff7a00 0deg, #ffb347 20deg, #3a1406 23deg, #ff8a1f 26deg, #ffd27a 60deg, #ff6a00 95deg, #2a0e04 98deg, #ff7a00 101deg, #ffc04d 140deg, #ff5a00 180deg, #3a1406 183deg, #ffb347 186deg, #fff1a8 220deg, #ff7a00 260deg, #2a0e04 263deg, #ff8a1f 266deg, #ffd27a 310deg, #ff7a00 360deg);
+  animation: cos-spin 9s linear infinite, cos-flicker 1.4s steps(3) infinite;
+}
+.cos-fk-ember::after { background: radial-gradient(closest-side, rgba(255, 120, 0, 0.7), transparent); opacity: 0.75; }
+
+/* Banner round 4: the smith's hammer and the sparks off each strike */
+.sc .sc-swing-hammer { transform-box: view-box; transform-origin: 0 0; animation: sc-hammer linear infinite; }
+.sc .sc-sparkburst { animation: sc-sparkburst linear infinite; }
+@keyframes sc-hammer { 0% { transform: rotate(75deg); } 40% { transform: rotate(82deg); animation-timing-function: cubic-bezier(0.6, 0, 1, 0.6); } 52% { transform: rotate(-6deg); } 60% { transform: rotate(-2deg); } 100% { transform: rotate(75deg); } }
+@keyframes sc-sparkburst { 0%, 51% { transform: translate(0, 0); opacity: 0; } 53% { opacity: 1; } 78% { transform: translate(var(--sx), var(--sy)); opacity: 0; } 100% { opacity: 0; } }

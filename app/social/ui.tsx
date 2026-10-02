@@ -152,39 +152,43 @@ export function ProfileTile({ card, extra, onLike }: { card: Card; extra?: React
     >
       <FrameRing frame={card.flair?.frame} />
       <a href={`/social/u/${card.id}`} className="dt-tile-link" aria-label={`Open ${card.name}'s profile`}>
-        <Photo src={card.photo} name={card.name} accent={card.accent} className="dt-tile-photo" crop={card.photoCrop} />
-        {/* Every corner tag stacks in one column, so Spotlight, the score, New and the chips never overlap */}
-        <span className="dt-tile-corner">
-        <span className="dt-tile-badges">
-          {card.spotlight ? (
-            <span className="dt-spotlight-ribbon">
-              <Sparkles size={11} aria-hidden="true" /> Spotlight
+        <span className="dt-tile-media">
+          <Photo src={card.photo} name={card.name} accent={card.accent} className="dt-tile-photo" crop={card.photoCrop} />
+          {/* One tidy row up top: the match score and a single status (Spotlight beats New) */}
+          <span className="dt-tile-corner">
+            {card.score !== null ? (
+              <span className={`dt-score${card.datingFit ? "" : " is-friendly"}`} title={card.datingFit ? `${card.tier} match` : "Compatibility (not a dating fit on preferences)"}>
+                <Score score={card.score} fit={card.datingFit} size={12} />
+              </span>
+            ) : null}
+            {card.spotlight ? (
+              <span className="dt-spotlight-ribbon">
+                <Sparkles size={11} aria-hidden="true" /> Spotlight
+              </span>
+            ) : card.isNew ? (
+              <span className="dt-new">New</span>
+            ) : null}
+          </span>
+          {/* Relationship chips sit along the bottom of the photo */}
+          {!card.openToDating || card.myPartner || card.partnered || !card.inServer ? (
+            <span className="dt-tile-tags">
+              {!card.openToDating ? (
+                <span className="dt-chip-mini is-friends">
+                  <Users size={10} aria-hidden="true" /> Friends
+                </span>
+              ) : null}
+              {card.myPartner ? (
+                <span className="dt-chip-mini is-partner">
+                  <HeartHandshake size={10} aria-hidden="true" /> Your partner
+                </span>
+              ) : card.partnered ? (
+                <span className="dt-chip-mini is-partner" title="Has a linked partner">
+                  <HeartHandshake size={10} aria-hidden="true" /> Partnered
+                </span>
+              ) : null}
+              {!card.inServer ? <span className="dt-chip-mini is-left">Left server</span> : null}
             </span>
           ) : null}
-          {card.score !== null ? (
-            <span className={`dt-score${card.datingFit ? "" : " is-friendly"}`} title={card.datingFit ? `${card.tier} match` : "Compatibility (not a dating fit on preferences)"}>
-              <Score score={card.score} fit={card.datingFit} size={12} />
-            </span>
-          ) : null}
-          {card.isNew ? <span className="dt-new">New</span> : null}
-        </span>
-        <span className="dt-tile-tags">
-          {!card.openToDating ? (
-            <span className="dt-chip-mini is-friends">
-              <Users size={10} aria-hidden="true" /> Friends
-            </span>
-          ) : null}
-          {card.myPartner ? (
-            <span className="dt-chip-mini is-partner">
-              <HeartHandshake size={10} aria-hidden="true" /> Your partner
-            </span>
-          ) : card.partnered ? (
-            <span className="dt-chip-mini is-partner" title="Has a linked partner">
-              <HeartHandshake size={10} aria-hidden="true" /> Partnered
-            </span>
-          ) : null}
-          {!card.inServer ? <span className="dt-chip-mini is-left">Left server</span> : null}
-        </span>
         </span>
         <span className="dt-tile-body">
           <b>
