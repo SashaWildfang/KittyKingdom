@@ -1,5 +1,6 @@
 "use client";
 
+import { EmojiText } from "./emoji-text";
 import "./games.css";
 import { Crown, Dices, Flame, Globe, MessageCircle, Sparkles, TrendingDown, TrendingUp, Trophy } from "lucide-react";
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
@@ -232,7 +233,7 @@ export function PersonalGamesStats() {
                 <em>{GAME_ICON[r.game] ?? "🎲"}</em>
                 <span>
                   <b>{r.label}</b>
-                  <small>{r.detail ?? `bet ${compact(r.spent)}`}</small>
+                  <small>{r.detail ? <EmojiText text={r.detail} size={16} /> : `bet ${compact(r.spent)}`}</small>
                 </span>
                 <strong>{r.net === 0 ? "±0" : signed(r.net)}</strong>
               </li>
@@ -326,7 +327,12 @@ export function SiteGamesStats({ stats }: { stats: SiteGames }) {
                     <b>{w.name}</b>
                     <small>
                       {w.label}
-                      {w.detail ? ` · ${w.detail}` : ""}
+                      {w.detail ? (
+                        <>
+                          {" · "}
+                          <EmojiText text={w.detail} size={16} />
+                        </>
+                      ) : null}
                     </small>
                   </span>
                   <strong>+{compact(w.net)}</strong>
