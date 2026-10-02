@@ -7,6 +7,7 @@
 // QOTD and ticket records, and the member's Discord profile.
 
 import { Long, type Document } from "mongodb";
+import { monthlyBumps } from "./bumps";
 import { people, type Person } from "./admin-people";
 import { getGuildChannelsRaw, getGuildRoles, getMemberProfile, guildId } from "./discord-member";
 import { inServerIds } from "./member-directory";
@@ -521,7 +522,7 @@ export async function memberStats(discordId: string, timeZone: string) {
       of: ranked,
       dailyStreak: num(user?.streak),
       bumps: num(user?.bumps),
-      monthlyBumps: num(user?.monthly_bumps),
+      monthlyBumps: monthlyBumps(user as Record<string, unknown> | null),
       purchases: num(salesAgg[0]?.n),
       spent: num(salesAgg[0]?.spent),
       giftsSent,

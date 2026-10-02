@@ -24,7 +24,7 @@ import { DailyCard } from "./daily-card";
 import { getDailyStatus } from "../../lib/daily";
 import { AccountInventory } from "./account-inventory";
 import { DiscordLinkCode } from "./discord-link-code";
-import { DailyReadyChip, DailyReadyDot } from "./daily-ready";
+import { DailyReadyDot } from "./daily-ready";
 import { memberTranscripts, ticketTypeLabel } from "../../lib/member-transcripts";
 import { badgeHistory } from "../../lib/badge-history";
 import { serverJoinDate } from "../../lib/member-directory";
@@ -221,7 +221,6 @@ export default async function AccountPage({
               />
             ) : null}
             <LiveServerStatus initial={roleState} discordLinked={discordLinked} fallbackStaff={roles.isStaff} />
-            {discordLinked ? <DailyReadyChip ready={dailyReady} /> : null}
             {memberSince ? <p className="acct-since"><LeafEmote size={16} /> Member since {memberSince}</p> : null}
             {discordLinked ? <StatsButton /> : null}
           </div>

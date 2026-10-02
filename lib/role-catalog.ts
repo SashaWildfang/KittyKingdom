@@ -401,6 +401,12 @@ export const ROLE_CATEGORIES: SelfRoleCategory[] = [
         "name": "QOTD Ping",
         "emoji": "❓",
         "description": "Pings when a new Question of the Day is posted."
+      },
+      {
+        "id": "1555576203207774219",
+        "name": "Bump Ping",
+        "emoji": "⬆️",
+        "description": "Pings when the server is ready to /bump on Disboard."
       }
     ]
   },

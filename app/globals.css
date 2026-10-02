@@ -26277,34 +26277,6 @@ body.live-fullscreen .view-as-bar {
   background: #3ddc84;
   box-shadow: 0 0 8px rgba(61, 220, 132, 0.7);
 }
-.acct-daily-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  margin: 0.2rem auto 0;
-  padding: 0.35rem 0.75rem;
-  border: 1px solid rgba(61, 220, 132, 0.45);
-  border-radius: 999px;
-  background: rgba(61, 220, 132, 0.12);
-  color: #3ddc84;
-  font-size: 0.82rem;
-  font-weight: 800;
-  animation: acct-daily-pulse 2.4s ease-in-out infinite;
-}
-:root[data-theme="light"] .acct-daily-chip {
-  color: #1b7a3d;
-}
-@keyframes acct-daily-pulse {
-  50% {
-    box-shadow: 0 0 0 4px rgba(61, 220, 132, 0.12);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .acct-daily-chip {
-    animation: none;
-  }
-}
-
 .adm-drill-profile {
   margin-top: 0.4rem;
 }
