@@ -19,7 +19,7 @@ export type Suit = "S" | "H" | "D" | "C";
 export type Card = { rank: string; suit: Suit; value: number };
 export type HandResult = "blackjack" | "win" | "dealer_bust" | "push" | "bust" | "loss" | "timeout";
 
-type Session = {
+export type Session = {
   _id: string;
   discordId: string;
   deck: Card[];
@@ -37,6 +37,8 @@ type Session = {
 
 export type PublicCard = Card | { hidden: true };
 export type PublicTable = {
+  /** Changes with every new hand (so spectators can deal it in fresh) */
+  handId: number;
   phase: "player" | "done";
   hands: { cards: Card[]; value: number; bet: number; result: HandResult | null }[];
   index: number;
@@ -68,11 +70,13 @@ export function handValue(hand: Card[]) {
 
 const sid = (discordId: string) => `bj:${discordId}`;
 
-function view(s: Session): PublicTable {
+/** What anyone at or watching the table may see: the dealer's hole card and the deck stay hidden mid-hand. */
+export function view(s: Session): PublicTable {
   const done = s.phase === "done";
   const hand = s.hands[s.index] ?? [];
   const totalBet = s.bets.reduce((a, b) => a + b, 0);
   return {
+    handId: new Date(s.createdAt).getTime(),
     phase: s.phase,
     hands: s.hands.map((cards, i) => ({ cards, value: handValue(cards), bet: s.bets[i], result: s.results?.[i] ?? null })),
     index: s.index,

@@ -12,7 +12,7 @@ export const maxDuration = 10;
 export const metadata = { title: "Games | Kitty Kingdom" };
 
 /** Blackjack and scratch-offs with your leaves (signed-in members with Discord linked). */
-export default async function GamesPage({ searchParams }: { searchParams: { game?: string } }) {
+export default async function GamesPage({ searchParams }: { searchParams: { game?: string; watch?: string } }) {
   const [user, discord] = await Promise.all([getCurrentUser(), getDiscordInviteSummary()]);
   if (!user) redirect("/login?account=login-required");
   if (!user.discordId) redirect("/account?account=link-required#discord-account");
@@ -24,7 +24,8 @@ export default async function GamesPage({ searchParams }: { searchParams: { game
     <main className="site-shell games-shell">
       <SiteNav signedIn discordOnline={discord.online} />
       <GamesClient
-        initialGame={searchParams.game === "scratch" ? "scratch" : "blackjack"}
+        initialGame={searchParams.watch || searchParams.game === "live" ? "live" : searchParams.game === "scratch" ? "scratch" : "blackjack"}
+        initialWatch={typeof searchParams.watch === "string" && /^(bj|sc):\d{5,25}$/.test(searchParams.watch) ? searchParams.watch : null}
         initialBalance={bj?.balance ?? scratch?.balance ?? 0}
         initialTable={bj?.table ?? null}
         initialScratch={scratch ? { used: scratch.used, limit: scratch.limit, nitro: scratch.nitro } : { used: 0, limit: 5, nitro: false }}
