@@ -85,7 +85,8 @@ export function FlairBanner({ banner, className, children }: { banner: string | 
   if (!def?.banner) return null;
   return (
     <span className={`cos-banner${className ? ` ${className}` : ""}`} aria-hidden="true">
-      <BannerScene spec={def.banner} />
+      {/* Each banner key picks its own variation of its scene */}
+      <BannerScene spec={def.banner.v ? def.banner : { ...def.banner, v: def.key }} />
       {children}
     </span>
   );
@@ -191,17 +192,18 @@ export function FlairEffect({ effect, count, className }: { effect: string | nul
   const { particle, colors, motion } = def.effect;
   const n = count ?? def.effect.count ?? 20;
   const shape = SHAPES[particle];
+  if (particle === "snow" || particle === "ember" || particle === "rain") return <WeatherEffect particle={particle} colors={colors} n={n} className={className} />;
   return (
     <span className={`cos-fx cos-fx--${motion} cos-fx--${particle}${className ? ` ${className}` : ""}`} aria-hidden="true">
       {Array.from({ length: n }, (_, i) => {
         const c = colors[i % colors.length];
-        const size = particle === "rain" ? 14 + R(i, 3) * 10 : particle === "snow" || particle === "ember" || particle === "firefly" ? 3 + R(i, 3) * 5 : 9 + R(i, 3) * 9;
+        const size = particle === "firefly" ? 3 + R(i, 3) * 5 : 9 + R(i, 3) * 9;
         const style = {
           left: `${R(i, 1) * 100}%`,
           top: motion === "twinkle" || motion === "float" || motion === "drift" ? `${R(i, 2) * 100}%` : undefined,
-          width: particle === "rain" ? 1.5 : size,
+          width: size,
           height: size,
-          animationDuration: `${(motion === "rain" ? 0.9 : motion === "twinkle" ? 2.4 : 7) + R(i, 4) * (motion === "rain" ? 0.6 : 6)}s`,
+          animationDuration: `${(motion === "twinkle" ? 2.4 : 7) + R(i, 4) * 6}s`,
           animationDelay: `${-R(i, 5) * 12}s`,
           "--c": c,
           "--sway": `${(R(i, 6) - 0.5) * 80}px`,
@@ -213,6 +215,55 @@ export function FlairEffect({ effect, count, className }: { effect: string | nul
           </span>
         );
       })}
+    </span>
+  );
+}
+
+const FLAKE = (
+  <g stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none">
+    {[0, 60, 120, 180, 240, 300].map((a) => (
+      <g key={a} transform={`rotate(${a} 12 12)`}>
+        <line x1="12" y1="12" x2="12" y2="2" />
+        <path d="M12 6 l-3 -3 M12 6 l3 -3 M12 9 l-2 -2 M12 9 l2 -2" strokeWidth="1.1" />
+      </g>
+    ))}
+  </g>
+);
+
+/** Snow, embers and rain: layered for depth (near ones bigger, faster and softer), with a second wobble motion. */
+function WeatherEffect({ particle, colors, n, className }: { particle: "snow" | "ember" | "rain"; colors: string[]; n: number; className?: string }) {
+  const splashes = particle === "rain" ? Math.round(n / 3) : 0;
+  return (
+    <span className={`cos-fx cos-wx cos-wx--${particle}${className ? ` ${className}` : ""}`} aria-hidden="true">
+      {Array.from({ length: n }, (_, i) => {
+        const c = colors[i % colors.length];
+        const depth = R(i, 9); // 0 far … 1 near
+        const crystal = particle === "snow" && i % 3 === 0;
+        const size =
+          particle === "rain" ? 16 + depth * 22 : particle === "snow" ? (crystal ? 8 + depth * 8 : 2 + depth * 6) : 2 + depth * 4.5;
+        const dur =
+          particle === "rain" ? 0.55 + (1 - depth) * 0.5 : particle === "snow" ? 7 + (1 - depth) * 9 : 3.5 + (1 - depth) * 4.5;
+        const style = {
+          left: `${R(i, 1) * 104 - 2}%`,
+          width: particle === "rain" ? 1 + depth * 1.4 : size,
+          height: size,
+          opacity: 0.45 + depth * 0.55,
+          animationDuration: `${dur}s`,
+          animationDelay: `${-R(i, 5) * dur * 2}s`,
+          "--c": c,
+          "--sway": `${(R(i, 6) - 0.5) * (particle === "rain" ? 0 : 70)}px`,
+          "--blur": `${particle === "snow" && depth > 0.8 ? 1 : 0}px`,
+          "--wob": `${1.6 + R(i, 7) * 2}s`,
+        } as CSSProperties;
+        return (
+          <span key={i} className={`cos-wp${crystal ? " is-crystal" : ""}`} style={style}>
+            <i>{crystal ? <svg viewBox="0 0 24 24" style={{ color: c }}>{FLAKE}</svg> : null}</i>
+          </span>
+        );
+      })}
+      {Array.from({ length: splashes }, (_, i) => (
+        <span key={`s${i}`} className="cos-splash" style={{ left: `${R(i, 21) * 100}%`, animationDelay: `${-R(i, 22) * 1.2}s`, animationDuration: `${0.9 + R(i, 23) * 0.6}s`, "--c": colors[0] } as CSSProperties} />
+      ))}
     </span>
   );
 }

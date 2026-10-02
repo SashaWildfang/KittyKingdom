@@ -4,7 +4,8 @@ import { useId, type ReactNode } from "react";
 import type { BannerSpec } from "../lib/cosmetics";
 import { H, W } from "./scene-kit";
 import { Aurora, City, Forest, Mountains, Ocean, Pumpkins, Sakura, Space, type Opts } from "./scenes-a";
-import { Candy, Clouds, Desert, Lava, Meadow, Retro, Underwater, Village } from "./scenes-b";
+import { Candy, Clouds, Desert, Meadow, Retro, Underwater, Village } from "./scenes-b";
+import { Autumn, Forge, Highlands, Lavender, Tropical, Volcano } from "./scenes-c";
 
 // Illustrated, hand-shaded banner scenes. Each scene takes a palette, so one drawing makes several
 // banners. Drawn on a wide 1000×220 canvas and cropped from the bottom-middle, so the focal point shows in
@@ -12,9 +13,9 @@ import { Candy, Clouds, Desert, Lava, Meadow, Retro, Underwater, Village } from 
 
 const SCENES: Record<BannerSpec["scene"], (o: Opts) => ReactNode> = {
   pumpkins: Pumpkins,
-  mountains: Mountains,
-  ocean: Ocean,
-  forest: Forest,
+  mountains: (o) => (o.v === "highlands" ? Highlands(o) : Mountains(o)),
+  ocean: (o) => (o.v === "tropical" ? Tropical(o) : Ocean(o)),
+  forest: (o) => (o.v === "autumn" ? Autumn(o) : Forest(o)),
   city: City,
   space: Space,
   aurora: Aurora,
@@ -24,9 +25,9 @@ const SCENES: Record<BannerSpec["scene"], (o: Opts) => ReactNode> = {
   underwater: Underwater,
   retro: Retro,
   clouds: Clouds,
-  meadow: Meadow,
+  meadow: (o) => (o.v === "lavender" ? Lavender(o) : Meadow(o)),
   village: Village,
-  lava: Lava,
+  lava: (o) => (o.v === "emberforge" ? Forge(o) : Volcano(o)),
 };
 
 /** A banner scene filling its box. */

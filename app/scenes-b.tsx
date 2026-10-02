@@ -2,9 +2,10 @@
 
 import { anim, Bird, Cloud, CloudDefs, dk, H, Hill, hillY, LG, lt, lum, Mist, mix, Orb, Pine, R, RG, RoundTree, Sky, Stars, url, Vignette, W } from "./scene-kit";
 import type { Opts } from "./scenes-a";
+import { Angler, Barn, CakeMountains, Caravan, FloatingIslands, GiantStrawberries, IceCreamMountains, Oasis, Peppermints, Road, Turtle, VaporTemple } from "./scenes-d";
 
 // ============ Candy land ============
-export function Candy({ p, id }: Opts) {
+export function Candy({ p, id, v }: Opts) {
   const [sky1, sky2, cloud, c1, c2, c3, hill] = p;
   const lolly = (x: number, y: number, r: number, c: string, k: number) => (
     <g key={k} {...anim("sc-sway", 4 + k, -k)}>
@@ -70,6 +71,8 @@ export function Candy({ p, id }: Opts) {
         <Cloud id={id} x={780} y={90} s={1.05} seed={5} />
         <Cloud id={id} x={120} y={96} s={0.8} seed={7} />
       </g>
+      {!v || v === "candy" ? (
+        <>
       {/* Frosted cupcake mountains */}
       {[[200, 150, 120, 70], [470, 150, 160, 90], [790, 150, 130, 74]].map(([x, base, w, h], i) => (
         <g key={i}>
@@ -82,7 +85,11 @@ export function Candy({ p, id }: Opts) {
           ))}
         </g>
       ))}
+        </>
+      ) : v === "berry" ? <CakeMountains id={id} cream="#fff4f8" berry={c1} /> : <IceCreamMountains id={id} c1={c1} c2={c2} c3={c3} />}
       <Hill id={id} k="h1" y={170} amp={8} seed={1.5} waves={3} color={hill} rim="#ffffff" rimOpacity={0.6} shade={0.15} />
+      {!v || v === "candy" ? (
+        <>
       {/* Gingerbread house */}
       <g transform="translate(560 172)">
         <ellipse cx="0" cy="2" rx="40" ry="5" fill="#000" opacity="0.18" />
@@ -98,13 +105,23 @@ export function Candy({ p, id }: Opts) {
           <circle key={x} cx={x + 4} cy="-36" r="2.4" fill={[c2, c3, c1, c2][i]} />
         ))}
       </g>
+        </>
+      ) : null}
+      {!v || v === "candy" ? (
+        <>
       {gumdrop(300, 196, 46, 34, c2, 1)}
       {gumdrop(350, 202, 32, 24, c3, 2)}
       {gumdrop(680, 200, 40, 30, c1, 3)}
       {gumdrop(730, 204, 28, 20, c2, 4)}
+        </>
+      ) : v === "berry" ? <GiantStrawberries id={id} berry={c1} /> : <Peppermints y={198} />}
+      {v !== "berry" ? (
+        <>
       {lolly(250, 120, 26, c1, 1)}
       {lolly(430, 140, 20, c3, 2)}
       {lolly(800, 118, 28, c2, 3)}
+        </>
+      ) : null}
       {cane(390, 210, 52, 1)}
       {cane(640, 214, 46, 2)}
       <path d={`M-20 206 Q250 196 500 206 T${W + 20} 204 V${H} H-20 Z`} fill={lt(hill, 0.25)} />
@@ -122,7 +139,7 @@ export function Candy({ p, id }: Opts) {
 }
 
 // ============ Desert ============
-export function Desert({ p, id, stars }: Opts) {
+export function Desert({ p, id, stars, v }: Opts) {
   const [sky1, sky2, sun, d1, d2, d3, cactus] = p;
   const night = Boolean(stars);
   const dune = (x0: number, w: number, peakX: number, peakY: number, base: number, color: string, k: number) => (
@@ -174,8 +191,10 @@ export function Desert({ p, id, stars }: Opts) {
       <rect y="110" width={W} height="40" fill={url(`${id}haze`)} {...anim("sc-shimmer", 3)} />
       {dune(-60, 620, 300, 128, 168, d1, 1)}
       {dune(420, 640, 700, 122, 170, d1, 2)}
+      {v === "dunes" ? <Caravan y={126} color={dk(d1, 0.5)} /> : null}
       {dune(-40, 560, 220, 158, 200, d2, 3)}
       {dune(380, 700, 610, 152, 204, d2, 4)}
+      {v === "desertnight" ? <Oasis id={id} moon={sun} /> : null}
       {saguaro(372, 180, 62, 1, !night)}
       {saguaro(668, 184, 44, 2, false)}
       {saguaro(820, 172, 30, 3, false)}
@@ -203,7 +222,7 @@ export function Desert({ p, id, stars }: Opts) {
 }
 
 // ============ Underwater ============
-export function Underwater({ p, id }: Opts) {
+export function Underwater({ p, id, v }: Opts) {
   const [w1, w2, ray, weed, co1, co2, bub] = p;
   const deep = lum(w1) < 0.15;
   const sand = mix("#e8d3a2", w2, deep ? 0.7 : 0.35);
@@ -269,6 +288,8 @@ export function Underwater({ p, id }: Opts) {
       {fish(1, 118, 1.4, co1, false, 16)}
       {fish(2, 152, 1.1, co2, true, 20)}
       {fish(3, 96, 0.9, lt(co1, 0.2), true, 24)}
+      {v === "reef" ? <Turtle id={id} /> : null}
+      {v === "abyss" ? <Angler id={id} glow={bub} /> : null}
       {/* A small school */}
       <g {...anim("sc-swim", 30, -12)}>
         {Array.from({ length: 7 }, (_, i) => (
@@ -345,7 +366,7 @@ export function Underwater({ p, id }: Opts) {
 }
 
 // ============ Retro synthwave ============
-export function Retro({ p, id }: Opts) {
+export function Retro({ p, id, v }: Opts) {
   const [sky1, sky2, sun1, sun2, grid, ground, mtn] = p;
   const hz = 130;
   const lines = Array.from({ length: 10 }, (_, i) => hz + 2 + Math.pow(i + 1, 1.9) * 1.05);
@@ -388,6 +409,8 @@ export function Retro({ p, id }: Opts) {
         </g>
       ))}
       <rect y={hz} width={W} height={H - hz} fill={url(`${id}gnd`)} />
+      {v !== "vaporwave" ? (
+        <>
       <g stroke={grid} strokeWidth="1.3">
         {Array.from({ length: 31 }, (_, i) => (
           <line key={i} x1="500" y1={hz} x2={-1000 + i * 100} y2={H + 30} opacity="0.8" />
@@ -398,6 +421,10 @@ export function Retro({ p, id }: Opts) {
       </g>
       <line x1="0" x2={W} y1={hz} y2={hz} stroke={lt(grid, 0.4)} strokeWidth="2" />
       <line x1="0" x2={W} y1={hz} y2={hz} stroke={grid} strokeWidth="6" filter={url(`${id}gl`)} opacity="0.8" />
+        </>
+      ) : <VaporTemple id={id} a={sun2} b={mtn} hz={hz} />}
+      {v !== "vaporwave" ? (
+        <>
       {/* Palms */}
       {[[250, 1], [760, -1]].map(([x, f]) => (
         <g key={x} transform={`translate(${x} ${hz + 50}) scale(${f} 1)`}>
@@ -409,6 +436,9 @@ export function Retro({ p, id }: Opts) {
           </g>
         </g>
       ))}
+        </>
+      ) : null}
+      {v === "sunset" ? <Road hz={hz} /> : null}
       {[0, 1].map((i) => (
         <g key={i} {...anim("sc-shoot", 8 + i * 3, -3 - i * 4)}>
           <line x1="0" y1="0" x2="50" y2="14" stroke={lt(sun1, 0.5)} strokeWidth="1.6" strokeLinecap="round" />
@@ -420,7 +450,7 @@ export function Retro({ p, id }: Opts) {
 }
 
 // ============ Clouds ============
-export function Clouds({ p, id }: Opts) {
+export function Clouds({ p, id, v }: Opts) {
   const [sky1, sky2, sun, c1, c2, c3] = p;
   const storm = lum(sky1) < 0.25;
   const balloon = (x: number, y: number, s: number, a: string, b: string, k: number) => (
@@ -459,7 +489,9 @@ export function Clouds({ p, id }: Opts) {
       </g>
       {storm
         ? null
-        : [balloon(330, 110, 0.9, "#ff6b6b", "#ffd166", 1), balloon(760, 100, 0.7, "#4dc3ff", "#ffffff", 2), balloon(520, 120, 0.5, "#b46cff", "#ffe066", 3)]}
+        : v === "pastelsky"
+          ? <FloatingIslands id={id} grass="#bde8a8" />
+          : [balloon(330, 110, 0.9, "#ff6b6b", "#ffd166", 1), balloon(760, 100, 0.7, "#4dc3ff", "#ffffff", 2), balloon(520, 120, 0.5, "#b46cff", "#ffe066", 3)]}
       <g {...anim("sc-drift-r", 26)}>
         <Cloud id={`${id}b`} x={220} y={130} s={1.6} seed={4} />
         <Cloud id={`${id}b`} x={600} y={138} s={1.4} seed={5} />
@@ -537,6 +569,8 @@ export function Meadow({ p, id, v }: Opts) {
         <Cloud id={id} x={180} y={74} s={0.7} seed={3} opacity={0.9} />
       </g>
       <Hill id={id} k="h0" y={138} amp={10} seed={0.6} waves={2} color={mix(h1, sky2, 0.45)} />
+      {kind !== "sunflower" ? (
+        <>
       {/* Windmill on the far hill */}
       <g transform={`translate(640 ${hillY(640, 138, 10, 0.6, 2) + 2})`}>
         <path d="M-8 0 L-5 -38 L5 -38 L8 0 Z" fill={url(`${id}mill`)} />
@@ -554,6 +588,8 @@ export function Meadow({ p, id, v }: Opts) {
           </g>
         </g>
       </g>
+        </>
+      ) : <Barn x={650} y={hillY(650, 138, 10, 0.6, 2) + 4} />}
       {[200, 260, 820, 880].map((x, i) => (
         <RoundTree key={x} id={id} x={x} base={hillY(x, 138, 10, 0.6, 2) + 6} h={36 + (i % 2) * 10} seed={i} />
       ))}
@@ -754,125 +790,5 @@ function MountainLayerLite({ id, color, snow }: { id: string; color: string; sno
         i % 2 === 0 ? <path key={i} d={`M${x} ${y} l-14 12 l6 -2 l4 6 l5 -5 l8 3 Z`} fill={snow} opacity="0.85" /> : null,
       )}
     </g>
-  );
-}
-
-// ============ Volcano ============
-export function Lava({ p, id }: Opts) {
-  const [bg1, bg2, rock1, rock2, l1, l2, ember] = p;
-  const cx = 500;
-  const rim = 104;
-  const baseL = 150;
-  const baseR = 870;
-  const cone = `M${baseL} ${H} C${baseL + 120} 186 ${cx - 120} ${rim + 30} ${cx - 40} ${rim + 2} L${cx - 26} ${rim - 4} L${cx - 12} ${rim} L${cx + 2} ${rim - 5} L${cx + 18} ${rim} L${cx + 40} ${rim + 1} C${cx + 120} ${rim + 30} ${baseR - 120} 186 ${baseR} ${H} Z`;
-  // Gullies running down the slopes give the cone its form
-  const gullies = Array.from({ length: 14 }, (_, i) => {
-    const t = (i + 0.5) / 14;
-    const sx = cx - 36 + t * 72;
-    const ex = baseL + 20 + t * (baseR - baseL - 40);
-    const mx = (sx + ex) / 2 + (R(i, 3) - 0.5) * 30;
-    return { d: `M${sx} ${rim + 4} Q${mx} ${(rim + H) / 2 + 10} ${ex} ${H}`, lit: t < 0.45, i };
-  });
-  const river = (d: string, k: number) => (
-    <g key={k}>
-      <path d={d} fill="none" stroke={l1} strokeWidth="22" strokeLinecap="round" opacity="0.35" filter={url(`${id}bl`)} />
-      <path d={d} fill="none" stroke={dk(l1, 0.25)} strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />
-      <path d={d} fill="none" stroke={l1} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
-      <path d={d} fill="none" stroke={l2} strokeWidth="3.4" strokeLinecap="round" strokeDasharray="18 9" {...anim("sc-flow", 2.2 + k * 0.5)} />
-      <path d={d} fill="none" stroke={lt(l2, 0.7)} strokeWidth="1.2" strokeLinecap="round" strokeDasharray="3 24" {...anim("sc-flow", 1.5 + k * 0.4)} />
-    </g>
-  );
-  // The ash column: puffs that widen and drift as they climb
-  const plume = Array.from({ length: 16 }, (_, i) => {
-    const t = i / 15;
-    return { x: cx + Math.sin(t * 3) * 16 + t * 120 + (R(i, 41) - 0.5) * 40 * t, y: rim - 10 - t * 120, r: 20 + t * 58 + R(i, 42) * 10, i };
-  });
-  return (
-    <>
-      <Sky id={id} top={bg1} bottom={bg2} horizon={mix(bg2, l1, 0.55)} glowY={0.75} />
-      <defs>
-        <LG id={`${id}cone`} x2={1} y2={0} s={[[0, mix(rock1, l1, 0.22)], [0.3, lt(rock1, 0.06)], [0.55, rock1], [1, dk(rock1, 0.5)]]} />
-        <LG id={`${id}coneV`} s={[[0, l1, 0.25], [0.15, "#000", 0], [1, "#000", 0.3]]} />
-        <RG id={`${id}crater`} s={[[0, lt(l2, 0.5), 1], [0.25, l2, 0.75], [0.6, l1, 0.3], [1, l1, 0]]} />
-        <RG id={`${id}ash`} cx={0.4} cy={0.3} r={0.75} s={[[0, mix(rock2, "#b8a8ae", 0.3)], [0.55, rock2], [1, mix(dk(rock2, 0.2), l1, 0.45)]]} />
-        <LG id={`${id}lake`} s={[[0, lt(l2, 0.35)], [0.35, l2], [1, l1]]} />
-        <LG id={`${id}rock`} s={[[0, mix(rock2, l1, 0.35)], [0.15, rock2], [1, dk(rock2, 0.55)]]} />
-        <RG id={`${id}bomb`} s={[[0, "#fff"], [0.4, l2], [1, l1, 0]]} />
-        <RG id={`${id}pool`} s={[[0, l2, 0.6], [1, l1, 0]]} />
-        <filter id={`${id}bl`} x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur stdDeviation="4" />
-        </filter>
-      </defs>
-      <Stars n={30} top={90} seed={61} color={lt(l2, 0.6)} />
-      {/* Far ridges */}
-      <path d={`M-20 176 L60 140 L120 156 L190 128 L260 166 L300 180 L-20 180 Z`} fill={mix(rock2, bg2, 0.45)} />
-      <path d={`M700 180 L760 136 L820 152 L890 120 L950 146 L${W + 20} 134 L${W + 20} 180 Z`} fill={mix(rock2, bg2, 0.45)} />
-      <ellipse cx={cx} cy={rim + 10} rx="230" ry="100" fill={url(`${id}crater`)} opacity="0.55" {...anim("sc-breathe", 2.6)} />
-      {/* Ash column lit from below */}
-      <g {...anim("sc-sway", 9)}>
-        {plume
-          .slice()
-          .reverse()
-          .map(({ x, y, r, i }) => (
-            <circle key={i} cx={x} cy={y} r={r} fill={url(`${id}ash`)} />
-          ))}
-      </g>
-      {[0, 1, 2, 3, 4, 5].map((i) => (
-        <g key={i} transform={`translate(${cx + (i - 2.5) * 6} ${rim - 6})`}>
-          <circle r={10 + (i % 3) * 3} fill={url(`${id}ash`)} {...anim("sc-plume", 5, -i * 0.85, { "--sx": `${30 + (i - 2.5) * 10}px` })} />
-        </g>
-      ))}
-      <g {...anim("sc-flash", 7, -2)}>
-        <path d={`M${cx + 70} 40 L${cx + 58} 58 L${cx + 68} 58 L${cx + 54} 82`} fill="none" stroke="#b9c8ff" strokeWidth="6" opacity="0.4" filter={url(`${id}bl`)} />
-        <path d={`M${cx + 70} 40 L${cx + 58} 58 L${cx + 68} 58 L${cx + 54} 82`} fill="none" stroke="#f1f5ff" strokeWidth="1.6" />
-      </g>
-      {/* The cone */}
-      <path d={cone} fill={url(`${id}cone`)} />
-      <path d={cone} fill={url(`${id}coneV`)} />
-      {gullies.map(({ d, lit, i }) => (
-        <path key={i} d={d} fill="none" stroke={lit ? lt(rock1, 0.14) : dk(rock1, 0.35)} strokeWidth={lit ? 1.4 : 2} opacity={lit ? 0.5 : 0.55} />
-      ))}
-      <path d={`M${cx - 40} ${rim + 2} C${cx - 120} ${rim + 30} ${baseL + 120} 186 ${baseL} ${H}`} fill="none" stroke={mix(rock1, l1, 0.7)} strokeWidth="2.2" opacity="0.55" />
-      {/* Crater */}
-      <ellipse cx={cx} cy={rim + 1} rx="42" ry="8" fill={dk(rock1, 0.4)} />
-      <ellipse cx={cx} cy={rim + 1} rx="36" ry="5.5" fill={l1} />
-      <ellipse cx={cx} cy={rim} rx="28" ry="3.6" fill={lt(l2, 0.4)} {...anim("sc-flicker", 1.4)} />
-      {Array.from({ length: 10 }, (_, i) => (
-        <g key={i} transform={`translate(${cx + (i - 4.5) * 4} ${rim - 2})`}>
-          <g {...anim("sc-bx", 2 + R(i, 7) * 1.2, -R(i, 8) * 3, { "--sx": `${(R(i, 9) - 0.5) * 180}px` })}>
-            <circle r={2 + R(i, 10) * 2.4} fill={url(`${id}bomb`)} {...anim("sc-by", 2 + R(i, 7) * 1.2, -R(i, 8) * 3, { "--sy": `${-36 - R(i, 11) * 40}px`, "--dy": `${50 + R(i, 12) * 40}px` })} />
-          </g>
-        </g>
-      ))}
-      {/* Glowing cracks */}
-      <g stroke={l2} strokeWidth="1.3" fill="none" strokeLinecap="round" {...anim("sc-flicker", 2.2)}>
-        <path d={`M${cx - 80} 150 l10 -6 l6 5 l12 -8`} />
-        <path d={`M${cx + 90} 166 l-8 -6 l-10 4 l-6 -9`} />
-        <path d={`M${cx - 150} 190 l12 -4 l8 6`} />
-      </g>
-      {river(`M${cx - 14} ${rim + 4} C${cx - 26} ${rim + 30} ${cx - 8} ${rim + 50} ${cx - 40} ${rim + 72} S${cx - 70} ${H - 10} ${cx - 92} ${H + 6}`, 0)}
-      {river(`M${cx + 16} ${rim + 4} C${cx + 32} ${rim + 32} ${cx + 16} ${rim + 56} ${cx + 50} ${rim + 80} S${cx + 70} ${H - 6} ${cx + 84} ${H + 6}`, 1)}
-      {/* Lava lake with drifting crust */}
-      <ellipse cx={cx} cy={H} rx="420" ry="40" fill={url(`${id}pool`)} {...anim("sc-flicker", 3.4)} />
-      <path d={`M80 ${H} C200 198 360 202 500 199 S800 198 920 ${H} Z`} fill={url(`${id}lake`)} />
-      <g {...anim("sc-drift", 16)}>
-        {[[200, 212, 26], [300, 207, 18], [410, 213, 30], [560, 208, 22], [670, 212, 28], [790, 210, 18]].map(([x, y, w], i) => (
-          <path key={i} d={`M${x - w} ${y} l${w * 0.3} -3 l${w * 0.6} -1 l${w * 0.6} 2 l${w * 0.5} 2 l-${w * 0.4} 3 l-${w} 0 Z`} fill={dk(rock1, 0.3)} stroke={l2} strokeWidth="0.8" />
-        ))}
-      </g>
-      {Array.from({ length: 6 }, (_, i) => (
-        <circle key={i} cx={180 + i * 120 + R(i, 71) * 40} cy={206 + R(i, 72) * 8} r="3" fill={lt(l2, 0.5)} {...anim("sc-twinkle", 1.6 + R(i, 73), -R(i, 74) * 2)} />
-      ))}
-      {/* Foreground rocks rim-lit by the lava */}
-      <path d={`M-20 ${H} L-20 186 L40 170 L90 180 L140 164 L190 190 L210 ${H} Z`} fill={url(`${id}rock`)} />
-      <path d="M-20 186 L40 170 L90 180 L140 164 L190 190" fill="none" stroke={l1} strokeWidth="1.6" opacity="0.7" />
-      <path d={`M800 ${H} L820 182 L870 172 L920 184 L970 164 L${W + 20} 176 L${W + 20} ${H} Z`} fill={url(`${id}rock`)} />
-      <path d={`M820 182 L870 172 L920 184 L970 164 L${W + 20} 176`} fill="none" stroke={l1} strokeWidth="1.6" opacity="0.7" />
-      {Array.from({ length: 34 }, (_, i) => (
-        <circle key={i} cx={200 + R(i, 151) * 600} cy={H + 4} r={0.8 + R(i, 152) * 1.6} fill={i % 3 ? ember : l2} {...anim("sc-ember", 3.5 + R(i, 153) * 4, -R(i, 154) * 6)} />
-      ))}
-      <Mist id={id} k="heat" y={160} h={60} color={l1} opacity={0.12} dur={8} />
-      <Vignette id={id} strength={0.5} />
-    </>
   );
 }

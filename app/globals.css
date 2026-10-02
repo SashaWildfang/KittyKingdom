@@ -31286,3 +31286,150 @@ a.apl-chip {
 .cos-fk-toxic::after { background: radial-gradient(closest-side, rgba(57, 255, 20, 0.6), transparent); opacity: 0.7; }
 .cos-fk-electric::after { background: radial-gradient(closest-side, rgba(255, 242, 0, 0.6), transparent); opacity: 0.75; }
 .cos-fk-void::after { background: radial-gradient(closest-side, rgba(157, 78, 221, 0.7), transparent); opacity: 0.8; }
+
+/* ==========================================
+   Frames round 3
+   ========================================== */
+/* Neon Pulse: a pink tube outside, a cyan tube inside, both actually glowing */
+.cos-fk-neon .cos-ring { background: linear-gradient(90deg, #ff6ae4, #ffd6f5 50%, #ff6ae4); animation: cos-neonflick 6s infinite; }
+.cos-fk-neon .cos-ring--inner { background: linear-gradient(90deg, #5ff3ff, #e0fdff 50%, #5ff3ff); animation: cos-neonflick 7s infinite 1.3s; }
+.cos-fk-neon::before { box-shadow: 0 0 4px #ff2bd6, 0 0 12px #ff2bd6, 0 0 22px rgba(255, 43, 214, 0.6), inset 0 0 6px #00e5ff, inset 0 0 14px rgba(0, 229, 255, 0.6); animation: cos-neonflick 6s infinite; }
+
+/* Starfall: a midnight band dusted with gold */
+.cos-fk-starfall .cos-ring { background: var(--bevel), radial-gradient(circle, #fff6d6 0 0.9px, transparent 1.3px) 0 0 / 5px 7px, radial-gradient(circle, #ffd36b 0 0.7px, transparent 1.1px) 2px 3px / 9px 5px, linear-gradient(180deg, #2a3580, #0b0f2e); }
+
+/* Silver: mirror-polished */
+.cos-fk-silver .cos-ring { background: var(--bevel), linear-gradient(110deg, #5c6b7a, #e9edf2 20%, #ffffff 26%, #9aa4b2 40%, #5c6b7a 55%, #e9edf2 75%, #ffffff 80%, #5c6b7a); background-size: auto, 250% 100%; animation: cos-sweep 3s linear infinite; }
+
+/* Sunflower: petals all round the band */
+.cos-fk-sunflower .cos-ring { background: var(--bevel), repeating-conic-gradient(from 0deg, #ffd23f 0 7deg, #f29a00 7deg 9deg, #ffe680 9deg 12deg); }
+
+/* Phoenix: a band of living fire */
+.cos-fk-phoenix .cos-ring { background: var(--bevel), conic-gradient(from var(--cos-a), #ff3d00, #ffb300, #fff176, #ff6a00, #ffb300, #ff3d00); animation: cos-spin 2.4s linear infinite, cos-flicker 0.9s steps(2) infinite; }
+.cos-fk-phoenix::after { background: radial-gradient(closest-side, rgba(255, 140, 0, 0.75), transparent); opacity: 0.85; }
+
+/* Ocean Tide: rolling water */
+.cos-fk-tide .cos-ring { background: var(--bevel), repeating-linear-gradient(120deg, rgba(255, 255, 255, 0.55) 0 2px, transparent 2px 9px), linear-gradient(180deg, #5ad1ff, #0b3d91); background-size: auto, 200% 200%, auto; animation: cos-tideflow 3s linear infinite; }
+@keyframes cos-tideflow { from { background-position: 0 0, 0 0, 0 0; } to { background-position: 0 0, 40px 0, 0 0; } }
+
+.cos-orn .orn-leap { animation: orn-leap 3.6s ease-in-out infinite; }
+@keyframes orn-leap { 0% { transform: rotate(-70deg); opacity: 0; } 12% { opacity: 1; } 55% { opacity: 1; } 70%, 100% { transform: rotate(70deg); opacity: 0; } }
+
+/* ---------- weather effects: snow, embers, rain ---------- */
+.cos-wp {
+  position: absolute;
+  top: -10%;
+  display: block;
+  animation-name: cos-wfall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.cos-wp > i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  animation: cos-wob var(--wob, 2s) ease-in-out infinite alternate;
+}
+
+.cos-wx--snow .cos-wp > i {
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 35%, #fff, var(--c) 45%, color-mix(in srgb, var(--c) 40%, transparent) 65%, transparent 72%);
+  filter: blur(var(--blur, 0));
+}
+
+.cos-wx--snow .cos-wp.is-crystal > i {
+  background: none;
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.8));
+  animation: cos-wob var(--wob, 2s) ease-in-out infinite alternate, cos-flakespin 6s linear infinite;
+}
+
+.cos-wx--snow .cos-wp svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.cos-wx--ember .cos-wp { animation-name: cos-wrise; }
+
+.cos-wx--ember .cos-wp > i {
+  border-radius: 50%;
+  background: radial-gradient(circle, #fffbe6 0 18%, var(--c) 45%, transparent 72%);
+  box-shadow: 0 0 8px 2px color-mix(in srgb, var(--c) 70%, transparent), 0 0 18px 4px color-mix(in srgb, var(--c) 30%, transparent);
+  animation: cos-wob var(--wob, 2s) ease-in-out infinite alternate, cos-emberflick 0.35s steps(2) infinite;
+}
+
+/* A faint trail under each ember */
+.cos-wx--ember .cos-wp::after {
+  content: "";
+  position: absolute;
+  left: 25%;
+  top: 70%;
+  width: 50%;
+  height: 260%;
+  border-radius: 999px;
+  background: linear-gradient(color-mix(in srgb, var(--c) 55%, transparent), transparent);
+  filter: blur(1px);
+}
+
+.cos-wx--rain .cos-wp {
+  animation-name: cos-wrain;
+}
+
+.cos-wx--rain .cos-wp > i {
+  border-radius: 999px;
+  background: linear-gradient(transparent, color-mix(in srgb, var(--c) 70%, transparent) 60%, #fff);
+  animation: none;
+  transform: rotate(12deg);
+}
+
+.cos-splash {
+  position: absolute;
+  bottom: 4px;
+  width: 16px;
+  height: 5px;
+  margin-left: -8px;
+  border: 1.2px solid color-mix(in srgb, var(--c) 80%, #fff);
+  border-radius: 50%;
+  opacity: 0;
+  animation: cos-splash 1.2s ease-out infinite;
+}
+
+@keyframes cos-wfall { 0% { top: -10%; transform: translateX(0); } 100% { top: 108%; transform: translateX(var(--sway)); } }
+@keyframes cos-wrise { 0% { transform: translate(0, 0); top: 104%; opacity: 0; } 10% { opacity: 1; } 80% { opacity: 0.9; } 100% { transform: translate(var(--sway), 0); top: -12%; opacity: 0; } }
+@keyframes cos-wrain { 0% { top: -18%; transform: translateX(0); } 100% { top: 105%; transform: translateX(-40px); } }
+@keyframes cos-wob { from { transform: translateX(-6px); } to { transform: translateX(6px); } }
+@keyframes cos-flakespin { to { rotate: 360deg; } }
+@keyframes cos-emberflick { 0% { opacity: 1; scale: 1; } 50% { opacity: 0.65; scale: 0.82; } }
+@keyframes cos-splash { 0% { transform: scale(0.2); opacity: 0; } 15% { opacity: 0.9; } 100% { transform: scale(1.6); opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .cos-wx { display: none; }
+}
+
+/* ==========================================
+   Banner scenes round 3: more motion
+   ========================================== */
+.sc .sc-lap { animation: sc-lap ease-in-out infinite alternate; }
+.sc .sc-scuttle { animation: sc-scuttle linear infinite; }
+.sc .sc-pour { animation: sc-pour linear infinite; }
+.sc .sc-ripple { animation: sc-ripple ease-out infinite; }
+.sc .sc-ghost { animation: sc-ghost ease-in-out infinite alternate; }
+.sc .sc-beam { animation: sc-beam ease-in-out infinite alternate; transform-box: view-box; transform-origin: 0 0; }
+.sc .sc-dolphin { animation: sc-dolphin ease-in-out infinite; transform-box: view-box; transform-origin: 0 0; }
+.sc .sc-walk { animation: sc-walk linear infinite; }
+.sc .sc-waddle { animation: sc-waddle ease-in-out infinite alternate; transform-origin: 50% 100%; }
+
+@keyframes sc-lap { from { transform: translateY(0); } to { transform: translateY(5px); } }
+@keyframes sc-scuttle { 0% { transform: translateX(240px); } 25% { transform: translateX(300px); } 30% { transform: translateX(300px); } 60% { transform: translateX(380px); } 65% { transform: translateX(380px); } 100% { transform: translateX(240px); } }
+@keyframes sc-pour { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -48; } }
+@keyframes sc-ripple { 0% { transform: scale(0.4); opacity: 0.9; } 100% { transform: scale(2.4); opacity: 0; } }
+@keyframes sc-ghost { from { transform: translate(-6px, -4px); opacity: 0.55; } to { transform: translate(6px, 4px); opacity: 0.95; } }
+@keyframes sc-beam { from { transform: rotate(-24deg); } to { transform: rotate(24deg); } }
+@keyframes sc-dolphin { 0% { transform: rotate(-60deg); opacity: 0; } 15% { opacity: 1; } 50% { opacity: 1; } 65%, 100% { transform: rotate(60deg); opacity: 0; } }
+@keyframes sc-walk { from { transform: translate(-300px, 0); } to { transform: translate(500px, 0); } }
+@keyframes sc-waddle { from { transform: rotate(-6deg); } to { transform: rotate(6deg); } }
+
+/* Electric: bolts crackle most of the time instead of flashing briefly */
+.cos-fk-electric .cos-orn .orn-zap { animation-name: orn-zap2; }
+@keyframes orn-zap2 { 0% { opacity: 1; } 8% { opacity: 0.25; } 14% { opacity: 1; } 30% { opacity: 0.7; } 36% { opacity: 1; } 55% { opacity: 0; } 70% { opacity: 0; } 72% { opacity: 0.9; } 76% { opacity: 0; } 100% { opacity: 0; } }
