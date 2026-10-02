@@ -1,18 +1,19 @@
 "use client";
 
-import { Cherry, Dices, Radio, Spade, Ticket as TicketIcon } from "lucide-react";
+import { Cherry, CircleDot, Dices, Radio, Spade, Ticket as TicketIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PublicTable } from "../../lib/games/blackjack";
 import type { Ticket } from "../../lib/games/scratch";
 import { LeafEmote } from "../ui-icons";
 import { BlackjackTable } from "./blackjack";
 import { LiveGames } from "./live";
+import { Roulette } from "./roulette";
 import { ScratchOffs } from "./scratch";
 import { Slots, type SlotsStatus } from "./slots";
 
 export type ScratchStatus = { nitro: boolean };
-type Game = "blackjack" | "slots" | "scratch" | "live";
-const TABS: Game[] = ["blackjack", "slots", "scratch", "live"];
+type Game = "blackjack" | "roulette" | "slots" | "scratch" | "live";
+const TABS: Game[] = ["blackjack", "roulette", "slots", "scratch", "live"];
 
 /** Counts smoothly from the last shown value to a new one. */
 export function CountUp({ value, duration = 700 }: { value: number; duration?: number }) {
@@ -76,6 +77,7 @@ export function GamesClient({
   initialTable,
   initialScratch,
   initialSlots,
+  myId,
   tickets,
   minBet,
   loadError,
@@ -86,6 +88,7 @@ export function GamesClient({
   initialTable: PublicTable | null;
   initialScratch: ScratchStatus;
   initialSlots: SlotsStatus;
+  myId: string;
   tickets: Ticket[];
   minBet: number;
   loadError: boolean;
@@ -193,11 +196,15 @@ export function GamesClient({
         <button type="button" role="tab" aria-selected={game === "blackjack"} className={game === "blackjack" ? "is-on" : ""} onClick={() => pick("blackjack")}>
           <Spade size={16} aria-hidden="true" /> Blackjack
         </button>
+        <button type="button" role="tab" aria-selected={game === "roulette"} className={game === "roulette" ? "is-on" : ""} onClick={() => pick("roulette")}>
+          <CircleDot size={16} aria-hidden="true" /> Roulette
+        </button>
         <button type="button" role="tab" aria-selected={game === "slots"} className={game === "slots" ? "is-on" : ""} onClick={() => pick("slots")}>
           <Cherry size={16} aria-hidden="true" /> Slots
         </button>
         <button type="button" role="tab" aria-selected={game === "scratch"} className={game === "scratch" ? "is-on" : ""} onClick={() => pick("scratch")}>
-          <TicketIcon size={16} aria-hidden="true" /> Scratch-offs
+          <TicketIcon size={16} aria-hidden="true" /> <span className="gm-tab-long">Scratch-offs</span>
+          <span className="gm-tab-short">Scratch</span>
         </button>
         <button type="button" role="tab" aria-selected={game === "live"} className={game === "live" ? "is-on" : ""} onClick={() => pick("live")}>
           <Radio size={16} aria-hidden="true" /> Live
@@ -213,13 +220,14 @@ export function GamesClient({
         <div hidden={game !== "blackjack"}>
           <BlackjackTable initialTable={initialTable} balance={balance} onBalance={setBalance} minBet={minBet} viewers={audience.blackjack} onActive={onBjActive} control={bjControl} />
         </div>
+        {game === "roulette" ? <Roulette myId={myId} balance={balance} onBalance={setBalance} /> : null}
         <div hidden={game !== "slots"}>
           <Slots balance={balance} onBalance={setBalance} initialStatus={initialSlots} viewers={audience.slots} />
         </div>
         <div hidden={game !== "scratch"}>
           <ScratchOffs tickets={tickets} balance={balance} onBalance={setBalance} initialStatus={initialScratch} viewers={audience.scratch} onActive={onScActive} control={scControl} />
         </div>
-        {game === "live" ? <LiveGames listUrl="/api/games/live" tableUrl={memberTable} minBet={minBet} initialWatch={initialWatch} privacy onCount={setLiveCount} /> : null}
+        {game === "live" ? <LiveGames listUrl="/api/games/live" tableUrl={memberTable} minBet={minBet} initialWatch={initialWatch} privacy onCount={setLiveCount} onRoulette={() => pick("roulette")} /> : null}
       </div>
 
       {leaving ? (
