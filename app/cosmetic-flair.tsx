@@ -1,7 +1,9 @@
 "use client";
 
-import { memo, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { specOf, type CosmeticSlot, type FrameSpec, type Ornament, type Particle, type ThemeSpec } from "../lib/cosmetics";
+import { memo, useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { specOf, type CosmeticSlot, type FrameSpec, type Particle, type ThemeSpec } from "../lib/cosmetics";
+import { OrnamentArt } from "./cosmetic-ornaments";
+import { ThemeArt } from "./cosmetic-themes";
 import { BannerScene } from "./cosmetic-scenes";
 
 // How store cosmetics are drawn. Recipes come from lib/cosmetics.ts; looks are the .cos-* classes
@@ -11,165 +13,6 @@ const R = (i: number, s = 1) => {
   const x = Math.sin(i * 12.9898 + s * 78.233) * 43758.5453;
   return x - Math.floor(x);
 };
-
-// ---------- frame ornaments (drawn around an avatar of radius 50) ----------
-function Mirror({ children }: { children: ReactNode }) {
-  return (
-    <>
-      {children}
-      <g transform="scale(-1 1)">{children}</g>
-    </>
-  );
-}
-
-function OrnamentArt({ kind, color, glow }: { kind: Ornament; color?: string; glow: string }) {
-  switch (kind) {
-    case "crown":
-      return (
-        <g transform="translate(0 -60)">
-          <g className="orn-bob">
-          <path d="M-24 10 L-28 -12 L-13 -1 L0 -20 L13 -1 L28 -12 L24 10 Z" fill="#ffd24a" stroke="#8a5a00" strokeWidth="2" strokeLinejoin="round" />
-          <rect x="-24" y="8" width="48" height="6" rx="2" fill="#e0a526" stroke="#8a5a00" strokeWidth="1.5" />
-          <circle cx="0" cy="-20" r="3.5" fill="#ff4d8d" />
-          <circle cx="-28" cy="-12" r="3" fill="#4fc3ff" />
-          <circle cx="28" cy="-12" r="3" fill="#4fc3ff" />
-          <circle cx="0" cy="3" r="3" fill="#ff4d8d" />
-          </g>
-        </g>
-      );
-    case "halo":
-      return <ellipse className="orn-bob" cx="0" cy="-64" rx="28" ry="7" fill="none" stroke="#fff3b0" strokeWidth="4.5" style={{ filter: `drop-shadow(0 0 6px ${glow})` }} />;
-    case "wings":
-      return (
-        <g className="orn-wing">
-          <Mirror>
-            <path d="M-47 -10 C-57 -28 -72 -32 -84 -24 C-78 -21 -77 -16 -82 -11 C-75 -10 -73 -5 -78 0 C-70 0 -68 5 -71 11 C-62 10 -54 5 -48 2 Z" fill="#ffffff" stroke="#e8dcb5" strokeWidth="1.4" />
-            <path d="M-55 -16 C-63 -20 -70 -21 -76 -19 M-57 -8 C-64 -9 -70 -8 -74 -5 M-55 0 C-60 1 -64 3 -67 6" fill="none" stroke="#e8dcb5" strokeWidth="1.1" strokeLinecap="round" />
-          </Mirror>
-        </g>
-      );
-    case "batwings":
-      return (
-        <g className="orn-wing">
-          <Mirror>
-            <path d="M-47 -8 C-56 -25 -72 -30 -86 -22 C-80 -16 -80 -10 -84 -4 C-77 -6 -73 -2 -75 5 C-68 1 -62 3 -61 9 C-57 3 -52 2 -47 3 Z" fill="#241020" stroke="#8a2a3a" strokeWidth="1.4" strokeLinejoin="round" />
-            <path d="M-49 -6 L-84 -22 M-50 -4 L-82 -4 M-50 -2 L-73 5 M-49 0 L-61 9" fill="none" stroke="#8a2a3a" strokeWidth="1" opacity="0.8" />
-          </Mirror>
-        </g>
-      );
-    case "horns":
-      return (
-        <Mirror>
-          <path d="M-24 -42 C-36 -58 -34 -76 -20 -86 C-26 -72 -22 -60 -12 -48 Z" fill="#7a0b12" stroke="#2b0000" strokeWidth="1.6" />
-        </Mirror>
-      );
-    case "ears":
-      return (
-        <Mirror>
-          <path d="M-42 -30 L-38 -74 L-12 -48 Z" fill={color ?? "#ffb3c6"} stroke="rgba(0,0,0,.25)" strokeWidth="1.5" strokeLinejoin="round" />
-          <path d="M-35 -38 L-33 -62 L-19 -47 Z" fill="#ffd6e0" />
-        </Mirror>
-      );
-    case "wreath":
-      return (
-        <g>
-          {Array.from({ length: 13 }, (_, i) => {
-            const a = ((25 + i * 10.8) * Math.PI) / 180;
-            const x = Math.cos(a) * 55;
-            const y = Math.sin(a) * 55;
-            return <ellipse key={i} cx={x} cy={y} rx="8" ry="3.6" fill={i % 2 ? "#3f8f4f" : "#6cc070"} transform={`rotate(${25 + i * 10.8 + 90 + (i % 2 ? 30 : -30)} ${x} ${y})`} />;
-          })}
-          <circle cx="0" cy="56" r="3.5" fill="#e5484d" />
-          <circle cx="-7" cy="55" r="3" fill="#e5484d" />
-        </g>
-      );
-    case "snow":
-      return (
-        <g stroke="#e8f8ff" strokeWidth="2" strokeLinecap="round" className="orn-twinkle">
-          {[[-48, -36, 1], [52, -22, 0.8], [40, 46, 0.9], [-44, 40, 0.6]].map(([x, y, s], i) => (
-            <g key={i} transform={`translate(${x} ${y}) scale(${s})`}>
-              {[0, 60, 120].map((a) => (
-                <line key={a} x1="-9" y1="0" x2="9" y2="0" transform={`rotate(${a})`} />
-              ))}
-            </g>
-          ))}
-        </g>
-      );
-    case "flames":
-      return (
-        <g className="orn-flicker">
-          {Array.from({ length: 9 }, (_, i) => {
-            const deg = -160 + i * 17.5;
-            const a = (deg * Math.PI) / 180;
-            const s = 0.9 + (i % 3) * 0.3;
-            return (
-              <path key={i} d="M0 0 C-6 -8 -3 -16 0 -24 C3 -16 6 -8 0 0 Z" fill={i % 2 ? "#ffb300" : "#ff3d00"} transform={`translate(${Math.cos(a) * 50} ${Math.sin(a) * 50}) rotate(${deg + 90}) scale(${s})`} />
-            );
-          })}
-        </g>
-      );
-    case "hearts":
-      return (
-        <g className="orn-orbit">
-          {[0, 90, 180, 270].map((d) => (
-            <path key={d} d="M0 4 C-2 2 -7 -1 -7 -5 A3.6 3.6 0 0 1 0 -6 A3.6 3.6 0 0 1 7 -5 C7 -1 2 2 0 4 Z" fill="#ff4d8d" transform={`rotate(${d}) translate(0 -60) rotate(${-d}) scale(1.3)`} />
-          ))}
-        </g>
-      );
-    case "stars":
-      return (
-        <g className="orn-orbit">
-          {[0, 72, 144, 216, 288].map((d, i) => (
-            <path key={d} d="M0 -6 L1.8 -1.8 L6 -1.6 L2.7 1.2 L3.8 5.6 L0 3.2 L-3.8 5.6 L-2.7 1.2 L-6 -1.6 L-1.8 -1.8 Z" fill={i % 2 ? "#fff6d6" : "#ffd24a"} transform={`rotate(${d}) translate(0 -60) scale(${i % 2 ? 1 : 1.4})`} />
-          ))}
-        </g>
-      );
-    case "blossoms":
-      return (
-        <g>
-          {[[-46, -38, 1.3], [48, 38, 1.1], [56, 20, 0.7], [-30, -54, 0.7]].map(([x, y, s], i) => (
-            <g key={i} transform={`translate(${x} ${y}) scale(${s})`}>
-              {[0, 72, 144, 216, 288].map((a) => (
-                <ellipse key={a} cx="0" cy="-5" rx="4" ry="5.5" fill="#ffc2dc" transform={`rotate(${a})`} />
-              ))}
-              <circle r="2.5" fill="#ffe08a" />
-            </g>
-          ))}
-        </g>
-      );
-    case "moon":
-      return <path className="orn-bob" d="M52 -66 a16 16 0 1 0 12 26 a13 13 0 1 1 -12 -26 Z" fill="#f4f1ff" style={{ filter: `drop-shadow(0 0 6px ${glow})` }} />;
-    case "wisps":
-      return (
-        <g className="orn-orbit orn-orbit--slow">
-          {[0, 120, 240].map((d) => (
-            <g key={d} transform={`rotate(${d})`}>
-              <path d="M0 -58 c10 -4 18 2 16 10 c-2 6 -10 6 -12 2" fill="none" stroke="#d8ffe9" strokeWidth="4" strokeLinecap="round" opacity="0.85" />
-              <circle cx="0" cy="-58" r="5" fill="#f4fff9" />
-            </g>
-          ))}
-        </g>
-      );
-    case "bolts":
-      return (
-        <g className="orn-flicker">
-          <Mirror>
-            <path d="M-60 -20 L-70 0 L-62 0 L-68 18 L-52 -4 L-60 -4 L-54 -20 Z" fill="#fff200" stroke="#b39500" strokeWidth="1" />
-          </Mirror>
-        </g>
-      );
-    case "petals":
-      return (
-        <g>
-          {Array.from({ length: 18 }, (_, i) => (
-            <ellipse key={i} cx="0" cy="-58" rx="5" ry="11" fill={color ?? "#ffd23f"} stroke="#c98a00" strokeWidth="1" transform={`rotate(${i * 20})`} />
-          ))}
-        </g>
-      );
-    default:
-      return null;
-  }
-}
 
 function frameStyle(spec: FrameSpec): CSSProperties {
   const c = spec.colors;
@@ -186,12 +29,13 @@ function frameStyle(spec: FrameSpec): CSSProperties {
 
 /** An avatar or photo with an equipped frame around it (works on any corner radius). */
 export function Framed({ frame, children, className }: { frame: string | null | undefined; children: ReactNode; className?: string }) {
+  const uid = `o${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
   const def = specOf("frame", frame);
   if (!def?.frame) return <>{children}</>;
   const spec = def.frame;
   return (
     <span
-      className={`cos-frame cos-frame--${spec.style}${spec.ornaments?.some((o) => o === "wings" || o === "batwings") ? " has-wings" : ""}${className ? ` ${className}` : ""}`}
+      className={`cos-frame cos-frame--${spec.style}${spec.ornaments?.some((o) => o === "wings" || o === "batwings" || o === "phoenix") ? " has-wings" : ""}${className ? ` ${className}` : ""}`}
       style={frameStyle(spec)}
     >
       {children}
@@ -200,7 +44,7 @@ export function Framed({ frame, children, className }: { frame: string | null | 
       {spec.ornaments?.length ? (
         <svg className="cos-orn" viewBox="-72 -72 144 144" aria-hidden="true">
           {spec.ornaments.map((o) => (
-            <OrnamentArt key={o} kind={o} color={spec.ornament} glow={spec.glow} />
+            <OrnamentArt key={o} kind={o} color={spec.ornament} glow={spec.glow} uid={uid} />
           ))}
         </svg>
       ) : null}
@@ -246,39 +90,93 @@ export function FlairBanner({ banner, className, children }: { banner: string | 
 
 // ---------- particles ----------
 const SHAPES: Partial<Record<Particle, (c: string) => ReactNode>> = {
-  petal: (c) => <path d="M12 2 C18 8 17 16 12 22 C7 16 6 8 12 2 Z" fill={c} />,
-  heart: (c) => <path d="M12 21 C11 20 3 15 2.5 9.5 A5 5 0 0 1 12 7 A5 5 0 0 1 21.5 9.5 C21 15 13 20 12 21 Z" fill={c} />,
-  sparkle: (c) => <path d="M12 1 L14 10 L23 12 L14 14 L12 23 L10 14 L1 12 L10 10 Z" fill={c} />,
-  star: (c) => <path d="M12 2 L14.9 8.9 L22 9.5 L16.6 14.2 L18.3 21.2 L12 17.3 L5.7 21.2 L7.4 14.2 L2 9.5 L9.1 8.9 Z" fill={c} />,
+  petal: (c) => (
+    <>
+      <path d="M12 2 C18 8 17 16 12 22 C7 16 6 8 12 2 Z" fill={c} />
+      <path d="M12 2 C9 8 9 16 12 22 C7 16 6 8 12 2 Z" fill="#fff" opacity="0.35" />
+      <path d="M12 5 Q11 12 12 20" stroke="#000" strokeOpacity="0.12" strokeWidth="0.8" fill="none" />
+    </>
+  ),
+  heart: (c) => (
+    <>
+      <path d="M12 21 C11 20 3 15 2.5 9.5 A5 5 0 0 1 12 7 A5 5 0 0 1 21.5 9.5 C21 15 13 20 12 21 Z" fill={c} />
+      <path d="M12 21 C13 20 21 15 21.5 9.5 A5 5 0 0 0 17 5 C20 9 18 15 12 21 Z" fill="#000" opacity="0.15" />
+      <ellipse cx="7.5" cy="9" rx="2.2" ry="1.4" fill="#fff" opacity="0.75" transform="rotate(-35 7.5 9)" />
+    </>
+  ),
+  sparkle: (c) => (
+    <>
+      <circle cx="12" cy="12" r="7" fill={c} opacity="0.25" />
+      <path d="M12 1 L14 10 L23 12 L14 14 L12 23 L10 14 L1 12 L10 10 Z" fill={c} />
+      <path d="M12 4 L13 11 L20 12 L13 13 L12 20 L11 13 L4 12 L11 11 Z" fill="#fff" opacity="0.8" />
+    </>
+  ),
+  star: (c) => (
+    <>
+      <path d="M12 2 L14.9 8.9 L22 9.5 L16.6 14.2 L18.3 21.2 L12 17.3 L5.7 21.2 L7.4 14.2 L2 9.5 L9.1 8.9 Z" fill={c} />
+      <path d="M12 2 L14.9 8.9 L22 9.5 L12 12 Z M2 9.5 L9.1 8.9 L12 2 L12 12 Z" fill="#fff" opacity="0.45" />
+      <path d="M12 12 L16.6 14.2 L18.3 21.2 L12 17.3 Z" fill="#000" opacity="0.15" />
+    </>
+  ),
   leaf: (c) => (
     <>
       <path d="M4 20 C4 9 11 4 21 3 C20 13 14 20 4 20 Z" fill={c} />
-      <path d="M4 20 L14 10" stroke="rgba(0,0,0,.25)" strokeWidth="1.2" />
+      <path d="M4 20 C4 9 11 4 21 3 C14 7 8 13 4 20 Z" fill="#fff" opacity="0.2" />
+      <path d="M4 20 L17 7 M9 15 L8 10 M12 12 L15 13 M14 10 L13 6" stroke="#000" strokeOpacity="0.28" strokeWidth="0.9" fill="none" />
     </>
   ),
   bubble: (c) => (
     <>
-      <circle cx="12" cy="12" r="9" fill="none" stroke={c} strokeWidth="1.6" />
-      <circle cx="9" cy="8.5" r="2" fill={c} opacity="0.8" />
+      <circle cx="12" cy="12" r="9" fill={c} opacity="0.12" />
+      <circle cx="12" cy="12" r="9" fill="none" stroke={c} strokeWidth="1.4" />
+      <path d="M6.5 9 A6 6 0 0 1 10 5.5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" fill="none" />
+      <circle cx="16" cy="16" r="1.2" fill="#fff" opacity="0.6" />
     </>
   ),
-  confetti: (c) => <rect x="7" y="3" width="10" height="18" rx="2" fill={c} />,
-  bat: (c) => <path d="M12 9 C10 6 7 6 5 8 C4 5 2 5 0 7 C2 9 2 12 4 14 C6 12 9 13 11 15 L12 13 L13 15 C15 13 18 12 20 14 C22 12 22 9 24 7 C22 5 20 5 19 8 C17 6 14 6 12 9 Z" fill={c} />,
+  confetti: (c) => (
+    <>
+      <rect x="7" y="3" width="10" height="18" rx="2" fill={c} />
+      <rect x="7" y="3" width="4" height="18" rx="2" fill="#fff" opacity="0.3" />
+    </>
+  ),
+  bat: (c) => (
+    <>
+      <path className="cos-flap" d="M12 9 C10 6 7 6 5 8 C4 5 2 5 0 7 C2 9 2 12 4 14 C6 12 9 13 11 15 L12 13 L13 15 C15 13 18 12 20 14 C22 12 22 9 24 7 C22 5 20 5 19 8 C17 6 14 6 12 9 Z" fill={c} />
+      <circle cx="10.8" cy="10" r="0.8" fill="#ffd75e" />
+      <circle cx="13.2" cy="10" r="0.8" fill="#ffd75e" />
+    </>
+  ),
   ghost: (c) => (
     <>
       <path d="M5 22 V11 A7 7 0 0 1 19 11 V22 L16.5 19.5 L14 22 L12 19.5 L10 22 L7.5 19.5 Z" fill={c} />
-      <circle cx="9.5" cy="11" r="1.5" fill="#123" />
-      <circle cx="14.5" cy="11" r="1.5" fill="#123" />
+      <path d="M15 5.5 A7 7 0 0 1 19 11 V22 L16.5 19.5 Z" fill="#000" opacity="0.08" />
+      <ellipse cx="9.5" cy="11" rx="1.3" ry="1.8" fill="#123" />
+      <ellipse cx="14.5" cy="11" rx="1.3" ry="1.8" fill="#123" />
+      <ellipse cx="8" cy="14" rx="1.4" ry="0.8" fill="#ff9ec7" opacity="0.7" />
+      <ellipse cx="16" cy="14" rx="1.4" ry="0.8" fill="#ff9ec7" opacity="0.7" />
+      <path d="M10.8 14.5 q1.2 1.2 2.4 0" stroke="#123" strokeWidth="0.8" fill="none" strokeLinecap="round" />
     </>
   ),
-  note: (c) => <path d="M9 18 A3 3 0 1 1 7 15.2 V4 L18 2 V14 A3 3 0 1 1 16 11.2 V5.5 L9 6.8 Z" fill={c} />,
+  note: (c) => (
+    <>
+      <path d="M9 18 A3 3 0 1 1 7 15.2 V4 L18 2 V14 A3 3 0 1 1 16 11.2 V5.5 L9 6.8 Z" fill={c} />
+      <ellipse cx="5.4" cy="17.4" rx="1.2" ry="0.7" fill="#fff" opacity="0.6" transform="rotate(-30 5.4 17.4)" />
+    </>
+  ),
   paw: (c) => (
-    <g fill={c}>
-      <ellipse cx="12" cy="16" rx="5.5" ry="4.5" />
-      <circle cx="6" cy="9.5" r="2.4" />
-      <circle cx="10" cy="6" r="2.4" />
-      <circle cx="14" cy="6" r="2.4" />
-      <circle cx="18" cy="9.5" r="2.4" />
+    <g>
+      <g fill={c}>
+        <ellipse cx="12" cy="16" rx="5.5" ry="4.5" />
+        <circle cx="6" cy="9.5" r="2.4" />
+        <circle cx="10" cy="6" r="2.4" />
+        <circle cx="14" cy="6" r="2.4" />
+        <circle cx="18" cy="9.5" r="2.4" />
+      </g>
+      <g fill="#fff" opacity="0.35">
+        <ellipse cx="10.5" cy="14.5" rx="2" ry="1.2" />
+        <circle cx="9.4" cy="5.3" r="0.8" />
+        <circle cx="13.4" cy="5.3" r="0.8" />
+      </g>
     </g>
   ),
 };
@@ -333,8 +231,9 @@ export function FlairTheme({ theme, effect }: { theme: string | null | undefined
   if (!t && !effect) return null;
   return (
     <div className={`cos-theme-bg${t ? "" : " is-plain"}`} style={t ? themeStyle(t) : undefined} aria-hidden="true">
-      {t ? (
+      {t && theme ? (
         <>
+          <ThemeArt themeKey={theme} t={t} />
           <span className="cos-theme-orb cos-theme-orb--1" />
           <span className="cos-theme-orb cos-theme-orb--2" />
         </>
@@ -394,6 +293,7 @@ function CosmeticPreviewInner({ slot, cosKey, me, compact }: PreviewProps) {
       {slot === "effect" ? <FlairEffect effect={cosKey} count={compact ? 8 : 14} /> : null}
       {slot === "theme" ? (
         <span className="cprev-theme">
+          {specOf("theme", cosKey)?.theme ? <ThemeArt themeKey={cosKey} t={specOf("theme", cosKey)!.theme!} /> : null}
           <span className="cos-theme-orb cos-theme-orb--1" />
           <i />
           <i />
