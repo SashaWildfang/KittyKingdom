@@ -260,25 +260,66 @@ function seeded(seed: number) {
   };
 }
 
+/** Why a profile can't be featured right now (empty when it can). */
+function featuredBlockers(p: ProfileDoc, pool: Pool) {
+  const id = String(p._id);
+  const inServer = pool.inServer ? pool.inServer.has(id) : pool.who.get(id)?.inServer !== false;
+  const out: string[] = [];
+  if (p.is_looking !== "Yes") out.push("Your profile says you're not looking right now.");
+  if (((p.web ?? {}) as WebPrefs).paused) out.push("Your profile is paused.");
+  if (pool.settings.get(id)?.featured === false) out.push("You turned off being featured in your Social settings.");
+  if (!isFilled(p.bio)) out.push("Your profile needs a bio.");
+  if (!inServer) out.push("You need to be in the Discord server.");
+  if (pool.banned.has(id)) out.push("Banned members can't be featured.");
+  return out;
+}
+
+/** Who can be drawn and how heavily: profile_weight (kept in sync by the economy bot from their roles:
+ *  server booster and Patreon tier), doubled while a Store Profile Booster is running. */
+function featuredPool(pool: Pool) {
+  const eligible = Array.from(pool.profiles.values())
+    .filter((p) => !featuredBlockers(p, pool).length)
+    .sort((a, b) => String(a._id).localeCompare(String(b._id)));
+  const weightOf = (p: ProfileDoc) => Math.max(0.1, Number(p.profile_weight ?? 1)) * (pool.profileBoosted.has(String(p._id)) ? PROFILE_BOOSTER_WEIGHT : 1);
+  return { eligible, weightOf };
+}
+
+/** A member's weight and chances in the hourly Featured draw. */
+export async function featuredOdds(discordId: string) {
+  const pool = await datingPool();
+  const profile = pool.profiles.get(discordId);
+  if (!profile) return { hasProfile: false as const };
+  const { eligible, weightOf } = featuredPool(pool);
+  const blockers = featuredBlockers(profile, pool);
+  const roleWeight = Math.max(0.1, Number(profile.profile_weight ?? 1));
+  const boosted = pool.profileBoosted.has(discordId);
+  const weight = weightOf(profile);
+  const others = eligible.filter((p) => String(p._id) !== discordId).reduce((a, p) => a + weightOf(p), 0);
+  // If you're not in the draw right now, the chance is what you'd have once you are
+  const chance = weight / (others + weight);
+  return {
+    hasProfile: true as const,
+    eligible: !blockers.length,
+    blockers,
+    roleWeight,
+    profileBooster: boosted,
+    spotlight: pool.spotlit.has(discordId),
+    weight,
+    poolSize: eligible.length + (blockers.length ? 1 : 0),
+    totalWeight: others + weight,
+    chancePerHour: chance,
+    // Chance of being featured at least once in the next 24 draws
+    chancePerDay: 1 - Math.pow(1 - chance, 24),
+  };
+}
+
 /** The featured member for an hour (same for everyone), weighted by profile_weight like the bot's draw. */
 export async function featured(hoursAgo = 0) {
   const pool = await datingPool();
   const hour = Math.floor(Date.now() / 3_600_000) - hoursAgo;
   // Only members still in the server (and not banned) can be featured
-  const inServer = (id: string) => (pool.inServer ? pool.inServer.has(id) : pool.who.get(id)?.inServer !== false);
-  const eligible = Array.from(pool.profiles.values())
-    .filter((p) => {
-      const id = String(p._id);
-      return p.is_looking === "Yes" && !((p.web ?? {}) as WebPrefs).paused && pool.settings.get(id)?.featured !== false && isFilled(p.bio) && inServer(id) && !pool.banned.has(id);
-    })
-    .sort((a, b) => String(a._id).localeCompare(String(b._id)));
+  const { eligible, weightOf } = featuredPool(pool);
   if (!eligible.length) return null;
-  // Weight: profile_weight (kept in sync by the economy bot from their roles: server booster and
-  // Patreon tier), doubled while a Store Profile Booster is running
-  const weightOf = (p: ProfileDoc) => {
-    const id = String(p._id);
-    return Math.max(0.1, Number(p.profile_weight ?? 1)) * (pool.profileBoosted.has(id) ? PROFILE_BOOSTER_WEIGHT : 1);
-  };
   const weights = eligible.map(weightOf);
   const total = weights.reduce((a, b) => a + b, 0);
   let r = seeded(hour * 2654435761)() * total;

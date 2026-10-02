@@ -55,7 +55,7 @@ const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean }[] = [
 // Clicking a headline number opens the punishments list filtered to that kind
 const ACTION_GROUPS: Record<string, string[]> = {
   ban: ["ban", "tempban"],
-  mute: ["mute", "tempmute", "timeout"],
+  mute: ["mute", "tempmute", "timeout", "muzzle"],
   kick: ["kick", "kick_unverified"],
   warn: ["warn"],
   unban: ["unban"],
