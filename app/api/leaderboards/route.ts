@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "../../../lib/auth";
-import { monthlyBumps } from "../../../lib/bumps";
+import { monthlyBumps, monthlyVcSeconds } from "../../../lib/bumps";
 import { loadDirectory, resolveMissing } from "../../../lib/member-directory";
 import {
   getBotUsersCollection,
@@ -220,7 +220,7 @@ function toLeaderboardRow(
     // Only counts from this month (the bot resets a member's count lazily, on their next bump)
     monthly_bumps: monthlyBumps(source),
     total_vc_time: getNumber(source, sortFields.total_vc_time),
-    monthly_vc_time: getNumber(source, sortFields.monthly_vc_time),
+    monthly_vc_time: monthlyVcSeconds(source),
     isCurrentUser: Boolean(currentDiscordId && discordId === currentDiscordId),
   };
 }

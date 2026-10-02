@@ -7,7 +7,7 @@
 // QOTD and ticket records, and the member's Discord profile.
 
 import { Long, type Document } from "mongodb";
-import { monthlyBumps } from "./bumps";
+import { monthlyBumps, monthlyVcSeconds } from "./bumps";
 import { people, type Person } from "./admin-people";
 import { getGuildChannelsRaw, getGuildRoles, getMemberProfile, guildId } from "./discord-member";
 import { inServerIds } from "./member-directory";
@@ -613,7 +613,7 @@ export async function memberStats(discordId: string, timeZone: string) {
     })(),
     voice: {
       totalSeconds: Math.max(num(user?.vc_time_total), num(a.voiceSeconds), vh?.totalSeconds ?? 0),
-      monthSeconds: num(user?.vc_time_monthly),
+      monthSeconds: monthlyVcSeconds(user as Record<string, unknown> | null),
       trackedSeconds: Math.max(num(a.voiceSeconds), vh?.rewards.seconds ?? 0),
       withOthersSeconds: num(a.voiceSeconds) >= (vh?.rewards.seconds ?? 0) ? num(a.voiceWithOthersSeconds) : vh?.rewards.withOthersSeconds ?? 0,
       longestSession: Math.max(num(a.voiceLongestSession), vh?.longestSession ?? 0),
