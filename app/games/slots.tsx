@@ -322,7 +322,7 @@ export function Slots({ balance, onBalance, initialStatus, viewers = 0 }: { bala
           </div>
           {status.maxSpins <= 1 ? (
             <p className="sl-nitro-note">
-              <Lock size={13} aria-hidden="true" /> Extra spins (×5, ×10, ×25) are for <b>Nitro boosters</b> only.
+              <Lock size={13} aria-hidden="true" /> Extra spins are for <b>Nitro Boosters</b> only.
             </p>
           ) : (
             <p className="sl-nitro-note is-on">

@@ -265,9 +265,31 @@ function Wheel({ state, clock }: { state: State | null; clock: () => number }) {
 
 // ---------- the layout (betting board) ----------
 
+const SPOT_LABEL: Record<string, string> = {
+  red: "Red", black: "Black", odd: "Odd", even: "Even", low: "1–18", high: "19–36",
+  d1: "1st 12", d2: "2nd 12", d3: "3rd 12", c1: "Column 1", c2: "Column 2", c3: "Column 3",
+};
+const spotLabel = (k: string) => (k.startsWith("n") ? k.slice(1) : SPOT_LABEL[k] ?? k);
+const spotTone = (k: string) => (k.startsWith("n") ? colorOf(Number(k.slice(1))) : k === "red" ? "red" : k === "black" ? "black" : "outside");
+
+/** What someone has on the table: one small tag per spot, biggest first. */
+function BetTags({ bets }: { bets: Record<string, number> }) {
+  const list = Object.entries(bets).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+  if (!list.length) return null;
+  return (
+    <span className="rl-tags">
+      {list.map(([k, v]) => (
+        <span key={k} className={`rl-tag is-${spotTone(k)}`} title={`${spotLabel(k)}: ${v.toLocaleString()} leaves`}>
+          <i>{spotLabel(k)}</i> {short(v)}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 function Spot({ k, label, className, mine, others, win, disabled, onBet, style }: { k: string; label: React.ReactNode; className?: string; mine: number; others: Player[]; win: boolean; disabled: boolean; onBet: (k: string) => void; style?: CSSProperties }) {
   return (
-    <button type="button" className={`rl-spot ${className ?? ""}${win ? " is-win" : ""}`} style={style} disabled={disabled} onClick={() => onBet(k)} aria-label={`Bet on ${typeof label === "string" ? label : k}`}>
+    <button type="button" className={`rl-spot ${className ?? ""}${win ? " is-win" : ""}${mine > 0 ? " is-mine" : ""}`} style={style} disabled={disabled} onClick={() => onBet(k)} aria-label={`Bet on ${spotLabel(k)}${mine > 0 ? ` (you have ${mine} on it)` : ""}`} title={mine > 0 ? `Your bet: ${mine.toLocaleString()} leaves` : undefined}>
       <span className="rl-spot-label">{label}</span>
       {others.length ? (
         <span className="rl-others" aria-hidden="true">
@@ -276,7 +298,7 @@ function Spot({ k, label, className, mine, others, win, disabled, onBet, style }
           ))}
         </span>
       ) : null}
-      {mine > 0 ? <span className={`rl-mychip bj-chip ${CHIP_CLASS[[...CHIPS].reverse().find((c) => mine >= c) ?? 25]}`}>{short(mine)}</span> : null}
+      {mine > 0 ? <span className="rl-mybet" aria-hidden="true">{short(mine)}</span> : null}
     </button>
   );
 }
@@ -503,12 +525,15 @@ export function Roulette({ stateUrl = "/api/games/roulette", watch = false, myId
                   .slice()
                   .sort((a, b) => b.total - a.total)
                   .map((t) => (
-                    <li key={t.player.id} className={t.player.id === myId ? "is-me" : ""}>
-                      <Avatar p={t.player} />
-                      <span>{t.player.name}</span>
-                      <b>
-                        {t.total.toLocaleString()} <LeafEmote size={12} />
-                      </b>
+                    <li key={t.player.id} className={`rl-player${t.player.id === myId ? " is-me" : ""}`}>
+                      <span className="rl-player-row">
+                        <Avatar p={t.player} />
+                        <span>{t.player.id === myId ? "You" : t.player.name}</span>
+                        <b>
+                          {t.total.toLocaleString()} <LeafEmote size={12} />
+                        </b>
+                      </span>
+                      <BetTags bets={t.bets} />
                     </li>
                   ))}
               </ul>
