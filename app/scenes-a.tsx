@@ -2,7 +2,7 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import type { BannerSpec } from "../lib/cosmetics";
-import { Chalet, Deer, FairyLights, FairyTree, Graveyard, HayBales, Holograms, Bridge, Igloo, KoiPond, LakeCamp, Lighthouse, PlanetHorizon, RainStreet, RedSun, River, Scarecrow, CornRows, SeaStacks, SpiralGalaxy, Wisteria } from "./scenes-d";
+import { Chalet, Deer, FairyLights, FairyTree, HayBales, Holograms, Bridge, Igloo, KoiPond, LakeCamp, Lighthouse, PlanetHorizon, RainStreet, RedSun, River, Scarecrow, CornRows, SeaStacks, SpiralGalaxy } from "./scenes-d";
 import { anim, Bird, Cloud, CloudDefs, dk, H, Hill, hillY, LG, lt, lum, Mist, mix, Orb, Pine, R, RG, RoundTree, Sky, Stars, url, Vignette, W, waveEdge, wavePath } from "./scene-kit";
 
 export type Opts = BannerSpec & { id: string };
@@ -124,7 +124,6 @@ export function Pumpkins({ p, id, v }: Opts) {
         </>
       ) : v === "harvest" ? <HayBales id={id} x={760} y={170} /> : null}
       <Hill id={id} k="h2" y={168} amp={8} seed={2.4} waves={2.2} color={near} rim={mix(near, glow, 0.6)} rimOpacity={0.35} />
-      {v === "graveyard" ? <Graveyard id={id} y={172} /> : null}
       <Mist id={id} k="m1" y={148} h={36} color={lt(sky2, 0.3)} opacity={0.22} dur={20} />
       <path d="M120 206 C180 188 240 210 300 196 S420 186 470 200 S600 190 660 204 S800 194 880 206" fill="none" stroke="#2c4a1a" strokeWidth="2.4" opacity="0.8" />
       {pumpkin(300, 192, 0.62, false, 0)}
@@ -750,7 +749,6 @@ export function Sakura({ p, id, v }: Opts) {
       <Hill id={id} k="h2" y={176} amp={10} seed={2.2} waves={2.5} color={hill} rim={lt(hill, 0.4)} rimOpacity={0.5} />
       <Hill id={id} k="h3" y={202} amp={6} seed={3.4} waves={3} color={mix(hill, b1, 0.35)} />
       {v === "plum" ? <KoiPond id={id} /> : null}
-      {v === "wisteria" ? <Wisteria id={id} c1={b1} c2={b2} /> : null}
       {v !== "wisteria" ? (
         <>
       <g transform="translate(0 30)">

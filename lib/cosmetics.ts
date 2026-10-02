@@ -82,7 +82,7 @@ export type Ornament =
   | "crown" | "halo" | "wings" | "batwings" | "horns" | "ears" | "foxears" | "wreath" | "snow" | "flames" | "phoenix" | "hearts" | "stars" | "starfall"
   | "blossoms" | "moon" | "wisps" | "bolts" | "coals" | "branch" | "neontube" | "ribbon" | "filigree" | "planets" | "mist" | "cobweb" | "laurel"
   | "chain" | "roses" | "shards" | "wave" | "slime" | "sweets" | "ecg" | "thorns" | "tail" | "whiskers" | "bow" | "foxtail" | "icicles" | "crystals" | "vortex"
-  | "clouds" | "bee" | "swoosh" | "sunflowers";
+  | "clouds" | "bee" | "swoosh" | "sunflowers" | "embers";
 export type FrameSpec = { style: "spin" | "dual" | "pulse" | "sweep" | "dots" | "flame" | "prism"; colors: string[]; glow: string; speed?: number; ornaments?: Ornament[]; ornament?: string };
 export type Scene = "pumpkins" | "mountains" | "ocean" | "forest" | "city" | "space" | "aurora" | "sakura" | "candy" | "desert" | "underwater" | "retro" | "clouds" | "meadow" | "village" | "lava";
 export type BannerSpec = { scene: Scene; p: string[]; stars?: boolean; snow?: boolean; alt?: boolean; v?: string };
@@ -125,7 +125,7 @@ export const COSMETIC_DEFS: CosmeticDef[] = [
   // ================= BANNERS (illustrated scenes) =================
   bn("pumpkin", "Pumpkin Patch", "Carved jack-o'-lanterns glowing under a harvest moon, with bats on the wind. Halloween 2026 only.", "epic", { scene: "pumpkins", p: ["#140726", "#3b1450", "#fff2c2", "#24103a", "#1a0b22", "#ff8a1f", "#c4560b", "#ffd75e"] }, { window: HALLOWEEN }, 6666),
   bn("harvest", "Harvest Dusk", "A harvest field at sunset: a scarecrow, hay bales and corn. Halloween 2026 only.", "rare", { scene: "pumpkins", p: ["#3a1240", "#ff7b39", "#ffe3a1", "#5a2330", "#2c1018", "#ff9a2e", "#c9600f", "#fff1a8"] }, { window: HALLOWEEN }, 4000),
-  bn("graveyard", "Witching Hour", "A haunted graveyard: tombstones, an iron fence and drifting ghosts. Halloween 2026 only.", "legendary", { scene: "pumpkins", p: ["#02130e", "#0f3b2c", "#d8ffe9", "#0b241c", "#04140f", "#8bff7a", "#2fa84f", "#e9ff8a"] }, { window: HALLOWEEN }, 13000),
+  bn("graveyard", "Witching Hour", "A haunted house above a moonlit graveyard, with fog, ghosts and glowing lanterns. Halloween 2026 only.", "legendary", { scene: "pumpkins", p: ["#02130e", "#0f3b2c", "#d8ffe9", "#0b241c", "#04140f", "#8bff7a", "#2fa84f", "#e9ff8a"] }, { window: HALLOWEEN }, 13000),
 
   bn("starry", "Starry Night", "Snowy peaks over a moonlit lake, with a tent and a crackling campfire.", "epic", { scene: "mountains", p: ["#050816", "#1b2560", "#f4f1ff", "#2b3470", "#1a2050", "#0d1235", "#e8ecff"], stars: true, snow: true }, {}, 9000),
   bn("alpine", "Alpine Dawn", "Golden sunrise over snowy mountains and a little alpine chalet.", "rare", { scene: "mountains", p: ["#ffb88a", "#ffe3b0", "#fff2c7", "#9aa7c7", "#6b7aa8", "#3d4a78", "#ffffff"], snow: true }),
@@ -136,7 +136,7 @@ export const COSMETIC_DEFS: CosmeticDef[] = [
   bn("tropical", "Tropical Tide", "A sunny beach: palms, a striped umbrella, a sandcastle and lapping turquoise water.", "rare", { scene: "ocean", p: ["#4fc3f7", "#c8f3ff", "#fff59d", "#26c6da", "#00acc1", "#00838f", "#ffffff"] }),
   bn("sunsetsea", "Sunset Sea", "A blazing sun over sea stacks, a sailboat and leaping dolphins.", "epic", { scene: "ocean", p: ["#3b0f5c", "#ff6f61", "#ffd27a", "#b0306a", "#7a1f5c", "#42124a", "#ffd0b5"] }),
 
-  bn("autumn", "Autumn Canopy", "A cozy cabin under blazing autumn trees, leaves drifting through golden light.", "rare", { scene: "forest", p: ["#ffcf8a", "#ff8e53", "#fff1c1", "#e0782a", "#b84a14", "#7a2c0c", "#ffd9a0", "#ffe08a"], alt: true }, {}, 3500),
+  bn("autumn", "Autumn Canopy", "A leafy forest path under a blazing autumn canopy, sunbeams and falling maple leaves.", "rare", { scene: "forest", p: ["#ffcf8a", "#ff8e53", "#fff1c1", "#e0782a", "#b84a14", "#7a2c0c", "#ffd9a0", "#ffe08a"], alt: true }, {}, 3500),
   bn("mistwood", "Mistwood", "Pine forest in silver fog, fireflies and a watchful deer.", "epic", { scene: "forest", p: ["#0d2a2a", "#3f6f6a", "#e8fff4", "#25524b", "#163a35", "#0a221f", "#cfeee4", "#d6ff8a"] }),
   bn("enchanted", "Enchanted Grove", "A violet forest with a glowing fairy door and strings of fairy lights.", "legendary", { scene: "forest", p: ["#1a0b3a", "#5b2a86", "#ffd6ff", "#43206b", "#2c1450", "#1a0b35", "#e3c2ff", "#9dfcff"] }),
 
@@ -153,7 +153,7 @@ export const COSMETIC_DEFS: CosmeticDef[] = [
 
   bn("sakura", "Sakura Spring", "Cherry blossoms in full bloom, petals on the breeze.", "epic", { scene: "sakura", p: ["#ffe3ef", "#fff7fb", "#f4c6da", "#5b3a3a", "#ff9cc7", "#ffd1e3", "#ffb3d1"] }),
   bn("plum", "Moon Plum", "White plum blossoms, a stone lantern and a koi pond by moonlight.", "rare", { scene: "sakura", p: ["#1b1838", "#3d3570", "#4b4486", "#2a1f2e", "#ffffff", "#e6e0ff", "#f3eefe"] }),
-  bn("wisteria", "Wisteria", "Hanging wisteria over a red arched bridge.", "rare", { scene: "sakura", p: ["#efe4ff", "#fbf8ff", "#d8c7f5", "#5a4a6b", "#b98cf0", "#d9c2ff", "#c9a7ff"] }),
+  bn("wisteria", "Wisteria", "A garden pergola dripping with wisteria over a pond and a red arched bridge.", "rare", { scene: "sakura", p: ["#efe4ff", "#fbf8ff", "#d8c7f5", "#5a4a6b", "#b98cf0", "#d9c2ff", "#c9a7ff"] }),
 
   bn("candy", "Cotton Candy", "Candy clouds, lollipops and gumdrop hills.", "common", { scene: "candy", p: ["#ffc8e6", "#c8e3ff", "#ffffff", "#ff7eb6", "#7ec8ff", "#ffe066", "#ffb3d9"] }, {}, 1500),
   bn("berry", "Berry Sweet", "Layer-cake mountains crowned with strawberries in a berry-pink candy land.", "rare", { scene: "candy", p: ["#ff9ac1", "#ffd1e3", "#fff0f6", "#e8457c", "#9b5de5", "#ffd166", "#ff6f9f"] }),
@@ -173,23 +173,23 @@ export const COSMETIC_DEFS: CosmeticDef[] = [
   bn("storm", "Stormfront", "Dark rolling storm clouds lit by distant light.", "epic", { scene: "clouds", p: ["#1b2333", "#46546e", "#cfd8ea", "#58657e", "#3d4860", "#2a3346"] }),
 
   bn("meadow", "Spring Meadow", "Rolling green hills covered in wildflowers.", "common", { scene: "meadow", p: ["#a8e0ff", "#e9f8ff", "#fff3a1", "#7cc576", "#5aa65a", "#ff8fab", "#ffe066"] }),
-  bn("lavender", "Lavender Fields", "Provence lavender rows running to a farmhouse and cypress trees at sunset.", "rare", { scene: "meadow", p: ["#ffc6a8", "#ffe9d6", "#fff1c1", "#8f6bbd", "#6d4c9e", "#c39bff", "#f3e1ff"], v: "lavender" }),
-  bn("sunflower", "Sunflower Hills", "Sunflower hills with a red barn and silo.", "rare", { scene: "meadow", p: ["#8fd3ff", "#e7f7ff", "#fff59d", "#9ccc65", "#7cb342", "#ffca28", "#ffa000"], v: "sunflower" }),
+  bn("lavender", "Lavender Fields", "Rows of lavender running to the sunset, a farmhouse and cypress trees on the hill.", "rare", { scene: "meadow", p: ["#ffc6a8", "#ffe9d6", "#fff1c1", "#8f6bbd", "#6d4c9e", "#c39bff", "#f3e1ff"], v: "lavender" }),
+  bn("sunflower", "Sunflower Hills", "A whole field of sunflowers rolling over the hills, with a red barn far off.", "rare", { scene: "meadow", p: ["#8fd3ff", "#e7f7ff", "#fff59d", "#9ccc65", "#7cb342", "#ffca28", "#ffa000"], v: "sunflower" }),
 
   bn("village", "Cozy Village", "A snowy village at night, every window glowing warm.", "epic", { scene: "village", p: ["#0d1b3a", "#2c4a7a", "#f2f7ff", "#5a3a2e", "#ffffff", "#ffc56b", "#1e3d33"], stars: true, snow: true }),
 
   bn("volcano", "Volcano", "An erupting volcano: lava rivers, an ash column with lightning and glowing fissures.", "legendary", { scene: "lava", p: ["#14070a", "#5a1608", "#3a2420", "#24140f", "#ff4d0d", "#ffc23a", "#ffe08a"] }),
-  bn("emberforge", "Ember Forge", "A waterfall of molten gold pouring between basalt columns under a smoky violet sky.", "epic", { scene: "lava", p: ["#120a1f", "#4a2a3a", "#3b3040", "#211a28", "#f59e0b", "#fff1a8", "#ffe8a3"] }),
+  bn("emberforge", "Ember Forge", "A blacksmith's forge under a smoky violet sky: a roaring furnace, an anvil and showers of sparks.", "epic", { scene: "lava", p: ["#120a1f", "#4a2a3a", "#3b3040", "#211a28", "#f59e0b", "#fff1a8", "#ffe8a3"] }),
 
   // ================= FRAMES =================
-  fr("ember", "Ember Ring", "A ring of glowing coals with sparks drifting up.", "rare", { style: "spin", colors: ["#ffb347", "#ff6a00", "#ffe08a"], glow: "rgba(255,120,0,.6)", ornaments: ["coals"] }, {}, 3000),
+  fr("ember", "Ember Ring", "A forged iron ring with molten cracks and embers swirling round it.", "rare", { style: "spin", colors: ["#ffb347", "#ff6a00", "#ffe08a"], glow: "rgba(255,120,0,.6)", ornaments: ["embers"] }, {}, 3000),
   fr("sakura", "Sakura", "A blossoming cherry branch arching over a soft pink ring, petals drifting down.", "rare", { style: "spin", colors: ["#ffd1e3", "#ff86b6", "#fff0f6"], glow: "rgba(255,134,182,.55)", speed: 10, ornaments: ["branch"] }, {}, 4000),
   fr("neon", "Neon Pulse", "A double neon tube with flickering heart, star and bolt signs.", "rare", { style: "dual", colors: ["#ff2bd6", "#ff8ae8", "#00e5ff"], glow: "rgba(0,229,255,.7)", ornaments: ["neontube"] }, {}, 5000),
   fr("aurora", "Aurora", "A ribbon of northern lights draped over your avatar.", "epic", { style: "spin", colors: ["#3dffb4", "#2bb8ff", "#b46cff"], glow: "rgba(61,255,180,.5)", speed: 8, ornaments: ["ribbon"] }, {}, 8000),
   fr("gold", "Royal Gold", "Polished gold with hand-cut scrollwork and a sapphire.", "epic", { style: "sweep", colors: ["#8a5a00", "#ffd56a", "#fff6c9", "#e0a526"], glow: "rgba(255,196,64,.6)", ornaments: ["filigree"] }, {}, 12000),
   fr("galaxy", "Galaxy", "A nebula ring with little planets in orbit.", "legendary", { style: "spin", colors: ["#1b1464", "#8a2be2", "#4fc3ff", "#ff4dd8"], glow: "rgba(138,43,226,.65)", speed: 5, ornaments: ["planets"] }, {}, 25000),
   fr("haunted", "Haunted", "Little ghosts drifting around a pale green ring. Halloween 2026 only.", "epic", { style: "pulse", colors: ["#3b6e58", "#c8ffe0"], glow: "rgba(125,255,184,.7)", ornaments: ["wisps", "mist"] }, { window: HALLOWEEN }, 6666),
-  fr("batwing", "Bat Wings", "Leathery bat wings, a cobweb and a dangling spider. Halloween 2026 only.", "legendary", { style: "dual", colors: ["#2a0a14", "#c1121f", "#ff4d4d"], glow: "rgba(193,18,31,.6)", ornaments: ["batwings", "cobweb"] }, { window: HALLOWEEN }, 13000),
+  fr("batwing", "Bat Wings", "Leathery bat wings spread around a blood-red ring. Halloween 2026 only.", "legendary", { style: "dual", colors: ["#2a0a14", "#c1121f", "#ff4d4d"], glow: "rgba(193,18,31,.6)", ornaments: ["batwings"] }, { window: HALLOWEEN }, 13000),
   fr("crown", "Kingdom Crown", "The rarest frame in the Kingdom: a jewelled crown and golden laurels. Only 25 will ever exist.", "mythic", { style: "sweep", colors: ["#8a5a00", "#ffe9a0", "#fff8dc", "#d4a017"], glow: "rgba(255,200,60,.85)", ornaments: ["crown", "laurel"] }, { window: { kind: "limited", from: "2026-10-01T00:00:00Z", until: "2026-10-15T00:00:00Z", season: "Launch drop", quantity: 25 } }, 100000),
   fr("silver", "Silver Sweep", "Polished silver blades sweeping round your avatar, with a travelling glint.", "common", { style: "sweep", colors: ["#6b7280", "#e5e7eb", "#ffffff", "#9ca3af"], glow: "rgba(229,231,235,.45)", ornaments: ["swoosh"] }),
   fr("rosegold", "Rose Gold", "Warm rose gold with roses and pearls.", "rare", { style: "sweep", colors: ["#9e5a4f", "#f4c2b6", "#fff1ec", "#d4877a"], glow: "rgba(244,194,182,.55)", ornaments: ["roses"] }),
@@ -205,7 +205,7 @@ export const COSMETIC_DEFS: CosmeticDef[] = [
   fr("foxears", "Fox Ears", "Fox ears and a big fluffy tail on a warm autumn ring.", "rare", { style: "spin", colors: ["#ff8a3d", "#ffd0a1", "#c4501b"], glow: "rgba(255,138,61,.5)", ornament: "#ff8a3d", ornaments: ["foxears", "foxtail"] }),
   fr("wreath", "Forest Wreath", "A leafy green wreath around a golden ring.", "rare", { style: "sweep", colors: ["#1f5f3a", "#a8e6a3", "#f5ffe6", "#3f8f4f"], glow: "rgba(120,220,140,.5)", ornaments: ["wreath"] }),
   fr("frost", "Frostbite", "An icy ring hung with icicles and snowflakes.", "epic", { style: "spin", colors: ["#bfefff", "#5ac8fa", "#ffffff"], glow: "rgba(140,220,255,.7)", ornaments: ["snow", "icicles"] }),
-  fr("phoenix", "Phoenix", "A firebird perched on top, wings of flame raised and tail streamers trailing down.", "legendary", { style: "flame", colors: ["#ff3d00", "#ffb300", "#fff176"], glow: "rgba(255,120,0,.8)", ornaments: ["phoenix"] }),
+  fr("phoenix", "Phoenix", "A firebird in flight over your avatar, wings of flame raised and long tail plumes trailing round.", "legendary", { style: "flame", colors: ["#ff3d00", "#ffb300", "#fff176"], glow: "rgba(255,120,0,.8)", ornaments: ["phoenix"] }),
   fr("electric", "Electric", "Branching lightning leaping off the ring, sparks racing round it.", "epic", { style: "dots", colors: ["#fff200", "#ffe066", "#ffffff"], glow: "rgba(255,242,0,.75)", speed: 2, ornaments: ["bolts"] }),
   fr("prism", "Prism", "A glass prism splitting light into a rainbow that wraps your avatar.", "legendary", { style: "prism", colors: ["#ff4d4d", "#ffd84d", "#4dff88", "#4dc3ff", "#b44dff"], glow: "rgba(255,255,255,.55)", ornaments: ["crystals"] }),
   fr("void", "Void", "A black hole ring pulling in violet spiral arms.", "epic", { style: "dual", colors: ["#000000", "#3c096c", "#9d4edd"], glow: "rgba(157,78,221,.65)", ornaments: ["vortex"] }),
