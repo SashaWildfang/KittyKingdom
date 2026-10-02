@@ -1,6 +1,7 @@
 import {
   ArrowUp,
   BookOpen,
+  Dices,
   FileText,
   Heart,
   HeartHandshake,
@@ -90,10 +91,13 @@ export async function SiteFooter() {
             <a href="/store">
               <ShoppingBag size={13} aria-hidden="true" /> Store
             </a>
+            <a href="/games">
+              <Dices size={13} aria-hidden="true" /> Games
+            </a>
           </div>
           <div>
             <h3>Community</h3>
-            <a href={DISCORD_INVITE}>
+            <a href={DISCORD_INVITE} target="_blank" rel="noopener noreferrer">
               <MessageCircle size={13} aria-hidden="true" /> Discord
             </a>
             <a href={PATREON_URL} target="_blank" rel="noopener noreferrer">
