@@ -1,7 +1,7 @@
 "use client";
 
-import { ArrowLeft, ChevronDown, Eye, Lock, RefreshCw, Sparkles, Wand2 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { ArrowLeft, ChevronDown, Eye, Lock, RefreshCw, Wand2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type MutableRefObject } from "react";
 import type { PublicScratch } from "../../lib/games/live";
 import type { Ticket } from "../../lib/games/scratch";
 import { LeafEmote } from "../ui-icons";
@@ -232,7 +232,25 @@ function Foil({ play, revealed, onReveal, auto }: { play: Play; revealed: boolea
   );
 }
 
-export function ScratchOffs({ tickets, balance, onBalance, initialStatus, viewers = 0 }: { tickets: Ticket[]; balance: number; onBalance: (n: number) => void; initialStatus: ScratchStatus; viewers?: number }) {
+export function ScratchOffs({
+  tickets,
+  balance,
+  onBalance,
+  initialStatus,
+  viewers = 0,
+  onActive,
+  control,
+}: {
+  tickets: Ticket[];
+  balance: number;
+  onBalance: (n: number) => void;
+  initialStatus: ScratchStatus;
+  viewers?: number;
+  /** Told whether a ticket is being scratched */
+  onActive?: (active: boolean) => void;
+  /** Lets the page reveal the rest of the ticket when the player leaves */
+  control?: MutableRefObject<{ quit: () => Promise<void> } | null>;
+}) {
   const [status, setStatus] = useState(initialStatus);
   const [play, setPlay] = useState<Play | null>(null);
   const [revealed, setRevealed] = useState<boolean[]>(Array(9).fill(false));
@@ -243,8 +261,6 @@ export function ScratchOffs({ tickets, balance, onBalance, initialStatus, viewer
   const [burst, setBurst] = useState(0);
   const [odds, setOdds] = useState(false);
 
-  const left = status.limit === null ? null : Math.max(0, status.limit - status.used);
-
   const buy = async (t: Ticket) => {
     if (busy) return;
     setBusy(t.id);
@@ -254,7 +270,7 @@ export function ScratchOffs({ tickets, balance, onBalance, initialStatus, viewer
       .catch(() => ({ ok: false, error: "Something went wrong." }));
     setBusy(null);
     if (!res.ok) return setError(res.error ?? "That didn't work.");
-    setStatus({ used: res.used, limit: res.limit, nitro: res.nitro });
+    setStatus({ nitro: res.nitro });
     // Show the cost now; the prize lands when the ticket is fully revealed
     onBalance(res.balance - res.payout);
     setRevealed(Array(9).fill(false));
@@ -296,28 +312,26 @@ export function ScratchOffs({ tickets, balance, onBalance, initialStatus, viewer
     }
   }, [revealed, play, finished, onBalance]);
 
+  const scratching = !!play && !finished;
+  useEffect(() => onActive?.(scratching), [scratching, onActive]);
+  useEffect(() => {
+    if (!control) return;
+    control.current = {
+      quit: async () => {
+        // The prize was settled when the ticket was bought; this just uncovers it (and tells spectators)
+        setAuto(Date.now());
+        await fetch("/api/games/scratch", { method: "POST", headers: { "Content-Type": "application/json", "x-kk-progress": "1" }, body: JSON.stringify({ revealed: [0, 1, 2, 3, 4, 5, 6, 7, 8] }) }).catch(() => undefined);
+      },
+    };
+    return () => {
+      control.current = null;
+    };
+  }, [control]);
+
   const outcome = !play || !finished ? null : play.payout > play.ticket.cost ? "win" : play.payout === play.ticket.cost ? "free" : "lose";
 
   return (
     <div className="sc">
-      <div className="sc-limit">
-        {status.nitro ? (
-          <span className="sc-pill is-nitro">
-            <Sparkles size={14} aria-hidden="true" /> Nitro: unlimited tickets
-          </span>
-        ) : (
-          <>
-            <span className="sc-pill">
-              {left} of {status.limit} tickets left today
-            </span>
-            <span className="sc-meter" aria-hidden="true">
-              {Array.from({ length: status.limit ?? 0 }, (_, i) => (
-                <i key={i} className={i < status.used ? "is-used" : ""} />
-              ))}
-            </span>
-          </>
-        )}
-      </div>
 
       {error ? <p className="gm-error" role="alert">{error}</p> : null}
 
@@ -389,7 +403,7 @@ export function ScratchOffs({ tickets, balance, onBalance, initialStatus, viewer
                 <Wand2 size={16} aria-hidden="true" /> Scratch it all
               </button>
             ) : (
-              <button type="button" className="sc-btn is-primary" disabled={!!busy || balance < play.ticket.cost || left === 0} onClick={() => buy(play.ticket)}>
+              <button type="button" className="sc-btn is-primary" disabled={!!busy || balance < play.ticket.cost} onClick={() => buy(play.ticket)}>
                 <RefreshCw size={16} aria-hidden="true" /> Buy another ({play.ticket.cost.toLocaleString()} <LeafEmote size={14} />)
               </button>
             )}
@@ -409,16 +423,15 @@ export function ScratchOffs({ tickets, balance, onBalance, initialStatus, viewer
                   .map((t, i) => {
                     const locked = t.nitro && !status.nitro;
                     const short = balance < t.cost;
-                    const out = left === 0;
                     return (
                       <button
                         key={t.id}
                         type="button"
                         className={`sc-ticket is-card${locked ? " is-locked" : ""}`}
                         style={{ "--t1": t.colors[0], "--t2": t.colors[1], "--i": i } as CSSProperties}
-                        disabled={!!busy || locked || short || out}
+                        disabled={!!busy || locked || short}
                         onClick={() => buy(t)}
-                        title={locked ? "Nitro boosters only" : short ? "Not enough leaves" : out ? "No tickets left today" : `Buy ${t.name}`}
+                        title={locked ? "Nitro boosters only" : short ? "Not enough leaves" : `Buy ${t.name}`}
                       >
                         <span className="sc-card-shine" aria-hidden="true" />
                         <span className="sc-ticket-icon">{t.icon}</span>
@@ -462,7 +475,7 @@ export function ScratchOffs({ tickets, balance, onBalance, initialStatus, viewer
               </div>
             ))}
             <p className="gm-fine">
-              Everyone gets {initialStatus.limit ?? 5} tickets a day (shared with /scratchoff in Discord); Nitro boosters are unlimited. Most wins are a free ticket (your cost back).
+              No daily limit. Black Diamond tickets are for Nitro boosters. Most wins are a free ticket (your cost back).
             </p>
           </div>
         ) : null}

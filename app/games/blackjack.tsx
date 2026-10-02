@@ -1,9 +1,10 @@
 "use client";
 
 import { ChevronDown, Eye, Hand, Plus, RotateCcw, Scissors, Split, X } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type MutableRefObject } from "react";
 import type { Card, HandResult, PublicCard, PublicTable } from "../../lib/games/blackjack";
 import { LeafEmote } from "../ui-icons";
+import { CardFace } from "./cards";
 import { Confetti, CountUp } from "./games-client";
 
 const SUIT: Record<Card["suit"], { glyph: string; red: boolean; name: string }> = {
@@ -24,57 +25,26 @@ const short = (n: number) => (n >= 1000 ? `${n % 1000 === 0 ? n / 1000 : (n / 10
 /** A playing card with a 3D flip between its back and face. */
 function PlayingCard({ card, faceDown, delay, deal }: { card: Card | null; faceDown: boolean; delay: number; deal: boolean }) {
   const s = card ? SUIT[card.suit] : null;
-  const face = card && ["J", "Q", "K"].includes(card.rank);
   return (
     <div className={`bj-card${deal ? " is-dealt" : ""}${faceDown ? " is-down" : ""}`} style={{ "--delay": `${delay}ms` } as CSSProperties} aria-label={card && !faceDown ? `${card.rank} of ${s?.name}` : "Face-down card"}>
       <div className="bj-card-inner">
-        <div className={`bj-face${s?.red ? " is-red" : ""}`}>
-          {card ? (
-            <>
-              <span className="bj-corner">
-                <b>{card.rank}</b>
-                <i>{s?.glyph}</i>
-              </span>
-              <span className={`bj-pip${face ? " is-court" : ""}${card.rank === "A" ? " is-ace" : ""}`}>
-                {face ? (
-                  <>
-                    <em>{card.rank}</em>
-                    <i>{s?.glyph}</i>
-                  </>
-                ) : (
-                  s?.glyph
-                )}
-              </span>
-              <span className="bj-corner is-flip">
-                <b>{card.rank}</b>
-                <i>{s?.glyph}</i>
-              </span>
-            </>
-          ) : null}
-        </div>
+        <div className="bj-face">{card ? <CardFace card={card} /> : null}</div>
         <div className="bj-back" />
       </div>
     </div>
   );
 }
 
-function ChipStack({ amount, small }: { amount: number; small?: boolean }) {
-  // Break the amount into chips, biggest first (show at most 7)
-  const chips: number[] = [];
-  let left = amount;
-  for (const c of [...CHIPS].reverse()) {
-    while (left >= c && chips.length < 7) {
-      chips.push(c);
-      left -= c;
-    }
-  }
+/** The bet on the table: one chip in the colour of the biggest denomination it covers, with the exact amount under it. */
+function BetChip({ amount }: { amount: number }) {
+  if (amount <= 0) return null;
+  const top = [...CHIPS].reverse().find((c) => amount >= c) ?? CHIPS[0];
   return (
-    <span className={`bj-stack${small ? " is-small" : ""}`} aria-hidden="true">
-      {chips.reverse().map((c, i) => (
-        <span key={`${amount}-${i}`} className={`bj-chip ${CHIP_CLASS[c]}`} style={{ "--i": i } as CSSProperties}>
-          {short(c)}
-        </span>
-      ))}
+    <span className="bj-betchip" key={amount}>
+      <span className={`bj-chip ${CHIP_CLASS[top]}`}>{short(amount)}</span>
+      <span className="bj-betchip-amount">
+        {amount.toLocaleString()} <LeafEmote size={12} />
+      </span>
     </span>
   );
 }
@@ -92,6 +62,8 @@ export function BlackjackTable({
   minBet,
   watch,
   viewers = 0,
+  onActive,
+  control,
 }: {
   initialTable: PublicTable | null;
   balance?: number;
@@ -99,6 +71,10 @@ export function BlackjackTable({
   minBet: number;
   watch?: { url: string; onData?: (d: { viewers: number }) => void };
   viewers?: number;
+  /** Told whether a hand is in progress */
+  onActive?: (active: boolean) => void;
+  /** Lets the page stand on every hand when the player leaves mid-hand */
+  control?: MutableRefObject<{ quit: () => Promise<void> } | null>;
 }) {
   const [table, setTable] = useState<PublicTable | null>(initialTable);
   const [bet, setBet] = useState(Math.max(minBet, 100));
@@ -246,6 +222,32 @@ export function BlackjackTable({
 
   const playing = table?.phase === "player";
 
+  useEffect(() => {
+    if (!watch) onActive?.(playing);
+  }, [playing, watch, onActive]);
+
+  // Leaving mid-hand: stand on whatever's left and let the dealer finish
+  useEffect(() => {
+    if (!control || watch) return;
+    control.current = {
+      quit: async () => {
+        let res: Awaited<ReturnType<typeof post>> | null = null;
+        for (let i = 0; i < 3; i++) {
+          res = await post({ action: "stand" });
+          if (!res.ok || res.table?.phase !== "player") break;
+        }
+        if (res?.ok) {
+          setFresh(false);
+          setTable(res.table ?? null);
+          if (typeof res.balance === "number") onBalance(res.balance);
+        }
+      },
+    };
+    return () => {
+      control.current = null;
+    };
+  }, [control, watch, onBalance]);
+
   // Keyboard: H hit, S stand, D double, P split, Enter deal
   useEffect(() => {
     if (watch) return;
@@ -274,12 +276,6 @@ export function BlackjackTable({
     <div className="bj">
       <div className={`bj-table${done && showResult ? ` is-${outcome}` : ""}`}>
         <div className="bj-rim" aria-hidden="true" />
-        <div className="bj-shoe" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-        </div>
-        <div className="bj-discard" aria-hidden="true" />
         {viewers > 0 ? (
           <span className="gm-watching" title={`${viewers} watching`}>
             <Eye size={13} aria-hidden="true" /> {viewers} watching
@@ -321,7 +317,9 @@ export function BlackjackTable({
                 <div className="bj-label">
                   {table.hands.length > 1 ? `Hand ${hi + 1}` : "You"}
                   <span className={`bj-total${h.value > 21 ? " is-bust" : h.value === 21 ? " is-21" : ""}`}>{h.value}</span>
-                  <ChipStack amount={h.bet} small />
+                  <span className="bj-bet-pill" title="Bet on this hand">
+                    {h.bet.toLocaleString()} <LeafEmote size={12} />
+                  </span>
                 </div>
                 {done && showResult && h.result ? <span className={`bj-ribbon is-${h.result}`}>{RESULT_TEXT[h.result]}</span> : null}
               </div>
@@ -340,7 +338,7 @@ export function BlackjackTable({
 
         {/* Bet spot */}
         <div className="bj-spot" aria-hidden="true">
-          <ChipStack amount={watch ? (table?.totalBet ?? 0) : playing ? table!.totalBet : bet} />
+          <BetChip amount={watch ? (table?.totalBet ?? 0) : playing ? table!.totalBet : bet} />
         </div>
 
         {/* Outcome banner */}

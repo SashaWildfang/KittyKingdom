@@ -1,12 +1,11 @@
 // Scratch-off tickets for the website, with the same tickets, odds and prizes as the bot
 // (Economy/cmds/scratchoff.py). A ticket is generated and settled the moment it's bought, so the
-// scratching on screen is only the reveal: closing the page can't change the result. The daily limit
-// (5, Nitro boosters unlimited) is the same counter the bot uses (`scratch_data` on the users record).
+// scratching on screen is only the reveal: closing the page can't change the result. There's no daily
+// limit; Black Diamond tickets stay Nitro-only.
 
 import { getMemberRoleIds } from "../discord-member";
-import { addToJackpot, credit, gameCollections, GameError, num, random, recordGame, shuffle, userFilter } from "./core";
+import { addToJackpot, charge, credit, gameCollections, GameError, num, random, recordGame, shuffle, userFilter } from "./core";
 
-export const DAILY_LIMIT = 5;
 const NITRO_ROLE_ID = "1360260086500561237";
 
 type Prize = { symbol: string; payout: number; weight: number };
@@ -90,8 +89,6 @@ function generate(ticket: Ticket) {
   return { grid: shuffle(grid), win };
 }
 
-const today = () => new Date().toISOString().slice(0, 10);
-
 /** The member's latest ticket, kept so it can be watched while it's scratched (`_id: "sc:<discordId>"`). */
 export type ScratchSession = { _id: string; discordId: string; ticket: string; grid: string[]; winSymbol: string | null; payout: number; revealed: number[]; finished: boolean; startedAt: Date; updatedAt: Date };
 
@@ -122,10 +119,8 @@ async function isNitro(discordId: string) {
 
 export async function scratchStatus(discordId: string) {
   const { users } = await gameCollections();
-  const [doc, nitro] = await Promise.all([users.findOne(userFilter(discordId), { projection: { balance: 1, scratch_data: 1 }, useBigInt64: true }), isNitro(discordId)]);
-  const data = doc?.scratch_data as { date?: string; count?: unknown } | undefined;
-  const used = data?.date === today() ? num(data.count) : 0;
-  return { balance: num(doc?.balance), nitro, used, limit: nitro ? null : DAILY_LIMIT };
+  const [doc, nitro] = await Promise.all([users.findOne(userFilter(discordId), { projection: { balance: 1 }, useBigInt64: true }), isNitro(discordId)]);
+  return { balance: num(doc?.balance), nitro };
 }
 
 export async function buyTicket(discordId: string, ticketId: unknown) {
@@ -134,30 +129,9 @@ export async function buyTicket(discordId: string, ticketId: unknown) {
   const nitro = await isNitro(discordId);
   if (ticket.nitro && !nitro) throw new GameError("The Black Diamond ticket is only for Nitro boosters.", 403);
 
-  // Charge and count it against today's limit in one step
-  const { users } = await gameCollections();
-  const day = today();
-  const charged = await users.findOneAndUpdate(
-    {
-      ...userFilter(discordId),
-      balance: { $gte: ticket.cost },
-      ...(nitro ? {} : { $or: [{ "scratch_data.date": { $ne: day } }, { "scratch_data.count": { $lt: DAILY_LIMIT } }] }),
-    },
-    [
-      {
-        $set: {
-          balance: { $subtract: ["$balance", ticket.cost] },
-          scratch_data: { $cond: [{ $eq: ["$scratch_data.date", day] }, { date: day, count: { $add: [{ $ifNull: ["$scratch_data.count", 0] }, 1] } }, { date: day, count: 1 }] },
-        },
-      },
-    ],
-    { returnDocument: "after", projection: { balance: 1 }, useBigInt64: true },
-  );
-  if (!charged) {
-    const status = await scratchStatus(discordId);
-    if (status.balance < ticket.cost) throw new GameError(`You need ${ticket.cost.toLocaleString()} leaves for a ${ticket.name} ticket.`);
-    throw new GameError(`You've used all ${DAILY_LIMIT} scratch-offs for today. Nitro boosters get unlimited tickets.`, 429);
-  }
+  await charge(discordId, ticket.cost).catch(() => {
+    throw new GameError(`You need ${ticket.cost.toLocaleString()} leaves for a ${ticket.name} ticket.`);
+  });
 
   const { grid, win } = generate(ticket);
   const payout = win?.payout ?? 0;

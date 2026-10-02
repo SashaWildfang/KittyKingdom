@@ -56,11 +56,14 @@ export async function credit(discordId: string, amount: number) {
   return num(doc?.balance);
 }
 
-/** Losing wagers feed the slots jackpot, exactly like the bot. */
+export const BASE_JACKPOT = 100_000;
+
+/** Losing wagers feed the slots jackpot, exactly like the bot (which starts it at 100,000). */
 export async function addToJackpot(amount: number) {
   if (amount <= 0) return;
   const { globals } = await gameCollections();
-  await globals.updateOne({ _id: "casino_jackpot" } as never, { $inc: { amount } }, { upsert: true });
+  await globals.updateOne({ _id: "casino_jackpot" } as never, { $setOnInsert: { amount: BASE_JACKPOT } }, { upsert: true });
+  await globals.updateOne({ _id: "casino_jackpot" } as never, { $inc: { amount } });
 }
 
 /** Records a finished game in the same stats and log the bot keeps (`/gamblingstats`, My Stats). */

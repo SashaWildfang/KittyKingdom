@@ -1,15 +1,18 @@
 "use client";
 
-import { Dices, Radio, Spade, Ticket as TicketIcon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Cherry, Dices, Radio, Spade, Ticket as TicketIcon } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { PublicTable } from "../../lib/games/blackjack";
 import type { Ticket } from "../../lib/games/scratch";
 import { LeafEmote } from "../ui-icons";
 import { BlackjackTable } from "./blackjack";
 import { LiveGames } from "./live";
 import { ScratchOffs } from "./scratch";
+import { Slots, type SlotsStatus } from "./slots";
 
-export type ScratchStatus = { used: number; limit: number | null; nitro: boolean };
+export type ScratchStatus = { nitro: boolean };
+type Game = "blackjack" | "slots" | "scratch" | "live";
+const TABS: Game[] = ["blackjack", "slots", "scratch", "live"];
 
 /** Counts smoothly from the last shown value to a new one. */
 export function CountUp({ value, duration = 700 }: { value: number; duration?: number }) {
@@ -72,15 +75,17 @@ export function GamesClient({
   initialBalance,
   initialTable,
   initialScratch,
+  initialSlots,
   tickets,
   minBet,
   loadError,
 }: {
-  initialGame: "blackjack" | "scratch" | "live";
+  initialGame: Game;
   initialWatch?: string | null;
   initialBalance: number;
   initialTable: PublicTable | null;
   initialScratch: ScratchStatus;
+  initialSlots: SlotsStatus;
   tickets: Ticket[];
   minBet: number;
   loadError: boolean;
@@ -89,14 +94,43 @@ export function GamesClient({
   const [balance, setBalance] = useState(initialBalance);
 
   const [liveCount, setLiveCount] = useState<number | null>(null);
-  const [audience, setAudience] = useState({ blackjack: 0, scratch: 0 });
+  const [audience, setAudience] = useState({ blackjack: 0, scratch: 0, slots: 0 });
+  // Games you can't just walk away from mid-play (a blackjack hand, a ticket being scratched)
+  const [active, setActive] = useState({ blackjack: false, scratch: false });
+  const [leaving, setLeaving] = useState<{ from: "blackjack" | "scratch"; to: Game } | null>(null);
+  const [quitting, setQuitting] = useState(false);
+  const bjControl = useRef<{ quit: () => Promise<void> } | null>(null);
+  const scControl = useRef<{ quit: () => Promise<void> } | null>(null);
+  const onBjActive = useCallback((a: boolean) => setActive((s) => (s.blackjack === a ? s : { ...s, blackjack: a })), []);
+  const onScActive = useCallback((a: boolean) => setActive((s) => (s.scratch === a ? s : { ...s, scratch: a })), []);
 
-  const pick = (g: "blackjack" | "scratch" | "live") => {
+  const go = (g: Game) => {
     setGame(g);
     const url = new URL(window.location.href);
     url.searchParams.set("game", g);
     url.searchParams.delete("watch");
     window.history.replaceState(null, "", url);
+  };
+
+  // Going to watch others while you're mid-game asks first (you can't watch your own table)
+  const pick = (g: Game) => {
+    if (g === game) return;
+    if (g === "live" && active.blackjack) return setLeaving({ from: "blackjack", to: g });
+    if (g === "live" && active.scratch) return setLeaving({ from: "scratch", to: g });
+    go(g);
+  };
+
+  const leave = async (quit: boolean) => {
+    if (!leaving) return;
+    if (quit) {
+      setQuitting(true);
+      await (leaving.from === "blackjack" ? bjControl : scControl).current?.quit().catch(() => undefined);
+      setQuitting(false);
+    }
+    const to = leaving.to;
+    setLeaving(null);
+    if (quit) go(to);
+    else go(leaving.from);
   };
 
   // While you play, keep an eye on how many people are watching you
@@ -106,7 +140,7 @@ export function GamesClient({
     const tick = () =>
       fetch("/api/games/audience", { cache: "no-store" })
         .then((r) => r.json())
-        .then((r) => !stop && r?.ok && setAudience({ blackjack: r.blackjack, scratch: r.scratch }))
+        .then((r) => !stop && r?.ok && setAudience({ blackjack: r.blackjack, scratch: r.scratch, slots: r.slots ?? 0 }))
         .catch(() => undefined);
     void tick();
     const t = setInterval(tick, 5000);
@@ -132,7 +166,7 @@ export function GamesClient({
       clearInterval(t);
     };
   }, [game]);
-  const tabIndex = game === "blackjack" ? 0 : game === "scratch" ? 1 : 2;
+  const tabIndex = TABS.indexOf(game);
 
   return (
     <section className="gm">
@@ -159,6 +193,9 @@ export function GamesClient({
         <button type="button" role="tab" aria-selected={game === "blackjack"} className={game === "blackjack" ? "is-on" : ""} onClick={() => pick("blackjack")}>
           <Spade size={16} aria-hidden="true" /> Blackjack
         </button>
+        <button type="button" role="tab" aria-selected={game === "slots"} className={game === "slots" ? "is-on" : ""} onClick={() => pick("slots")}>
+          <Cherry size={16} aria-hidden="true" /> Slots
+        </button>
         <button type="button" role="tab" aria-selected={game === "scratch"} className={game === "scratch" ? "is-on" : ""} onClick={() => pick("scratch")}>
           <TicketIcon size={16} aria-hidden="true" /> Scratch-offs
         </button>
@@ -171,15 +208,40 @@ export function GamesClient({
 
       {loadError ? <p className="gm-error">Some game data didn&apos;t load. Refresh the page if something looks off.</p> : null}
 
+      {/* Every game stays mounted while you look at another, so a hand or a ticket is right where you left it */}
       <div className="gm-stage">
-        {game === "blackjack" ? (
-          <BlackjackTable initialTable={initialTable} balance={balance} onBalance={setBalance} minBet={minBet} viewers={audience.blackjack} />
-        ) : game === "scratch" ? (
-          <ScratchOffs tickets={tickets} balance={balance} onBalance={setBalance} initialStatus={initialScratch} viewers={audience.scratch} />
-        ) : (
-          <LiveGames listUrl="/api/games/live" tableUrl={memberTable} minBet={minBet} initialWatch={initialWatch} privacy onCount={setLiveCount} />
-        )}
+        <div hidden={game !== "blackjack"}>
+          <BlackjackTable initialTable={initialTable} balance={balance} onBalance={setBalance} minBet={minBet} viewers={audience.blackjack} onActive={onBjActive} control={bjControl} />
+        </div>
+        <div hidden={game !== "slots"}>
+          <Slots balance={balance} onBalance={setBalance} initialStatus={initialSlots} viewers={audience.slots} />
+        </div>
+        <div hidden={game !== "scratch"}>
+          <ScratchOffs tickets={tickets} balance={balance} onBalance={setBalance} initialStatus={initialScratch} viewers={audience.scratch} onActive={onScActive} control={scControl} />
+        </div>
+        {game === "live" ? <LiveGames listUrl="/api/games/live" tableUrl={memberTable} minBet={minBet} initialWatch={initialWatch} privacy onCount={setLiveCount} /> : null}
       </div>
+
+      {leaving ? (
+        <div className="gm-modal" role="dialog" aria-modal="true" aria-labelledby="gm-leave-title">
+          <div className="gm-modal-card">
+            <h2 id="gm-leave-title">{leaving.from === "blackjack" ? "You're in the middle of a hand" : "You're still scratching a ticket"}</h2>
+            <p>
+              {leaving.from === "blackjack"
+                ? "Finish it before you go watch other tables, or stand on what you have and let the dealer play it out."
+                : "Your prize is already locked in. Finish scratching, or reveal the rest of the ticket and go."}
+            </p>
+            <div className="gm-modal-actions">
+              <button type="button" className="sc-btn is-primary" onClick={() => leave(false)} disabled={quitting} autoFocus>
+                {leaving.from === "blackjack" ? "Back to my hand" : "Back to my ticket"}
+              </button>
+              <button type="button" className="sc-btn" onClick={() => leave(true)} disabled={quitting}>
+                {quitting ? "Finishing…" : leaving.from === "blackjack" ? "Stand and go to Live" : "Reveal it and go to Live"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
