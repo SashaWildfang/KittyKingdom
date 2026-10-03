@@ -67,7 +67,7 @@ export async function addToJackpot(amount: number) {
 }
 
 /** Records a finished game in the same stats and log the bot keeps (`/gamblingstats`, My Stats). */
-export async function recordGame(discordId: string, game: "blackjack" | "scratchoff", spent: number, won: number, symbols: string) {
+export async function recordGame(discordId: string, game: "blackjack" | "scratchoff" | "mines", spent: number, won: number, symbols: string) {
   const { gambling, logs } = await gameCollections();
   const id = toLong(discordId);
   const net = won - spent;

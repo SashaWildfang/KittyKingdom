@@ -3,7 +3,7 @@
 import { ChevronDown, Eye, FastForward, Lock, Sparkles, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { PublicSlots } from "../../lib/games/live";
-import { emojiUrl, SLOT_SYMBOLS as symbols, type SlotSymbol } from "../../lib/games/slot-symbols";
+import { emojiUrl, SLOT_SYMBOLS as symbols, TRIPLE_CHANCE, type SlotSymbol } from "../../lib/games/slot-symbols";
 import type { SpinResult } from "../../lib/games/slots";
 import { LeafEmote } from "../ui-icons";
 import { Confetti, CountUp } from "./games-client";
@@ -368,7 +368,7 @@ function Paytable() {
     <div className="gm-rules-body">
       <ul className="sl-paytable">
         {[...symbols].reverse().map((s) => {
-          const chance = (s.weight / total) * 0.04;
+          const chance = (s.weight / total) * TRIPLE_CHANCE;
           return (
             <li key={s.id}>
               <span className="sl-pay-reels">
@@ -383,7 +383,7 @@ function Paytable() {
         })}
       </ul>
       <p>
-        Any <b>two matching</b> symbols give your bet back (30% of spins). Three different symbols lose (66%). Every losing spin goes into the progressive jackpot, and three gold mice
+        Any <b>two matching</b> symbols give your bet back (26% of spins). Three different symbols lose (62%). Overall the machine pays back about 95% of what's bet. Every losing spin goes into the progressive jackpot, and three gold mice
         win all of it. Minimum bet 50 leaves a spin. Nitro boosters can spin up to 25 times at once. Same machine and jackpot as /slots in Discord.
       </p>
     </div>
