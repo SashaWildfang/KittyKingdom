@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser, getRealUser } from "../../../lib/auth";
+import { sweepBannedAccounts } from "../../../lib/banned-accounts";
 import { getPresenceCollection } from "../../../lib/mongodb";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +22,8 @@ export async function POST(request: Request) {
     await getCurrentUser().catch(() => null);
     // The real account (not a "view as" target), so staff see who is actually where
     const real = await getRealUser().catch(() => null);
+    // Every few minutes, one heartbeat also closes the website accounts of members banned from Discord
+    await Promise.race([sweepBannedAccounts().catch((e) => console.error("Banned account sweep failed", e)), new Promise((r) => setTimeout(r, 4000))]);
 
     if (id) {
       const set: Record<string, unknown> = { lastSeen: now, userId: real?._id ? String(real._id) : null };
