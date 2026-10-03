@@ -1,12 +1,12 @@
-// Slots for the website, with the same machine as the bot's /slots (Economy/cmds/slots.py): 4% of spins
-// are a triple (which paw is weighted), 30% a pair (bet back), 66% three different paws. Three gold mice
+// Slots for the website, with the same machine as the bot's /slots (Economy/cmds/slots.py): 12% of spins
+// are a triple (which paw is weighted), 26% a pair (bet back), 62% three different paws (about a 95% return). Three gold mice
 // win the shared progressive jackpot; every losing spin feeds it. Up to 25 spins at a time (Nitro
 // boosters, like the bot). The latest batch is kept as `sl:<discordId>` so it can be watched live.
 
 import { Long } from "mongodb";
 import { getMemberRoleIds } from "../discord-member";
 import { addToJackpot, BASE_JACKPOT, charge, credit, gameCollections, GameError, getBalance, num, random, userFilter } from "./core";
-import { SLOT_SYMBOLS, type SlotSymbol } from "./slot-symbols";
+import { PAIR_CHANCE, SLOT_SYMBOLS, TRIPLE_CHANCE, type SlotSymbol } from "./slot-symbols";
 
 export { SLOT_SYMBOLS, type SlotSymbol } from "./slot-symbols";
 
@@ -38,11 +38,11 @@ function sample3() {
 /** One spin, exactly like the bot's generate_spin. */
 function generate(): SlotSymbol[] {
   const roll = random();
-  if (roll < 0.04) {
+  if (roll < TRIPLE_CHANCE) {
     const s = weighted();
     return [s, s, s];
   }
-  if (roll < 0.34) {
+  if (roll < TRIPLE_CHANCE + PAIR_CHANCE) {
     const s = weighted();
     const other = pickOne(SLOT_SYMBOLS.filter((x) => x.id !== s.id));
     const reels = [s, s, other];

@@ -1,19 +1,27 @@
 "use client";
 
-import { Cherry, CircleDot, Dices, Radio, Spade, Ticket as TicketIcon } from "lucide-react";
+import { Bomb, Cherry, CircleDot, Dices, Radio, Spade, Ticket as TicketIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PublicTable } from "../../lib/games/blackjack";
+import type { PublicMines } from "../../lib/games/mines";
 import type { Ticket } from "../../lib/games/scratch";
 import { LeafEmote } from "../ui-icons";
 import { BlackjackTable } from "./blackjack";
 import { LiveGames } from "./live";
+import { Mines } from "./mines";
 import { Roulette } from "./roulette";
 import { ScratchOffs } from "./scratch";
 import { Slots, type SlotsStatus } from "./slots";
 
 export type ScratchStatus = { nitro: boolean };
-type Game = "blackjack" | "roulette" | "slots" | "scratch" | "live";
-const TABS: Game[] = ["blackjack", "roulette", "slots", "scratch", "live"];
+type Game = "blackjack" | "roulette" | "slots" | "mines" | "scratch" | "live";
+const TABS: Game[] = ["blackjack", "roulette", "slots", "mines", "scratch", "live"];
+// What the "you're mid-game" prompt says before going to Live
+const LEAVE = {
+  blackjack: { title: "You're in the middle of a hand", text: "Finish it before you go watch other tables, or stand on what you have and let the dealer play it out.", stay: "Back to my hand", go: "Stand and go to Live" },
+  scratch: { title: "You're still scratching a ticket", text: "Your prize is already locked in. Finish scratching, or reveal the rest of the ticket and go.", stay: "Back to my ticket", go: "Reveal it and go to Live" },
+  mines: { title: "You're in the middle of a board", text: "Keep picking, or cash out what you've found and go. (With no gems yet, the board just waits for you.)", stay: "Back to my board", go: "Cash out and go to Live" },
+};
 
 /** Counts smoothly from the last shown value to a new one. */
 export function CountUp({ value, duration = 700 }: { value: number; duration?: number }) {
@@ -77,6 +85,7 @@ export function GamesClient({
   initialTable,
   initialScratch,
   initialSlots,
+  initialMines,
   myId,
   tickets,
   minBet,
@@ -88,6 +97,7 @@ export function GamesClient({
   initialTable: PublicTable | null;
   initialScratch: ScratchStatus;
   initialSlots: SlotsStatus;
+  initialMines: PublicMines | null;
   myId: string;
   tickets: Ticket[];
   minBet: number;
@@ -97,13 +107,15 @@ export function GamesClient({
   const [balance, setBalance] = useState(initialBalance);
 
   const [liveCount, setLiveCount] = useState<number | null>(null);
-  const [audience, setAudience] = useState({ blackjack: 0, scratch: 0, slots: 0 });
+  const [audience, setAudience] = useState({ blackjack: 0, scratch: 0, slots: 0, mines: 0 });
   // Games you can't just walk away from mid-play (a blackjack hand, a ticket being scratched)
-  const [active, setActive] = useState({ blackjack: false, scratch: false });
-  const [leaving, setLeaving] = useState<{ from: "blackjack" | "scratch"; to: Game } | null>(null);
+  const [active, setActive] = useState({ blackjack: false, scratch: false, mines: false });
+  const [leaving, setLeaving] = useState<{ from: "blackjack" | "scratch" | "mines"; to: Game } | null>(null);
   const [quitting, setQuitting] = useState(false);
   const bjControl = useRef<{ quit: () => Promise<void> } | null>(null);
   const scControl = useRef<{ quit: () => Promise<void> } | null>(null);
+  const mnControl = useRef<{ quit: () => Promise<void> } | null>(null);
+  const onMnActive = useCallback((a: boolean) => setActive((s) => (s.mines === a ? s : { ...s, mines: a })), []);
   const onBjActive = useCallback((a: boolean) => setActive((s) => (s.blackjack === a ? s : { ...s, blackjack: a })), []);
   const onScActive = useCallback((a: boolean) => setActive((s) => (s.scratch === a ? s : { ...s, scratch: a })), []);
 
@@ -120,6 +132,7 @@ export function GamesClient({
     if (g === game) return;
     if (g === "live" && active.blackjack) return setLeaving({ from: "blackjack", to: g });
     if (g === "live" && active.scratch) return setLeaving({ from: "scratch", to: g });
+    if (g === "live" && active.mines) return setLeaving({ from: "mines", to: g });
     go(g);
   };
 
@@ -127,7 +140,7 @@ export function GamesClient({
     if (!leaving) return;
     if (quit) {
       setQuitting(true);
-      await (leaving.from === "blackjack" ? bjControl : scControl).current?.quit().catch(() => undefined);
+      await (leaving.from === "blackjack" ? bjControl : leaving.from === "mines" ? mnControl : scControl).current?.quit().catch(() => undefined);
       setQuitting(false);
     }
     const to = leaving.to;
@@ -143,7 +156,7 @@ export function GamesClient({
     const tick = () =>
       fetch("/api/games/audience", { cache: "no-store" })
         .then((r) => r.json())
-        .then((r) => !stop && r?.ok && setAudience({ blackjack: r.blackjack, scratch: r.scratch, slots: r.slots ?? 0 }))
+        .then((r) => !stop && r?.ok && setAudience({ blackjack: r.blackjack, scratch: r.scratch, slots: r.slots ?? 0, mines: r.mines ?? 0 }))
         .catch(() => undefined);
     void tick();
     const t = setInterval(tick, 5000);
@@ -202,6 +215,9 @@ export function GamesClient({
         <button type="button" role="tab" aria-selected={game === "slots"} className={game === "slots" ? "is-on" : ""} onClick={() => pick("slots")}>
           <Cherry size={16} aria-hidden="true" /> Slots
         </button>
+        <button type="button" role="tab" aria-selected={game === "mines"} className={game === "mines" ? "is-on" : ""} onClick={() => pick("mines")}>
+          <Bomb size={16} aria-hidden="true" /> Mines
+        </button>
         <button type="button" role="tab" aria-selected={game === "scratch"} className={game === "scratch" ? "is-on" : ""} onClick={() => pick("scratch")}>
           <TicketIcon size={16} aria-hidden="true" /> <span className="gm-tab-long">Scratch-offs</span>
           <span className="gm-tab-short">Scratch</span>
@@ -224,6 +240,9 @@ export function GamesClient({
         <div hidden={game !== "slots"}>
           <Slots balance={balance} onBalance={setBalance} initialStatus={initialSlots} viewers={audience.slots} />
         </div>
+        <div hidden={game !== "mines"}>
+          <Mines initial={initialMines} balance={balance} onBalance={setBalance} viewers={audience.mines} onActive={onMnActive} control={mnControl} />
+        </div>
         <div hidden={game !== "scratch"}>
           <ScratchOffs tickets={tickets} balance={balance} onBalance={setBalance} initialStatus={initialScratch} viewers={audience.scratch} onActive={onScActive} control={scControl} />
         </div>
@@ -233,18 +252,14 @@ export function GamesClient({
       {leaving ? (
         <div className="gm-modal" role="dialog" aria-modal="true" aria-labelledby="gm-leave-title">
           <div className="gm-modal-card">
-            <h2 id="gm-leave-title">{leaving.from === "blackjack" ? "You're in the middle of a hand" : "You're still scratching a ticket"}</h2>
-            <p>
-              {leaving.from === "blackjack"
-                ? "Finish it before you go watch other tables, or stand on what you have and let the dealer play it out."
-                : "Your prize is already locked in. Finish scratching, or reveal the rest of the ticket and go."}
-            </p>
+            <h2 id="gm-leave-title">{LEAVE[leaving.from].title}</h2>
+            <p>{LEAVE[leaving.from].text}</p>
             <div className="gm-modal-actions">
               <button type="button" className="sc-btn is-primary" onClick={() => leave(false)} disabled={quitting} autoFocus>
-                {leaving.from === "blackjack" ? "Back to my hand" : "Back to my ticket"}
+                {LEAVE[leaving.from].stay}
               </button>
               <button type="button" className="sc-btn" onClick={() => leave(true)} disabled={quitting}>
-                {quitting ? "Finishing…" : leaving.from === "blackjack" ? "Stand and go to Live" : "Reveal it and go to Live"}
+                {quitting ? "Finishing…" : LEAVE[leaving.from].go}
               </button>
             </div>
           </div>
