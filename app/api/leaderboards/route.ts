@@ -3,6 +3,7 @@ import { getCurrentUser } from "../../../lib/auth";
 import { monthlyBumps, monthlyVcSeconds } from "../../../lib/bumps";
 import { loadDirectory, resolveMissing } from "../../../lib/member-directory";
 import {
+  getBotCollection,
   getBotUsersCollection,
   getJoinApplicationsCollection,
   getUsersCollection,
@@ -18,7 +19,10 @@ type SortKey =
   | "bumps"
   | "monthly_bumps"
   | "total_vc_time"
-  | "monthly_vc_time";
+  | "monthly_vc_time"
+  | "qotd_streak"
+  | "qotd_best"
+  | "qotd_correct";
 
 type Order = "asc" | "desc";
 
@@ -34,6 +38,9 @@ type LeaderboardRow = {
   monthly_bumps: number;
   total_vc_time: number;
   monthly_vc_time: number;
+  qotd_streak: number;
+  qotd_best: number;
+  qotd_correct: number;
   isCurrentUser: boolean;
   avatar?: string | null;
   inServer?: boolean;
@@ -47,7 +54,12 @@ const sortFields: Record<SortKey, string[]> = {
   monthly_bumps: ["monthly_bumps", "monthlyBumps", "monthlyBumpCount", "bumpCountMonthly"],
   total_vc_time: ["vc_time_total", "total_vc_time", "totalVcTime", "vc_time", "vcTime", "voice.total"],
   monthly_vc_time: ["vc_time_monthly", "monthly_vc_time", "monthlyVcTime", "voice.monthly"],
+  // Question of the Day, from the bot's `qotd` collection (one doc per player)
+  qotd_streak: ["current"],
+  qotd_best: ["best"],
+  qotd_correct: ["total_correct"],
 };
+const QOTD_KEYS = ["qotd_streak", "qotd_best", "qotd_correct"] as const;
 
 const botProjection = {
   email: 0,
@@ -107,6 +119,7 @@ function getText(source: Record<string, unknown> | undefined, fields: string[]) 
 }
 
 function getSnowflake(value: unknown) {
+  if (typeof value === "bigint") return getSnowflake(value.toString());
   if (typeof value === "string") {
     const text = value.trim();
     return /^\d{15,25}$/.test(text) ? text : null;
@@ -221,6 +234,9 @@ function toLeaderboardRow(
     monthly_bumps: monthlyBumps(source),
     total_vc_time: getNumber(source, sortFields.total_vc_time),
     monthly_vc_time: monthlyVcSeconds(source),
+    qotd_streak: 0,
+    qotd_best: 0,
+    qotd_correct: 0,
     isCurrentUser: Boolean(currentDiscordId && discordId === currentDiscordId),
   };
 }
@@ -306,16 +322,39 @@ export async function GET(request: Request) {
         }
       : {};
 
-    const [rawWebsiteUsers, rawBotUsers] = (await Promise.all([
+    const [rawWebsiteUsers, rawBotUsers, qotdDocs] = (await Promise.all([
       websiteUsers.find(searchQuery).project(botProjection).limit(500).toArray(),
       botUsers.find({}).project(botProjection).limit(5000).toArray(),
-    ])) as [Record<string, unknown>[], Record<string, unknown>[]];
+      // useBigInt64 keeps Discord ids exact (they're stored as 64-bit numbers)
+      (await getBotCollection("qotd"))
+        .find({ user_id: { $exists: true } }, { projection: { user_id: 1, current: 1, best: 1, total_correct: 1 }, useBigInt64: true })
+        .limit(5000)
+        .toArray()
+        .catch(() => []),
+    ])) as [Record<string, unknown>[], Record<string, unknown>[], Record<string, unknown>[]];
 
     const currentDiscordId = getSnowflakeField(currentUser ?? undefined, ["discordId", "discord_id", "discord.id"]);
     const merged = mergeRows([
       ...rawWebsiteUsers.map((user) => toLeaderboardRow(user, currentDiscordId, "site")),
       ...rawBotUsers.map((user) => toLeaderboardRow(user, currentDiscordId, "bot")),
     ].filter(Boolean) as LeaderboardRow[]);
+
+    // Question of the Day stats, added to each member (players without a row yet get one)
+    const byId = new Map(merged.map((row) => [row.discordId, row]));
+    for (const doc of qotdDocs) {
+      const id = getSnowflake(doc.user_id);
+      if (!id) continue;
+      let row = byId.get(id);
+      if (!row) {
+        row = toLeaderboardRow({ _id: id }, currentDiscordId, "bot") ?? undefined;
+        if (!row) continue;
+        merged.push(row);
+        byId.set(id, row);
+      }
+      row.qotd_streak = getNumber(doc, sortFields.qotd_streak);
+      row.qotd_best = getNumber(doc, sortFields.qotd_best);
+      row.qotd_correct = getNumber(doc, sortFields.qotd_correct);
+    }
 
     const { entries: directory, complete: directoryComplete } = await loadDirectory(
       merged.map((row) => row.discordId).filter(Boolean) as string[],
@@ -336,7 +375,9 @@ export async function GET(request: Request) {
       return !directoryComplete;
     });
 
-    const filtered = inServer.filter((row) => matchesSearch(row, search));
+    // QOTD boards only rank people who've played (the others would all tie at 0)
+    const isQotd = (QOTD_KEYS as readonly string[]).includes(sortKey);
+    const filtered = inServer.filter((row) => matchesSearch(row, search) && (!isQotd || row[sortKey] > 0));
 
     const sorted = filtered.sort((a, b) => {
       const comparison = a[sortKey] - b[sortKey];
