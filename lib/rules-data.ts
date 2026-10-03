@@ -77,6 +77,7 @@ export const RULES: { intro: string; tldr: string[]; parts: RulePart[] } = {
           "points": [
             "SFW channels mean **no** sexual talk, sexual jokes, kink talk or suggestive pictures, GIFs, emoji or stickers.",
             "Don't hint at NSFW, or bring it over from the 18+ channels. If you have to ask whether something's okay, take it to an NSFW channel (or don't post it).",
+            "The same goes for voice: only voice chats labeled **NSFW** (like **NSFW VC #1** and **NSFW VC #2**) can be NSFW.",
             "Relationship and dating requests count too: see **Rule 9**."
           ],
           "bad": [],
@@ -221,27 +222,65 @@ export const RULES: { intro: string; tldr: string[]; parts: RulePart[] } = {
       "label": "Part 4",
       "emoji": "🥀",
       "color": "#9b59b6",
-      "intro": "",
+      "intro": "The NSFW side of Kitty Kingdom is for adults who've verified their age. Everything in Parts 1 to 3 still applies here, plus these.",
       "rules": [
         {
           "n": 14,
-          "title": "NSFW only in NSFW channels",
+          "title": "Access: 18+ Verified only",
           "points": [
-            "NSFW content and talk only go in the NSFW channels, which need 18+ Verified (ID verified in the NSFW verification channel).",
-            "Never show, send or describe NSFW content to members who aren't 18+ Verified.",
-            "Stick to each NSFW channel's topic, the same as anywhere else."
+            "The NSFW channels, NSFW roles and NSFW voice chats need 18+ Verified. Get it by verifying your ID in the NSFW verification channel.",
+            "NSFW content and talk only go in channels and voice chats **labeled NSFW**. Everywhere else is SFW.",
+            "Never show, send, describe or screenshot NSFW content for members who aren't 18+ Verified, including in DMs.",
+            "Faking verification, or helping someone underage get in, is a permanent ban for everyone involved."
           ],
           "bad": [],
           "good": []
         },
         {
           "n": 15,
-          "title": "Content that's never allowed",
+          "title": "Never allowed: zero tolerance",
           "points": [
-            "**Anything sexual involving minors, or characters who look, act or are described as minors (including \"cub\" content), is an instant permanent ban**, and gets reported to Discord.",
-            "**No** real-life gore, real violence, animal abuse, or sexual content shared without consent (including revenge porn and leaked content).",
-            "**No** real-life explicit pictures of anyone but yourself, and only where real-life content is allowed.",
-            "Don't post someone else's art or photos as your own. Credit artists."
+            "These are **instant permanent bans, anywhere on the server**: NSFW channels, voice chats, DMs, Social and profiles. Where the law or Discord requires it, they're also reported.",
+            "**Minors:** anything sexual involving minors, or characters who look, act or are described as under 18. That includes \"cub\" content, sexual age-play and \"they're really 1,000 years old\" excuses.",
+            "**Bestiality / zoophilia:** sexual content involving real animals, or real animals in a sexual context.",
+            "**Non-consensual real content:** revenge porn, leaked or stolen nudes, hidden-camera content, and AI or edited nudes of real people.",
+            "**Real harm:** real sexual violence, necrophilia, snuff, real gore, and animal cruelty."
+          ],
+          "bad": [],
+          "good": []
+        },
+        {
+          "n": 16,
+          "title": "No illegal or stolen content",
+          "points": [
+            "Nothing illegal, anywhere: no selling or arranging drugs, weapons or other illegal goods and services, and no hacking, cheats or doxxing tools.",
+            "**No pirated or leaked paid content:** artists' paywalled Patreon, Fansly or OnlyFans posts, commissions, or anything shared without the creator's permission.",
+            "Don't post someone else's art or photos as your own. Credit artists, and remove a post if the artist asks."
+          ],
+          "bad": [],
+          "good": []
+        },
+        {
+          "n": 17,
+          "title": "NSFW channel etiquette",
+          "points": [
+            "Keep each NSFW channel to its topic (art, real-life, roleplay and so on). Read the channel description first.",
+            "**Real-life explicit content:** only of yourself, only if you're 18+, and only in channels meant for real-life content. Never post anyone else's.",
+            "Put **extreme or niche kinks behind a spoiler tag** with a short content warning, like `||CW: kink name||`.",
+            "Don't kink-shame. If something isn't for you, scroll past. If you think it breaks the rules, report it.",
+            "Think about your own safety: crop out your face, tattoos and anything that shows where you live unless you're sure."
+          ],
+          "bad": [],
+          "good": []
+        },
+        {
+          "n": 18,
+          "title": "Consent in the 18+ area",
+          "points": [
+            "Having the NSFW role **isn't consent**. Ask before you DM, and never send NSFW nobody asked for (see Rule 11).",
+            "Roleplay and lewd chat need everyone involved to agree. If someone wants to stop, stop.",
+            "**NSFW voice chats** (labeled NSFW, like **NSFW VC #1** and **NSFW VC #2**): NSFW talk is fine, but only show explicit content on camera or stream if **everyone** in the call is okay with it. The banned content above applies in voice too.",
+            "Never record, screenshot or share someone's NSFW content, cam or voice without their permission (except privately to staff, to report a rule break)."
           ],
           "bad": [],
           "good": []
@@ -258,7 +297,7 @@ export const RULES: { intro: string; tldr: string[]; parts: RulePart[] } = {
       "intro": "",
       "rules": [
         {
-          "n": 16,
+          "n": 19,
           "title": "Privacy, Safety & Off-Server Conduct",
           "points": [
             "Don't share anyone's personal information (real name, address, photos, socials) or private messages without permission.",
@@ -269,7 +308,7 @@ export const RULES: { intro: string; tldr: string[]; parts: RulePart[] } = {
           "good": []
         },
         {
-          "n": 17,
+          "n": 20,
           "title": "No scams, dangerous links or begging",
           "points": [
             "No phishing, scams, fake giveaways, \"free Nitro\" links, malware or IP grabbers. Your account will be banned even if it was hacked. Secure it and appeal.",
@@ -280,7 +319,7 @@ export const RULES: { intro: string; tldr: string[]; parts: RulePart[] } = {
           "good": []
         },
         {
-          "n": 18,
+          "n": 21,
           "title": "Play fair",
           "points": [
             "One account per person. Using alts to dodge a punishment, farm rewards or get around a block is a ban for every account.",
@@ -290,7 +329,7 @@ export const RULES: { intro: string; tldr: string[]; parts: RulePart[] } = {
           "good": []
         },
         {
-          "n": 19,
+          "n": 22,
           "title": "Look after each other",
           "points": [
             "Heavy topics like self-harm, abuse or mental health crises are okay to mention, but be gentle, and don't post graphic details.",
@@ -312,13 +351,13 @@ export const RULES: { intro: string; tldr: string[]; parts: RulePart[] } = {
       "intro": "",
       "rules": [
         {
-          "n": 20,
+          "n": 23,
           "title": "Voice chat rules",
           "points": [
             "To join voice chats, sign the **Voice Channel Terms** to get VC. Every rule above applies in voice too.",
-            "SFW voice chats stay SFW, including what's on your stream or camera.",
+            "Voice chats are **SFW**, including what's on your stream or camera, **except** the ones labeled NSFW (like **NSFW VC #1** and **NSFW VC #2**), which are for 18+ Verified members. See **Rule 18**.",
             "**No** ear-rape, loud noises, soundboard or music spam, or voice changers used to annoy people.",
-            "**Never record** a voice chat or stream without everyone's permission.",
+            "**Never record** a voice chat or stream without everyone's permission. The one exception: a short clip sent **privately to staff** to report a rule break.",
             "Muted or deafened for 5 minutes? You'll be moved to AFK. That's normal, and not a punishment."
           ],
           "bad": [],
@@ -336,7 +375,7 @@ export const RULES: { intro: string; tldr: string[]; parts: RulePart[] } = {
       "intro": "",
       "rules": [
         {
-          "n": 21,
+          "n": 24,
           "title": "Respect staff decisions",
           "points": [
             "Follow staff instructions. If you disagree, open a ticket or an appeal, calmly. Don't argue about it in chat.",
