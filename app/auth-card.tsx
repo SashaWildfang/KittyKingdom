@@ -179,7 +179,9 @@ function LoginForm({ identifier: initialIdentifier, active, next }: { identifier
       </div>
       <PasswordInput name="password" label="Password" placeholder="Enter your password" autoComplete="current-password" value={password} onChange={setPassword} />
       <div className="kk-row">
-        <span />
+        <label className="kk-remember">
+          <input type="checkbox" name="remember" tabIndex={active ? 0 : -1} /> Remember me
+        </label>
         <Link href="/forgot-password" tabIndex={active ? 0 : -1}>
           Forgot password?
         </Link>
