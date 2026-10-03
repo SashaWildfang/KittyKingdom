@@ -25,11 +25,14 @@ export async function POST(request: Request) {
     // "Remember this device": no code needed here for 30 days
     if (form.get("remember") === "on") await rememberDevice(user);
     await (await getUsersCollection()).updateOne({ _id: user._id }, { $set: { lastLoginAt: new Date() } });
-    await setSession(user._id, typeof user.sessionVersion === "number" ? user.sessionVersion : 0);
+    // "Remember me" was ticked on the login page
+    const jar = await cookies();
+    const keepSignedIn = jar.get("kk_remember")?.value === "1";
+    if (keepSignedIn) jar.delete("kk_remember");
+    await setSession(user._id, typeof user.sessionVersion === "number" ? user.sessionVersion : 0, keepSignedIn);
     // A backup code was used: show how many are left on the Security section
     if (how === "backup") return NextResponse.redirect(`${origin}/account?login=backup-used#security`, 303);
     // Came from a link that needed logging in (see the login route)
-    const jar = await cookies();
     const next = safeNext(jar.get("kk_next")?.value);
     if (next) {
       jar.delete("kk_next");

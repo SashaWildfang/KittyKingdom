@@ -169,6 +169,9 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false }: { admin
     // The Games tab keeps the table being watched in the link
     const watching = new URLSearchParams(window.location.search).get("watch");
     if (tab === "games" && watching) params.set("watch", watching);
+    // The Staff Guide keeps its section in the link
+    const section = new URLSearchParams(window.location.search).get("section");
+    if (tab === "guide" && section) params.set("section", section);
     window.history.replaceState(null, "", `/admin?${params}`);
   }, [tab, member, transcript, urlRead, chat]);
 

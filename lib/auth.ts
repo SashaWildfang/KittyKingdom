@@ -7,6 +7,8 @@ import { createSessionRecord, sessionsCollection, touchSession, revokeSession } 
 
 const sessionCookie = "kk_session";
 const sessionMaxAge = 60 * 60 * 8;
+// "Remember me" on the login page keeps you signed in on this browser for 30 days
+const rememberMaxAge = 60 * 60 * 24 * 30;
 
 function getSecret() {
   const secret = process.env.AUTH_SECRET;
@@ -69,7 +71,7 @@ function sign(value: string) {
  * "sign out everywhere") makes every older session stop working. Sessions from before versions
  * existed ("<userId>.<signature>") count as version 0.
  */
-export async function setSession(userId: ObjectId | string, version?: number) {
+export async function setSession(userId: ObjectId | string, version?: number, remember = false) {
   const id = String(userId);
   let v = version;
   if (v === undefined) {
@@ -84,7 +86,7 @@ export async function setSession(userId: ObjectId | string, version?: number) {
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: sessionMaxAge,
+    maxAge: remember ? rememberMaxAge : sessionMaxAge,
   });
 }
 
