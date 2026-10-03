@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, CalendarRange, Crown, Medal, Megaphone, MessageCircle, Mic, Search, Star, type LucideIcon } from "lucide-react";
+import { CalendarDays, CalendarRange, CircleCheck, Crown, Flame, Medal, Megaphone, MessageCircle, Mic, Search, Star, Trophy, type LucideIcon } from "lucide-react";
 import { LeafEmote } from "../ui-icons";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
@@ -11,7 +11,10 @@ type SortKey =
   | "bumps"
   | "monthly_bumps"
   | "total_vc_time"
-  | "monthly_vc_time";
+  | "monthly_vc_time"
+  | "qotd_streak"
+  | "qotd_best"
+  | "qotd_correct";
 
 type SortOrder = "asc" | "desc";
 
@@ -29,6 +32,9 @@ type LeaderboardRow = {
   monthly_bumps: number;
   total_vc_time: number;
   monthly_vc_time: number;
+  qotd_streak: number;
+  qotd_best: number;
+  qotd_correct: number;
   isCurrentUser: boolean;
 };
 
@@ -67,7 +73,14 @@ const stats: Stat[] = [
   { key: "monthly_bumps", label: "Monthly Bumps", short: "Bumps/mo", icon: CalendarDays, type: "number" },
   { key: "total_vc_time", label: "VC Time", short: "VC", icon: Mic, type: "duration" },
   { key: "monthly_vc_time", label: "Monthly VC", short: "VC/mo", icon: CalendarRange, type: "duration" },
+  { key: "qotd_streak", label: "QOTD Streak", short: "Streak", icon: Flame, type: "number" },
+  { key: "qotd_best", label: "Best QOTD Streak", short: "Best", icon: Trophy, type: "number" },
+  { key: "qotd_correct", label: "QOTD Correct", short: "Correct", icon: CircleCheck, type: "number" },
 ];
+
+/** "QOTD Streak" → "QOTD streak" (keeps acronyms like QOTD and VC in capitals) */
+const lowerLabel = (label: string) => label.replace(/\b(?!QOTD\b|VC\b)\w+/g, (w) => w.toLowerCase());
+const isQotd = (key: SortKey) => key.startsWith("qotd_");
 
 const pageSizes = [10, 25, 50, 100];
 const POLL_MS = 10_000;
@@ -373,7 +386,7 @@ export function LeaderboardsClient() {
               <div className="lb-standing-body">
                 <p className="lb-standing-value">
                   <StatIcon stat={stat} size={20} />
-                  <AnimatedValue value={standing.value} stat={stat} /> <small>{stat.type === "leafs" ? "leafs" : stat.label.toLowerCase()}</small>
+                  <AnimatedValue value={standing.value} stat={stat} /> <small>{stat.type === "leafs" ? "leafs" : lowerLabel(stat.label)}</small>
                 </p>
                 {standing.rank === 1 && order === "desc" ? (
                   <p className="lb-standing-note"><Crown size={15} className="lb-crown-inline" aria-hidden="true" /> You&apos;re in first place. Hold the crown!</p>
@@ -567,11 +580,11 @@ export function LeaderboardsClient() {
         {loading && !data
           ? Array.from({ length: 6 }, (_, i) => <li key={i} className="lb-row lb-skeleton" aria-hidden="true" />)
           : null}
-        {!loading && rows.length === 0 ? <li className="lb-empty">No members found{searching ? ` for “${search.trim()}”` : ""}.</li> : null}
+        {!loading && rows.length === 0 ? <li className="lb-empty">{isQotd(sort) && !searching ? "Nobody has answered a Question of the Day yet" : <>No members found{searching ? ` for “${search.trim()}”` : ""}</>}.</li> : null}
       </ol>
 
       <div className="lb-footer">
-        <p>{total.toLocaleString()} members ranked by {stat.label.toLowerCase()}</p>
+        <p>{total.toLocaleString()} {isQotd(sort) ? (total === 1 ? "player" : "players") : total === 1 ? "member" : "members"} ranked by {lowerLabel(stat.label)}</p>
         {totalPages > 1 ? (
           <div className="lb-pages">
             <button type="button" onClick={() => setPage(1)} disabled={page === 1} aria-label="First page">«</button>
