@@ -20,6 +20,7 @@ export async function POST(request: Request) {
     const password = cleanPassword(form.get("password"));
     // Where to go afterwards (e.g. a transcript link from a Discord DM)
     const next = safeNext(form.get("next"));
+    const remember = form.get("remember") === "on";
     const keep = next ? `&next=${encodeURIComponent(next)}` : "";
     if (!identifier || !password) return NextResponse.redirect(`${origin}/login?login=invalid`, 303);
 
@@ -65,11 +66,13 @@ export async function POST(request: Request) {
     if (user.twoFactor?.enabled && !(await isTrustedDevice(user))) {
       await startTwoFactorLogin(user._id);
       if (next) (await cookies()).set("kk_next", next, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 900 });
+      // Carry "Remember me" through the code step
+      if (remember) (await cookies()).set("kk_remember", "1", { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 900 });
       return NextResponse.redirect(`${origin}/login/2fa`, 303);
     }
 
     await users.updateOne({ _id: user._id }, { $set: { lastLoginAt: new Date() } });
-    await setSession(user._id, typeof user.sessionVersion === "number" ? user.sessionVersion : 0);
+    await setSession(user._id, typeof user.sessionVersion === "number" ? user.sessionVersion : 0, remember);
     return NextResponse.redirect(
       next
         ? `${origin}${next}`
