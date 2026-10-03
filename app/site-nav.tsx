@@ -32,6 +32,7 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
   const mobileLinks = [
     { href: "/home", label: "Home", icon: "home" as const },
     { href: "/news", label: "News", icon: "news" as const },
+    { href: "/rules", label: "Rules", icon: "rules" as const },
     { href: "https://discord.com/invite/M9XKHFdYQV", label: "Discord", icon: "discord" as const, external: true },
     { href: PATREON_URL, label: "Patreon", icon: "patreon" as const, external: true },
     ...(dating ? [{ href: "/social", label: "Social", icon: "dating" as const }] : []),
@@ -54,6 +55,7 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
           News
           <NewsNavBadge items={newsStamps} />
         </a>
+        <a href="/rules">Rules</a>
         <a href="https://discord.com/invite/M9XKHFdYQV" target="_blank" rel="noopener noreferrer">
           Discord
         </a>
