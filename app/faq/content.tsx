@@ -33,12 +33,16 @@ export const LEVEL_ROLES = [
 ];
 
 export const EARN = [
-  { how: "Chatting", amount: "5 🍁 + 15–25 XP", when: "Once a minute while you chat", cmd: null },
+  { how: "Chatting", amount: "30–50 🍁 + 25–50 XP", when: "Once a minute while you chat", cmd: null },
   { how: "Daily Reward", amount: "250 🍁", when: "Every day (resets at midnight UTC)", cmd: "/daily" },
   { how: "Bumping the server", amount: "250 🍁 + 300 XP", when: "Every 2 hours", cmd: "/bump" },
   { how: "Daily Wordle", amount: "300 🍁 + 300 XP", when: "Once every 24 hours", cmd: "/wordle" },
-  { how: "Hanging out in VC", amount: "Leaves + XP", when: "Automatically after 5 minutes", cmd: null },
+  { how: "Question of the Day", amount: "250 🍁", when: "Daily at 12 PM Mountain, for the right answer", cmd: "/qotd help" },
+  { how: "Hanging out in VC", amount: "4 🍁 + 5 XP a minute", when: "Automatically after 5 minutes", cmd: null },
+  { how: "Leaf Grab & Word Scramble", amount: "50–100 🍁 / 125 🍁 + 250 XP", when: "Random surprises while people chat", cmd: null },
   { how: "Monthly bump top 3", amount: "Up to 5,000 🍁", when: "End of every month", cmd: "/leaderboard" },
+  { how: "Monthly voice chat top 3", amount: "Up to 5,000 🍁", when: "End of every month", cmd: "/leaderboard" },
+  { how: "Boosting the server", amount: "750 🍁", when: "Every boost", cmd: null },
   { how: "Disboard review", amount: "5,000 🍁", when: "One time", cmd: null },
 ];
 
@@ -227,7 +231,7 @@ export const TOPICS: Topic[] = [
     faqs: [
       {
         q: "How do I earn XP?",
-        a: "Chatting gives 15–25 XP (once a minute). Bumping, the daily Wordle and hanging out in voice chat give XP too. Watch for 2x XP weekends!",
+        a: "Chatting gives 25–50 XP (once a minute). Bumping, the daily Wordle, Word Scramble and hanging out in voice chat give XP too. Every Friday, Saturday and Sunday is a 2x XP weekend!",
         keywords: "xp experience",
       },
       {
@@ -246,7 +250,7 @@ export const TOPICS: Topic[] = [
       },
       {
         q: "What makes XP multipliers go up?",
-        a: "Server boosting (+15%), Patreon (+10%, +20% or +40% depending on tier), 2x XP weekend events and the 2x XP Booster from the Store all stack together.",
+        a: "Server boosting (+15%), Patreon (+10%, +20% or +40% depending on tier), 2x XP weekends (every Friday to Sunday) and the 2x XP Booster from the Store all stack together.",
         keywords: "multiplier boost bonus",
       },
     ],
@@ -255,7 +259,7 @@ export const TOPICS: Topic[] = [
     id: "casino",
     title: "Casino games",
     icon: "Dices",
-    blurb: "Blackjack, slots, mines, crash and scratch-offs.",
+    blurb: "Blackjack, roulette, slots, mines and scratch-offs.",
     faqs: [
       {
         q: "Which games can I play?",
@@ -271,24 +275,25 @@ export const TOPICS: Topic[] = [
               <Cmd>/mines</Cmd>: pick your bet and how many mines, then cash out before you hit one.
             </li>
             <li>
-              <Cmd>/crash</Cmd>: cash out before it explodes, up to a 100x max win.
+              <Cmd>/roulette</Cmd>: red, black (2x) or green (36x), on a single-zero wheel. The website has a live table everyone plays at once.
             </li>
             <li>
               <Cmd>/scratchoff</Cmd>: buy a ticket and scratch it.
             </li>
           </ul>
         ),
-        keywords: "gambling blackjack slots mines crash scratch",
+        keywords: "gambling blackjack slots mines roulette scratch",
       },
       {
         q: "Where do I play?",
         a: (
           <>
-            In the <b>#gambling</b> channel. Every game has a View Odds option, and <Cmd>/casinostats</Cmd> shows yours (or the server&apos;s) results.
+            In the casino channel in Discord, or on the website&apos;s <a href="/games">Games</a> tab (where you can also watch others play live). Your results are in <Cmd>/stats</Cmd> and My Stats → Games.
           </>
         ),
       },
-      { q: "Any perks for boosters?", a: "Yes, server boosters can spin up to 25 slots at a time." },
+      { q: "Any perks for boosters?", a: "Yes: server boosters can spin up to 25 slots at a time and buy the premium scratch-offs (Black Diamond and every ticket above it)." },
+      { q: "Are the odds fair?", a: "Every game uses normal casino odds: blackjack returns about 99.5%, roulette 97.3%, mines 99%, slots about 95% (plus the jackpot) and scratch-offs about 90%. The house always keeps a little, so play for fun." },
     ],
   },
   {
@@ -307,7 +312,7 @@ export const TOPICS: Topic[] = [
               <b>Golden Leaf (Nitro) role</b> and a shiny booster badge
             </li>
             <li>
-              <b>+15% Leaves and +15% XP</b> on everything you earn
+              <b>750 Leaves</b> every time you boost, and <b>+15% Leaves and +15% XP</b> on everything you earn
             </li>
             <li>
               <b>Daily streaks:</b> +100 to +700 extra Leaves on your Daily Reward
@@ -316,9 +321,11 @@ export const TOPICS: Topic[] = [
               <b>Spin up to 25 slots</b> at a time
             </li>
             <li>
-              <b>Unlimited dating likes</b> (instead of 3 a day) and you can see everyone who liked you
+              <b>Premium scratch-offs</b>: Black Diamond and every ticket above it
             </li>
-            <li>Occasional booster-only Leaf drops from staff</li>
+            <li>
+              <b>A bigger chance</b> in Social&apos;s hourly Featured draw
+            </li>
           </ul>
         ),
       },
@@ -347,15 +354,15 @@ export const TOPICS: Topic[] = [
         body: (
           <div className="kb-tiers">
             {[
-              { name: "Royal Kitten", xp: "+10% XP" },
-              { name: "Kitten Guardian", xp: "+20% XP" },
-              { name: "Legendary Neko", xp: "+40% XP" },
+              { name: "Royal Kitten", xp: "+10% XP · 1,000 🍁 a month" },
+              { name: "Kitten Guardian", xp: "+20% XP · 2,000 🍁 a month" },
+              { name: "Legendary Neko", xp: "+40% XP · 4,000 🍁 a month" },
             ].map((t, i) => (
               <div key={t.name} className={`kb-tier kb-tier--${i + 1}`}>
                 <small>Tier {i + 1}</small>
                 <b>{t.name}</b>
                 <span>{t.xp}</span>
-                <em>Monthly Leaf allowance · exclusive role · custom name color and more</em>
+                <em>Exclusive role · a bigger chance in Social&apos;s Featured draw</em>
               </div>
             ))}
           </div>
@@ -495,7 +502,7 @@ export const TOPICS: Topic[] = [
     faqs: [
       {
         q: "How does AutoMod work?",
-        a: "AutoMod removes slurs, scam links, invites to other servers and spam. Each removal is a strike: two warnings, then mutes from 5 minutes up to a day. Strikes fade after a day (an hour for small formatting slips). It never kicks or bans.",
+        a: "AutoMod removes slurs, scam links, invites to other servers and spam. Each removal is a strike: two warnings, then mutes of 5, 10, 15 and 30 minutes, 1 hour and then a day. Strikes fade after a day (an hour for small formatting slips). It never kicks or bans.",
         keywords: "automod strike warning mute",
       },
       {
@@ -527,8 +534,9 @@ export const TOPICS: Topic[] = [
 ];
 
 export const COMMANDS: { group: string; items: [string, string][] }[] = [
-  { group: "Economy", items: [["/daily", "Claim your Daily Reward"], ["/pay", "Send Leaves to someone"], ["/stats", "Your level, XP and multipliers"], ["/leaderboard", "Rankings"], ["/milestones", "Milestone rewards"], ["/wordle", "Daily Wordle"], ["/patreon", "Patreon link and perks"], ["/store view", "Browse the Store"]] },
-  { group: "Casino", items: [["/blackjack", "Blackjack (3:2)"], ["/slots", "Slots and jackpot"], ["/mines", "Mines"], ["/crash", "Crash (up to 100x)"], ["/scratchoff", "Scratch-off tickets"], ["/casinostats", "Casino stats"]] },
-  { group: "Fun & info", items: [["/help", "Every command"], ["/hug", "Hug someone"], ["/boop", "Boop someone"], ["/8ball", "Ask the Magic 8-Ball"], ["/dice", "Roll a die"], ["/avatar", "See a profile picture"], ["/serverinfo", "About the server"], ["/staff", "Who's on staff"]] },
-  { group: "Account", items: [["/link", "Link the website"], ["/punishments", "Your record"], ["/muteduration", "Mute time left"], ["/settings", "Privacy settings"]] },
+  { group: "Economy", items: [["/daily", "Claim your Daily Reward"], ["/balance", "Check a balance"], ["/pay", "Send Leaves to someone"], ["/stats", "Your level, XP and multipliers"], ["/leaderboard", "Rankings"], ["/wordle", "Daily Wordle"], ["/qotd help", "Question of the Day"], ["/patreon", "Patreon link"]] },
+  { group: "Store", items: [["/store view", "Browse the Store"], ["/store buy", "Buy something"], ["/inventory view", "Your items"], ["/inventory use", "Start a booster"], ["/inventory equip", "Wear a color role"], ["/gift", "Send someone a gift"]] },
+  { group: "Casino", items: [["/blackjack", "Blackjack (3:2)"], ["/roulette", "Roulette"], ["/slots", "Slots and jackpot"], ["/mines", "Mines"], ["/scratchoff", "Scratch-off tickets"]] },
+  { group: "Fun & help", items: [["/help", "Every command"], ["/hug", "Hug someone"], ["/boop", "Boop someone"], ["/8ball", "Ask the Magic 8-Ball"], ["/dice", "Roll a die"]] },
+  { group: "Account", items: [["/link", "Link the website"], ["/punishments", "Your record"], ["/muteduration", "Mute time left"]] },
 ];
