@@ -438,3 +438,38 @@ export async function sendAppealDecisionEmail(email: string, a: { username: stri
   const text = [`Kitty Kingdom: ${title.toLowerCase()}`, "", a.accepted ? `Your appeal for the ${kind.toLowerCase()} on @${a.username} was accepted.` : `Your appeal for the ${kind.toLowerCase()} on @${a.username} was not accepted.`, ...(a.response ? ["", "Message from staff:", a.response] : []), "", `Reference: ${a.reference}`, `${SITE}/appeals`].join("\n");
   return sendEmail(email, title, html, text);
 }
+
+/** Sent when a member is banned from the Discord server: their website account has been closed. */
+export async function sendBanAccountClosedEmail(email: string, a: { name: string | null; reason: string; caseId: string | null; appealable: boolean; bannedAt: Date | null }) {
+  const hi = a.name ? `Hi ${escapeHtml(a.name)}. ` : "Hi. ";
+  const html = layout({
+    preheader: "You've been banned from Kitty Kingdom, so your website account has been closed.",
+    eyebrow: "Account closed",
+    title: "You've been banned from Kitty Kingdom",
+    intro: `${hi}You've been banned from the Kitty Kingdom Discord server, so your kittykingdom.net account has been closed and deleted. Here's what we have on record:`,
+    rows: [
+      { label: "Reason", value: a.reason },
+      ...(a.caseId ? [{ label: "Case ID", value: a.caseId }] : []),
+      ...(a.bannedAt ? [{ label: "Banned", value: a.bannedAt.toUTCString().slice(0, 16) }] : []),
+      { label: "Appeal", value: a.appealable ? "You can appeal this ban" : "This ban can't be appealed" },
+    ],
+    button: a.appealable ? { label: "Appeal this ban", url: `${SITE}/appeals` } : { label: "Contact support", url: `${SITE}/support` },
+    expiry: a.appealable
+      ? "To appeal, sign in with Discord on the appeals page (it works while you're banned), pick this ban and tell the admins what happened."
+      : "If you think this is a mistake, you can contact support.",
+    security: "Kitty Kingdom staff will never ask for your password. Your account and sign-ins have been removed, and nothing else is needed from you.",
+    reason: "You're receiving this because this address belonged to a kittykingdom.net account linked to a Discord account that was banned.",
+  });
+  const text = [
+    "Kitty Kingdom: you've been banned",
+    "",
+    `${a.name ? `Hi ${a.name}. ` : "Hi. "}You've been banned from the Kitty Kingdom Discord server, so your kittykingdom.net account has been closed and deleted.`,
+    "",
+    `Reason: ${a.reason}`,
+    ...(a.caseId ? [`Case ID: ${a.caseId}`] : []),
+    a.appealable ? `You can appeal: ${SITE}/appeals (sign in with Discord there)` : "This ban can't be appealed.",
+    "",
+    `${SITE} · Support: ${SITE}/support`,
+  ].join("\n");
+  return sendEmail(email, "You've been banned from Kitty Kingdom", html, text);
+}
