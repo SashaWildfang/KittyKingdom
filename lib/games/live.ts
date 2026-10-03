@@ -16,12 +16,15 @@ export { viewerCounts };
 import { rouletteLive } from "./roulette";
 import { TICKETS, type ScratchSession } from "./scratch";
 import { getJackpot, type SlotsSession, type SpinResult } from "./slots";
+import { minesView, type MinesSession, type PublicMines } from "./mines";
 
 const BJ_IDLE_MS = 15 * 60_000;
 const BJ_DONE_MS = 45_000;
 const SC_IDLE_MS = 5 * 60_000;
 const SC_DONE_MS = 30_000;
 const SL_LIVE_MS = 60_000;
+const MN_IDLE_MS = 10 * 60_000;
+const MN_DONE_MS = 30_000;
 const SL_DONE_MS = 3 * 60_000;
 
 /** Members who asked not to be watched. */
@@ -85,7 +88,7 @@ function slotsStatusText(s: SlotsSession) {
 
 export type LiveEntry = {
   id: string;
-  game: "blackjack" | "scratchoff" | "slots" | "roulette";
+  game: "blackjack" | "scratchoff" | "slots" | "roulette" | "mines";
   player: { id: string; name: string; avatar: string | null };
   /** Total wagered on the table now (blackjack) or the ticket price */
   stake: number;
@@ -117,6 +120,8 @@ export async function liveList(opts: { staff?: boolean; viewer?: string } = {}):
         { _id: { $regex: "^sc:" }, finished: false, updatedAt: { $gt: new Date(now - SC_IDLE_MS) } },
         { _id: { $regex: "^sc:" }, finished: true, updatedAt: { $gt: new Date(now - SC_DONE_MS) } },
         { _id: { $regex: "^sl:" }, updatedAt: { $gt: new Date(now - SL_DONE_MS) } },
+        { _id: { $regex: "^mn:" }, status: "playing", updatedAt: { $gt: new Date(now - MN_IDLE_MS) } },
+        { _id: { $regex: "^mn:" }, status: { $in: ["cashed", "bust"] }, updatedAt: { $gt: new Date(now - MN_DONE_MS) } },
       ],
     } as Document)
     .sort({ updatedAt: -1 })
@@ -138,6 +143,12 @@ export async function liveList(opts: { staff?: boolean; viewer?: string } = {}):
       if (id.startsWith("bj:")) {
         const s = d as Session;
         return { id, game: "blackjack", player, stake: s.bets.reduce((a, b) => a + b, 0), status: bjStatus(s), live: s.phase === "player", viewers: viewers[id] ?? 0, updatedAt: new Date(s.updatedAt).toISOString() };
+      }
+      if (id.startsWith("mn:")) {
+        const s = d as unknown as MinesSession;
+        const v = minesView(s);
+        const status = s.status === "playing" ? `${s.revealed.length} gems · ${v.multiplier.toFixed(2)}x (${s.mines} mines)` : s.status === "bust" ? `Lost ${s.bet.toLocaleString()} · hit a mine` : `Won +${(s.payout - s.bet).toLocaleString()} · ${v.multiplier.toFixed(2)}x`;
+        return { id, game: "mines", player, stake: s.bet, status, live: s.status === "playing", viewers: viewers[id] ?? 0, updatedAt: new Date(s.updatedAt).toISOString() };
       }
       if (id.startsWith("sl:")) {
         const s = d as SlotsSession;
@@ -165,17 +176,18 @@ export async function liveList(opts: { staff?: boolean; viewer?: string } = {}):
 
 export type Spectate = {
   id: string;
-  game: "blackjack" | "scratchoff" | "slots";
+  game: "blackjack" | "scratchoff" | "slots" | "mines";
   player: { id: string; name: string; avatar: string | null };
   viewers: number;
   blackjack: PublicTable | null;
   scratch: PublicScratch | null;
   slots: PublicSlots | null;
+  mines: PublicMines | null;
 };
 
 /** One table, as a spectator sees it, and counts the viewer as watching. Members can't watch their own table. */
 export async function spectate(tableId: string, viewer: string, opts: { staff?: boolean } = {}): Promise<Spectate> {
-  const m = /^(bj|sc|sl):(\d{5,25})$/.exec(tableId);
+  const m = /^(bj|sc|sl|mn):(\d{5,25})$/.exec(tableId);
   if (!m) throw new GameError("That table doesn't exist.", 404);
   const owner = m[2];
   if (!opts.staff && owner === viewer) throw new GameError("That's your own game. Go back to it to keep playing.", 400);
@@ -188,17 +200,19 @@ export async function spectate(tableId: string, viewer: string, opts: { staff?: 
   const p = who[owner];
   return {
     id: tableId,
-    game: m[1] === "bj" ? "blackjack" : m[1] === "sc" ? "scratchoff" : "slots",
+    game: m[1] === "bj" ? "blackjack" : m[1] === "sc" ? "scratchoff" : m[1] === "mn" ? "mines" : "slots",
     player: { id: owner, name: p?.name ?? "A member", avatar: p?.avatar ?? null },
     viewers: viewers[tableId] ?? 0,
     blackjack: m[1] === "bj" ? view(doc as unknown as Session) : null,
     scratch: m[1] === "sc" ? scratchView(doc as unknown as ScratchSession) : null,
     slots: m[1] === "sl" ? await slotsView(doc as unknown as SlotsSession) : null,
+    // The board itself stays hidden until the game is over
+    mines: m[1] === "mn" ? minesView(doc as unknown as MinesSession) : null,
   };
 }
 
 /** How many people are watching my blackjack table, my ticket and my slot machine, and whether I hide my games. */
 export async function myAudience(discordId: string) {
-  const [counts, hidden] = await Promise.all([viewerCounts([`bj:${discordId}`, `sc:${discordId}`, `sl:${discordId}`]), isPrivate(discordId)]);
-  return { blackjack: counts[`bj:${discordId}`] ?? 0, scratch: counts[`sc:${discordId}`] ?? 0, slots: counts[`sl:${discordId}`] ?? 0, private: hidden };
+  const [counts, hidden] = await Promise.all([viewerCounts([`bj:${discordId}`, `sc:${discordId}`, `sl:${discordId}`, `mn:${discordId}`]), isPrivate(discordId)]);
+  return { blackjack: counts[`bj:${discordId}`] ?? 0, scratch: counts[`sc:${discordId}`] ?? 0, slots: counts[`sl:${discordId}`] ?? 0, mines: counts[`mn:${discordId}`] ?? 0, private: hidden };
 }

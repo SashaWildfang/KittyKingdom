@@ -3,9 +3,11 @@
 import { ArrowLeft, Eye, EyeOff, Radio, Spade } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import type { LiveEntry, PublicScratch, PublicSlots, Spectate } from "../../lib/games/live";
+import type { PublicMines } from "../../lib/games/mines";
 import { LeafEmote } from "../ui-icons";
 import { BlackjackTable } from "./blackjack";
 import { Roulette } from "./roulette";
+import { MinesSpectator } from "./mines";
 import { ScratchSpectator } from "./scratch";
 import { SlotsSpectator } from "./slots";
 
@@ -31,7 +33,7 @@ function Watch({ id, entry, tableUrl, minBet, onBack }: { id: string; entry: Liv
   const [viewers, setViewers] = useState(entry?.viewers ?? 0);
   const [error, setError] = useState<string | null>(null);
   const isBj = id.startsWith("bj:");
-  const kind = isBj ? "blackjack" : id.startsWith("sl:") ? "the slots" : "a scratch-off";
+  const kind = isBj ? "blackjack" : id.startsWith("sl:") ? "the slots" : id.startsWith("mn:") ? "mines" : "a scratch-off";
 
   // First look (and, for tickets, keep following: blackjack follows itself)
   useEffect(() => {
@@ -76,6 +78,8 @@ function Watch({ id, entry, tableUrl, minBet, onBack }: { id: string; entry: Liv
       {data ? (
         isBj ? (
           <BlackjackTable key={id} initialTable={data.blackjack} minBet={minBet} watch={{ url: tableUrl(id), onData }} />
+        ) : id.startsWith("mn:") ? (
+          <MinesSpectator mines={data.mines as PublicMines | null} />
         ) : id.startsWith("sl:") ? (
           <SlotsSpectator slots={data.slots as PublicSlots | null} jackpot={(data.slots as PublicSlots | null)?.jackpot ?? 0} />
         ) : (
@@ -226,7 +230,7 @@ function LiveCard({ x, i, onWatch }: { x: LiveEntry; i: number; onWatch: () => v
         <Avatar src={x.player.avatar} name={x.player.name} />
         <span className="lv-card-who">
           <b>{x.player.name}</b>
-          <small>{x.game === "blackjack" ? "🃏 Blackjack" : x.game === "slots" ? "🎰 Slots" : x.game === "roulette" ? "🎡 Live roulette" : `${x.ticket?.icon ?? "🎟️"} ${x.ticket?.name ?? "Scratch-off"}`}</small>
+          <small>{x.game === "blackjack" ? "🃏 Blackjack" : x.game === "slots" ? "🎰 Slots" : x.game === "roulette" ? "🎡 Live roulette" : x.game === "mines" ? "💣 Mines" : `${x.ticket?.icon ?? "🎟️"} ${x.ticket?.name ?? "Scratch-off"}`}</small>
         </span>
         {x.live ? <span className="lv-live">LIVE</span> : <span className="lv-ago">{ago(x.updatedAt)}</span>}
       </span>
