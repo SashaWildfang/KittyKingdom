@@ -8,6 +8,7 @@
 // - Streak Shields (store item): a missed day uses one shield instead of breaking the streak
 //   (one shield per missed day, up to 3 missed days in a row)
 
+import { serverGuidePath } from "./server-guide";
 import { Long, type Document } from "mongodb";
 import { getMemberRoleIds } from "./discord-member";
 import { getBotCollection } from "./mongodb";
@@ -16,8 +17,6 @@ import { StoreError } from "./store";
 
 // 🍂 Golden Leaf (Nitro), given to server boosters
 export const NITRO_ROLE_ID = "1360260086500561237";
-// #✨nitro-perks
-export const NITRO_INFO_CHANNEL_ID = "1358485493020496004";
 export const DAILY_BASE = 250;
 export const STREAK_STEP = 100;
 export const CYCLE_DAYS = 7;
@@ -45,7 +44,8 @@ export type DailyStatus = {
   nextRewardWithNitro: number;
   base: number;
   step: number;
-  infoChannelId: string;
+  /** The Boosting section of #server-guide (`channel/message`), once the guide is posted */
+  perksPath: string | null;
   /** Streak Shields they hold */
   shields: number;
   /** Shields the next claim will use to keep the streak (0 if none are needed) */
@@ -100,7 +100,7 @@ function statusFrom(doc: Document | null, nitro: boolean, now = new Date(), shie
     nextRewardWithNitro: rewardFor(nextStreak, true),
     base: DAILY_BASE,
     step: STREAK_STEP,
-    infoChannelId: NITRO_INFO_CHANNEL_ID,
+    perksPath: null,
     shields,
     shieldsNeeded: shielded ? gap : 0,
   };
@@ -113,7 +113,8 @@ async function shieldCount(discordId: string) {
 export async function getDailyStatus(discordId: string) {
   const users = await getBotCollection("users");
   const [doc, nitro, shields] = await Promise.all([users.findOne(idFilter(discordId), { projection: { balance: 1, streak: 1, lastDaily: 1 }, ...BIG }), hasNitro(discordId), shieldCount(discordId)]);
-  return statusFrom(doc, nitro, new Date(), shields);
+  const [status, perksPath] = [statusFrom(doc, nitro, new Date(), shields), await serverGuidePath("boost").catch(() => null)];
+  return { ...status, perksPath };
 }
 
 /** Claims today's reward. Safe against double clicks: the write only lands if nobody claimed in between. */
@@ -164,5 +165,5 @@ export async function claimDaily(discordId: string) {
     (bonus
       ? `+${reward.toLocaleString()} leaves! (${DAILY_BASE} + ${bonus} day ${cycleDayOf(streak)} streak bonus)`
       : `+${reward.toLocaleString()} leaves! Streak: ${streak} day${streak === 1 ? "" : "s"}.`) + saved;
-  return { message, reward, bonus, status: after };
+  return { message, reward, bonus, status: { ...after, perksPath: await serverGuidePath("boost").catch(() => null) } };
 }
