@@ -84,6 +84,17 @@ const statusMessages: Record<string, string> = {
 
 const successStatuses = new Set(["password-reset", "username-saved", "name-saved", "password-saved", "success", "linked", "unlinked", "contact-saved"]);
 
+/** 5400 → "1 hour 30 minutes" */
+const lengthText = (seconds: number) => {
+  const parts: string[] = [];
+  let left = Math.round(seconds);
+  for (const [name, size] of [["day", 86400], ["hour", 3600], ["minute", 60], ["second", 1]] as const) {
+    const n = Math.floor(left / size);
+    left -= n * size;
+    if (n) parts.push(`${n} ${name}${n === 1 ? "" : "s"}`);
+  }
+  return parts.slice(0, 2).join(" ") || "a moment";
+};
 const PUNISHMENT_WORDS: Record<string, string> = { ban: "Ban", kick: "Kick", kick_unverified: "Kick", tempmute: "Mute", mute: "Mute", muzzle: "Muzzle", timeout: "Timeout", warn: "Warning" };
 
 function formatMonthYear(date: Date) {
@@ -384,7 +395,7 @@ export default async function AccountPage({
               {punishments === null ? (
                 <p className="acct-muted">Your record couldn&apos;t be loaded right now. Please try again in a moment.</p>
               ) : punishments.length === 0 ? (
-                <p className="acct-muted acct-inline-icon"><ShieldCheck size={16} aria-hidden="true" /> Nothing on your record. Keep it up!</p>
+                <p className="acct-clean-record"><ShieldCheck size={18} aria-hidden="true" /> <span>Nothing on your record. Keep it up!</span></p>
               ) : (
                 <ul className="acct-puns">
                   {punishments.map((p) => {
@@ -400,6 +411,7 @@ export default async function AccountPage({
                           <small>
                             {p.at ? punDate.format(new Date(p.at)) : "Date unknown"}
                             {p.action === "ban" ? (p.active ? " · Active (permanent until lifted)" : " · Lifted") : null}
+                            {p.durationSeconds ? ` · ${lengthText(p.durationSeconds)}` : null}
                             {ends ? (ends > Date.now() ? ` · Ends ${punDate.format(new Date(ends))}` : ` · Ended ${punDate.format(new Date(ends))}`) : null}
                           </small>
                         </span>

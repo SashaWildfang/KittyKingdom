@@ -129,8 +129,20 @@ function normalizeStages(botId: string | null): Document[] {
 }
 
 function toPunishment(doc: Document, bans: Set<string> | null): Punishment {
-  const expires = doc.n_expires instanceof Date ? doc.n_expires : null;
   const action = String(doc.n_action);
+  // AutoMod's records keep the strike's decay in expiresAt; for its mutes the mute itself ends at muteEndsAt
+  // (or after its duration). Tempmutes and muzzles end at expiresAt.
+  const strike = doc.extraInfo !== undefined;
+  const muteLike = ["mute", "tempmute", "timeout", "muzzle"].includes(action);
+  const fromLength = doc.timestamp instanceof Date && Number(doc.n_duration) > 0 ? new Date(doc.timestamp.getTime() + Number(doc.n_duration) * 1000) : null;
+  const expires =
+    strike && muteLike
+      ? doc.muteEndsAt instanceof Date
+        ? doc.muteEndsAt
+        : fromLength
+      : doc.n_expires instanceof Date
+        ? doc.n_expires
+        : null;
   const userId = doc.n_user ? String(doc.n_user) : null;
   let status: PunishmentStatus = "none";
   if (action === "ban" || action === "tempban") {
