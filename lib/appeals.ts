@@ -163,11 +163,18 @@ export async function clearAppealIdentity() {
 // ---------- Their punishments and appeals ----------
 const idForms = (id: string) => [id, Long.fromString(id)];
 
-export type MyPunishment = { id: string; action: string; reason: string; at: string | null; expiresAt: string | null; active: boolean; appealable: boolean; appeal: { id: string; status: AppealStatus; at: string; canAppealAgainAt: string | null } | null };
+export type MyPunishment = { id: string; action: string; reason: string; at: string | null; expiresAt: string | null; durationSeconds: number | null; active: boolean; appealable: boolean; appeal: { id: string; status: AppealStatus; at: string; canAppealAgainAt: string | null } | null };
 
 export async function myPunishments(discordId: string): Promise<MyPunishment[]> {
   const rows = await (await getBotCollection("punishments"))
-    .find({ user_discord_id: { $in: idForms(discordId) }, action: { $in: APPEALABLE } } as Document)
+    // Staff bans, kicks and warnings store user_discord_id; tempmutes and muzzles store discordId
+    // (AutoMod's own records, which also use discordId, stay on the staff side)
+    .find({
+      $or: [
+        { user_discord_id: { $in: idForms(discordId) }, action: { $in: APPEALABLE } },
+        { discordId: { $in: idForms(discordId) }, action: { $in: ["tempmute", "muzzle"] }, extraInfo: { $exists: false } },
+      ],
+    } as Document)
     .sort({ timestamp: -1 })
     .limit(50)
     .toArray();
@@ -179,9 +186,12 @@ export async function myPunishments(discordId: string): Promise<MyPunishment[]> 
     const id = String(r._id);
     const action = String(r.action ?? "");
     // The bot stamps every punishment with an expiry; only mutes really end (from their duration when it's there)
-    const muteLike = action === "tempmute" || action === "mute" || action === "timeout";
-    const fromDuration = r.timestamp instanceof Date && Number(r.duration_seconds) > 0 ? new Date(r.timestamp.getTime() + Number(r.duration_seconds) * 1000) : null;
-    const expires = muteLike ? fromDuration ?? (r.expires_at instanceof Date ? r.expires_at : null) : null;
+    const muteLike = action === "tempmute" || action === "mute" || action === "timeout" || action === "muzzle";
+    const length = Number(r.duration_seconds ?? r.durationSeconds) || 0;
+    const fromDuration = r.timestamp instanceof Date && length > 0 ? new Date(r.timestamp.getTime() + length * 1000) : null;
+    const stored = r.expires_at instanceof Date ? r.expires_at : r.expiresAt instanceof Date ? r.expiresAt : null;
+    const expires = muteLike ? fromDuration ?? stored : null;
+    const durationSeconds = muteLike ? length || (expires && r.timestamp instanceof Date ? Math.round((expires.getTime() - r.timestamp.getTime()) / 1000) : 0) || null : null;
     const active = action === "ban" ? Boolean(bans?.has(discordId)) : muteLike ? Boolean(expires && expires.getTime() > Date.now()) : false;
     const a = latest.get(id);
     const decided = a && a.decidedAt instanceof Date ? a.decidedAt.getTime() : null;
@@ -191,9 +201,10 @@ export async function myPunishments(discordId: string): Promise<MyPunishment[]> 
       reason: String(r.reason ?? "No reason given"),
       at: r.timestamp instanceof Date ? r.timestamp.toISOString() : null,
       expiresAt: expires ? expires.toISOString() : null,
+      durationSeconds,
       active,
       // Staff can mark a punishment as not appealable (e.g. /ban appealable:No)
-      appealable: r.appealable !== false && r.extra_info?.appealable !== false,
+      appealable: action !== "muzzle" && r.appealable !== false && r.extra_info?.appealable !== false,
       appeal: a
         ? {
             id: String(a._id),
@@ -236,7 +247,7 @@ export async function submitAppeal(identity: AppealIdentity, input: { punishment
   const email = rawEmail ? cleanEmail(rawEmail) : null;
   if (rawEmail && !email) throw new AppealError("That email address doesn't look right.");
 
-  const punishment = await (await getBotCollection("punishments")).findOne({ _id: new ObjectId(punishmentId), user_discord_id: { $in: idForms(identity.discordId) } } as Document);
+  const punishment = await (await getBotCollection("punishments")).findOne({ _id: new ObjectId(punishmentId), $or: [{ user_discord_id: { $in: idForms(identity.discordId) } }, { discordId: { $in: idForms(identity.discordId) } }] } as Document);
   if (!punishment || !APPEALABLE.includes(String(punishment.action))) throw new AppealError("That punishment couldn't be found on your account.", 404);
   if (punishment.appealable === false || punishment.extra_info?.appealable === false) throw new AppealError("This punishment can't be appealed.", 403);
 
@@ -253,8 +264,8 @@ export async function submitAppeal(identity: AppealIdentity, input: { punishment
     action: String(punishment.action),
     reason: String(punishment.reason ?? ""),
     at: punishment.timestamp instanceof Date ? punishment.timestamp : null,
-    expiresAt: punishment.expires_at instanceof Date ? punishment.expires_at : null,
-    issuerId: punishment.issuer_discord_id ? String(punishment.issuer_discord_id) : null,
+    expiresAt: punishment.expires_at instanceof Date ? punishment.expires_at : punishment.expiresAt instanceof Date ? punishment.expiresAt : null,
+    issuerId: punishment.issuer_discord_id ?? punishment.issuerId ? String(punishment.issuer_discord_id ?? punishment.issuerId) : null,
   };
   const doc = {
     discordId: identity.discordId,

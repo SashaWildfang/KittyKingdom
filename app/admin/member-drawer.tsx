@@ -19,6 +19,7 @@ import {
   RichText,
   type Mentions,
   type People,
+  formatDuration,
   type Punishment,
   type Ticket,
 } from "./admin-shared";
@@ -186,6 +187,16 @@ export function MemberDrawer({
                         </span>
                       </div>
                       <p>{p.reason ? <RichText text={p.reason} mentions={data.mentions} people={data.people} onOpenMember={onOpenMember} /> : "No reason given."}</p>
+                      {["mute", "tempmute", "timeout", "muzzle"].includes(p.action) && (p.durationSeconds || p.expiresAt) ? (
+                        <p className="adm-timeline-meta">
+                          {p.durationSeconds ? <span>Length: {formatDuration(p.durationSeconds)}</span> : null}
+                          {p.expiresAt ? (
+                            <span title={formatDate(p.expiresAt)}>
+                              {Date.parse(p.expiresAt) > Date.now() ? "Ends" : "Ended"} {formatDate(p.expiresAt)} ({timeAgo(p.expiresAt)})
+                            </span>
+                          ) : null}
+                        </p>
+                      ) : null}
                     </li>
                   ))}
                 </ol>

@@ -41,6 +41,7 @@ export const ROLES: RoleInfo[] = [
       "Run ID checks in NSFW verification tickets and grant access with /nsfwverify",
       "Keep channels calm: /slowmode, /lockchannel, /clear and /clearall",
       "Kick members who need removing but not banning",
+      "Request bans with /ban: a Mod+ reviews every Jr Mod ban before it happens",
       "Send members back to verification with /forceunverify when needed",
     ],
   },
@@ -49,6 +50,7 @@ export const ROLES: RoleInfo[] = [
     summary: "Moderators handle serious cases: bans, long mutes and age problems.",
     duties: [
       "Ban raiders, scammers, anyone underage and anyone falsifying their age",
+      "Review Jr Mod ban requests (the buttons in the staff alerts channel, or the website's Ban Requests tab): approve with CONFIRM, or deny with a reason",
       "Mute and unmute members for longer problems",
       "Take over ID verification discrepancies from Helpers and Jr Mods",
       "Help and guide Helpers and Jr Mods",
@@ -109,6 +111,7 @@ export const STAFF_RULES: RuleGroup[] = [
       "Use the lightest action that fixes the problem, and always give a clear reason.",
       "Every punishment goes through the bots so it's logged. No manual role changes or Discord timeouts.",
       "Check /punishments before you act, so you know someone's history.",
+      "Read the summary before you type CONFIRM on a ban. It's permanent and the member is told the reason.",
       "Never punish another staff member. Report it to an Admin; only the Owner can punish staff.",
       "Don't reverse another staff member's action without talking to them or an Admin first.",
       "If you're not sure, ask in #staff-general before you act.",
@@ -175,7 +178,7 @@ export const ID_VERIFICATION: Procedure = {
       do: "Do not verify them. Ban them for falsifying their age.",
       example: "/ban user:@member reason:Falsifying age appealable:No",
       min: "Mod",
-      otherwise: "If you can't ban (Helper or Jr Mod), ping a higher staff member in #staff-general with a link to the ticket, and leave the ticket open for them.",
+      otherwise: "Jr Mods: /ban sends a ban request that a Mod+ approves. Helpers: ping a higher staff member in #staff-general with a link to the ticket, and leave the ticket open for them.",
     },
     {
       when: "The ID is unreadable, cropped wrong or looks edited",
@@ -220,9 +223,25 @@ export const PROCEDURES: Procedure[] = [
       { title: "Talk first", detail: "A friendly reminder in chat fixes most things." },
       { title: "Warn", detail: "Logged on their record, with your reason.", example: "/warn user:@member reason:Spamming after being asked to stop" },
       { title: "Tempmute", detail: "Time out to cool off. The member is told how long.", example: "/tempmute user:@member duration:1h reason:Arguing after a warning" },
-      { title: "Ban", detail: "For serious or repeated problems.", example: "/ban user:@member reason:Repeated harassment after warnings and mutes", min: "Mod" },
+      { title: "Ban", detail: "For serious or repeated problems. Jr Mods' bans go to a Mod+ to approve.", example: "/ban user:@member reason:Repeated harassment after warnings and mutes", min: "Jr Mod" },
     ],
     notes: ["AutoMod already handles spam, slurs, scam links and invites with growing mutes. You don't need to punish what it caught."],
+  },
+  {
+    key: "banreq",
+    title: "Reviewing a Jr Mod's ban request",
+    icon: "gavel",
+    min: "Mod",
+    summary: "Jr Mods can't ban on their own. Their /ban becomes a request in the staff alerts channel and on the website's Ban Requests tab.",
+    steps: [
+      { title: "Open the request", detail: "Use the card in the staff alerts channel, or the Ban Requests tab here. You can't review your own request." },
+      { title: "Check it", detail: "Look at their record and what happened. Is the reason right, and should it be appealable?", example: "/punishments user:@member" },
+    ],
+    outcomes: [
+      { when: "It's the right call", tone: "good", do: "Approve. You'll see a summary and type CONFIRM; the bot bans them and tells the Jr Mod.", min: "Mod" },
+      { when: "It's not a ban", tone: "warn", do: "Deny it with a reason. The Jr Mod is told why, so they can learn from it (maybe a tempmute fits better).", min: "Mod" },
+      { when: "They're already banned", tone: "bad", do: "Nothing to do: approving just closes the request." },
+    ],
   },
   {
     key: "tickets",
@@ -316,8 +335,8 @@ export const COMMAND_GROUPS: CommandGroup[] = [
       { cmd: "/kick user reason [silent]", what: "Remove someone from the server. They can rejoin.", min: "Jr Mod", examples: ["/kick user:@member reason:Alt account"] },
       {
         cmd: "/ban user reason [appealable] [silent]",
-        what: "Permanent ban. The member gets a DM with the reason, case ID and how to appeal. appealable defaults to Yes.",
-        min: "Mod",
+        what: "Mod+: a permanent ban, after you check the summary and type CONFIRM. The member gets a DM with the reason, case ID and how to appeal (appealable defaults to Yes). Jr Mods: the same command sends a ban request that a Mod+ approves or denies. It won't run if they're already banned or already have a request waiting.",
+        min: "Jr Mod",
         examples: ["/ban user:@member reason:Falsifying age appealable:No", "/ban user:@member reason:Repeated harassment after warnings"],
         notes: "Use the user's ID if they've already left: paste it into the user field.",
       },
@@ -505,6 +524,6 @@ export const COMMAND_GROUPS: CommandGroup[] = [
 
 /** The website panel tabs a level can open. */
 export const PANEL_TABS = {
-  staff: ["Overview", "Staff Guide", "Punishments", "AutoMod", "Join Apps", "Logs", "Social", "Games", "Live Chat"],
+  staff: ["Overview", "Staff Guide", "Punishments", "Ban Requests", "AutoMod", "Join Apps", "Logs", "Social", "Games", "Live Chat"],
   admin: ["Appeals", "Messages", "Tickets", "Accounts", "News", "Traffic"],
 };
