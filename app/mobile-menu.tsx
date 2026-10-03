@@ -1,6 +1,6 @@
 "use client";
 
-import { Dices, Heart, HeartHandshake, Home, LogIn, LogOut, Menu, MessageCircle, MessagesSquare, Newspaper, Settings, ShoppingBag, Trophy, UserPlus, UserRound, UserStar, Users, X } from "lucide-react";
+import { Dices, ScrollText, Heart, HeartHandshake, Home, LogIn, LogOut, Menu, MessageCircle, MessagesSquare, Newspaper, Settings, ShoppingBag, Trophy, UserPlus, UserRound, UserStar, Users, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ThemeSwitch } from "./theme-switch";
@@ -9,9 +9,9 @@ import { MessagesButton } from "./messages-nav-badge";
 import { useUnreadNews } from "./news-nav-badge";
 import { NotificationBell } from "./notification-bell";
 
-type NavLink = { href: string; label: string; icon: "home" | "news" | "discord" | "patreon" | "staff" | "store" | "games" | "leaderboards" | "admin" | "dating" | "settings" | "messages"; external?: boolean };
+type NavLink = { href: string; label: string; icon: "home" | "news" | "rules" | "discord" | "patreon" | "staff" | "store" | "games" | "leaderboards" | "admin" | "dating" | "settings" | "messages"; external?: boolean };
 
-const ICONS = { home: Home, news: Newspaper, discord: MessageCircle, patreon: Heart, staff: Users, store: ShoppingBag, games: Dices, leaderboards: Trophy, admin: UserStar, dating: HeartHandshake, settings: Settings, messages: MessagesSquare };
+const ICONS = { home: Home, news: Newspaper, rules: ScrollText, discord: MessageCircle, patreon: Heart, staff: Users, store: ShoppingBag, games: Dices, leaderboards: Trophy, admin: UserStar, dating: HeartHandshake, settings: Settings, messages: MessagesSquare };
 
 /** Phone navigation: a slim bar with the theme switch and a menu that opens a sheet of big, tappable links. */
 export function MobileMenu({ links, signedIn, newsStamps = [], bell = false, messages = false }: { links: NavLink[]; signedIn: boolean; newsStamps?: { id: string; at: string }[]; bell?: boolean; messages?: boolean }) {

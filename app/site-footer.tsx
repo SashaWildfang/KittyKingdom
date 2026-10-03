@@ -1,6 +1,7 @@
 import {
   ArrowUp,
   BookOpen,
+  ScrollText,
   Dices,
   FileText,
   Heart,
@@ -143,6 +144,9 @@ export async function SiteFooter() {
             <h3>Help</h3>
             <a href="/faq">
               <BookOpen size={13} aria-hidden="true" /> FAQ &amp; Guide
+            </a>
+            <a href="/rules">
+              <ScrollText size={13} aria-hidden="true" /> Server Rules
             </a>
             <a href="/support">
               <LifeBuoy size={13} aria-hidden="true" /> Support

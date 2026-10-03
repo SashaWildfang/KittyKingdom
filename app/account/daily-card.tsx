@@ -95,7 +95,7 @@ export function DailyCard({ initial, guildId }: { initial: DailyStatus | null; g
   const streakEndsMs = status.streakEndsAt ? new Date(status.streakEndsAt).getTime() - now : null;
   const atRisk = !status.claimedToday && status.streak > 0 && streakEndsMs !== null && streakEndsMs > 0;
   const bonus = status.nextReward - status.base;
-  const nitroLink = guildId ? `https://discord.com/channels/${guildId}/${status.infoChannelId}` : null;
+  const nitroLink = guildId && status.perksPath ? `https://discord.com/channels/${guildId}/${status.perksPath}` : null;
 
   return (
     <div className={`daily${status.nitro ? " daily--nitro" : ""}`}>
@@ -206,7 +206,7 @@ export function DailyCard({ initial, guildId }: { initial: DailyStatus | null; g
             </p>
             {nitroLink ? (
               <a className="daily-nitro-link" href={nitroLink} target="_blank" rel="noreferrer">
-                See all perks in #✨nitro-perks <ExternalLink size={13} aria-hidden="true" />
+                See every booster perk in the Server Guide <ExternalLink size={13} aria-hidden="true" />
               </a>
             ) : null}
           </div>
