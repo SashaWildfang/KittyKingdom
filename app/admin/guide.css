@@ -1,0 +1,357 @@
+/* Admin panel → Staff Guide */
+.sg {
+  display: grid;
+  gap: 1rem;
+}
+
+.sg-loading {
+  height: 240px;
+  border-radius: 18px;
+  background: linear-gradient(90deg, var(--panel), rgba(255, 255, 255, 0.06), var(--panel));
+  background-size: 200% 100%;
+  animation: sg-shimmer 1.4s linear infinite;
+}
+
+@keyframes sg-shimmer {
+  to { background-position: -200% 0; }
+}
+
+.sg-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.2rem 1.3rem;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(245, 155, 42, 0.18), transparent 55%),
+    var(--panel);
+}
+
+.sg-hero h2 {
+  margin: 0.2rem 0 0.3rem;
+  font-size: clamp(1.4rem, 3vw, 1.9rem);
+}
+
+.sg-hero p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.sg-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--ember, #f59b2a) !important;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.sg-rank {
+  color: var(--ember, #f59b2a);
+}
+
+.sg-ladder {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sg-ladder li {
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.sg-ladder li.is-below {
+  color: var(--text);
+}
+
+.sg-ladder li.is-you {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--ember, #f59b2a), var(--maple, #d9572b));
+  color: #fff;
+}
+
+.sg-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+}
+
+.sg-search {
+  display: flex;
+  flex: 1 1 260px;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--muted);
+}
+
+.sg-search input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.65rem 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+}
+
+.sg-search input:focus {
+  outline: none;
+}
+
+.sg-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sg-title {
+  margin: 0.4rem 0 -0.3rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.sg-cats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr));
+  gap: 0.9rem;
+  align-items: start;
+}
+
+.sg-card {
+  display: grid;
+  gap: 0.55rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--panel);
+}
+
+.sg-card h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  font-size: 1.02rem;
+}
+
+.sg-card.is-locked {
+  opacity: 0.6;
+}
+
+.sg-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.sg-muted,
+.sg-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.sg-cmds {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sg-cmd {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.sg-cmd.is-locked {
+  opacity: 0.55;
+}
+
+.sg-cmd-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.sg-cmd code {
+  color: var(--ember, #f59b2a);
+  font-size: 0.88rem;
+  font-weight: 800;
+  word-break: break-word;
+}
+
+.sg-cmd p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.sg-cmd small {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.sg-copy {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.sg-copy:hover {
+  color: var(--text);
+}
+
+.sg-unlock {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.2rem;
+  margin-left: auto;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.sg-points {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.93rem;
+}
+
+.sg-next p {
+  margin: 0;
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+}
+
+.sg-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.sg-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.sg-pill.is-locked {
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+.sg-notes {
+  border-color: rgba(245, 155, 42, 0.45);
+}
+
+.sg-notes-body {
+  display: grid;
+  gap: 0.55rem;
+  font-size: 0.95rem;
+}
+
+.sg-notes-body p,
+.sg-notes-body h4 {
+  margin: 0;
+}
+
+.sg-notes-body ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.sg-edit {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.sg-edit textarea {
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.15);
+  color: var(--text);
+  font: inherit;
+  resize: vertical;
+}
+
+.sg-edit-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.sg-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.sg-btn.is-primary {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--ember, #f59b2a), var(--maple, #d9572b));
+  color: #fff;
+}
+
+.sg-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { TicketDeletePermissions } from "./delete-ticket-button";
-import { Activity, BarChart3, ClipboardCheck, Dices, Gavel, Globe, HeartHandshake, Mail, MessagesSquare, Newspaper, Scale, ScrollText, ShieldCheck, Ticket, Users, type LucideIcon } from "lucide-react";
+import { Activity, BarChart3, BookOpen, ClipboardCheck, Dices, Gavel, Globe, HeartHandshake, Mail, MessagesSquare, Newspaper, Scale, ScrollText, ShieldCheck, Ticket, Users, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AccountsTab } from "./accounts-tab";
@@ -16,6 +16,7 @@ import { LogsTab } from "./logs-tab";
 import { MemberDrawer } from "./member-drawer";
 import { MessagesTab, type Chat, type ChatFilter } from "./messages-tab";
 import { GamesTab } from "./games-tab";
+import { GuideTab } from "./guide-tab";
 import { NewsTab } from "./news-tab";
 import { TrafficTab } from "./traffic-tab";
 import { OverviewTab } from "./overview-tab";
@@ -23,13 +24,13 @@ import { DEFAULT_PUNISHMENT_FILTERS, PunishmentsTab, type PunishmentFilters } fr
 import { TicketsTab } from "./tickets-tab";
 import { TranscriptViewer } from "./transcript-viewer";
 
-type Tab = "overview" | "punishments" | "automod" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live" | "join" | "dating" | "appeals" | "messages" | "games";
+type Tab = "overview" | "punishments" | "automod" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live" | "join" | "dating" | "appeals" | "messages" | "games" | "guide";
 type Level = "admin" | "staff";
 
 // Tabs are grouped so the bar stays short: pick a group, then one of its tabs
 type Group = "overview" | "moderation" | "members" | "website";
 const GROUPS: { key: Group; label: string; icon: LucideIcon; tabs: Tab[] }[] = [
-  { key: "overview", label: "Overview", icon: BarChart3, tabs: ["overview"] },
+  { key: "overview", label: "Overview", icon: BarChart3, tabs: ["overview", "guide"] },
   { key: "moderation", label: "Moderation", icon: Gavel, tabs: ["punishments", "appeals", "automod", "logs", "live"] },
   { key: "members", label: "Members", icon: Users, tabs: ["join", "tickets", "dating", "messages", "games"] },
   { key: "website", label: "Website", icon: Globe, tabs: ["accounts", "news", "traffic"] },
@@ -37,6 +38,7 @@ const GROUPS: { key: Group; label: string; icon: LucideIcon; tabs: Tab[] }[] = [
 
 const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean }[] = [
   { key: "overview", label: "Overview", icon: BarChart3 },
+  { key: "guide", label: "Staff Guide", icon: BookOpen },
   { key: "punishments", label: "Punishments", icon: Gavel },
   { key: "appeals", label: "Appeals", icon: Scale, admin: true },
   { key: "automod", label: "AutoMod", icon: ShieldCheck },
@@ -264,6 +266,7 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false }: { admin
       {tab === "logs" ? <LogsTab onOpenMember={openMember} /> : null}
       {tab === "dating" ? <DatingTab onOpenMember={openMember} /> : null}
       {tab === "games" ? <GamesTab /> : null}
+      {tab === "guide" ? <GuideTab /> : null}
       {isAdmin && tab === "appeals" ? <AppealsTab onOpenMember={openMember} /> : null}
       {isAdmin && tab === "messages" ? <MessagesTab chat={chat} onChat={setChat} filter={chatFilter} onFilter={setChatFilter} onOpenMember={openMember} /> : null}
       {isAdmin && tab === "tickets" ? <TicketsTab typesAvailable={meta?.ticketTypes ?? []} onOpenMember={openMember} onOpenTranscript={openTranscript} /> : null}
