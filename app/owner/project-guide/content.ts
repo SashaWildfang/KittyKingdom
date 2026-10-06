@@ -42,7 +42,7 @@ export const SECTIONS: Section[] = [
     blocks: [
       {
         t: "table",
-        head: ["Layer", "Technology", "Closest match in your stack"],
+        head: ["Layer", "What I used", "Related tools in this role"],
         rows: [
           ["Front end", "**Next.js 14, React 18, TypeScript**, hand-written CSS", "HTML · CSS · JavaScript, **Angular**"],
           ["API / back end", "**134 serverless API routes** (Node.js) on Vercel", "**Azure Functions** (HTTP trigger)"],
@@ -301,7 +301,7 @@ export function verifyPassword(password: string, salt: string, expectedHash: str
       },
       {
         t: "table",
-        head: ["MongoDB (what I use)", "SQL Server (what they use)"],
+        head: ["MongoDB (in this project)", "SQL Server"],
         rows: [
           ["Collection", "Table"],
           ["Document", "Row"],
@@ -532,28 +532,40 @@ WHERE UserId = @UserId AND Balance >= @Bet;`,
   {
     id: "match",
     kicker: "The role",
-    title: "How this relates to the role",
+    title: "Why I'm a fit for this role",
+    intro: "Kitty Kingdom is a real product with real users, and I've built and run every layer of it. Here's how that experience lines up with the work in this role.",
     blocks: [
       {
         t: "table",
-        head: ["They ask for", "What I can show"],
+        head: ["This role", "My experience from Kitty Kingdom"],
         rows: [
-          ["Basic object-oriented programming", "Python bot features are classes (cogs) with inheritance; typed TypeScript models"],
-          ["HTML, CSS and JavaScript", "Every page hand-built: semantic HTML, custom CSS themes, responsive layouts, TypeScript"],
-          ["Server-side languages", "TypeScript (Node.js) API routes and Python services"],
-          ["Database concepts", "Indexes, unique keys, TTL, atomic updates, concurrency control; SQL modelling above"],
-          ["Azure Functions", "134 serverless HTTP functions + many timed jobs"],
-          ["Service Bus", "Five queue-style flows between the website and the bots"],
-          ["Logic Apps", "Approval and multi-step workflows (news, ban requests, ban → email)"],
-          ["Cosmos DB (NoSQL)", "MongoDB in production, the same API Cosmos DB offers"],
-          ["MSSQL", "Relational design knowledge (honest: not used in this project)"],
-          ["C# / .NET", "Strict TypeScript and class-based Python; C# syntax and async/await are very similar"],
-          ["Angular (preferred)", "React + TypeScript component architecture"],
-          ["Troubleshooting bugs", "See the bug stories below"],
+          ["**Object-oriented programming**", "Every feature in my Python services is a class (a \"cog\") built on inheritance, and my TypeScript code uses typed models throughout"],
+          ["**HTML, CSS and JavaScript**", "I hand-built all 40 pages: semantic HTML, my own CSS themes (dark and light) and responsive layouts that work on phones, in TypeScript"],
+          ["**Server-side development**", "I wrote 134 API endpoints in TypeScript on Node.js, plus four Python services that run 24/7"],
+          ["**Database concepts**", "I design for correctness: indexes, unique keys, auto-expiring data, atomic balance updates and concurrency control so money can't be double-spent"],
+          ["**Azure Functions**", "My whole API runs as serverless functions, triggered by HTTP requests, and my services run 30+ timer-based jobs"],
+          ["**Service Bus**", "I built five message-queue flows that pass work between my website and my services, with claiming, status tracking and failure handling"],
+          ["**Logic Apps**", "I've built multi-step and approval workflows: staff approve ban requests and news posts, and a ban automatically closes the account and emails the member"],
+          ["**Cosmos DB (NoSQL)**", "I run MongoDB in production, and Cosmos DB offers the same MongoDB API"],
+          ["**MSSQL**", "I can model the same data relationally (see the SQL Server schema below), and I'm ready to put that into practice in SQL Server"],
+          ["**C# / .NET**", "I work in strict TypeScript and class-based Python, and C#'s syntax, types and async/await follow the same patterns"],
+          ["**Angular**", "I build component-based front ends in React and TypeScript, the same architecture Angular uses"],
+          ["**Troubleshooting**", "I trace bugs from the screen to the database. For example, I found leaderboards dropping 64-bit IDs, and boosters that stopped after an hour"],
+        ],
+      },
+      {
+        t: "list",
+        items: [
+          "**I own the whole thing:** design, code, database, deployment, and support for the people who use it",
+          "**I ship safely:** every change goes through a pull request with automated checks and a preview deployment before it reaches users",
+          "**I think about security:** hashed passwords, signed sessions, two-factor login and rate limits, all built and tested myself",
+          "**I learn fast:** I implemented two-factor login straight from its specification, and I'm excited to go deep on Azure",
+          "**I write for people:** clear rules, a staff handbook and an FAQ for the community, so non-technical people can use what I build",
         ],
       },
     ],
   },
+
   {
     id: "bugs",
     prep: true,
@@ -633,4 +645,4 @@ WHERE UserId = @UserId AND Balance >= @Bet;`,
 ];
 
 /** Present mode order: the story for a 30-minute screen share (prep sections follow in Prep mode) */
-export const ORDER = ["overview", "picture", "match", "servicebus", "functions", "backend", "database", "frontend", "security", "bots", "devops", "pitch", "terms", "bugs", "demo"];
+export const ORDER = ["overview", "match", "picture", "servicebus", "functions", "backend", "database", "frontend", "security", "bots", "devops", "pitch", "terms", "bugs", "demo"];
