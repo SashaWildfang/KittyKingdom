@@ -1,4 +1,4 @@
-import { ArrowRight, Bot, Briefcase, Check, ChevronDown, Cloud, Database, ExternalLink, Globe, Layers, Lightbulb, Lock, NotebookPen, Presentation, Rocket, Server, ShieldCheck, Flame, GraduationCap, Target, FileText, UserRound } from "lucide-react";
+import { ArrowRight, Bot, Briefcase, Check, ChevronDown, Cloud, Database, ExternalLink, Globe, Layers, Lightbulb, Lock, NotebookPen, Presentation, Rocket, Server, ShieldCheck, Flame, GraduationCap, Target, FileText, UserRound, ShieldHalf, HeartHandshake } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getRealUser } from "../../../lib/auth";
@@ -469,6 +469,33 @@ function Pitch() {
             </div>
           </details>
         ))}
+      </section>
+
+      <section className="pp-final" id="closing">
+        <p className="pg-kicker">{PITCH.closing.title}</p>
+        <h2>{PITCH.closing.heading}</h2>
+        {PITCH.closing.paragraphs.map((t) => (
+          <p key={t} className="pp-final-text">
+            {t}
+          </p>
+        ))}
+        <div className="pp-final-points">
+          {PITCH.closing.points.map(([t, d]) => (
+            <div key={t}>
+              <b>{t}</b>
+              <p>{d}</p>
+            </div>
+          ))}
+        </div>
+        <p className="pp-clearance">
+          <ShieldHalf size={18} aria-hidden="true" />
+          <span>
+            <Md text={PITCH.closing.clearance} />
+          </span>
+        </p>
+        <p className="pp-thanks">
+          <HeartHandshake size={20} aria-hidden="true" /> {PITCH.closing.thanks}
+        </p>
       </section>
     </div>
   );
