@@ -23,7 +23,8 @@ export type Block =
   | { t: "diagram" }
   | { t: "terms"; items: { term: string; plain: string; mine: string }[] };
 
-export type Section = { id: string; kicker: string; title: string; intro?: string; blocks: Block[] };
+/** `prep` sections are private notes: only shown in Prep mode, never while presenting */
+export type Section = { id: string; kicker: string; title: string; intro?: string; blocks: Block[]; prep?: boolean };
 
 export const JOB = {
   title: "Software Engineer I",
@@ -34,9 +35,38 @@ export const JOB = {
 
 export const SECTIONS: Section[] = [
   {
+    id: "overview",
+    kicker: "Overview",
+    title: "Kitty Kingdom at a glance",
+    intro: "A full-stack platform I built and run for an online community: a **web app** and **four Python services**, connected through one shared **NoSQL database**.",
+    blocks: [
+      {
+        t: "table",
+        head: ["Layer", "Technology", "Closest match in your stack"],
+        rows: [
+          ["Front end", "**Next.js 14, React 18, TypeScript**, hand-written CSS", "HTML · CSS · JavaScript, **Angular**"],
+          ["API / back end", "**134 serverless API routes** (Node.js) on Vercel", "**Azure Functions** (HTTP trigger)"],
+          ["Background services", "**4 Python services** (discord.py, async), 30+ scheduled jobs", "**Azure Functions** (timer) · **Logic Apps**"],
+          ["Messaging between services", "Job queues in the database with status, claiming and retries", "**Azure Service Bus**"],
+          ["Database", "**MongoDB Atlas** (document / NoSQL)", "**Cosmos DB** (has a MongoDB API) · relational design for **MSSQL**"],
+          ["Delivery", "GitHub pull requests → automated checks → auto-deploy", "Azure DevOps / GitHub Actions"],
+        ],
+      },
+      {
+        t: "list",
+        items: [
+          "**Accounts and security:** hashed passwords, signed sessions, two-factor login, rate limits",
+          "**Features:** an in-app economy and store, real-time games with live spectating, private messaging, support tickets and transcripts, leaderboards, and staff moderation tools",
+          "**Scale of the codebase:** 40 pages, 134 API endpoints, 4 services, 320+ commits",
+        ],
+      },
+    ],
+  },
+  {
     id: "pitch",
-    kicker: "Start here",
-    title: "The 30-second version",
+    kicker: "Prep only",
+    title: "Your 30-second pitch",
+    prep: true,
     intro: "Say this first, almost word for word. Everything else on this page is backup detail for when they ask follow-up questions.",
     blocks: [
       {
@@ -44,7 +74,7 @@ export const SECTIONS: Section[] = [
         tone: "tip",
         title: "Your pitch",
         text:
-          "\"Kitty Kingdom is a full-stack platform I built and run for an online community. It has two halves: a **web app** made with **Next.js, React and TypeScript** that runs as serverless functions on **Vercel**, and **four Python services** (Discord bots). Both halves share one **MongoDB** NoSQL database, and that database is how they talk to each other, using queues of jobs much like **Azure Service Bus**. Members get accounts with **two-factor login**, an economy and store, real-time games, a dating and friends system with AI matching, support tickets, and staff moderation tools. I ship through **GitHub pull requests** with automatic checks and preview deployments, and merging to main deploys to production.\"",
+          "\"Kitty Kingdom is a full-stack platform I built and run for an online community. It has two halves: a **web app** made with **Next.js, React and TypeScript** that runs as serverless functions on **Vercel**, and **four Python services** (Discord bots). Both halves share one **MongoDB** NoSQL database, and that database is how they talk to each other, using queues of jobs much like **Azure Service Bus**. Members get accounts with **two-factor login**, an economy and store, real-time games, private messaging, support tickets, and staff moderation tools. I ship through **GitHub pull requests** with automatic checks and preview deployments, and merging to main deploys to production.\"",
       },
       {
         t: "table",
@@ -63,7 +93,7 @@ export const SECTIONS: Section[] = [
     id: "picture",
     kicker: "Architecture",
     title: "The big picture",
-    intro: "Three things, connected by one database. If you can draw this from memory, you can answer most questions.",
+    intro: "Three parts, connected by one database. The website and the services never call each other directly: they share data and hand each other jobs.",
     blocks: [
       { t: "diagram" },
       {
@@ -84,9 +114,10 @@ export const SECTIONS: Section[] = [
   },
   {
     id: "terms",
+    prep: true,
     kicker: "Plain English",
     title: "Every term, explained simply",
-    intro: "If a word comes up that you're unsure of, it's probably here.",
+    intro: "Prep notes: every term in plain English.",
     blocks: [
       {
         t: "terms",
@@ -157,7 +188,7 @@ export const SECTIONS: Section[] = [
     id: "backend",
     kicker: "Back end",
     title: "What happens when you click a button",
-    intro: "Follow one click from start to finish. This is the best thing to practise out loud.",
+    intro: "One click in the Mines game, followed from the browser to the database and back.",
     blocks: [
       {
         t: "steps",
@@ -185,7 +216,7 @@ export const SECTIONS: Section[] = [
       {
         t: "list",
         items: [
-          "**134 API routes** in `app/api/`, grouped by feature: account, admin, games, dating, store, news, tickets…",
+          "**134 API routes** in `app/api/`, grouped by feature: account, admin, games, store, news, tickets…",
           "Shared logic lives in `lib/` so routes stay short (the route checks access, the `lib` function does the work)",
           "Errors come back as clear JSON with the right HTTP status: `400` bad input, `401` not logged in, `403` not allowed, `409` conflict",
           "**Email** goes through the Resend REST API. **Discord data** comes from the Discord REST API and OAuth2",
@@ -233,7 +264,7 @@ export function verifyPassword(password: string, salt: string, expectedHash: str
     id: "database",
     kicker: "Data",
     title: "The database: MongoDB, and how it maps to SQL",
-    intro: "MongoDB Atlas (cloud hosted). Two databases: `website` (accounts, sessions, news, tickets, Social) and `zeo_bot` (balances, levels, inventory, games, quiz streaks).",
+    intro: "MongoDB Atlas (cloud hosted). Two databases: `website` (accounts, sessions, news, tickets, messages) and `zeo_bot` (balances, levels, inventory, games, quiz streaks).",
     blocks: [
       {
         t: "code",
@@ -250,7 +281,7 @@ export function verifyPassword(password: string, salt: string, expectedHash: str
       {
         t: "list",
         items: [
-          "**Indexes** make lookups fast. **Unique** indexes stop duplicates (one Social profile per person)",
+          "**Indexes** make lookups fast. **Unique** indexes stop duplicates (one record per player)",
           "**TTL indexes** delete old data automatically: \"who's online\" records disappear after 5 minutes, live chat after a set number of hours",
           "**Atomic updates**: `$inc` changes a balance in one step, with a filter so it only happens if you can afford it",
           "**Optimistic concurrency**: the `version` field you saw in the back-end section",
@@ -265,8 +296,8 @@ export function verifyPassword(password: string, salt: string, expectedHash: str
       {
         t: "callout",
         tone: "honest",
-        title: "Be honest about SQL",
-        text: "\"This project doesn't use SQL Server, but I understand relational design. Here's how I'd model the core of it.\" Then show the table below.",
+        title: "SQL Server",
+        text: "This project runs on MongoDB, but the same data maps cleanly to relational tables. Here's how the core of it would look in SQL Server.",
       },
       {
         t: "table",
@@ -318,7 +349,7 @@ WHERE UserId = @UserId AND Balance >= @Bet;`,
         t: "table",
         head: ["Service", "What it does"],
         rows: [
-          ["**Main**", "Help menu, store, server guide, stat channels, live chat for the website, Social DM reminders, AI vectors for matching"],
+          ["**Main**", "Help menu, store, server guide, stat channels, live chat for the website, unread-message reminders"],
           ["**Economy**", "Leaves, levels, daily rewards, casino games, bumps, voice-chat rewards, Question of the Day, monthly payouts"],
           ["**Moderation**", "AutoMod filter, bans and mutes, join verification, rules, ban requests"],
           ["**Ticketing**", "Support tickets and transcripts"],
@@ -358,7 +389,7 @@ WHERE UserId = @UserId AND Balance >= @Bet;`,
     kicker: "Service Bus",
     title: "Service Bus, in my project",
     intro:
-      "Azure Service Bus is a managed **message queue**: one program drops a message in, another program picks it up and processes it, even if it was offline when the message was sent. I built the same pattern on MongoDB to connect the website and the bots. Here are six real examples.",
+      "Azure Service Bus is a managed **message queue**: one program drops a message in, another program picks it up and processes it, even if it was offline when the message was sent. I built the same pattern on MongoDB to connect the website and the bots. Here are five real examples.",
     blocks: [
       {
         t: "table",
@@ -405,10 +436,10 @@ WHERE UserId = @UserId AND Balance >= @Bet;`,
             why: "Junior staff can't ban on their own, so every request waits for a senior to approve it.",
           },
           {
-            name: "Social message DM reminders",
+            name: "Unread message reminders",
             azure: "Scheduled messages + cancel a scheduled message + duplicate detection",
             collection: "website.message_dm_queue",
-            producer: "Website: someone sends you a message on Social",
+            producer: "Website: a member sends someone a private message",
             consumer: "Main bot, every 10 minutes",
             flow: [
               "Website upserts one job per conversation per person (`_id: \"conv:user\"`), so 20 messages don't create 20 reminders",
@@ -443,27 +474,14 @@ WHERE UserId = @UserId AND Balance >= @Bet;`,
             ],
             why: "Restart-proof timers: nothing is lost if a service goes down.",
           },
-          {
-            name: "AI vectors for Social matching",
-            azure: "Cosmos DB change feed → Azure Function",
-            collection: "dating_profiles → dating_vectors",
-            producer: "Members edit their Social profiles (each save updates `updated_at`)",
-            consumer: "Main bot, every 60 seconds",
-            flow: [
-              "Find profiles changed since they were last processed (`updated_at` newer than `source_updated_at`)",
-              "Run a small local AI model to turn interests into vectors",
-              "Save the vectors; the website uses them to score matches",
-            ],
-            why: "Heavy AI work happens in the background, so saving a profile stays instant.",
-          },
         ],
       },
       {
         t: "callout",
         tone: "honest",
-        title: "What Service Bus would add",
+        title: "Where I'd take it next",
         text:
-          "My version polls the database every few seconds. **Service Bus** pushes messages instantly and handles retries, lock timeouts, dead-letter queues and scaling for you. A great answer to \"what would you improve?\": \"I'd move these job collections to Service Bus queues and have Azure Functions with Service Bus triggers process them.\"",
+          "My version polls the database every few seconds. **Service Bus** pushes messages instantly and handles retries, lock timeouts, dead-letter queues and scaling as a managed service. The natural next step: move these job collections to Service Bus queues, processed by Service Bus-triggered Azure Functions.",
       },
     ],
   },
@@ -513,8 +531,8 @@ WHERE UserId = @UserId AND Balance >= @Bet;`,
   },
   {
     id: "match",
-    kicker: "The job",
-    title: "Their requirements, matched",
+    kicker: "The role",
+    title: "How this relates to the role",
     blocks: [
       {
         t: "table",
@@ -525,7 +543,7 @@ WHERE UserId = @UserId AND Balance >= @Bet;`,
           ["Server-side languages", "TypeScript (Node.js) API routes and Python services"],
           ["Database concepts", "Indexes, unique keys, TTL, atomic updates, concurrency control; SQL modelling above"],
           ["Azure Functions", "134 serverless HTTP functions + many timed jobs"],
-          ["Service Bus", "Six queue-style flows between the website and the bots"],
+          ["Service Bus", "Five queue-style flows between the website and the bots"],
           ["Logic Apps", "Approval and multi-step workflows (news, ban requests, ban → email)"],
           ["Cosmos DB (NoSQL)", "MongoDB in production, the same API Cosmos DB offers"],
           ["MSSQL", "Relational design knowledge (honest: not used in this project)"],
@@ -538,6 +556,7 @@ WHERE UserId = @UserId AND Balance >= @Bet;`,
   },
   {
     id: "bugs",
+    prep: true,
     kicker: "Stories",
     title: "Bug stories to tell",
     intro: "Use the order: what happened → what I had to do → what I did → the result.",
@@ -568,6 +587,7 @@ WHERE UserId = @UserId AND Balance >= @Bet;`,
   },
   {
     id: "demo",
+    prep: true,
     kicker: "Tomorrow",
     title: "Demo plan and likely questions",
     blocks: [
@@ -575,7 +595,7 @@ WHERE UserId = @UserId AND Balance >= @Bet;`,
         t: "callout",
         tone: "tip",
         title: "Before the call",
-        text: "Share your **browser window**, not your whole screen. Close Discord and turn off notifications. Stay on SFW pages. **Don't show:** admin member data, Social/dating, anything NSFW, or `.env` files.",
+        text: "Share your **browser window**, not your whole screen. Close Discord and turn off notifications. Stay on SFW pages. **Don't show:** admin member data, the Social section, anything NSFW, or `.env` files.",
       },
       {
         t: "steps",
@@ -593,7 +613,7 @@ WHERE UserId = @UserId AND Balance >= @Bet;`,
         t: "table",
         head: ["Question", "Answer"],
         rows: [
-          ["Why MongoDB and not SQL?", "My data is document-shaped (profiles with lots of optional fields), it changed constantly while I built, and Python and Node both read it easily. For relational reporting I'd pick SQL."],
+          ["Why MongoDB and not SQL?", "My data is document-shaped (member records with lots of optional fields), it changed constantly while I built, and Python and Node both read it easily. For relational reporting I'd pick SQL."],
           ["How do the website and bots stay in sync?", "One shared database is the source of truth, and work that has to happen in Discord goes through job queues the bots process."],
           ["How do you handle security?", "Salted scrypt hashes, signed httpOnly cookies, 2FA, rate limits, server-side validation, secrets in environment variables, and secret scanning on every PR."],
           ["What would you improve?", "Move my job queues to Service Bus, add automated unit tests to CI, and use WebSockets for the live features."],
@@ -611,3 +631,6 @@ WHERE UserId = @UserId AND Balance >= @Bet;`,
     ],
   },
 ];
+
+/** Present mode order: the story for a 30-minute screen share (prep sections follow in Prep mode) */
+export const ORDER = ["overview", "picture", "match", "servicebus", "functions", "backend", "database", "frontend", "security", "bots", "devops", "pitch", "terms", "bugs", "demo"];

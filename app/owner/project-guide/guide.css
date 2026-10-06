@@ -27,6 +27,44 @@
   background: radial-gradient(circle at 0% 0%, color-mix(in srgb, var(--ember) 22%, transparent), transparent 60%), var(--panel);
   box-shadow: 0 18px 40px var(--shadow);
 }
+.pg-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  width: 100%;
+}
+.pg-mode {
+  display: inline-flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel-strong);
+}
+.pg-mode a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+.pg-mode a.is-on {
+  background: var(--ember);
+  color: #1d0b05;
+}
+.pg-section.is-prep {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--gold) 45%, var(--line));
+}
+.pg-toc a.is-prep small {
+  color: var(--gold);
+}
 .pg-private {
   display: inline-flex;
   align-items: center;
