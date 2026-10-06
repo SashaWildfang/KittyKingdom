@@ -1320,3 +1320,140 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Why you should hire me */
+.pp-hire-intro {
+  margin: 0;
+  max-width: 50rem;
+  font-size: 1.12rem;
+  line-height: 1.55;
+}
+.pp-skills {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 0.75rem;
+}
+.pp-skill-group {
+  display: grid;
+  align-content: start;
+  gap: 0.55rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel-strong);
+}
+.pp-skill-group h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  color: var(--gold);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.pp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.pp-chips span {
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(70, 167, 88, 0.4);
+  background: rgba(70, 167, 88, 0.1);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.pp-skill-group.is-next {
+  border-color: rgba(62, 155, 255, 0.45);
+  background: rgba(62, 155, 255, 0.08);
+}
+.pp-skill-group.is-next h3 {
+  color: #8fc4ff;
+}
+.pp-skill-group.is-next .pp-chips span {
+  border-color: rgba(62, 155, 255, 0.45);
+  background: rgba(62, 155, 255, 0.12);
+}
+.pp-ethic {
+  display: grid;
+  gap: 0.7rem;
+  padding: 1.1rem 1.2rem;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--ember) 45%, var(--line));
+  background: linear-gradient(150deg, color-mix(in srgb, var(--ember) 16%, transparent), transparent 60%), var(--panel-strong);
+}
+.pp-ethic h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  font-size: 1.1rem;
+}
+.pp-ethic h3 svg {
+  color: var(--ember);
+}
+.pp-ethic-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+.pp-ethic-grid > div {
+  padding: 0.75rem 0.85rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+}
+.pp-ethic-grid b {
+  display: block;
+  margin-bottom: 0.2rem;
+}
+.pp-ethic-grid p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* Deep dives: job connection */
+.pp-details summary {
+  flex-wrap: wrap;
+}
+.pp-details summary > span:first-child {
+  flex: 1 1 auto;
+}
+.pp-role-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(62, 155, 255, 0.15);
+  color: #8fc4ff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.pp-role {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(62, 155, 255, 0.45);
+  background: rgba(62, 155, 255, 0.1);
+  line-height: 1.55;
+}
+.pp-role svg {
+  flex: none;
+  margin-top: 0.2rem;
+  color: #5aa9ff;
+}
+.pp-role b {
+  color: #8fc4ff;
+}
+@media (max-width: 700px) {
+  .pp-ethic-grid {
+    grid-template-columns: 1fr;
+  }
+}

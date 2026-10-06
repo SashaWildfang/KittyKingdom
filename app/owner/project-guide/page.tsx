@@ -1,4 +1,4 @@
-import { ArrowRight, Bot, Briefcase, Check, ChevronDown, Cloud, Database, ExternalLink, Globe, Layers, Lightbulb, Lock, NotebookPen, Presentation, Rocket, Server, ShieldCheck } from "lucide-react";
+import { ArrowRight, Bot, Briefcase, Check, ChevronDown, Cloud, Database, ExternalLink, Globe, Layers, Lightbulb, Lock, NotebookPen, Presentation, Rocket, Server, ShieldCheck, Flame, GraduationCap, Target } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getRealUser } from "../../../lib/auth";
@@ -296,6 +296,47 @@ function Pitch() {
         </div>
       </section>
 
+      <section className="pp-block pp-hire" id="hire">
+        <p className="pg-kicker">Skill set</p>
+        <h2>Why you should hire me</h2>
+        <p className="pp-hire-intro">{PITCH.hire.intro}</p>
+        <div className="pp-skills">
+          {PITCH.hire.groups.map((g) => (
+            <div key={g.name} className="pp-skill-group">
+              <h3>{g.name}</h3>
+              <div className="pp-chips">
+                {g.skills.map((k) => (
+                  <span key={k}>{k}</span>
+                ))}
+              </div>
+            </div>
+          ))}
+          <div className="pp-skill-group is-next">
+            <h3>
+              <GraduationCap size={16} aria-hidden="true" /> Learning next
+            </h3>
+            <div className="pp-chips">
+              {PITCH.hire.next.map((k) => (
+                <span key={k}>{k}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="pp-ethic">
+          <h3>
+            <Flame size={18} aria-hidden="true" /> How I work
+          </h3>
+          <div className="pp-ethic-grid">
+            {PITCH.hire.ethic.map(([t, d]) => (
+              <div key={t}>
+                <b>{t}</b>
+                <p>{d}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="pp-block" id="stack">
         <p className="pg-kicker">Tech stack</p>
         <h2>What it&apos;s built with</h2>
@@ -377,7 +418,7 @@ function Pitch() {
       <section className="pp-deep" id="deep-dives">
         <p className="pg-kicker">Technical deep dives</p>
         <h2>Want the details?</h2>
-        <p className="pg-intro">Open any topic for the full walkthrough, with real code from the project.</p>
+        <p className="pg-intro">Each topic shows how that part of the project connects to this job, with the full walkthrough and real code.</p>
         {deep.map((s) => (
           <details key={s.id} id={s.id} className="pp-details">
             <summary>
@@ -385,9 +426,23 @@ function Pitch() {
                 <small>{s.kicker}</small>
                 {s.title}
               </span>
+              {s.roleTag ? (
+                <span className="pp-role-tag">
+                  <Target size={13} aria-hidden="true" /> {s.roleTag}
+                </span>
+              ) : null}
               <ChevronDown size={18} aria-hidden="true" />
             </summary>
             <div className="pp-details-body">
+              {s.role ? (
+                <p className="pp-role">
+                  <Target size={16} aria-hidden="true" />
+                  <span>
+                    <b>How this relates to the job: </b>
+                    <Md text={s.role} />
+                  </span>
+                </p>
+              ) : null}
               <SectionBody s={s} />
             </div>
           </details>
