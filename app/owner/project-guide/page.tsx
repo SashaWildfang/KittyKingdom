@@ -277,7 +277,7 @@ export default async function ProjectGuidePage({ searchParams }: { searchParams:
             </span>
             <ExternalLink size={14} aria-hidden="true" />
           </a>
-          <div className="pg-chips" aria-label="Their tech stack">
+          <div className="pg-chips" aria-label="Technology in this role">
             {JOB.stack.map((s) => (
               <span key={s}>{s}</span>
             ))}
