@@ -1,11 +1,11 @@
 "use client";
 
-import { ChevronDown, HeartHandshake, LogOut, Palette, Settings, UserRound } from "lucide-react";
+import { BookOpenText, ChevronDown, HeartHandshake, LogOut, Palette, Settings, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { ThemeSwitch } from "./theme-switch";
 
 /** "My Account" in the top bar: a small menu with account links, Appearance (theme) and Log out. */
-export function AccountMenu({ social }: { social: boolean }) {
+export function AccountMenu({ social, owner = false }: { social: boolean; owner?: boolean }) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
 
@@ -39,6 +39,11 @@ export function AccountMenu({ social }: { social: boolean }) {
           <a href="/settings" role="menuitem">
             <Settings size={16} aria-hidden="true" /> Settings
           </a>
+          {owner ? (
+            <a href="/owner/project-guide" role="menuitem">
+              <BookOpenText size={16} aria-hidden="true" /> Project Guide
+            </a>
+          ) : null}
           <div className="acct-menu-section">
             <span>
               <Palette size={14} aria-hidden="true" /> Appearance

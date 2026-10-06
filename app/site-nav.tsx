@@ -9,6 +9,7 @@ import { canSeeDating } from "../lib/dating/access";
 import { NotificationBell } from "./notification-bell";
 import { MobileMenu } from "./mobile-menu";
 import { MessagesButton } from "./messages-nav-badge";
+import { OWNER_DISCORD_ID } from "../lib/ticket-delete";
 
 const PATREON_URL = "https://www.patreon.com/c/thekittykingdom/membership";
 
@@ -87,7 +88,7 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
         ) : null}
         {/* Theme lives in the account menu, the footer and the phone menu */}
         {signedIn ? (
-          <AccountMenu social={dating} />
+          <AccountMenu social={dating} owner={String(user?.discordId ?? "") === OWNER_DISCORD_ID} />
         ) : (
           <>
             <a className="login-link" href="/login">
