@@ -1,4 +1,4 @@
-import { ArrowRight, Bot, Briefcase, Check, ChevronDown, Cloud, Database, ExternalLink, Globe, Layers, Lightbulb, Lock, NotebookPen, Presentation, Rocket, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
+import { ArrowRight, Bot, Briefcase, Check, ChevronDown, Cloud, GraduationCap, Database, ExternalLink, Globe, Layers, Lightbulb, Lock, NotebookPen, Presentation, Rocket, ShieldCheck, Sparkles } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Fragment, type ReactNode } from "react";
@@ -319,15 +319,31 @@ function Pitch() {
       <section className="pp-block" id="checklist">
         <p className="pg-kicker">The job description</p>
         <h2>Requirement by requirement</h2>
-        <ul className="pp-check">
+        <p className="pg-intro">Click any requirement to see where it shows up in my project.</p>
+        <div className="pp-check">
           {PITCH.checklist.map((c) => (
-            <li key={c.item} className={c.level === "ready" ? "is-ready" : ""}>
-              {c.level === "ready" ? <TrendingUp size={16} aria-hidden="true" /> : <Check size={16} aria-hidden="true" />}
-              <span>{c.item}</span>
-              <small>{c.level === "ready" ? "Ready to ramp up" : "Hands-on"}</small>
-            </li>
+            <details key={c.item} className={`pp-check-item${c.level === "learn" ? " is-learn" : ""}`}>
+              <summary>
+                {c.level === "learn" ? <GraduationCap size={17} aria-hidden="true" /> : <Check size={17} aria-hidden="true" />}
+                <span>
+                  <b>{c.item}</b>
+                  <small>{c.level === "learn" ? "Ready to learn this skill" : "Built into Kitty Kingdom"}</small>
+                </span>
+                <ChevronDown size={16} aria-hidden="true" className="pp-check-caret" />
+              </summary>
+              <div className="pp-check-body">
+                <p>
+                  <Md text={c.example} />
+                </p>
+                {c.code ? (
+                  <pre>
+                    <code>{c.code}</code>
+                  </pre>
+                ) : null}
+              </div>
+            </details>
           ))}
-        </ul>
+        </div>
       </section>
 
       <section className="pp-block" id="spotlight">
