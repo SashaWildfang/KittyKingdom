@@ -13,7 +13,7 @@ const DESCRIPTION =
 // Search engines and link previews (Discord, X, iMessage…) read these
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),
-  title: "Kitty Kingdom | 18+ Furry Community & Social Discord",
+  title: "Kitty Kingdom | Cozy Community & Social Platform",
   description: DESCRIPTION,
   applicationName: "Kitty Kingdom",
   keywords: ["furry discord", "furry community", "18+ furry server", "furry friends", "fursona", "LGBTQ furry", "furry social", "Kitty Kingdom"],
@@ -22,12 +22,12 @@ export const metadata: Metadata = {
     type: "website",
     url: SITE,
     siteName: "Kitty Kingdom",
-    title: "Kitty Kingdom | 18+ Furry Community & Social",
+    title: "Kitty Kingdom | Cozy Community & Social Platform",
     description: DESCRIPTION,
     images: [{ url: "/banner.jpg", alt: "Kitty Kingdom: a cozy fall-themed furry community" }],
     locale: "en_US",
   },
-  twitter: { card: "summary_large_image", title: "Kitty Kingdom | 18+ Furry Community & Social", description: DESCRIPTION, images: ["/banner.jpg"] },
+  twitter: { card: "summary_large_image", title: "Kitty Kingdom | Cozy Community & Social Platform", description: DESCRIPTION, images: ["/banner.jpg"] },
   robots: { index: true, follow: true },
 };
 

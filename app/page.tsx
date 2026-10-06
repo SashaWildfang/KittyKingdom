@@ -52,7 +52,7 @@ const reasons = [
   { label: "Updates", detail: "Consistent server updates keep the community fresh.", icon: "spark" },
   { label: "Owner Care", detail: "Dedicated owner who cares about the community.", icon: "heart" },
   { label: "Feedback", detail: "Listens to community feedback and criticism.", icon: "chat" },
-  { label: "Community", detail: "Friendly and active furry community.", icon: "users" },
+  { label: "Community", detail: "Friendly and active community.", icon: "users" },
   { label: "Verification", detail: "Secure anti-raid gate and fast manual verification.", icon: "lock" },
   { label: "Protection", detail: "Built-in AutoMod system for protection.", icon: "shield" },
   { label: "Custom Bot", detail: "Fully custom coded Discord bot.", icon: "bot" },
@@ -231,7 +231,7 @@ export default async function Home({ searchParams }: { searchParams?: { register
         <div className="home-sun" aria-hidden="true" />
         <div className="home-hero-copy">
           <p className="home-kicker">
-            <LeafSvg shape="maple" color="#f39c12" size={18} /> Furry community · social platform
+            <LeafSvg shape="maple" color="#f39c12" size={18} /> Community · social platform
           </p>
           <h1 className="home-title">
             Find your place in <span className="home-title-glow">Kitty Kingdom.</span>
