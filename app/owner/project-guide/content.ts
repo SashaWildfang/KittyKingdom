@@ -24,7 +24,7 @@ export type Block =
   | { t: "terms"; items: { term: string; plain: string; mine: string }[] };
 
 /** `prep` sections are private notes: only shown in Prep mode, never while presenting */
-export type Section = { id: string; kicker: string; title: string; intro?: string; blocks: Block[]; prep?: boolean };
+export type Section = { id: string; kicker: string; title: string; intro?: string; blocks: Block[]; prep?: boolean; roleTag?: string; role?: string };
 
 export const JOB = {
   title: "Software Engineer I",
@@ -91,6 +91,8 @@ export const SECTIONS: Section[] = [
   },
   {
     id: "picture",
+    roleTag: "Azure architecture",
+    role: "This is the same shape as a typical Azure system: a web front end, **Azure Functions** for the API, **Service Bus** between services and **Cosmos DB** for data. I already think in these building blocks.",
     kicker: "Architecture",
     title: "The big picture",
     intro: "Three parts, connected by one database. The website and the services never call each other directly: they share data and hand each other jobs.",
@@ -141,6 +143,8 @@ export const SECTIONS: Section[] = [
   },
   {
     id: "frontend",
+    roleTag: "Front end & Angular",
+    role: "The role supports **front-end development** in HTML, CSS and JavaScript, with Angular preferred. I build component-based TypeScript interfaces, the same model Angular uses.",
     kicker: "Front end",
     title: "The website you see",
     intro: "Built with Next.js 14, React 18 and TypeScript. No CSS framework: every style is hand-written.",
@@ -186,6 +190,8 @@ export const SECTIONS: Section[] = [
   },
   {
     id: "backend",
+    roleTag: "Back-end development",
+    role: "The role supports **back-end web development**. This is my everyday work: APIs that check access, validate input, apply business rules and return clear errors.",
     kicker: "Back end",
     title: "What happens when you click a button",
     intro: "One click in the Mines game, followed from the browser to the database and back.",
@@ -227,6 +233,8 @@ export const SECTIONS: Section[] = [
   },
   {
     id: "security",
+    roleTag: "Secure data handling",
+    role: "Care organisations handle sensitive personal information. I already build security in from the start: hashed passwords, signed sessions, two-factor login and rate limits.",
     kicker: "Security",
     title: "Logins and keeping accounts safe",
     intro: "Built by hand with Node's built-in `crypto` module. No auth library.",
@@ -262,6 +270,8 @@ export function verifyPassword(password: string, salt: string, expectedHash: str
   },
   {
     id: "database",
+    roleTag: "MSSQL & Cosmos DB",
+    role: "The role creates and maintains **MSSQL** databases and works with **Cosmos DB**. I already model data, design indexes and keep data correct under real use.",
     kicker: "Data",
     title: "The database: MongoDB, and how it maps to SQL",
     intro: "MongoDB Atlas (cloud hosted). Two databases: `website` (accounts, sessions, news, tickets, messages) and `zeo_bot` (balances, levels, inventory, games, quiz streaks).",
@@ -341,6 +351,8 @@ WHERE UserId = @UserId AND Balance >= @Bet;`,
   },
   {
     id: "bots",
+    roleTag: "OOP & server-side",
+    role: "The role asks for **object-oriented programming** and **server-side languages**. My services are class-based and run 24/7 in the background, the same job Azure Functions and WebJobs do.",
     kicker: "Python services",
     title: "The bots",
     intro: "Four separate Python programs, each with one job. Built with **discord.py 2.6**, which is fully async.",
@@ -386,6 +398,8 @@ WHERE UserId = @UserId AND Balance >= @Bet;`,
   },
   {
     id: "servicebus",
+    roleTag: "Service Bus",
+    role: "The job description asks for deploying code for **Service Bus**. These five flows are queues I designed, built and run: sending, claiming, processing and handling failures.",
     kicker: "Service Bus",
     title: "Service Bus, in my project",
     intro:
@@ -487,6 +501,8 @@ WHERE UserId = @UserId AND Balance >= @Bet;`,
   },
   {
     id: "functions",
+    roleTag: "Functions & Logic Apps",
+    role: "The role deploys **Azure Functions** and **Logic Apps**. I already run HTTP-triggered, timer-triggered and queue-triggered work, plus approval workflows.",
     kicker: "Functions & Logic Apps",
     title: "Timed jobs and workflows",
     intro: "Azure Functions run code on a trigger (an HTTP request, a timer, a queue message). Logic Apps chain steps into a workflow. I have both patterns.",
@@ -508,6 +524,8 @@ WHERE UserId = @UserId AND Balance >= @Bet;`,
   },
   {
     id: "devops",
+    roleTag: "Deploying code",
+    role: "The role involves **deploying code** to Azure. My pull request, automated checks and auto-deploy flow maps directly onto Azure DevOps or GitHub Actions.",
     kicker: "Workflow",
     title: "How I ship changes",
     blocks: [
@@ -798,6 +816,24 @@ WHERE UserId = @UserId AND Balance >= @Bet;  -- 0 rows = not enough`,
       ["Marked \"done\" or \"failed\"", "the website shows the result", "Complete / dead-letter"],
     ],
     more: ["Ban request approvals", "Unread message reminders", "Live AutoMod settings", "Restart-proof timers"],
+  },
+  hire: {
+    intro: "I want this job, and I'll be the hardest worker on the team. Here's the skill set I'd bring from day one, and what I'm ready to learn next.",
+    groups: [
+      { name: "Languages", skills: ["TypeScript", "JavaScript", "Python", "HTML", "CSS"] },
+      { name: "Front end", skills: ["React", "Next.js", "Responsive design", "Accessibility", "CSS Grid & Flexbox", "Theming"] },
+      { name: "Back end", skills: ["REST APIs", "Node.js", "Async Python", "Authentication & sessions", "Two-factor login", "Rate limiting", "Third-party APIs & OAuth2"] },
+      { name: "Data", skills: ["MongoDB", "Data modelling", "Indexes & unique keys", "Atomic updates", "Concurrency control", "Message queues"] },
+      { name: "Cloud & delivery", skills: ["Serverless deployment", "Git & GitHub", "Pull requests & code review", "Automated checks", "Preview deployments", "Secrets management"] },
+      { name: "Professional", skills: ["Debugging", "Owning a product end to end", "Supporting real users", "Writing docs (handbook, FAQ, rules)", "Taking feedback"] },
+    ],
+    next: ["C#", ".NET", "SQL Server", "Angular", "Azure"],
+    ethic: [
+      ["Nobody assigned this project", "I built Kitty Kingdom because I wanted to, and I keep improving it: 320+ changes and counting."],
+      ["I follow problems all the way down", "When members report a problem, I trace it from the screen to the database and ship a fix."],
+      ["I keep going until it's right", "When members felt the games were unfair, I worked out the real odds for every game and rebuilt them."],
+      ["I'm hungry to grow", "I learned this whole stack by building with it. I'll bring that same drive to Azure, C# and SQL Server."],
+    ],
   },
   stack: [
     {
