@@ -646,3 +646,96 @@ WHERE UserId = @UserId AND Balance >= @Bet;`,
 
 /** Present mode order: the story for a 30-minute screen share (prep sections follow in Prep mode) */
 export const ORDER = ["overview", "match", "picture", "servicebus", "functions", "backend", "database", "frontend", "security", "bots", "devops", "pitch", "terms", "bugs", "demo"];
+
+/** Present mode: the pitch at the top of the page (the detailed sections sit below as deep dives) */
+export const PITCH = {
+  eyebrow: "Prepared for Consumer Direct Care Network · Software Engineer I",
+  title: "Kitty Kingdom",
+  lead: "A full-stack platform I designed, built and run for a live online community: a web app, four background services and a cloud database, all built on the same patterns this team uses on Azure.",
+  stats: [
+    ["40", "pages"],
+    ["134", "API endpoints"],
+    ["4", "background services"],
+    ["30+", "scheduled jobs"],
+    ["320+", "changes shipped"],
+  ],
+  fits: [
+    {
+      icon: "cloud",
+      title: "I already build the cloud patterns this role uses",
+      lead: "Serverless functions, message queues and a NoSQL database are the backbone of Kitty Kingdom.",
+      map: [
+        ["Serverless API (134 endpoints)", "Azure Functions"],
+        ["Job queues between services", "Service Bus"],
+        ["Scheduled and approval workflows", "Logic Apps"],
+        ["MongoDB Atlas", "Cosmos DB"],
+      ],
+    },
+    {
+      icon: "layers",
+      title: "Front end to back end",
+      lead: "I've built every layer myself, so I can work anywhere in the stack.",
+      points: [
+        "Hand-built **HTML, CSS and TypeScript** across 40 responsive pages",
+        "**React components**: the same architecture as **Angular**",
+        "APIs in **Node.js** and services in **Python**, written object-oriented",
+      ],
+    },
+    {
+      icon: "database",
+      title: "I treat data carefully",
+      lead: "When real balances and accounts are involved, correctness comes first.",
+      points: [
+        "**Atomic updates and version checks**, so nothing can be double-spent",
+        "**Indexes, unique keys** and data that expires automatically",
+        "Comfortable modelling the same data as **SQL Server** tables",
+      ],
+    },
+    {
+      icon: "rocket",
+      title: "I ship and support real users",
+      lead: "People use this every day, so changes have to be safe and problems fixed fast.",
+      points: [
+        "Every change: **pull request → automated checks → preview → auto-deploy**",
+        "Security built in: **hashed passwords, signed sessions, two-factor login**",
+        "I debug from the screen down to the database",
+      ],
+    },
+  ],
+  checklist: [
+    { item: "Object-oriented programming", level: "hands-on" },
+    { item: "HTML, CSS and JavaScript", level: "hands-on" },
+    { item: "Server-side code (TypeScript, Python)", level: "hands-on" },
+    { item: "Database concepts", level: "hands-on" },
+    { item: "Serverless functions (Azure Functions)", level: "hands-on" },
+    { item: "Message queues (Service Bus)", level: "hands-on" },
+    { item: "Automated workflows (Logic Apps)", level: "hands-on" },
+    { item: "NoSQL (Cosmos DB)", level: "hands-on" },
+    { item: "MSSQL", level: "ready" },
+    { item: "C# / .NET", level: "ready" },
+    { item: "Angular", level: "ready" },
+  ],
+  spotlight: {
+    title: "Spotlight: a Service Bus-style queue I built",
+    lead: "Staff approve new members on the website, but only the Discord service can give them access. A queue connects the two, and nothing gets lost if a service restarts.",
+    steps: [
+      ["Staff click Accept", "on the website"],
+      ["Job queued", "saved with status \"queued\""],
+      ["Service claims it", "\"queued\" → \"processing\", atomically"],
+      ["Work done", "roles given, welcome sent"],
+      ["Result shown", "\"done\" or \"failed\" on the website"],
+    ],
+    azure: "On Azure: a **Service Bus queue** with a **queue-triggered Azure Function**. Same flow, managed for you.",
+    more: ["Ban request approvals", "Unread message reminders", "Live AutoMod settings", "Restart-proof timers"],
+  },
+  closing:
+    "I've taken a product from an empty folder to something people rely on every day: designing it, building it, deploying it and fixing it when it breaks. I'd love to bring that ownership to your team, and grow into Azure, C# and SQL Server alongside people who use them every day.",
+  live: [
+    ["Games", "/games"],
+    ["Leaderboards", "/leaderboards"],
+    ["Rules", "/rules"],
+  ],
+};
+
+/** Present mode: detailed sections, collapsed under "Technical deep dives" */
+export const DEEP_DIVES = ["picture", "servicebus", "functions", "backend", "database", "frontend", "security", "bots", "devops"];
