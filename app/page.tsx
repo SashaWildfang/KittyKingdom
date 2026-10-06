@@ -17,14 +17,14 @@ const DISCORD_INVITE = "https://discord.com/invite/M9XKHFdYQV";
 
 
 const tickerItems: { label: string; icon: LucideIcon | "leaf" }[] = [
-  { label: "Dating profiles", icon: HeartHandshake },
+  { label: "Social profiles", icon: HeartHandshake },
   { label: "Leaf economy", icon: "leaf" },
   { label: "Custom bot", icon: Bot },
   { label: "Leaderboards", icon: Trophy },
   { label: "Store", icon: ShoppingBag },
   { label: "Voice chats", icon: Mic },
   { label: "AutoMod protection", icon: Shield },
-  { label: "Matchmaking", icon: Heart },
+  { label: "Games & events", icon: Heart },
   { label: "Art & media", icon: Palette },
   { label: "Cozy vibes", icon: Coffee },
 ];
@@ -60,11 +60,11 @@ const reasons = [
 ];
 
 const features = [
-  { label: "18+ Areas", detail: "18+ NSFW and dating channels for ID-verified users.", icon: "id" },
+  { label: "18+ Areas", detail: "18+ NSFW and social channels for ID-verified users.", icon: "id" },
   { label: "Ranks", detail: "Leveling, ranks, and role rewards.", icon: "rank" },
   { label: "Perks", detail: "Nitro Booster and Patreon perks.", icon: "gem" },
   { label: "Media", detail: "Role selection, media channels, and voice chats.", icon: "media" },
-  { label: "Dating", detail: "Dating introduction profiles and date matching.", icon: "heart" },
+  { label: "Social", detail: "Introduction profiles to meet new friends.", icon: "heart" },
   { label: "Store", detail: "Server store to purchase roles and boosters.", icon: "store" },
   { label: "Currency", detail: "Custom server currency and chat-triggered events.", icon: "leaf" },
   { label: "Website", detail: "Fully functioning server website with accounts and member features.", icon: "site" },
@@ -88,7 +88,7 @@ const showcaseTabs = [
 const memberSections = [
   { title: "Leaderboards", text: "Track top members, activity and seasonal achievements, live.", href: "/leaderboards", icon: "rank", ready: true },
   { title: "Store", text: "Buy roles, boosters and gifts, and manage your inventory.", href: "/store", icon: "store", ready: true },
-  { title: "Dating Profiles", text: "Create introductions and match with verified members.", href: DISCORD_INVITE, icon: "heart", ready: true },
+  { title: "Social Profiles", text: "Create an introduction and connect with verified members.", href: DISCORD_INVITE, icon: "heart", ready: true },
   { title: "Role Customization", text: "Manage role selection, profile identity and personalization.", href: DISCORD_INVITE, icon: "users", ready: true },
   { title: "Much More", text: "More member tools arrive as the website grows with the server.", href: "/news", icon: "spark", ready: false },
 ];
@@ -231,13 +231,13 @@ export default async function Home({ searchParams }: { searchParams?: { register
         <div className="home-sun" aria-hidden="true" />
         <div className="home-hero-copy">
           <p className="home-kicker">
-            <LeafSvg shape="maple" color="#f39c12" size={18} /> Furry community · dating platform
+            <LeafSvg shape="maple" color="#f39c12" size={18} /> Furry community · social platform
           </p>
           <h1 className="home-title">
             Find your place in <span className="home-title-glow">Kitty Kingdom.</span>
           </h1>
           <p className="home-subtitle">
-            A warm, fall-themed community for friends, verified members, dating profiles, events, roles, and a place to call
+            A warm, fall-themed community for friends, verified members, Social profiles, events, roles, and a place to call
             home.
           </p>
           <div className="home-actions">
@@ -479,7 +479,7 @@ export default async function Home({ searchParams }: { searchParams?: { register
             "@context": "https://schema.org",
             "@graph": [
               { "@type": "Organization", name: "Kitty Kingdom", url: "https://www.kittykingdom.net", logo: "https://www.kittykingdom.net/logo.png", sameAs: [DISCORD_INVITE, "https://www.patreon.com/c/thekittykingdom"] },
-              { "@type": "WebSite", name: "Kitty Kingdom", url: "https://www.kittykingdom.net", description: "A cozy 18+ furry Discord community with dating profiles, matchmaking, events and an economy." },
+              { "@type": "WebSite", name: "Kitty Kingdom", url: "https://www.kittykingdom.net", description: "A cozy 18+ furry Discord community with Social profiles, events and an economy." },
             ],
           }),
         }}
