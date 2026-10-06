@@ -1,4 +1,4 @@
-import { ArrowRight, Bot, Briefcase, Check, ChevronDown, Cloud, Database, ExternalLink, Globe, Layers, Lightbulb, Lock, NotebookPen, Presentation, Rocket, Server, ShieldCheck, Flame, GraduationCap, Target } from "lucide-react";
+import { ArrowRight, Bot, Briefcase, Check, ChevronDown, Cloud, Database, ExternalLink, Globe, Layers, Lightbulb, Lock, NotebookPen, Presentation, Rocket, Server, ShieldCheck, Flame, GraduationCap, Target, FileText, UserRound } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getRealUser } from "../../../lib/auth";
@@ -250,6 +250,7 @@ function Pitch() {
           <Briefcase size={14} aria-hidden="true" /> {PITCH.eyebrow}
         </span>
         <h1>{PITCH.title}</h1>
+        <p className="pp-by">by Sasha Wildfang · Missoula, MT</p>
         <p className="pp-lead">{PITCH.lead}</p>
         <div className="pp-stats">
           {PITCH.stats.map(([n, label]) => (
@@ -259,6 +260,27 @@ function Pitch() {
             </div>
           ))}
         </div>
+      </section>
+
+      <section className="pp-block pp-about" id="about">
+        <p className="pg-kicker">
+          <UserRound size={13} aria-hidden="true" /> {PITCH.about.title}
+        </p>
+        <h2>Who I am</h2>
+        <p className="pp-about-lead">
+          <Md text={PITCH.about.lead} />
+        </p>
+        <div className="pp-facts">
+          {PITCH.about.facts.map(([k, v]) => (
+            <div key={k}>
+              <small>{k}</small>
+              <p>{v}</p>
+            </div>
+          ))}
+        </div>
+        <a className="pp-resume-btn" href="/owner/resume" target="_blank" rel="noopener noreferrer">
+          <FileText size={17} aria-hidden="true" /> View my resume
+        </a>
       </section>
 
       <section className="pp-block" id="fit">
@@ -422,7 +444,7 @@ function Pitch() {
         {deep.map((s) => (
           <details key={s.id} id={s.id} className="pp-details">
             <summary>
-              <span>
+              <span className="pp-sum-title">
                 <small>{s.kicker}</small>
                 {s.title}
               </span>
