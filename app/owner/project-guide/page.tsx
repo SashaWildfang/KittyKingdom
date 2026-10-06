@@ -1,11 +1,11 @@
-import { ArrowRight, Bot, Briefcase, Check, ChevronDown, Cloud, Database, ExternalLink, Globe, Layers, Lightbulb, Lock, NotebookPen, Presentation, Rocket, Server, ShieldCheck, Flame, GraduationCap, Target, FileText, UserRound, ShieldHalf, HeartHandshake } from "lucide-react";
+import { ArrowRight, Bot, Briefcase, Check, ChevronDown, Cloud, Database, Globe, Layers, Lightbulb, Rocket, Server, ShieldCheck, Flame, GraduationCap, Target, FileText, UserRound, ShieldHalf, HeartHandshake } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getRealUser } from "../../../lib/auth";
 import { getDiscordInviteSummary } from "../../../lib/discord";
 import { OWNER_DISCORD_ID } from "../../../lib/ticket-delete";
 import { SiteNav } from "../../site-nav";
-import { DEEP_DIVES, JOB, ORDER, PITCH, SECTIONS, type Block, type Section } from "./content";
+import { DEEP_DIVES, PITCH, SECTIONS, type Block, type Section } from "./content";
 import "./guide.css";
 import { Md } from "./md";
 import { RequirementExplorer } from "./requirements";
@@ -283,6 +283,28 @@ function Pitch() {
         </a>
       </section>
 
+      <section className="pp-block pp-why" id="why">
+        <p className="pg-kicker">The story</p>
+        <h2>{PITCH.why.title}</h2>
+        <div className="pp-why-grid">
+          <div className="pp-why-text">
+            {PITCH.why.paragraphs.map((t) => (
+              <p key={t}>
+                <Md text={t} />
+              </p>
+            ))}
+          </div>
+          <ol className="pp-why-timeline">
+            {PITCH.why.timeline.map(([when, what]) => (
+              <li key={when + what}>
+                <small>{when}</small>
+                <span>{what}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
       <section className="pp-block" id="fit">
         <p className="pg-kicker">Why I&apos;m a fit</p>
         <h2>Why I&apos;m a fit for this role</h2>
@@ -501,93 +523,16 @@ function Pitch() {
   );
 }
 
-function ModeSwitch({ prep }: { prep: boolean }) {
-  return (
-    <div className="pg-top">
-      {prep ? (
-        <span className="pg-private">
-          <Lock size={13} aria-hidden="true" /> Prep mode: private notes are showing
-        </span>
-      ) : (
-        <span />
-      )}
-      <div className="pg-mode" role="group" aria-label="Page mode">
-        <a href="/owner/project-guide" className={prep ? "" : "is-on"} aria-current={prep ? undefined : "page"}>
-          <Presentation size={15} aria-hidden="true" /> Present
-        </a>
-        <a href="/owner/project-guide?mode=prep" className={prep ? "is-on" : ""} aria-current={prep ? "page" : undefined}>
-          <NotebookPen size={15} aria-hidden="true" /> Prep
-        </a>
-      </div>
-    </div>
-  );
-}
-
-export default async function ProjectGuidePage({ searchParams }: { searchParams: { mode?: string } }) {
+export default async function ProjectGuidePage() {
   // Only the owner, signed in as themselves (not an admin "viewing as" them)
   const user = await getRealUser().catch(() => null);
   if (!user || String(user.discordId ?? "") !== OWNER_DISCORD_ID) notFound();
   const discord = await getDiscordInviteSummary();
-  // Present (default): a short pitch to screen-share, details folded away. Prep: everything, plus private notes.
-  const prep = searchParams.mode === "prep";
-
-  if (!prep) {
-    return (
-      <main className="site-shell pg-shell">
-        <SiteNav signedIn discordOnline={discord.online} />
-        <div className="pg">
-          <ModeSwitch prep={false} />
-          <Pitch />
-        </div>
-      </main>
-    );
-  }
-
-  const sections = ORDER.map((id) => SECTIONS.find((s) => s.id === id)!).filter(Boolean);
   return (
     <main className="site-shell pg-shell">
       <SiteNav signedIn discordOnline={discord.online} />
       <div className="pg">
-        <header className="pg-hero">
-          <ModeSwitch prep />
-          <h1>How Kitty Kingdom is built</h1>
-          <p>Everything in full, plus your private notes (dashed gold).</p>
-          <a className="pg-job" href={JOB.url} target="_blank" rel="noopener noreferrer">
-            <Briefcase size={18} aria-hidden="true" />
-            <span>
-              <b>{JOB.title}</b>
-              <small>{JOB.company}</small>
-            </span>
-            <ExternalLink size={14} aria-hidden="true" />
-          </a>
-          <div className="pg-chips" aria-label="Technology in this role">
-            {JOB.stack.map((s) => (
-              <span key={s}>{s}</span>
-            ))}
-          </div>
-        </header>
-
-        <div className="pg-layout">
-          <nav className="pg-toc" aria-label="Sections">
-            <b>On this page</b>
-            {sections.map((s) => (
-              <a key={s.id} href={`#${s.id}`} className={s.prep ? "is-prep" : undefined}>
-                <small>{s.kicker}</small>
-                {s.title}
-              </a>
-            ))}
-          </nav>
-
-          <div className="pg-sections">
-            {sections.map((s) => (
-              <section key={s.id} id={s.id} className={`pg-section${s.prep ? " is-prep" : ""}`}>
-                <p className="pg-kicker">{s.kicker}</p>
-                <h2>{s.title}</h2>
-                <SectionBody s={s} />
-              </section>
-            ))}
-          </div>
-        </div>
+        <Pitch />
       </div>
     </main>
   );
