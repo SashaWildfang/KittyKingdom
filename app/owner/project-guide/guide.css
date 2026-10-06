@@ -769,43 +769,95 @@
   color: #46a758;
 }
 
-/* Requirement checklist */
+/* Requirement checklist: each tile opens an example */
 .pp-check {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
-  gap: 0.5rem;
-  margin: 0;
-  padding: 0;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  align-items: start;
+  gap: 0.55rem;
+}
+.pp-check-item {
+  border: 1px solid rgba(70, 167, 88, 0.4);
+  border-radius: 14px;
+  background: rgba(70, 167, 88, 0.08);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.pp-check-item[open] {
+  grid-column: 1 / -1;
+  background: rgba(70, 167, 88, 0.12);
+}
+.pp-check-item summary {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 0.85rem;
+  cursor: pointer;
   list-style: none;
 }
-.pp-check li {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  align-items: center;
-  column-gap: 0.55rem;
-  padding: 0.65rem 0.8rem;
-  border: 1px solid rgba(70, 167, 88, 0.35);
-  border-radius: 12px;
-  background: rgba(70, 167, 88, 0.08);
+.pp-check-item summary::-webkit-details-marker {
+  display: none;
 }
-.pp-check svg {
-  grid-row: span 2;
+.pp-check-item summary:hover {
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+  border-radius: 14px;
+}
+.pp-check-item summary > svg:first-child {
   color: #46a758;
 }
-.pp-check span {
-  font-weight: 800;
+.pp-check-item summary span {
+  display: grid;
 }
-.pp-check small {
+.pp-check-item summary small {
   color: var(--muted);
   font-size: 0.75rem;
   font-weight: 700;
 }
-.pp-check li.is-ready {
-  border-color: rgba(62, 155, 255, 0.35);
+.pp-check-caret {
+  color: var(--muted);
+  transition: transform 0.2s ease;
+}
+.pp-check-item[open] .pp-check-caret {
+  transform: rotate(180deg);
+}
+.pp-check-body {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0 0.95rem 0.95rem 2.55rem;
+}
+.pp-check-body p {
+  margin: 0;
+  line-height: 1.6;
+}
+.pp-check-body pre {
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+  overflow-x: auto;
+  border-radius: 10px;
+  background: #120a07;
+  color: #ffe3b3;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+.pp-check-body pre code {
+  padding: 0;
+  background: none;
+  overflow-wrap: normal;
+}
+.pp-check-item.is-learn {
+  border-color: rgba(62, 155, 255, 0.4);
   background: rgba(62, 155, 255, 0.08);
 }
-.pp-check li.is-ready svg {
+.pp-check-item.is-learn[open] {
+  background: rgba(62, 155, 255, 0.12);
+}
+.pp-check-item.is-learn summary > svg:first-child {
   color: #5aa9ff;
+}
+@media (max-width: 520px) {
+  .pp-check-body {
+    padding-left: 0.95rem;
+  }
 }
 
 /* Spotlight flow */
