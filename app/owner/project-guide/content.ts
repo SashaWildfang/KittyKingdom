@@ -848,6 +848,21 @@ WHERE UserId = @UserId AND Balance >= @Bet;  -- 0 rows = not enough`,
       ["I'm hungry to grow", "I learned this whole stack by building with it. I'll bring that same drive to Azure, C# and SQL Server."],
     ],
   },
+  closing: {
+    title: "One last thing",
+    heading: "Give me a chance, and I'll prove it every day",
+    paragraphs: [
+      "I'm the hardest worker you'll ever find. I don't stop at what's asked of me: I go above and beyond, and I keep going until the job is done right.",
+      "The job market has been rough, and I've spent this time building, learning and working. What I'm looking for now is a company I can settle down with and grow with for the long term.",
+    ],
+    points: [
+      ["A track record you can count on", "I've never been fired. I show up, I stay, and I do the work."],
+      ["Dedicated and committed", "From 40-hour weeks during college to building Kitty Kingdom on my own time, I finish what I start."],
+      ["Ready to learn from your team", "Azure, C#, SQL Server and Angular are my next step, and I'm eager to take it with you."],
+    ],
+    clearance: "Also worth knowing: I hold a U.S. government **SECRET** security clearance.",
+    thanks: "Thank you for your time. I'd love the chance to show you what I can do.",
+  },
   stack: [
     {
       group: "Front end",
