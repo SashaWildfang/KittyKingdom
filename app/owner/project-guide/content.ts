@@ -703,17 +703,76 @@ export const PITCH = {
     },
   ],
   checklist: [
-    { item: "Object-oriented programming", level: "hands-on" },
-    { item: "HTML, CSS and JavaScript", level: "hands-on" },
-    { item: "Server-side code (TypeScript, Python)", level: "hands-on" },
-    { item: "Database concepts", level: "hands-on" },
-    { item: "Serverless functions (Azure Functions)", level: "hands-on" },
-    { item: "Message queues (Service Bus)", level: "hands-on" },
-    { item: "Automated workflows (Logic Apps)", level: "hands-on" },
-    { item: "NoSQL (Cosmos DB)", level: "hands-on" },
-    { item: "MSSQL", level: "ready" },
-    { item: "C# / .NET", level: "ready" },
-    { item: "Angular", level: "ready" },
+    {
+      item: "Object-oriented programming",
+      level: "built",
+      example: "Every Discord feature is its own **class**. The Mines game is `class Mines(commands.Cog)`: it holds its database collections and methods like `add_to_jackpot()`, and inherits everything a bot plugin needs. Each service loads its classes automatically, like plugins.",
+      code: `class Mines(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+        self.users_col = get_connection()["users"]
+
+    async def add_to_jackpot(self, amount: int):
+        await self.globals_col.find_one_and_update(
+            {"_id": "casino_jackpot"}, {"$inc": {"amount": amount}}, upsert=True)`,
+    },
+    {
+      item: "HTML, CSS and JavaScript",
+      level: "built",
+      example: "The **Leaderboards** page: semantic HTML lists, hand-written CSS Grid that reflows from four groups side by side on a desktop to two per row on a phone, and TypeScript that refreshes the rankings every 10 seconds and animates rank changes.",
+    },
+    {
+      item: "Server-side code (TypeScript, Python)",
+      level: "built",
+      example: "`POST /api/games/mines` checks the member's session, validates the input, runs the game on the server (the browser never sees where the mines are) and returns JSON. In Python, four services handle Discord events around the clock.",
+    },
+    {
+      item: "Database concepts",
+      level: "built",
+      example: "Placing a bet is **one atomic update** that only succeeds if the balance is high enough. Every game save carries a **version number**, so two tabs can't cash out twice. \"Who's online\" records expire automatically after 5 minutes (a **TTL index**).",
+      code: `// Only saves if nobody changed the game since it was read
+sessions.replaceOne(
+  { _id: game._id, version: game.version },
+  { ...next, version: game.version + 1 },
+);`,
+    },
+    {
+      item: "Serverless functions (Azure Functions)",
+      level: "built",
+      example: "All **134 API endpoints** deploy as serverless functions on Vercel and scale on their own. Because instances don't share memory, rate limits live in the database, so they hold across every instance.",
+    },
+    {
+      item: "Message queues (Service Bus)",
+      level: "built",
+      example: "**Join approvals:** the website saves a job as `queued`, a background service claims it (`processing`), gives the member their roles and marks it `done` or `failed`, and the website shows the result. The same pattern runs ban requests and unread-message reminders.",
+    },
+    {
+      item: "Automated workflows (Logic Apps)",
+      level: "built",
+      example: "**Ban requests:** a junior moderator requests a ban → a senior moderator approves it by typing CONFIRM → the service carries out the ban → the member's website account is closed and they're emailed how to appeal. Every step is automatic after the approval.",
+    },
+    {
+      item: "NoSQL (Cosmos DB)",
+      level: "built",
+      example: "Kitty Kingdom runs on **MongoDB Atlas**: two databases, dozens of collections, shared by the website and four services. **Azure Cosmos DB for MongoDB** speaks the same API, so the same queries and indexes carry over.",
+    },
+    {
+      item: "MSSQL",
+      level: "learn",
+      example: "I haven't used SQL Server in production yet. I've already worked out how my data would map to tables (Users and GameResults, with keys, indexes and a safe balance update), and I'm excited to learn it properly on real systems.",
+      code: `UPDATE Users SET Balance = Balance - @Bet
+WHERE UserId = @UserId AND Balance >= @Bet;  -- 0 rows = not enough`,
+    },
+    {
+      item: "C# / .NET",
+      level: "learn",
+      example: "C# is new to me, but I work every day in strict **TypeScript**, which was designed by the same person who designed C# (Anders Hejlsberg). Classes, interfaces, generics and async/await all carry straight over.",
+    },
+    {
+      item: "Angular",
+      level: "learn",
+      example: "I build component-based interfaces in **React with TypeScript**. Angular uses the same component model and TypeScript, so I'm keen to learn its services, modules and RxJS.",
+    },
   ],
   spotlight: {
     title: "Spotlight: a Service Bus-style queue I built",
