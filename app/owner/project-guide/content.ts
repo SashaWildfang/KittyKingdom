@@ -23,7 +23,6 @@ export type Block =
   | { t: "diagram" }
   | { t: "terms"; items: { term: string; plain: string; mine: string }[] };
 
-/** `prep` sections are private notes: only shown in Prep mode, never while presenting */
 export type Section = { id: string; kicker: string; title: string; intro?: string; blocks: Block[]; prep?: boolean; roleTag?: string; role?: string };
 
 export const JOB = {
@@ -63,33 +62,6 @@ export const SECTIONS: Section[] = [
     ],
   },
   {
-    id: "pitch",
-    kicker: "Prep only",
-    title: "Your 30-second pitch",
-    prep: true,
-    intro: "Say this first, almost word for word. Everything else on this page is backup detail for when they ask follow-up questions.",
-    blocks: [
-      {
-        t: "callout",
-        tone: "tip",
-        title: "Your pitch",
-        text:
-          "\"Kitty Kingdom is a full-stack platform I built and run for an online community. It has two halves: a **web app** made with **Next.js, React and TypeScript** that runs as serverless functions on **Vercel**, and **four Python services** (Discord bots). Both halves share one **MongoDB** NoSQL database, and that database is how they talk to each other, using queues of jobs much like **Azure Service Bus**. Members get accounts with **two-factor login**, an economy and store, real-time games, private messaging, support tickets, and staff moderation tools. I ship through **GitHub pull requests** with automatic checks and preview deployments, and merging to main deploys to production.\"",
-      },
-      {
-        t: "table",
-        head: ["Fact", "Number"],
-        rows: [
-          ["Website pages", "40"],
-          ["API endpoints (serverless functions)", "134"],
-          ["Python services (bots)", "4: Main, Economy, Moderation, Ticketing"],
-          ["Background jobs in the bots", "30+ scheduled loops"],
-          ["Commits to the website", "320+"],
-        ],
-      },
-    ],
-  },
-  {
     id: "picture",
     roleTag: "Azure architecture",
     role: "This is the same shape as a typical Azure system: a web front end, **Azure Functions** for the API, **Service Bus** between services and **Cosmos DB** for data. I already think in these building blocks.",
@@ -111,33 +83,6 @@ export const SECTIONS: Section[] = [
         tone: "azure",
         title: "How this looks in Azure",
         text: "Website API routes → **Azure Functions** (HTTP trigger). Bot timed jobs → **Azure Functions** (timer trigger) or **Logic Apps**. My job collections → **Service Bus queues**. MongoDB → **Cosmos DB** (it even has a MongoDB-compatible API). The front end could be React or **Angular** either way.",
-      },
-    ],
-  },
-  {
-    id: "terms",
-    prep: true,
-    kicker: "Plain English",
-    title: "Every term, explained simply",
-    intro: "Prep notes: every term in plain English.",
-    blocks: [
-      {
-        t: "terms",
-        items: [
-          { term: "Front end", plain: "The part that runs in the browser: what people see and click.", mine: "React components in the `app/` folder" },
-          { term: "Back end", plain: "Code on a server that checks permissions, does the work and talks to the database.", mine: "API routes in `app/api/` and the helpers in `lib/`" },
-          { term: "API / endpoint", plain: "A URL the front end calls to ask for data or make a change. It answers with JSON.", mine: "e.g. `POST /api/games/mines`" },
-          { term: "Serverless function", plain: "Code that only runs when a request comes in. No server to manage, it scales by itself.", mine: "Every API route on Vercel. Same idea as an **Azure Function**" },
-          { term: "Next.js", plain: "A framework on top of React that adds pages, routing and server code in one project.", mine: "The whole website" },
-          { term: "React", plain: "A library for building the screen out of reusable pieces called components.", mine: "Every page and widget. **Angular** is the same idea with different syntax" },
-          { term: "TypeScript", plain: "JavaScript with types, so mistakes are caught before the code runs.", mine: "All website code, in strict mode. Very close to **C#** in feel" },
-          { term: "NoSQL / document database", plain: "Stores data as JSON-like documents instead of rows in tables.", mine: "MongoDB. **Cosmos DB** is Microsoft's version" },
-          { term: "SQL / relational database", plain: "Stores data in tables with rows and columns, linked by keys.", mine: "Not used here, but see the SQL section for how I'd model it" },
-          { term: "Queue", plain: "A to-do list for programs: one side adds jobs, another side picks them up and does them.", mine: "`join_actions`, `ban_requests`, `message_dm_queue`" },
-          { term: "Async", plain: "Code that can wait for something slow (the network, the database) without freezing everything else.", mine: "All the Python bots (`async`/`await`) and the website's database calls" },
-          { term: "Environment variables", plain: "Secret settings (passwords, keys) kept outside the code.", mine: "Set in Vercel and each bot's `.env`. Never committed to GitHub" },
-          { term: "CI/CD", plain: "Automatic checks on every change (CI) and automatic deploys (CD).", mine: "GitHub pull requests → Vercel preview + checks → merge → live" },
-        ],
       },
     ],
   },
@@ -584,86 +529,9 @@ WHERE UserId = @UserId AND Balance >= @Bet;`,
     ],
   },
 
-  {
-    id: "bugs",
-    prep: true,
-    kicker: "Stories",
-    title: "Bug stories to tell",
-    intro: "Use the order: what happened → what I had to do → what I did → the result.",
-    blocks: [
-      {
-        t: "steps",
-        items: [
-          {
-            title: "The empty leaderboard",
-            text:
-              "I added quiz leaderboards and the board showed nobody, even though the data was in the database. I traced the API: Discord IDs are 64-bit numbers, too big for a JavaScript number to hold exactly, so the driver returns them as `BigInt`. My ID parser only handled strings and numbers, so it silently dropped every one. I added the BigInt case and re-tested with seeded data. **Lesson:** test with realistic data types.",
-          },
-          {
-            title: "The 24-hour booster that lasted 1 hour",
-            text: "Members said a \"2x Leaves\" booster stopped early. The earning code only applied the **first** running booster it found, so a second one was ignored. I changed it to apply every running booster, in both the bot and the website so they agree.",
-          },
-          {
-            title: "Double cash-outs",
-            text: "Very fast double-clicks could send two cash-out requests at once. I added a version number to each game so the second request fails safely with \"this changed in another tab\".",
-          },
-          {
-            title: "Auditing the game math",
-            text: "Members felt the casino was rigged. I calculated each game's **return to player**: slots only paid back about 42%. I re-tuned every game to normal casino odds (slots about 95%, mines 99%) and checked the probability math for every combination.",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "demo",
-    prep: true,
-    kicker: "Tomorrow",
-    title: "Demo plan and likely questions",
-    blocks: [
-      {
-        t: "callout",
-        tone: "tip",
-        title: "Before the call",
-        text: "Share your **browser window**, not your whole screen. Close Discord and turn off notifications. Stay on SFW pages. **Don't show:** admin member data, the Social section, anything NSFW, or `.env` files.",
-      },
-      {
-        t: "steps",
-        items: [
-          { title: "1. Home and News (30s)", text: "\"The public site. News posts go through an approval queue.\"" },
-          { title: "2. Log in → My Account (1 min)", text: "Daily reward, boosters, stats. Mention scrypt, sessions and 2FA." },
-          { title: "3. Leaderboards (1 min)", text: "Live updates, rank changes, and resize the window to show it working on a phone." },
-          { title: "4. Games → Mines (1–2 min)", text: "\"Everything is decided on the server. The browser never sees where the mines are.\" Then walk the click from the back-end section." },
-          { title: "5. Rules (30s)", text: "\"Generated from the same file the Discord bot posts, one source of truth.\"" },
-          { title: "6. GitHub (1 min)", text: "Open a merged pull request: checks, preview deployment, merge = deploy." },
-          { title: "7. This page (if it helps)", text: "Show the architecture diagram and the Service Bus section." },
-        ],
-      },
-      {
-        t: "table",
-        head: ["Question", "Answer"],
-        rows: [
-          ["Why MongoDB and not SQL?", "My data is document-shaped (member records with lots of optional fields), it changed constantly while I built, and Python and Node both read it easily. For relational reporting I'd pick SQL."],
-          ["How do the website and bots stay in sync?", "One shared database is the source of truth, and work that has to happen in Discord goes through job queues the bots process."],
-          ["How do you handle security?", "Salted scrypt hashes, signed httpOnly cookies, 2FA, rate limits, server-side validation, secrets in environment variables, and secret scanning on every PR."],
-          ["What would you improve?", "Move my job queues to Service Bus, add automated unit tests to CI, and use WebSockets for the live features."],
-          ["How do you learn new tech?", "Docs first, then build something small that works. I implemented 2FA straight from the RFC spec."],
-          ["What don't you know yet?", "\"I haven't used Azure or SQL Server in production yet, but the concepts map closely to what I've built, and I learn fast.\""],
-        ],
-      },
-      {
-        t: "callout",
-        tone: "honest",
-        title: "If they ask how you built it",
-        text:
-          "Be upfront that you used **AI coding tools (Claude Code)** to move faster. Most teams use them now. What matters is that **you understand the system**: why each piece exists, how data flows, and how you test and debug. If you don't know something, say \"I'm not sure, but here's how I'd find out.\" That's a strong answer for a Software Engineer I.",
-      },
-    ],
-  },
 ];
 
 /** Present mode order: the story for a 30-minute screen share (prep sections follow in Prep mode) */
-export const ORDER = ["overview", "match", "picture", "servicebus", "functions", "backend", "database", "frontend", "security", "bots", "devops", "pitch", "terms", "bugs", "demo"];
 
 /** Present mode: the pitch at the top of the page (the detailed sections sit below as deep dives) */
 export const PITCH = {
@@ -685,6 +553,20 @@ export const PITCH = {
       ["Software experience", "Java developer for Minehut's multiplayer servers, IT apprentice at Southern Eagle Distributing, and founder of Kitty Kingdom"],
       ["Leadership", "Restaurant Lead at Chick-fil-A: trained 25+ team members while working 40 hours a week as a full-time student"],
       ["Right now", "Security Officer at Southgate Mall (GDI Ainsworth), and building Kitty Kingdom every day"],
+    ],
+  },
+  why: {
+    title: "Why I built Kitty Kingdom",
+    paragraphs: [
+      "Kitty Kingdom started in **April 2025** as a Discord server: a place for people to make friends, hang out and feel at home. As it grew, I wanted features that no ready-made tool offered, so I started building them myself.",
+      "It became the best way I know to grow as a developer. School gave me the fundamentals, but running a real product taught me what it takes to ship: real users, real bugs, real security, and real consequences when something breaks.",
+      "When the job market got tough, I didn't stop. I treated Kitty Kingdom like a job: planning features, fixing what members reported, and learning a new part of the stack along the way.",
+    ],
+    timeline: [
+      ["Apr 2025", "Founded the community on Discord"],
+      ["2025", "Built my own Python services for the economy, games and moderation"],
+      ["Jul 2026", "Launched the website: Next.js, React and TypeScript"],
+      ["Today", "134 API endpoints, 4 services and 338+ commits, used every day"],
     ],
   },
   fitIntro: "I didn't just study these patterns. I built them, I run them, and real people depend on them every day.",
