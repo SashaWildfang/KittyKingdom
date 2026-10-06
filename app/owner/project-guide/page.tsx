@@ -222,7 +222,7 @@ function BlockView({ block }: { block: Block }) {
   }
 }
 
-const FIT_ICON = { cloud: Cloud, layers: Layers, database: Database, rocket: Rocket } as const;
+const FIT_ICON = { cloud: Cloud, layers: Layers, database: Database, rocket: Rocket, learn: Lightbulb } as const;
 const STACK_ICON = { globe: Globe, server: Server, bot: Bot, database: Database } as const;
 
 function SectionBody({ s }: { s: Section }) {
@@ -259,52 +259,37 @@ function Pitch() {
             </div>
           ))}
         </div>
-        <div className="pp-live">
-          <span>See it live:</span>
-          {PITCH.live.map(([label, href]) => (
-            <a key={href} href={href} target="_blank" rel="noopener noreferrer">
-              {label} <ExternalLink size={13} aria-hidden="true" />
-            </a>
-          ))}
-        </div>
       </section>
 
       <section className="pp-block" id="fit">
         <p className="pg-kicker">Why I&apos;m a fit</p>
-        <h2>Built on the same patterns as this role</h2>
+        <h2>Why I&apos;m a fit for this role</h2>
+        <p className="pg-intro">{PITCH.fitIntro}</p>
         <div className="pp-fits">
-          {PITCH.fits.map((f) => {
+          {PITCH.fits.map((f, n) => {
             const Icon = FIT_ICON[f.icon as keyof typeof FIT_ICON];
             return (
               <article key={f.title} className="pp-fit">
-                <span className="pp-fit-icon">
-                  <Icon size={22} aria-hidden="true" />
-                </span>
+                <header>
+                  <span className="pp-fit-icon">
+                    <Icon size={22} aria-hidden="true" />
+                  </span>
+                  <span className="pp-fit-num">0{n + 1}</span>
+                </header>
                 <h3>{f.title}</h3>
-                <p>{f.lead}</p>
-                {"map" in f && f.map ? (
-                  <ul className="pp-map">
-                    {f.map.map(([mine, azure]) => (
-                      <li key={azure}>
-                        <span>{mine}</span>
-                        <ArrowRight size={14} aria-hidden="true" />
-                        <b>{azure}</b>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-                {"points" in f && f.points ? (
-                  <ul className="pp-points">
-                    {f.points.map((pt) => (
-                      <li key={pt}>
-                        <Check size={15} aria-hidden="true" />
-                        <span>
-                          <Md text={pt} />
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
+                <ul className="pp-points">
+                  {f.evidence.map((pt) => (
+                    <li key={pt}>
+                      <Check size={15} aria-hidden="true" />
+                      <span>
+                        <Md text={pt} />
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="pp-for-role">
+                  <b>For this role:</b> {f.forRole}
+                </p>
               </article>
             );
           })}
@@ -346,22 +331,47 @@ function Pitch() {
       <section className="pp-block" id="spotlight">
         <p className="pg-kicker">Spotlight</p>
         <h2>{PITCH.spotlight.title}</h2>
-        <p className="pg-intro">{PITCH.spotlight.lead}</p>
+        <div className="pp-story">
+          <div>
+            <small>The problem</small>
+            <p>
+              <Md text={PITCH.spotlight.problem} />
+            </p>
+          </div>
+          <div>
+            <small>My solution</small>
+            <p>
+              <Md text={PITCH.spotlight.solution} />
+            </p>
+          </div>
+          <div className="is-azure">
+            <small>
+              <Cloud size={13} aria-hidden="true" /> On Azure
+            </small>
+            <p>
+              <Md text={PITCH.spotlight.azure} />
+            </p>
+          </div>
+        </div>
         <ol className="pp-flow">
-          {PITCH.spotlight.steps.map(([t, d], i) => (
+          {PITCH.spotlight.steps.map(([t, d, term], i) => (
             <li key={t}>
               <span className="pp-flow-num">{i + 1}</span>
               <b>{t}</b>
               <small>{d}</small>
+              <em>{term}</em>
             </li>
           ))}
         </ol>
-        <p className="pp-azure">
-          <Cloud size={16} aria-hidden="true" /> <span><Md text={PITCH.spotlight.azure} /></span>
+        <p className="pp-flow-legend">
+          <Cloud size={14} aria-hidden="true" /> The blue labels are the matching <b>Service Bus</b> terms.
         </p>
-        <p className="pp-more">
-          <b>Also built this way:</b> {PITCH.spotlight.more.join(" · ")}
-        </p>
+        <div className="pp-more">
+          <b>Also built this way:</b>
+          {PITCH.spotlight.more.map((m) => (
+            <span key={m}>{m}</span>
+          ))}
+        </div>
       </section>
 
       <section className="pp-deep" id="deep-dives">
