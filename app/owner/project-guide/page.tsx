@@ -1,4 +1,4 @@
-import { ArrowRight, Bot, Briefcase, Cloud, Database, ExternalLink, Globe, Lightbulb, Lock, ShieldCheck } from "lucide-react";
+import { ArrowRight, Bot, Briefcase, Cloud, Database, ExternalLink, Globe, Lightbulb, Lock, NotebookPen, Presentation, ShieldCheck } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Fragment, type ReactNode } from "react";
@@ -6,7 +6,7 @@ import { getRealUser } from "../../../lib/auth";
 import { getDiscordInviteSummary } from "../../../lib/discord";
 import { OWNER_DISCORD_ID } from "../../../lib/ticket-delete";
 import { SiteNav } from "../../site-nav";
-import { JOB, SECTIONS, type Block } from "./content";
+import { JOB, ORDER, SECTIONS, type Block } from "./content";
 import "./guide.css";
 
 export const dynamic = "force-dynamic";
@@ -236,22 +236,39 @@ function BlockView({ block }: { block: Block }) {
   }
 }
 
-export default async function ProjectGuidePage() {
+export default async function ProjectGuidePage({ searchParams }: { searchParams: { mode?: string } }) {
   // Only the owner, signed in as themselves (not an admin "viewing as" them)
   const user = await getRealUser().catch(() => null);
   if (!user || String(user.discordId ?? "") !== OWNER_DISCORD_ID) notFound();
   const discord = await getDiscordInviteSummary();
+  // Present (default): clean, for screen sharing. Prep: adds private notes (pitch script, glossary, stories, Q&A)
+  const prep = searchParams.mode === "prep";
+  const sections = ORDER.map((id) => SECTIONS.find((s) => s.id === id)!).filter((s) => s && (prep || !s.prep));
 
   return (
     <main className="site-shell pg-shell">
       <SiteNav signedIn discordOnline={discord.online} />
       <div className="pg">
         <header className="pg-hero">
-          <span className="pg-private">
-            <Lock size={13} aria-hidden="true" /> Only you can see this page
-          </span>
+          <div className="pg-top">
+            {prep ? (
+              <span className="pg-private">
+                <Lock size={13} aria-hidden="true" /> Prep mode: private notes are showing
+              </span>
+            ) : (
+              <span />
+            )}
+            <div className="pg-mode" role="group" aria-label="Page mode">
+              <a href="/owner/project-guide" className={prep ? "" : "is-on"} aria-current={prep ? undefined : "page"}>
+                <Presentation size={15} aria-hidden="true" /> Present
+              </a>
+              <a href="/owner/project-guide?mode=prep" className={prep ? "is-on" : ""} aria-current={prep ? "page" : undefined}>
+                <NotebookPen size={15} aria-hidden="true" /> Prep
+              </a>
+            </div>
+          </div>
           <h1>How Kitty Kingdom is built</h1>
-          <p>A simple, complete walkthrough of the project, and how every part lines up with the job you&apos;re interviewing for.</p>
+          <p>An overview of the project&apos;s architecture and technology, and how it relates to the Software Engineer I role.</p>
           <a className="pg-job" href={JOB.url} target="_blank" rel="noopener noreferrer">
             <Briefcase size={18} aria-hidden="true" />
             <span>
@@ -270,8 +287,8 @@ export default async function ProjectGuidePage() {
         <div className="pg-layout">
           <nav className="pg-toc" aria-label="Sections">
             <b>On this page</b>
-            {SECTIONS.map((s) => (
-              <a key={s.id} href={`#${s.id}`}>
+            {sections.map((s) => (
+              <a key={s.id} href={`#${s.id}`} className={s.prep ? "is-prep" : undefined}>
                 <small>{s.kicker}</small>
                 {s.title}
               </a>
@@ -279,8 +296,8 @@ export default async function ProjectGuidePage() {
           </nav>
 
           <div className="pg-sections">
-            {SECTIONS.map((s) => (
-              <section key={s.id} id={s.id} className="pg-section">
+            {sections.map((s) => (
+              <section key={s.id} id={s.id} className={`pg-section${s.prep ? " is-prep" : ""}`}>
                 <p className="pg-kicker">{s.kicker}</p>
                 <h2>{s.title}</h2>
                 {s.intro ? (
