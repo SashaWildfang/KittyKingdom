@@ -705,8 +705,9 @@ export const PITCH = {
   checklist: [
     {
       item: "Object-oriented programming",
+      explain: "Organising code into **classes**: objects that bundle data with the functions that work on it, and can inherit shared behaviour from a parent class. C# and .NET are built around it.",
       level: "built",
-      example: "Every Discord feature is its own **class**. The Mines game is `class Mines(commands.Cog)`: it holds its database collections and methods like `add_to_jackpot()`, and inherits everything a bot plugin needs. Each service loads its classes automatically, like plugins.",
+      done: "Every Discord feature is its own **class**. The Mines game is `class Mines(commands.Cog)`: it holds its database collections and methods like `add_to_jackpot()`, and inherits everything a bot plugin needs. Each service loads its classes automatically, like plugins.",
       code: `class Mines(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -718,18 +719,21 @@ export const PITCH = {
     },
     {
       item: "HTML, CSS and JavaScript",
+      explain: "The three languages of the web: **HTML** gives a page its structure, **CSS** styles and lays it out, and **JavaScript** makes it interactive.",
       level: "built",
-      example: "The **Leaderboards** page: semantic HTML lists, hand-written CSS Grid that reflows from four groups side by side on a desktop to two per row on a phone, and TypeScript that refreshes the rankings every 10 seconds and animates rank changes.",
+      done: "The **Leaderboards** page: semantic HTML lists, hand-written CSS Grid that reflows from four groups side by side on a desktop to two per row on a phone, and TypeScript that refreshes the rankings every 10 seconds and animates rank changes.",
     },
     {
       item: "Server-side code (TypeScript, Python)",
+      explain: "Code that runs on a server instead of in the browser. It checks who you are, applies the business rules, talks to the database and sends data back.",
       level: "built",
-      example: "`POST /api/games/mines` checks the member's session, validates the input, runs the game on the server (the browser never sees where the mines are) and returns JSON. In Python, four services handle Discord events around the clock.",
+      done: "`POST /api/games/mines` checks the member's session, validates the input, runs the game on the server (the browser never sees where the mines are) and returns JSON. In Python, four services handle Discord events around the clock.",
     },
     {
       item: "Database concepts",
+      explain: "How data is stored and kept correct: **keys** that identify records, **indexes** that make lookups fast, and making sure two changes at the same moment can't corrupt anything.",
       level: "built",
-      example: "Placing a bet is **one atomic update** that only succeeds if the balance is high enough. Every game save carries a **version number**, so two tabs can't cash out twice. \"Who's online\" records expire automatically after 5 minutes (a **TTL index**).",
+      done: "Placing a bet is **one atomic update** that only succeeds if the balance is high enough. Every game save carries a **version number**, so two tabs can't cash out twice. \"Who's online\" records expire automatically after 5 minutes (a **TTL index**).",
       code: `// Only saves if nobody changed the game since it was read
 sessions.replaceOne(
   { _id: game._id, version: game.version },
@@ -738,40 +742,47 @@ sessions.replaceOne(
     },
     {
       item: "Serverless functions (Azure Functions)",
+      explain: "**Azure Functions** are small pieces of code that run when something triggers them (a web request, a timer, a message on a queue). Azure runs and scales them, so there are no servers to manage.",
       level: "built",
-      example: "All **134 API endpoints** deploy as serverless functions on Vercel and scale on their own. Because instances don't share memory, rate limits live in the database, so they hold across every instance.",
+      done: "All **134 API endpoints** deploy as serverless functions on Vercel and scale on their own. Because instances don't share memory, rate limits live in the database, so they hold across every instance.",
     },
     {
       item: "Message queues (Service Bus)",
+      explain: "**Azure Service Bus** passes messages between systems. One app puts a message on a **queue**, and another app picks it up and processes it, even if it was offline when the message was sent. It handles retries and failed messages, so work is never lost between systems.",
       level: "built",
-      example: "**Join approvals:** the website saves a job as `queued`, a background service claims it (`processing`), gives the member their roles and marks it `done` or `failed`, and the website shows the result. The same pattern runs ban requests and unread-message reminders.",
+      done: "**Join approvals:** the website saves a job as `queued`, a background service claims it (`processing`), gives the member their roles and marks it `done` or `failed`, and the website shows the result. The same pattern runs ban requests and unread-message reminders.",
     },
     {
       item: "Automated workflows (Logic Apps)",
+      explain: "**Azure Logic Apps** chain steps into a workflow (when something happens, do this, wait for an approval, then send an email) with little or no code.",
       level: "built",
-      example: "**Ban requests:** a junior moderator requests a ban → a senior moderator approves it by typing CONFIRM → the service carries out the ban → the member's website account is closed and they're emailed how to appeal. Every step is automatic after the approval.",
+      done: "**Ban requests:** a junior moderator requests a ban → a senior moderator approves it by typing CONFIRM → the service carries out the ban → the member's website account is closed and they're emailed how to appeal. Every step is automatic after the approval.",
     },
     {
       item: "NoSQL (Cosmos DB)",
+      explain: "**Azure Cosmos DB** is a NoSQL database: instead of tables it stores flexible JSON documents, and it scales worldwide. One of its APIs is compatible with **MongoDB**.",
       level: "built",
-      example: "Kitty Kingdom runs on **MongoDB Atlas**: two databases, dozens of collections, shared by the website and four services. **Azure Cosmos DB for MongoDB** speaks the same API, so the same queries and indexes carry over.",
+      done: "Kitty Kingdom runs on **MongoDB Atlas**: two databases, dozens of collections, shared by the website and four services. **Azure Cosmos DB for MongoDB** speaks the same API, so the same queries and indexes carry over.",
     },
     {
       item: "MSSQL",
+      explain: "**Microsoft SQL Server** is a relational database: data lives in **tables** of rows and columns, linked by keys and queried with **SQL**.",
       level: "learn",
-      example: "I haven't used SQL Server in production yet. I've already worked out how my data would map to tables (Users and GameResults, with keys, indexes and a safe balance update), and I'm excited to learn it properly on real systems.",
+      done: "I haven't used SQL Server in production yet. I've already worked out how my data would map to tables (Users and GameResults, with keys, indexes and a safe balance update), and I'm excited to learn it properly on real systems.",
       code: `UPDATE Users SET Balance = Balance - @Bet
 WHERE UserId = @UserId AND Balance >= @Bet;  -- 0 rows = not enough`,
     },
     {
       item: "C# / .NET",
+      explain: "**C#** is Microsoft's main programming language, and **.NET** is the framework it runs on, used for web APIs, background services and Azure Functions.",
       level: "learn",
-      example: "C# is new to me, but I work every day in strict **TypeScript**, which was designed by the same person who designed C# (Anders Hejlsberg). Classes, interfaces, generics and async/await all carry straight over.",
+      done: "C# is new to me, but I work every day in strict **TypeScript**, which was designed by the same person who designed C# (Anders Hejlsberg). Classes, interfaces, generics and async/await all carry straight over.",
     },
     {
       item: "Angular",
+      explain: "**Angular** is a front-end framework for building web apps out of **TypeScript components**, with routing, forms and services built in.",
       level: "learn",
-      example: "I build component-based interfaces in **React with TypeScript**. Angular uses the same component model and TypeScript, so I'm keen to learn its services, modules and RxJS.",
+      done: "I build component-based interfaces in **React with TypeScript**. Angular uses the same component model and TypeScript, so I'm keen to learn its services, modules and RxJS.",
     },
   ],
   spotlight: {
@@ -787,8 +798,56 @@ WHERE UserId = @UserId AND Balance >= @Bet;  -- 0 rows = not enough`,
     azure: "On Azure: a **Service Bus queue** with a **queue-triggered Azure Function**. Same flow, managed for you.",
     more: ["Ban request approvals", "Unread message reminders", "Live AutoMod settings", "Restart-proof timers"],
   },
-  closing:
-    "I've taken a product from an empty folder to something people rely on every day: designing it, building it, deploying it and fixing it when it breaks. I'd love to bring that ownership to your team, and grow into Azure, C# and SQL Server alongside people who use them every day.",
+  stack: [
+    {
+      group: "Front end",
+      icon: "globe",
+      items: [
+        ["Next.js 14", "React framework: pages, routing and server code in one project"],
+        ["React 18", "Builds the interface out of reusable components"],
+        ["TypeScript 5", "JavaScript with types, in strict mode"],
+        ["CSS (hand-written)", "Custom properties for dark and light themes, Grid and Flexbox layouts"],
+        ["lucide-react", "Icon set"],
+        ["qrcode", "QR codes for setting up two-factor login"],
+        ["fflate", "Creates zip downloads in the browser"],
+      ],
+    },
+    {
+      group: "Back end",
+      icon: "server",
+      items: [
+        ["Node.js", "Runs the API code"],
+        ["Next.js Route Handlers", "134 API endpoints, deployed as serverless functions"],
+        ["mongodb (driver)", "Official MongoDB driver for Node.js"],
+        ["Node crypto", "Password hashing (scrypt), signed sessions (HMAC), two-factor codes"],
+        ["Resend API", "Sends account emails"],
+        ["Discord REST API + OAuth2", "Member roles, account linking and sign-in"],
+      ],
+    },
+    {
+      group: "Background services (Python)",
+      icon: "bot",
+      items: [
+        ["Python 3", "Language for the four services"],
+        ["discord.py 2.6", "Async framework for Discord services"],
+        ["Motor + PyMongo", "Async and standard MongoDB drivers"],
+        ["aiohttp", "Async HTTP requests"],
+        ["python-dotenv", "Loads secrets from environment files"],
+        ["matplotlib", "Draws the daily quiz results chart"],
+      ],
+    },
+    {
+      group: "Data, hosting and tooling",
+      icon: "database",
+      items: [
+        ["MongoDB Atlas", "Cloud NoSQL database shared by everything"],
+        ["Vercel", "Hosts the website; every merge to main deploys"],
+        ["SparkedHost", "Runs the always-on Python services"],
+        ["Git + GitHub", "Branches, pull requests and code review"],
+        ["GitGuardian", "Scans every pull request for leaked secrets"],
+      ],
+    },
+  ],
   live: [
     ["Games", "/games"],
     ["Leaderboards", "/leaderboards"],
