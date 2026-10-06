@@ -1,31 +1,17 @@
-import { ArrowRight, Bot, Briefcase, Check, ChevronDown, Cloud, GraduationCap, Database, ExternalLink, Globe, Layers, Lightbulb, Lock, NotebookPen, Presentation, Rocket, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, Bot, Briefcase, Check, ChevronDown, Cloud, Database, ExternalLink, Globe, Layers, Lightbulb, Lock, NotebookPen, Presentation, Rocket, Server, ShieldCheck } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Fragment, type ReactNode } from "react";
 import { getRealUser } from "../../../lib/auth";
 import { getDiscordInviteSummary } from "../../../lib/discord";
 import { OWNER_DISCORD_ID } from "../../../lib/ticket-delete";
 import { SiteNav } from "../../site-nav";
 import { DEEP_DIVES, JOB, ORDER, PITCH, SECTIONS, type Block, type Section } from "./content";
 import "./guide.css";
+import { Md } from "./md";
+import { RequirementExplorer } from "./requirements";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Project Guide | Kitty Kingdom", robots: { index: false, follow: false } };
-
-/** **bold** and `code` */
-function Md({ text }: { text: string }) {
-  const out: ReactNode[] = [];
-  const re = /\*\*(.+?)\*\*|`([^`]+)`/g;
-  let last = 0;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(text))) {
-    if (m.index > last) out.push(<Fragment key={`t${last}`}>{text.slice(last, m.index)}</Fragment>);
-    out.push(m[1] !== undefined ? <b key={m.index}><Md text={m[1]} /></b> : <code key={m.index}>{m[2]}</code>);
-    last = m.index + m[0].length;
-  }
-  if (last < text.length) out.push(<Fragment key={`t${last}`}>{text.slice(last)}</Fragment>);
-  return <>{out}</>;
-}
 
 function Diagram() {
   return (
@@ -237,6 +223,7 @@ function BlockView({ block }: { block: Block }) {
 }
 
 const FIT_ICON = { cloud: Cloud, layers: Layers, database: Database, rocket: Rocket } as const;
+const STACK_ICON = { globe: Globe, server: Server, bot: Bot, database: Database } as const;
 
 function SectionBody({ s }: { s: Section }) {
   return (
@@ -270,6 +257,14 @@ function Pitch() {
               <b>{n}</b>
               <span>{label}</span>
             </div>
+          ))}
+        </div>
+        <div className="pp-live">
+          <span>See it live:</span>
+          {PITCH.live.map(([label, href]) => (
+            <a key={href} href={href} target="_blank" rel="noopener noreferrer">
+              {label} <ExternalLink size={13} aria-hidden="true" />
+            </a>
           ))}
         </div>
       </section>
@@ -316,34 +311,36 @@ function Pitch() {
         </div>
       </section>
 
+      <section className="pp-block" id="stack">
+        <p className="pg-kicker">Tech stack</p>
+        <h2>What it&apos;s built with</h2>
+        <div className="pp-stack">
+          {PITCH.stack.map((g) => {
+            const Icon = STACK_ICON[g.icon as keyof typeof STACK_ICON];
+            return (
+              <article key={g.group} className="pp-stack-group">
+                <h3>
+                  <Icon size={18} aria-hidden="true" /> {g.group}
+                </h3>
+                <ul>
+                  {g.items.map(([name, what]) => (
+                    <li key={name}>
+                      <b>{name}</b>
+                      <span>{what}</span>
+                    </li>
+                  ))}
+                </ul>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
       <section className="pp-block" id="checklist">
         <p className="pg-kicker">The job description</p>
-        <h2>Requirement by requirement</h2>
-        <p className="pg-intro">Click any requirement to see where it shows up in my project.</p>
-        <div className="pp-check">
-          {PITCH.checklist.map((c) => (
-            <details key={c.item} className={`pp-check-item${c.level === "learn" ? " is-learn" : ""}`}>
-              <summary>
-                {c.level === "learn" ? <GraduationCap size={17} aria-hidden="true" /> : <Check size={17} aria-hidden="true" />}
-                <span>
-                  <b>{c.item}</b>
-                  <small>{c.level === "learn" ? "Ready to learn this skill" : "Built into Kitty Kingdom"}</small>
-                </span>
-                <ChevronDown size={16} aria-hidden="true" className="pp-check-caret" />
-              </summary>
-              <div className="pp-check-body">
-                <p>
-                  <Md text={c.example} />
-                </p>
-                {c.code ? (
-                  <pre>
-                    <code>{c.code}</code>
-                  </pre>
-                ) : null}
-              </div>
-            </details>
-          ))}
-        </div>
+        <h2>What this job requires, and what I&apos;ve done</h2>
+        <p className="pg-intro">Pick a requirement to see what it is and where it shows up in Kitty Kingdom.</p>
+        <RequirementExplorer items={PITCH.checklist} />
       </section>
 
       <section className="pp-block" id="spotlight">
@@ -365,20 +362,6 @@ function Pitch() {
         <p className="pp-more">
           <b>Also built this way:</b> {PITCH.spotlight.more.join(" · ")}
         </p>
-      </section>
-
-      <section className="pp-closing">
-        <Sparkles size={22} aria-hidden="true" />
-        <h2>What I&apos;d bring to the team</h2>
-        <p>{PITCH.closing}</p>
-        <div className="pp-live">
-          <span>See it live:</span>
-          {PITCH.live.map(([label, href]) => (
-            <a key={href} href={href} target="_blank" rel="noopener noreferrer">
-              {label} <ExternalLink size={13} aria-hidden="true" />
-            </a>
-          ))}
-        </div>
       </section>
 
       <section className="pp-deep" id="deep-dives">
