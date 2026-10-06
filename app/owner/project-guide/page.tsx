@@ -1,4 +1,4 @@
-import { ArrowRight, Bot, Briefcase, Cloud, Database, ExternalLink, Globe, Lightbulb, Lock, NotebookPen, Presentation, ShieldCheck } from "lucide-react";
+import { ArrowRight, Bot, Briefcase, Check, ChevronDown, Cloud, Database, ExternalLink, Globe, Layers, Lightbulb, Lock, NotebookPen, Presentation, Rocket, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Fragment, type ReactNode } from "react";
@@ -6,7 +6,7 @@ import { getRealUser } from "../../../lib/auth";
 import { getDiscordInviteSummary } from "../../../lib/discord";
 import { OWNER_DISCORD_ID } from "../../../lib/ticket-delete";
 import { SiteNav } from "../../site-nav";
-import { JOB, ORDER, SECTIONS, type Block } from "./content";
+import { DEEP_DIVES, JOB, ORDER, PITCH, SECTIONS, type Block, type Section } from "./content";
 import "./guide.css";
 
 export const dynamic = "force-dynamic";
@@ -236,39 +236,209 @@ function BlockView({ block }: { block: Block }) {
   }
 }
 
+const FIT_ICON = { cloud: Cloud, layers: Layers, database: Database, rocket: Rocket } as const;
+
+function SectionBody({ s }: { s: Section }) {
+  return (
+    <>
+      {s.intro ? (
+        <p className="pg-intro">
+          <Md text={s.intro} />
+        </p>
+      ) : null}
+      {s.blocks.map((b, i) => (
+        <BlockView key={i} block={b} />
+      ))}
+    </>
+  );
+}
+
+/** Present mode: a short, polished pitch, with the detail tucked into deep dives below */
+function Pitch() {
+  const deep = DEEP_DIVES.map((id) => SECTIONS.find((s) => s.id === id)).filter(Boolean) as Section[];
+  return (
+    <div className="pp">
+      <section className="pp-hero">
+        <span className="pp-eyebrow">
+          <Briefcase size={14} aria-hidden="true" /> {PITCH.eyebrow}
+        </span>
+        <h1>{PITCH.title}</h1>
+        <p className="pp-lead">{PITCH.lead}</p>
+        <div className="pp-stats">
+          {PITCH.stats.map(([n, label]) => (
+            <div key={label}>
+              <b>{n}</b>
+              <span>{label}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="pp-block" id="fit">
+        <p className="pg-kicker">Why I&apos;m a fit</p>
+        <h2>Built on the same patterns as this role</h2>
+        <div className="pp-fits">
+          {PITCH.fits.map((f) => {
+            const Icon = FIT_ICON[f.icon as keyof typeof FIT_ICON];
+            return (
+              <article key={f.title} className="pp-fit">
+                <span className="pp-fit-icon">
+                  <Icon size={22} aria-hidden="true" />
+                </span>
+                <h3>{f.title}</h3>
+                <p>{f.lead}</p>
+                {"map" in f && f.map ? (
+                  <ul className="pp-map">
+                    {f.map.map(([mine, azure]) => (
+                      <li key={azure}>
+                        <span>{mine}</span>
+                        <ArrowRight size={14} aria-hidden="true" />
+                        <b>{azure}</b>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                {"points" in f && f.points ? (
+                  <ul className="pp-points">
+                    {f.points.map((pt) => (
+                      <li key={pt}>
+                        <Check size={15} aria-hidden="true" />
+                        <span>
+                          <Md text={pt} />
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="pp-block" id="checklist">
+        <p className="pg-kicker">The job description</p>
+        <h2>Requirement by requirement</h2>
+        <ul className="pp-check">
+          {PITCH.checklist.map((c) => (
+            <li key={c.item} className={c.level === "ready" ? "is-ready" : ""}>
+              {c.level === "ready" ? <TrendingUp size={16} aria-hidden="true" /> : <Check size={16} aria-hidden="true" />}
+              <span>{c.item}</span>
+              <small>{c.level === "ready" ? "Ready to ramp up" : "Hands-on"}</small>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="pp-block" id="spotlight">
+        <p className="pg-kicker">Spotlight</p>
+        <h2>{PITCH.spotlight.title}</h2>
+        <p className="pg-intro">{PITCH.spotlight.lead}</p>
+        <ol className="pp-flow">
+          {PITCH.spotlight.steps.map(([t, d], i) => (
+            <li key={t}>
+              <span className="pp-flow-num">{i + 1}</span>
+              <b>{t}</b>
+              <small>{d}</small>
+            </li>
+          ))}
+        </ol>
+        <p className="pp-azure">
+          <Cloud size={16} aria-hidden="true" /> <span><Md text={PITCH.spotlight.azure} /></span>
+        </p>
+        <p className="pp-more">
+          <b>Also built this way:</b> {PITCH.spotlight.more.join(" · ")}
+        </p>
+      </section>
+
+      <section className="pp-closing">
+        <Sparkles size={22} aria-hidden="true" />
+        <h2>What I&apos;d bring to the team</h2>
+        <p>{PITCH.closing}</p>
+        <div className="pp-live">
+          <span>See it live:</span>
+          {PITCH.live.map(([label, href]) => (
+            <a key={href} href={href} target="_blank" rel="noopener noreferrer">
+              {label} <ExternalLink size={13} aria-hidden="true" />
+            </a>
+          ))}
+        </div>
+      </section>
+
+      <section className="pp-deep" id="deep-dives">
+        <p className="pg-kicker">Technical deep dives</p>
+        <h2>Want the details?</h2>
+        <p className="pg-intro">Open any topic for the full walkthrough, with real code from the project.</p>
+        {deep.map((s) => (
+          <details key={s.id} id={s.id} className="pp-details">
+            <summary>
+              <span>
+                <small>{s.kicker}</small>
+                {s.title}
+              </span>
+              <ChevronDown size={18} aria-hidden="true" />
+            </summary>
+            <div className="pp-details-body">
+              <SectionBody s={s} />
+            </div>
+          </details>
+        ))}
+      </section>
+    </div>
+  );
+}
+
+function ModeSwitch({ prep }: { prep: boolean }) {
+  return (
+    <div className="pg-top">
+      {prep ? (
+        <span className="pg-private">
+          <Lock size={13} aria-hidden="true" /> Prep mode: private notes are showing
+        </span>
+      ) : (
+        <span />
+      )}
+      <div className="pg-mode" role="group" aria-label="Page mode">
+        <a href="/owner/project-guide" className={prep ? "" : "is-on"} aria-current={prep ? undefined : "page"}>
+          <Presentation size={15} aria-hidden="true" /> Present
+        </a>
+        <a href="/owner/project-guide?mode=prep" className={prep ? "is-on" : ""} aria-current={prep ? "page" : undefined}>
+          <NotebookPen size={15} aria-hidden="true" /> Prep
+        </a>
+      </div>
+    </div>
+  );
+}
+
 export default async function ProjectGuidePage({ searchParams }: { searchParams: { mode?: string } }) {
   // Only the owner, signed in as themselves (not an admin "viewing as" them)
   const user = await getRealUser().catch(() => null);
   if (!user || String(user.discordId ?? "") !== OWNER_DISCORD_ID) notFound();
   const discord = await getDiscordInviteSummary();
-  // Present (default): clean, for screen sharing. Prep: adds private notes (pitch script, glossary, stories, Q&A)
+  // Present (default): a short pitch to screen-share, details folded away. Prep: everything, plus private notes.
   const prep = searchParams.mode === "prep";
-  const sections = ORDER.map((id) => SECTIONS.find((s) => s.id === id)!).filter((s) => s && (prep || !s.prep));
 
+  if (!prep) {
+    return (
+      <main className="site-shell pg-shell">
+        <SiteNav signedIn discordOnline={discord.online} />
+        <div className="pg">
+          <ModeSwitch prep={false} />
+          <Pitch />
+        </div>
+      </main>
+    );
+  }
+
+  const sections = ORDER.map((id) => SECTIONS.find((s) => s.id === id)!).filter(Boolean);
   return (
     <main className="site-shell pg-shell">
       <SiteNav signedIn discordOnline={discord.online} />
       <div className="pg">
         <header className="pg-hero">
-          <div className="pg-top">
-            {prep ? (
-              <span className="pg-private">
-                <Lock size={13} aria-hidden="true" /> Prep mode: private notes are showing
-              </span>
-            ) : (
-              <span />
-            )}
-            <div className="pg-mode" role="group" aria-label="Page mode">
-              <a href="/owner/project-guide" className={prep ? "" : "is-on"} aria-current={prep ? undefined : "page"}>
-                <Presentation size={15} aria-hidden="true" /> Present
-              </a>
-              <a href="/owner/project-guide?mode=prep" className={prep ? "is-on" : ""} aria-current={prep ? "page" : undefined}>
-                <NotebookPen size={15} aria-hidden="true" /> Prep
-              </a>
-            </div>
-          </div>
+          <ModeSwitch prep />
           <h1>How Kitty Kingdom is built</h1>
-          <p>An overview of the project&apos;s architecture and technology, and how it relates to the Software Engineer I role.</p>
+          <p>Everything in full, plus your private notes (dashed gold).</p>
           <a className="pg-job" href={JOB.url} target="_blank" rel="noopener noreferrer">
             <Briefcase size={18} aria-hidden="true" />
             <span>
@@ -300,14 +470,7 @@ export default async function ProjectGuidePage({ searchParams }: { searchParams:
               <section key={s.id} id={s.id} className={`pg-section${s.prep ? " is-prep" : ""}`}>
                 <p className="pg-kicker">{s.kicker}</p>
                 <h2>{s.title}</h2>
-                {s.intro ? (
-                  <p className="pg-intro">
-                    <Md text={s.intro} />
-                  </p>
-                ) : null}
-                {s.blocks.map((b, i) => (
-                  <BlockView key={i} block={b} />
-                ))}
+                <SectionBody s={s} />
               </section>
             ))}
           </div>
