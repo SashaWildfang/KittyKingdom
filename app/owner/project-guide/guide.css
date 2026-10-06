@@ -1194,3 +1194,129 @@
     gap: 0.1rem;
   }
 }
+
+/* Why I'm a fit: claim, evidence, what it means for the role */
+.pp-fit {
+  gap: 0.75rem;
+}
+.pp-fit header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.pp-fit-num {
+  color: color-mix(in srgb, var(--text) 22%, transparent);
+  font-size: 1.6rem;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+.pp-fit h3 {
+  font-size: 1.2rem;
+  line-height: 1.25;
+}
+.pp-fit .pp-points {
+  gap: 0.5rem;
+}
+.pp-for-role {
+  margin: auto 0 0;
+  padding: 0.7rem 0.85rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--gold) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gold) 35%, transparent);
+  line-height: 1.5;
+}
+.pp-for-role b {
+  color: var(--gold);
+}
+.pp-fit:first-child .pp-for-role {
+  background: rgba(62, 155, 255, 0.12);
+  border-color: rgba(62, 155, 255, 0.4);
+}
+.pp-fit:first-child .pp-for-role b {
+  color: #8fc4ff;
+}
+.pp-fits {
+  align-items: stretch;
+}
+.pp-fit {
+  align-content: stretch;
+  grid-template-rows: auto auto 1fr auto;
+}
+
+/* Spotlight: problem → solution → Azure */
+.pp-story {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+.pp-story > div {
+  display: grid;
+  align-content: start;
+  gap: 0.35rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel-strong);
+}
+.pp-story small {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--ember);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.pp-story p {
+  margin: 0;
+  line-height: 1.55;
+}
+.pp-story .is-azure {
+  border-color: rgba(62, 155, 255, 0.45);
+  background: rgba(62, 155, 255, 0.1);
+}
+.pp-story .is-azure small {
+  color: #5aa9ff;
+}
+.pp-flow em {
+  margin-top: 0.15rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(62, 155, 255, 0.18);
+  color: #8fc4ff;
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 800;
+}
+.pp-flow-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+.pp-flow-legend svg {
+  color: #5aa9ff;
+}
+.pp-more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+.pp-more span {
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel-strong);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+@media (max-width: 860px) {
+  .pp-story {
+    grid-template-columns: 1fr;
+  }
+}
