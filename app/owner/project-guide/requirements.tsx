@@ -46,7 +46,7 @@ export function RequirementExplorer({ items }: { items: Requirement[] }) {
         </div>
         <div className="rx-part is-mine">
           <h4>
-            <Wrench size={15} aria-hidden="true" /> {learn ? "Where I'm starting from" : "What I've done"}
+            <Wrench size={15} aria-hidden="true" /> {learn ? "Related experience" : "What I've done"}
           </h4>
           <p>
             <Md text={r.done} />
