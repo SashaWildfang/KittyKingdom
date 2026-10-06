@@ -907,7 +907,7 @@
 .pp-details summary::-webkit-details-marker {
   display: none;
 }
-.pp-details summary > span {
+.pp-details summary .pp-sum-title {
   display: grid;
 }
 .pp-details summary small {
@@ -1418,11 +1418,12 @@
 .pp-details summary {
   flex-wrap: wrap;
 }
-.pp-details summary > span:first-child {
+.pp-details summary .pp-sum-title {
   flex: 1 1 auto;
 }
 .pp-role-tag {
   display: inline-flex;
+  flex: none;
   align-items: center;
   gap: 0.3rem;
   padding: 0.25rem 0.6rem;
@@ -1456,4 +1457,121 @@
   .pp-ethic-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Hero byline */
+.pp-by {
+  margin: -0.4rem 0 0;
+  color: var(--gold);
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+
+/* About me */
+.pp-about .pg-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.pp-about-lead {
+  margin: 0;
+  max-width: 52rem;
+  font-size: 1.1rem;
+  line-height: 1.6;
+}
+.pp-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+.pp-facts > div {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--ember);
+  border-radius: 12px;
+  background: var(--panel-strong);
+}
+.pp-facts small {
+  color: var(--ember);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.pp-facts p {
+  margin: 0;
+  line-height: 1.5;
+}
+.pp-resume-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  justify-self: start;
+  padding: 0.65rem 1.15rem;
+  border-radius: 999px;
+  background: var(--ember);
+  color: #1d0b05;
+  font-weight: 800;
+  text-decoration: none;
+}
+@media (max-width: 700px) {
+  .pp-facts {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Steps: a clean timeline instead of heavy boxes */
+.pg-steps {
+  position: relative;
+  gap: 0;
+  padding-left: 0.2rem;
+}
+.pg-steps li {
+  position: relative;
+  padding: 0.15rem 0 1rem 1.8rem;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+.pg-steps li::before {
+  content: "";
+  position: absolute;
+  left: 0.32rem;
+  top: 0.45rem;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: var(--ember);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--ember) 22%, transparent);
+}
+.pg-steps li::after {
+  content: "";
+  position: absolute;
+  left: 0.64rem;
+  top: 1.35rem;
+  bottom: 0.1rem;
+  width: 2px;
+  background: color-mix(in srgb, var(--ember) 35%, transparent);
+}
+.pg-steps li:last-child {
+  padding-bottom: 0.2rem;
+}
+.pg-steps li:last-child::after {
+  display: none;
+}
+.pg-steps b {
+  font-size: 1rem;
+}
+.pg-steps p {
+  margin-top: 0.2rem;
+}
+.pg .pg-steps code,
+.pg .pg-p code,
+.pg .pg-list code {
+  padding: 0.05rem 0.3rem;
+  border-radius: 5px;
+  font-size: 0.85em;
+  white-space: nowrap;
 }
