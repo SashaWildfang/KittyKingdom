@@ -569,6 +569,21 @@ export const PITCH = {
       ["Today", "134 API endpoints, 4 services and 338+ commits, used every day"],
     ],
   },
+  company: {
+    kicker: "Why Consumer Direct",
+    title: "Why I want to work here",
+    paragraphs: [
+      "This one is personal. My grandmother lived with **dementia**, and **hospice** cared for her right before she passed. I saw firsthand how much it means for someone to be cared for at home, and how much families depend on the people and the systems behind that care.",
+      "I want my work to help others. Consumer Direct was **founded right here in Missoula in 1990** and now supports people in **15 states**. I'd be proud to build the software that helps caregivers get paid accurately and on time, and helps people stay at home with the care they need.",
+      "I was referred by a family friend, **LaDonna Knowlton**, a **UTEX Supervisor** who has been with the company for about **nine years**. Hearing how her team makes sure caregivers' time is correct before it goes to payroll showed me how much the technology behind the scenes matters, and that people who join Consumer Direct choose to stay.",
+    ],
+    facts: [
+      ["Founded", "Missoula, MT · 1990"],
+      ["Reach", "Supporting people in 15 states"],
+      ["Mission", "Helping people receive care at home"],
+      ["Referred by", "LaDonna Knowlton, UTEX Supervisor (about 9 years)"],
+    ],
+  },
   fitIntro: "I didn't just study these patterns. I built them, I run them, and real people depend on them every day.",
   fits: [
     {
