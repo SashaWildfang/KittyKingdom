@@ -9,7 +9,8 @@ import { MINUTE, allow } from "../../../../../lib/rate-limit";
 export const dynamic = "force-dynamic";
 
 /** The conversation with member [id] (?before= for older messages). Opening it marks it read. */
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const me = await requireDating();
   if (me instanceof NextResponse) return me;
   if (!isSnowflake(params.id)) return NextResponse.json({ ok: false, error: "Unknown member." }, { status: 404 });
@@ -19,7 +20,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
 }
 
 /** { text } sends a message · { request: "accept"|"decline" } answers a request · { hide: true } · { unsend: messageId } (for everyone) · { deleteForMe: messageId } */
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   if (!sameOrigin(request)) return NextResponse.json({ ok: false, error: "Invalid request origin." }, { status: 403 });
   const me = await requireDating();
   if (me instanceof NextResponse) return me;

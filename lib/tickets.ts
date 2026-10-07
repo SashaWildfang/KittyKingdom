@@ -194,6 +194,7 @@ export async function getTicket(ticketId: number): Promise<Ticket | null> {
 }
 
 export async function ticketStats(q: { from?: Date | null; to?: Date | null; unit: "day" | "week" | "month" }) {
+  const tz = await userTimeZone();
   const { col, union } = await ticketsPipelineBase();
   const match: Document = {};
   if (q.from || q.to) match.created = { ...(q.from ? { $gte: q.from } : {}), ...(q.to ? { $lte: q.to } : {}) };
@@ -207,7 +208,7 @@ export async function ticketStats(q: { from?: Date | null; to?: Date | null; uni
           byType: [{ $group: { _id: "$ticket_type", n: { $sum: 1 } } }, { $sort: { n: -1 } }],
           byStatus: [{ $group: { _id: "$status", n: { $sum: 1 } } }],
           timeline: [
-            { $group: { _id: { t: { $dateTrunc: { date: "$created", unit: q.unit, timezone: userTimeZone() } }, a: "$ticket_type" }, n: { $sum: 1 } } },
+            { $group: { _id: { t: { $dateTrunc: { date: "$created", unit: q.unit, timezone: tz } }, a: "$ticket_type" }, n: { $sum: 1 } } },
             { $sort: { "_id.t": 1 } },
           ],
           // The staff member who handled it: whoever claimed it, else whoever closed it

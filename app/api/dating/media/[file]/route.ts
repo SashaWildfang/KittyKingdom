@@ -5,7 +5,8 @@ import { getPanelUser } from "../../../../../lib/admin";
 export const dynamic = "force-dynamic";
 
 /** A dating photo, only for signed-in 18+ Verified members, or staff reviewing reports (cached privately in their browser). */
-export async function GET(_request: Request, { params }: { params: { file: string } }) {
+export async function GET(_request: Request, props: { params: Promise<{ file: string }> }) {
+  const params = await props.params;
   const access = await datingAccess();
   if (!access.ok && !(await getPanelUser().catch(() => null))) return new Response("Not available", { status: 403 });
   const photo = await readPhoto(params.file.split(".")[0]).catch(() => null);

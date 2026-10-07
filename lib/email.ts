@@ -176,13 +176,13 @@ async function sendEmail(to: string, subject: string, html: string, text: string
 }
 
 // In the account holder's time zone (from the request that triggered the email)
-const stamp = () => {
-  const timeZone = userTimeZone();
+const stamp = async () => {
+  const timeZone = await userTimeZone();
   return `${new Date().toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short", timeZone })} ${zoneLabel(timeZone)}`;
 };
 
 /** Step 3 of signing up (after /link): confirm the email address. Also used for "resend". */
-export function verificationEmail(email: string, verifyUrl: string, details: { discordName?: string | null; newAccount?: boolean } = {}) {
+export async function verificationEmail(email: string, verifyUrl: string, details: { discordName?: string | null; newAccount?: boolean } = {}) {
   const discord = details.discordName ? String(details.discordName) : null;
   // New sign-ups confirm their email first, then link Discord in the server
   const signup = Boolean(details.newAccount && !discord);
@@ -210,7 +210,7 @@ export function verificationEmail(email: string, verifyUrl: string, details: { d
     rows: [
       { label: "Email", value: email },
       ...(discord ? [{ label: "Discord", value: discord }] : []),
-      { label: "Requested", value: stamp() },
+      { label: "Requested", value: await stamp() },
     ],
     button: { label: "Confirm email address", url: verifyUrl },
     expiry: "This link expires in 72 hours.",
@@ -236,11 +236,11 @@ export function verificationEmail(email: string, verifyUrl: string, details: { d
 }
 
 export async function sendVerificationEmail(email: string, verifyUrl: string, details: { discordName?: string | null; newAccount?: boolean } = {}) {
-  const m = verificationEmail(email, verifyUrl, details);
+  const m = await verificationEmail(email, verifyUrl, details);
   return sendEmail(email, m.subject, m.html, m.text);
 }
 
-export function passwordResetEmail(email: string, resetUrl: string, requestedByStaff: boolean) {
+export async function passwordResetEmail(email: string, resetUrl: string, requestedByStaff: boolean) {
   const intro = requestedByStaff
     ? "A Kitty Kingdom staff member sent you this link so you can reset your website password."
     : "We received a request to reset the password for your Kitty Kingdom website account.";
@@ -251,7 +251,7 @@ export function passwordResetEmail(email: string, resetUrl: string, requestedByS
     intro,
     rows: [
       { label: "Account", value: email },
-      { label: "Requested", value: stamp() },
+      { label: "Requested", value: await stamp() },
       { label: "Requested by", value: requestedByStaff ? "Kitty Kingdom staff" : "You (on the website)" },
     ],
     button: { label: "Choose a new password", url: resetUrl },
@@ -275,12 +275,12 @@ export function passwordResetEmail(email: string, resetUrl: string, requestedByS
 }
 
 export async function sendPasswordResetEmail(email: string, resetUrl: string, requestedByStaff: boolean) {
-  const m = passwordResetEmail(email, resetUrl, requestedByStaff);
+  const m = await passwordResetEmail(email, resetUrl, requestedByStaff);
   return sendEmail(email, m.subject, m.html, m.text);
 }
 
 /** "Something changed on your account" notice, e.g. two-factor turned on or off. */
-export function securityNoticeEmail(email: string, title: string, message: string) {
+export async function securityNoticeEmail(email: string, title: string, message: string) {
   const html = layout({
     preheader: message,
     eyebrow: "Security alert",
@@ -288,7 +288,7 @@ export function securityNoticeEmail(email: string, title: string, message: strin
     intro: escapeHtml(message),
     rows: [
       { label: "Account", value: email },
-      { label: "When", value: stamp() },
+      { label: "When", value: await stamp() },
     ],
     button: { label: "Review account security", url: `${SITE}/account#security` },
     expiry: "Only you can see this page after logging in.",
@@ -300,12 +300,12 @@ export function securityNoticeEmail(email: string, title: string, message: strin
 }
 
 export async function sendSecurityNoticeEmail(email: string, title: string, message: string) {
-  const m = securityNoticeEmail(email, title, message);
+  const m = await securityNoticeEmail(email, title, message);
   return sendEmail(email, m.subject, m.html, m.text);
 }
 
 /** Staff-sent nudge for accounts that never confirmed their email (Admin → Website). */
-export function verificationReminderEmail(email: string, verifyUrl: string, name: string | null) {
+export async function verificationReminderEmail(email: string, verifyUrl: string, name: string | null) {
   const hi = name ? `Hi ${escapeHtml(name)}! ` : "Hi! ";
   const html = layout({
     preheader: "Your Kitty Kingdom account is almost ready: confirm your email to log in.",
@@ -314,7 +314,7 @@ export function verificationReminderEmail(email: string, verifyUrl: string, name
     intro: `${hi}You made a Kitty Kingdom website account but haven't confirmed your email yet, so you can't log in. Tap the button below and you're all set: the Store, Leaderboards, your stats and more are waiting.`,
     rows: [
       { label: "Email", value: email },
-      { label: "Sent", value: stamp() },
+      { label: "Sent", value: await stamp() },
     ],
     button: { label: "Confirm my email", url: verifyUrl },
     expiry: "This link expires in 72 hours. Any older confirmation links still work too.",
@@ -337,12 +337,12 @@ export function verificationReminderEmail(email: string, verifyUrl: string, name
 }
 
 export async function sendVerificationReminderEmail(email: string, verifyUrl: string, name: string | null) {
-  const m = verificationReminderEmail(email, verifyUrl, name);
+  const m = await verificationReminderEmail(email, verifyUrl, name);
   return sendEmail(email, m.subject, m.html, m.text);
 }
 
 /** Staff-sent how-to for accounts that haven't linked Discord yet (Admin → Website). */
-export function discordLinkReminderEmail(email: string, name: string | null) {
+export async function discordLinkReminderEmail(email: string, name: string | null) {
   const hi = name ? `Hi ${escapeHtml(name)}! ` : "Hi! ";
   const html = layout({
     preheader: "Link your Discord to unlock the Store, Leaderboards, your stats and roles on the site.",
@@ -380,7 +380,7 @@ export function discordLinkReminderEmail(email: string, name: string | null) {
 }
 
 export async function sendDiscordLinkReminderEmail(email: string, name: string | null) {
-  const m = discordLinkReminderEmail(email, name);
+  const m = await discordLinkReminderEmail(email, name);
   return sendEmail(email, m.subject, m.html, m.text);
 }
 
@@ -400,7 +400,7 @@ export async function sendAppealReceivedEmail(email: string, a: { username: stri
       { label: "Punishment", value: kind },
       ...(a.punishedAt ? [{ label: "Given", value: new Date(a.punishedAt).toUTCString().slice(0, 16) }] : []),
       { label: "Reference", value: a.reference },
-      { label: "Submitted", value: stamp() },
+      { label: "Submitted", value: await stamp() },
     ],
     button: { label: "Check your appeal", url: `${SITE}/appeals` },
     expiry: "Most appeals are reviewed within a few days.",
@@ -428,7 +428,7 @@ export async function sendAppealDecisionEmail(email: string, a: { username: stri
       { label: "Punishment", value: kind },
       { label: "Decision", value: a.accepted ? (a.lifted ? "Accepted, lifted" : "Accepted") : "Not accepted" },
       { label: "Reference", value: a.reference },
-      { label: "Decided", value: stamp() },
+      { label: "Decided", value: await stamp() },
     ],
     button: { label: a.accepted ? "Rejoin Kitty Kingdom" : "View your appeal", url: a.accepted && a.lifted ? `${SITE}/join` : `${SITE}/appeals` },
     expiry: a.accepted ? "Please read the rules again before you rejoin." : "You can appeal this punishment again in 30 days.",

@@ -18,7 +18,8 @@ const ERRORS: Record<string, string> = {
   signin: "We couldn't confirm your Discord sign-in. Please try again.",
 };
 
-export default async function AppealsPage({ searchParams }: { searchParams: { error?: string } }) {
+export default async function AppealsPage(props: { searchParams: Promise<{ error?: string }> }) {
+  const searchParams = await props.searchParams;
   const [user, discord] = await Promise.all([getCurrentUser().catch(() => null), getDiscordInviteSummary()]);
   return (
     <main className="site-shell kb-shell">

@@ -9,7 +9,8 @@ import { ONLINE_WINDOW_MS, revokeSession, sessionsCollection } from "../../../..
 export const dynamic = "force-dynamic";
 
 /** Every device this account has signed in from recently. */
-export async function GET(request: Request, { params }: { params: { accountId: string } }) {
+export async function GET(request: Request, props: { params: Promise<{ accountId: string }> }) {
+  const params = await props.params;
   const admin = await requireAdmin(request);
   if (admin instanceof NextResponse) return admin;
   if (!ObjectId.isValid(params.accountId)) return NextResponse.json({ ok: false, error: "Unknown account." }, { status: 404 });
@@ -43,7 +44,8 @@ export async function GET(request: Request, { params }: { params: { accountId: s
 }
 
 /** { sessionId } — disconnects one device. */
-export async function POST(request: Request, { params }: { params: { accountId: string } }) {
+export async function POST(request: Request, props: { params: Promise<{ accountId: string }> }) {
+  const params = await props.params;
   const admin = await requireAdmin(request);
   if (admin instanceof NextResponse) return admin;
   const twoFactor = await requireTwoFactorForAction();

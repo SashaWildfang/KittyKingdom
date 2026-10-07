@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowLeft, Check, CheckCheck, EyeOff, Send, Trash2, Undo2 } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, use } from "react";
 import { Photo, ReportButton, ago, post, useApi } from "../../ui";
 
 type Msg = { id: string; from: string; text: string; deleted: boolean; at: string };
@@ -18,7 +18,8 @@ const dayLabel = (iso: string) => {
   return d.toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" });
 };
 
-export default function ThreadPage({ params }: { params: { id: string } }) {
+export default function ThreadPage(props: { params: Promise<{ id: string }> }) {
+  const params = use(props.params);
   const { data, error, reload, setData } = useApi<Thread>(`/api/dating/messages/${params.id}`, 4000);
   const who = useApi<Who>(`/api/dating/users/${params.id}`);
   const prefs = useApi<{ settings: { enterToSend: boolean } }>("/api/dating/settings");

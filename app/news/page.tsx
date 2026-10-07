@@ -10,8 +10,11 @@ import { NewsBrowser, type NewsItem } from "./news-browser";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "News | Kitty Kingdom", description: "Updates, events and announcements from the Kitty Kingdom team." };
 
-export default async function NewsPage({ searchParams }: { searchParams: { tag?: string; month?: string; q?: string } }) {
-  const tz = userTimeZone();
+export default async function NewsPage(
+  props: { searchParams: Promise<{ tag?: string; month?: string; q?: string }> }
+) {
+  const searchParams = await props.searchParams;
+  const tz = await userTimeZone();
   const [user, discord, all, tags] = await Promise.all([getCurrentUser(), getDiscordInviteSummary(), publishedNews({ limit: 300 }), newsTags().catch(() => [])]);
   const posts: NewsItem[] = all.map((p) => {
     const d = new Date(p.publishedAt);

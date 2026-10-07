@@ -8,7 +8,8 @@ import { requireDating, sameOrigin } from "../../../../../lib/dating/route-helpe
 export const dynamic = "force-dynamic";
 
 /** Removes one of your photos. */
-export async function DELETE(request: Request, { params }: { params: { photoId: string } }) {
+export async function DELETE(request: Request, props: { params: Promise<{ photoId: string }> }) {
+  const params = await props.params;
   if (!sameOrigin(request)) return NextResponse.json({ ok: false, error: "Invalid request origin." }, { status: 403 });
   const me = await requireDating();
   if (me instanceof NextResponse) return me;

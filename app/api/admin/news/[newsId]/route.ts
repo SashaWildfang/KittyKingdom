@@ -12,7 +12,8 @@ async function audit(action: string, id: string, admin: { discordId: string; nam
   await client.db(process.env.MONGODB_DB ?? "website").collection("admin_audit").insertOne({ at: new Date(), action, newsId: id, title, adminDiscordId: admin.discordId, adminName: admin.name });
 }
 
-export async function PATCH(request: Request, { params }: { params: { newsId: string } }) {
+export async function PATCH(request: Request, props: { params: Promise<{ newsId: string }> }) {
+  const params = await props.params;
   const admin = await requireAdmin(request);
   if (admin instanceof NextResponse) return admin;
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
@@ -24,7 +25,8 @@ export async function PATCH(request: Request, { params }: { params: { newsId: st
   return NextResponse.json({ ok: true, message: input.status === "published" ? "Post saved and live." : input.status === "pending" ? "Saved. It's waiting for review." : "Draft saved." });
 }
 
-export async function DELETE(request: Request, { params }: { params: { newsId: string } }) {
+export async function DELETE(request: Request, props: { params: Promise<{ newsId: string }> }) {
+  const params = await props.params;
   const admin = await requireAdmin(request);
   if (admin instanceof NextResponse) return admin;
   const twoFactor = await requireTwoFactorForAction();

@@ -45,10 +45,8 @@ async function discordFetch(path: string, token: string) {
   });
 }
 
-export async function GET(
-  _request: Request,
-  { params }: { params: { id: string } },
-) {
+export async function GET(_request: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const token = getToken();
   const guildId = process.env.DISCORD_GUILD_ID;
 

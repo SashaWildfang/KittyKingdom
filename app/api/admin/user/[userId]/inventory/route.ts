@@ -10,7 +10,8 @@ export const dynamic = "force-dynamic";
 const STAFF_LOG_CHANNEL_ID = "1360344042705256660";
 
 /** A member's inventory and the item catalog (admins). */
-export async function GET(request: Request, { params }: { params: { userId: string } }) {
+export async function GET(request: Request, props: { params: Promise<{ userId: string }> }) {
+  const params = await props.params;
   const admin = await requireAdmin(request);
   if (admin instanceof NextResponse) return admin;
   if (!/^\d{15,21}$/.test(params.userId)) return NextResponse.json({ ok: false, error: "Invalid member." }, { status: 400 });
@@ -18,7 +19,8 @@ export async function GET(request: Request, { params }: { params: { userId: stri
 }
 
 /** { itemId, count } — sets how many of an item they have. Logged to the audit log and staff log. */
-export async function POST(request: Request, { params }: { params: { userId: string } }) {
+export async function POST(request: Request, props: { params: Promise<{ userId: string }> }) {
+  const params = await props.params;
   const admin = await requireAdmin(request);
   if (admin instanceof NextResponse) return admin;
   if (!/^\d{15,21}$/.test(params.userId)) return NextResponse.json({ ok: false, error: "Invalid member." }, { status: 400 });

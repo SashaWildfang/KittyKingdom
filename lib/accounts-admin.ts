@@ -352,6 +352,7 @@ const SEGMENT_FILTERS: Record<AccountSegment, Document> = {
 
 /** The story behind one of the account totals: sign-ups over time, growth and the newest accounts. */
 export async function accountSegmentInsights(segment: AccountSegment) {
+  const tz = await userTimeZone();
   const users = await getUsersCollection();
   const filter = SEGMENT_FILTERS[segment] ?? {};
   const weekAgo = new Date(Date.now() - 7 * 86_400_000);
@@ -364,7 +365,7 @@ export async function accountSegmentInsights(segment: AccountSegment) {
     users
       .aggregate([
         { $match: { ...filter, createdAt: { $type: "date", $gte: new Date(Date.now() - 180 * 86_400_000) } } },
-        { $group: { _id: { $dateTrunc: { date: "$createdAt", unit: "week", timezone: userTimeZone() } }, n: { $sum: 1 } } },
+        { $group: { _id: { $dateTrunc: { date: "$createdAt", unit: "week", timezone: tz } }, n: { $sum: 1 } } },
         { $sort: { _id: 1 } },
       ])
       .toArray(),
