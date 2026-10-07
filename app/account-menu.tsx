@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpenText, ChevronDown, HeartHandshake, LogOut, Palette, Settings, UserRound } from "lucide-react";
+import { BookOpenText, ChevronDown, GraduationCap, HeartHandshake, LogOut, Palette, Settings, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { ThemeSwitch } from "./theme-switch";
 
@@ -42,6 +42,11 @@ export function AccountMenu({ social, owner = false }: { social: boolean; owner?
           {owner ? (
             <a href="/owner/project-guide" role="menuitem">
               <BookOpenText size={16} aria-hidden="true" /> Project Guide
+            </a>
+          ) : null}
+          {owner ? (
+            <a href="/owner/study" role="menuitem">
+              <GraduationCap size={16} aria-hidden="true" /> Study Guide
             </a>
           ) : null}
           <div className="acct-menu-section">
