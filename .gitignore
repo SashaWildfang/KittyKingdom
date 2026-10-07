@@ -1,4 +1,19 @@
+# Dependencies (the repo has no lockfile on purpose)
 node_modules/
+package-lock.json
+
+# Next.js build output
 .next/
-tsconfig.tsbuildinfo
-.env*.local
+out/
+*.tsbuildinfo
+
+# Secrets: never commit environment files
+.env
+.env.*
+!.env.example
+
+# Logs and OS / editor files
+npm-debug.log*
+.DS_Store
+.vscode/
+.idea/
