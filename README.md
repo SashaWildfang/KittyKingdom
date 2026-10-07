@@ -115,3 +115,9 @@ Secrets live in environment variables only. Never commit them.
 
 **Sasha Wildfang**: founder, designer and developer of Kitty Kingdom.
 B.S. Computer Science, Clemson University · Missoula, MT
+
+---
+
+## License
+
+Released under the [MIT License](LICENSE). The Kitty Kingdom name, logo and artwork are not covered by the license.
