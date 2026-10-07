@@ -29,6 +29,7 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
   const dating = linked ? await canSeeDating(user?.discordId).catch(() => false) : false;
   // Recent posts, for the unread bubble on the News tab
   const newsStamps = await recentNewsStamps();
+  const owner = String(user?.discordId ?? "") === OWNER_DISCORD_ID;
   // Same links for the phone menu
   const mobileLinks = [
     { href: "/home", label: "Home", icon: "home" as const },
@@ -39,7 +40,16 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
     ...(dating ? [{ href: "/social", label: "Social", icon: "dating" as const }] : []),
     ...(linked ? [{ href: "/store", label: "Store", icon: "store" as const }, { href: "/games", label: "Games", icon: "games" as const }, { href: "/leaderboards", label: "Leaderboards", icon: "leaderboards" as const }] : []),
     ...(panel ? [{ href: "/admin", label: panel.level === "admin" ? "Admin" : "Staff Panel", icon: "admin" as const }] : []),
+    ...(dating ? [{ href: "/social/profile", label: "My Social Profile", icon: "profile" as const }] : []),
     ...(signedIn ? [{ href: "/settings", label: "Settings", icon: "settings" as const }] : []),
+    // The owner's private pages (the desktop "My Account" menu has these too)
+    ...(owner
+      ? [
+          { href: "/owner/project-guide", label: "Project Guide", icon: "guide" as const },
+          { href: "/owner/study", label: "Study Guide", icon: "study" as const },
+          { href: "/owner/resume", label: "My Resume", icon: "resume" as const },
+        ]
+      : []),
   ];
   return (
     <nav className="topbar" aria-label="Main navigation">
@@ -88,7 +98,7 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
         ) : null}
         {/* Theme lives in the account menu, the footer and the phone menu */}
         {signedIn ? (
-          <AccountMenu social={dating} owner={String(user?.discordId ?? "") === OWNER_DISCORD_ID} />
+          <AccountMenu social={dating} owner={owner} />
         ) : (
           <>
             <a className="login-link" href="/login">
