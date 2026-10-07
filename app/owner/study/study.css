@@ -86,3 +86,58 @@
     padding-left: 0.95rem;
   }
 }
+
+/* Phones and small tablets */
+@media (max-width: 900px) {
+  /* The topic chips in the header replace the long contents sidebar */
+  .sgd-page .pg-toc {
+    display: none;
+  }
+}
+@media (max-width: 700px) {
+  .sgd-page {
+    width: calc(100% - 1.5rem);
+    padding-top: 0.75rem;
+  }
+  .sgd-page .pg-section {
+    padding: 1rem 0.9rem;
+    border-radius: 18px;
+  }
+  .sgd-hero h1 {
+    font-size: 1.9rem;
+  }
+  .sgd-jump {
+    gap: 0.35rem;
+  }
+  .sgd-jump a {
+    padding: 0.4rem 0.7rem;
+    font-size: 0.82rem;
+  }
+  .sgd-topic h2 {
+    font-size: 1.15rem;
+  }
+  /* Code wraps instead of scrolling sideways */
+  .sgd-page .pg-code pre {
+    padding: 0.75rem;
+    font-size: 0.74rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .sgd-page :not(pre) > code {
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+  }
+  .sgd-page pre code {
+    white-space: inherit;
+  }
+  .sgd-page .pg-code figcaption {
+    font-size: 0.8rem;
+  }
+  .sgd-qa summary {
+    padding: 0.7rem 0.75rem;
+    font-size: 0.95rem;
+  }
+  .sgd-page .pg-callout {
+    padding: 0.8rem 0.85rem;
+  }
+}

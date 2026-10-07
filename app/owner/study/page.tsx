@@ -104,7 +104,7 @@ export default async function StudyPage() {
   return (
     <main className="site-shell pg-shell">
       <SiteNav signedIn discordOnline={discord.online} />
-      <div className="pg">
+      <div className="pg sgd-page">
         <header className="pg-hero sgd-hero">
           <span className="pg-private">Next-round prep</span>
           <h1>Interview Study Guide</h1>
