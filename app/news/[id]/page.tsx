@@ -15,16 +15,18 @@ import { NewsSeen } from "../news-seen";
 
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const post = await publishedPost(params.id).catch(() => null);
   return post ? { title: `${post.title} | Kitty Kingdom News`, description: newsExcerpt(post.body, 160).text } : { title: "News | Kitty Kingdom" };
 }
 
-export default async function NewsArticle({ params }: { params: { id: string } }) {
+export default async function NewsArticle(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const post = await publishedPost(params.id);
   if (!post) notFound();
   const [user, discord, all] = await Promise.all([getCurrentUser(), getDiscordInviteSummary(), publishedNews({ limit: 300 })]);
-  const tz = userTimeZone();
+  const tz = await userTimeZone();
   const date = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: tz });
   // Chronological neighbours (pinned order doesn't matter here)
   const byDate = [...all].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));

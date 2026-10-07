@@ -22,18 +22,19 @@ const statusMessages: Record<string, string> = {
     "That verification link has expired. Use the resend option below to get a fresh one.",
 };
 
-export default function LoginPage({
-  searchParams,
-}: {
-  searchParams: {
-    login?: string;
-    account?: string;
-    discord?: string;
-    verify?: string;
-    identifier?: string;
-    next?: string;
-  };
-}) {
+export default async function LoginPage(
+  props: {
+    searchParams: Promise<{
+      login?: string;
+      account?: string;
+      discord?: string;
+      verify?: string;
+      identifier?: string;
+      next?: string;
+    }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const status =
     searchParams.login ??
     searchParams.account ??

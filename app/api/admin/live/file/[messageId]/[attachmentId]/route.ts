@@ -5,7 +5,11 @@ import { liveAttachmentUrl } from "../../../../../../../lib/live-chat";
 export const dynamic = "force-dynamic";
 
 /** Opens a file from a live message (only for staff who can see that channel). */
-export async function GET(request: Request, { params }: { params: { messageId: string; attachmentId: string } }) {
+export async function GET(
+  request: Request,
+  props: { params: Promise<{ messageId: string; attachmentId: string }> }
+) {
+  const params = await props.params;
   const panel = await requirePanel(request);
   if (panel instanceof NextResponse) return panel;
   const url = await liveAttachmentUrl(panel.discordId, params.messageId, params.attachmentId);

@@ -6,7 +6,8 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 15;
 
 /** The messages in an open ticket's channel (read only), newer than ?after= when given. */
-export async function GET(request: Request, { params }: { params: { ticketId: string } }) {
+export async function GET(request: Request, props: { params: Promise<{ ticketId: string }> }) {
+  const params = await props.params;
   const admin = await requireAdmin(request);
   if (admin instanceof NextResponse) return admin;
   const id = Number(params.ticketId);

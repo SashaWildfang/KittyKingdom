@@ -10,7 +10,8 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
 /** One ticket, with a signed link to view its transcript and a fresh zip download link. */
-export async function GET(request: Request, { params }: { params: { ticketId: string } }) {
+export async function GET(request: Request, props: { params: Promise<{ ticketId: string }> }) {
+  const params = await props.params;
   const admin = await requireAdmin(request);
   if (admin instanceof NextResponse) return admin;
   const ticket = await getTicket(Number(params.ticketId));
@@ -25,7 +26,8 @@ export async function GET(request: Request, { params }: { params: { ticketId: st
 }
 
 /** Deletes a closed ticket and its transcript (never NSFW tickets). Admins only; logged. */
-export async function DELETE(request: Request, { params }: { params: { ticketId: string } }) {
+export async function DELETE(request: Request, props: { params: Promise<{ ticketId: string }> }) {
+  const params = await props.params;
   const admin = await requireAdmin(request);
   if (admin instanceof NextResponse) return admin;
   const twoFactor = await requireTwoFactorForAction();

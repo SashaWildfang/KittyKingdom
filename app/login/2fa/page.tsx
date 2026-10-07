@@ -11,7 +11,8 @@ const ERRORS: Record<string, string> = {
   unavailable: "Sign-in is having trouble right now. Please try again.",
 };
 
-export default async function TwoFactorPage({ searchParams }: { searchParams: { error?: string; mode?: string } }) {
+export default async function TwoFactorPage(props: { searchParams: Promise<{ error?: string; mode?: string }> }) {
+  const searchParams = await props.searchParams;
   const user = await pendingTwoFactorUser();
   if (!user) redirect("/login?login=2fa-expired");
   const email = String(user.email ?? "");

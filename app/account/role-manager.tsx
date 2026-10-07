@@ -39,7 +39,7 @@ export function RoleManager({ initial }: { initial: RoleState | null }) {
   const [colorView, setColorView] = useState<"all" | "owned" | "shop">("all");
   const [toast, setToast] = useState<{ text: string; tone: "ok" | "error" } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const toastTimer = useRef<number>();
+  const toastTimer = useRef<number | undefined>(undefined);
   const busy = pending.size > 0;
 
   const showToast = (text: string, tone: "ok" | "error") => {

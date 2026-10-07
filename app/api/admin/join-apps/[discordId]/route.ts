@@ -8,14 +8,16 @@ import { readJson } from "../../../../../lib/store-auth";
 export const dynamic = "force-dynamic";
 
 /** One member's join application (for their profile). */
-export async function GET(request: Request, { params }: { params: { discordId: string } }) {
+export async function GET(request: Request, props: { params: Promise<{ discordId: string }> }) {
+  const params = await props.params;
   const panel = await requirePanel(request);
   if (panel instanceof NextResponse) return panel;
   return NextResponse.json({ ok: true, ...(await joinAppFor(params.discordId)) }, { headers: { "Cache-Control": "no-store" } });
 }
 
 /** { action: "accept" | "deny" | "ban", reason?, confirm? } - queued for the bot to carry out. */
-export async function POST(request: Request, { params }: { params: { discordId: string } }) {
+export async function POST(request: Request, props: { params: Promise<{ discordId: string }> }) {
+  const params = await props.params;
   const panel = await requirePanel(request);
   if (panel instanceof NextResponse) return panel;
   try {

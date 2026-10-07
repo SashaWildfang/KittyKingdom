@@ -7,7 +7,8 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 15;
 
 
-export async function GET(request: Request, { params }: { params: { accountId: string } }) {
+export async function GET(request: Request, props: { params: Promise<{ accountId: string }> }) {
+  const params = await props.params;
   const admin = await requireAdmin(request);
   if (admin instanceof NextResponse) return admin;
   const account = await getAccount(params.accountId);
@@ -16,7 +17,8 @@ export async function GET(request: Request, { params }: { params: { accountId: s
 }
 
 /** { action } — send-reset | temp-password | sign-out | verify-email */
-export async function POST(request: Request, { params }: { params: { accountId: string } }) {
+export async function POST(request: Request, props: { params: Promise<{ accountId: string }> }) {
+  const params = await props.params;
   const admin = await requireAdmin(request);
   if (admin instanceof NextResponse) return admin;
   const body = (await request.json().catch(() => ({}))) as { action?: string; confirm?: unknown };

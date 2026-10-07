@@ -5,7 +5,8 @@ import { purchaseHistory } from "../../../../../../lib/purchase-history";
 export const dynamic = "force-dynamic";
 
 /** A member's purchase history, for their profile (admins only, like their inventory). */
-export async function GET(request: Request, { params }: { params: { userId: string } }) {
+export async function GET(request: Request, props: { params: Promise<{ userId: string }> }) {
+  const params = await props.params;
   const admin = await requireAdmin(request);
   if (admin instanceof NextResponse) return admin;
   if (!/^\d{15,21}$/.test(params.userId)) return NextResponse.json({ ok: false, error: "Unknown member." }, { status: 404 });

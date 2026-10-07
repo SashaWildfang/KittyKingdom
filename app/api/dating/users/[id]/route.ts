@@ -12,7 +12,8 @@ import { friendState, hasLiked, iSuperLiked, isMatch, likesReceived, passedIds, 
 export const dynamic = "force-dynamic";
 
 /** A member's full dating profile, your compatibility and where you two stand. */
-export async function GET(_request: Request, { params }: { params: { id: string } }) {
+export async function GET(_request: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const me = await requireDating();
   if (me instanceof NextResponse) return me;
   if (!isSnowflake(params.id)) return NextResponse.json({ ok: false, error: "Unknown member." }, { status: 404 });

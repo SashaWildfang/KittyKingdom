@@ -477,7 +477,7 @@ const FORMATS: { key: string; label: string; icon: LucideIcon | null; text?: str
 ];
 
 /** Formatting buttons above the post box: wrap the selection, or format whole lines. */
-function FormatBar({ textRef, value, onChange }: { textRef: React.RefObject<HTMLTextAreaElement>; value: string; onChange: (v: string) => void }) {
+function FormatBar({ textRef, value, onChange }: { textRef: React.RefObject<HTMLTextAreaElement | null>; value: string; onChange: (v: string) => void }) {
   function apply(action: FormatAction) {
     const el = textRef.current;
     if (!el) return;

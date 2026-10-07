@@ -14,7 +14,8 @@ export const maxDuration = 10;
 export const metadata = { title: "Games | Kitty Kingdom" };
 
 /** Blackjack, roulette, slots, mines and scratch-offs with your leaves (signed-in members with Discord linked). */
-export default async function GamesPage({ searchParams }: { searchParams: { game?: string; watch?: string } }) {
+export default async function GamesPage(props: { searchParams: Promise<{ game?: string; watch?: string }> }) {
+  const searchParams = await props.searchParams;
   const [user, discord] = await Promise.all([getCurrentUser(), getDiscordInviteSummary()]);
   if (!user) redirect("/login?account=login-required");
   if (!user.discordId) redirect("/account?account=link-required#discord-account");

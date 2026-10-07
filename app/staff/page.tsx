@@ -29,8 +29,8 @@ function timeAgo(date: Date) {
   return `${days} day${days === 1 ? "" : "s"} ago`;
 }
 
-function memberSince(date: Date) {
-  return new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric", timeZone: userTimeZone() }).format(date);
+function memberSince(date: Date, timeZone: string) {
+  return new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric", timeZone }).format(date);
 }
 
 function StaffGroupIcon({ name }: { name: string }) {
@@ -39,7 +39,7 @@ function StaffGroupIcon({ name }: { name: string }) {
   return <Icon size={22} />;
 }
 
-function StaffCard({ member }: { member: StaffMember }) {
+function StaffCard({ member, timeZone }: { member: StaffMember; timeZone: string }) {
   // The member's Discord role color tints the role badge and card accent
   const style = member.roleColor ? ({ "--role-color": member.roleColor } as CSSProperties) : undefined;
   return (
@@ -68,7 +68,7 @@ function StaffCard({ member }: { member: StaffMember }) {
       ) : null}
       <LastOnline status={member.status} lastOnline={member.lastOnline} />
       <p className="staff-bio">{member.bio}</p>
-      {member.memberSince ? <p className="staff-since"><LeafEmote size={15} /> In the kingdom since {memberSince(member.memberSince)}</p> : null}
+      {member.memberSince ? <p className="staff-since"><LeafEmote size={15} /> In the kingdom since {memberSince(member.memberSince, timeZone)}</p> : null}
     </article>
   );
 }
@@ -79,7 +79,7 @@ export default async function StaffPage() {
   if (!user) redirect("/login?account=login-required");
   if (user.emailVerified === false) redirect("/account?account=staff-verify-required");
   if (!canViewStaffPage(user)) redirect("/account?account=staff-link-required#discord-account");
-  const [discord, directory] = await Promise.all([getDiscordInviteSummary(), getStaffDirectory()]);
+  const [discord, directory, tz] = await Promise.all([getDiscordInviteSummary(), getStaffDirectory(), userTimeZone()]);
 
   return (
     <main className="site-shell staff-shell">
@@ -123,7 +123,7 @@ export default async function StaffPage() {
             </header>
             <div className="staff-profile-grid">
               {group.members.map((member) => (
-                <StaffCard member={member} key={member.id} />
+                <StaffCard member={member} timeZone={tz} key={member.id} />
               ))}
             </div>
           </section>

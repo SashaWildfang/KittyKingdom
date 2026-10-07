@@ -54,8 +54,9 @@ const HTML_CSP = [
 
 export async function GET(
   request: Request,
-  { params }: { params: { messageId: string; token: string; path: string[] } },
+  props: { params: Promise<{ messageId: string; token: string; path: string[] }> }
 ) {
+  const params = await props.params;
   if (!verifyTranscriptToken(params.messageId, params.token)) {
     return new Response("This transcript link has expired. Reopen it from the Admin tab.", { status: 403 });
   }

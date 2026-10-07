@@ -6,7 +6,8 @@ import { RoleChangeError, changeMemberRole } from "../../../../../../lib/admin-r
 export const dynamic = "force-dynamic";
 
 /** { roleId, add } — admins only, logged to the audit log and the staff log channel. */
-export async function POST(request: Request, { params }: { params: { userId: string } }) {
+export async function POST(request: Request, props: { params: Promise<{ userId: string }> }) {
+  const params = await props.params;
   const admin = await requireAdmin(request);
   if (admin instanceof NextResponse) return admin;
   if (!/^\d{15,21}$/.test(params.userId)) return NextResponse.json({ ok: false, error: "Invalid member." }, { status: 400 });

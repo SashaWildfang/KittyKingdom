@@ -6,7 +6,8 @@ import { AppealError, decideAppeal } from "../../../../../lib/appeals";
 export const dynamic = "force-dynamic";
 
 /** Admins only (with 2FA): { decision: "accept" | "deny", response?, liftBan? }. */
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const admin = await requireAdmin(request);
   if (admin instanceof NextResponse) return admin;
   const twoFactor = await requireTwoFactorForAction();

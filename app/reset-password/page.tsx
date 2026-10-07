@@ -9,7 +9,8 @@ const messages: Record<string, string> = {
   mismatch: "The two passwords didn't match.",
 };
 
-export default async function ResetPasswordPage({ searchParams }: { searchParams: { token?: string; status?: string } }) {
+export default async function ResetPasswordPage(props: { searchParams: Promise<{ token?: string; status?: string }> }) {
+  const searchParams = await props.searchParams;
   const token = searchParams.token ?? "";
   const valid = token ? Boolean(await findResetUser(token)) : false;
 

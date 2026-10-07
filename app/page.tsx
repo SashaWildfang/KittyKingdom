@@ -183,9 +183,10 @@ function Hills() {
 
 export const dynamic = "force-dynamic";
 
-export default async function Home({ searchParams }: { searchParams?: { register?: string; account?: string } }) {
+export default async function Home(props: { searchParams?: Promise<{ register?: string; account?: string }> }) {
+  const searchParams = await props.searchParams;
   // Midnight today in the visitor's time zone, for "joined today"
-  const tz = userTimeZone();
+  const tz = await userTimeZone();
   const offsetMs = zoneOffsetMinutes(tz) * 60_000;
   const local = new Date(Date.now() + offsetMs);
   const startOfToday = new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate()) - offsetMs);

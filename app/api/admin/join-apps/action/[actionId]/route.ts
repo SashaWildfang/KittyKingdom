@@ -5,7 +5,8 @@ import { joinActionStatus } from "../../../../../../lib/join-apps";
 export const dynamic = "force-dynamic";
 
 /** Whether the bot has finished a queued decision yet. */
-export async function GET(request: Request, { params }: { params: { actionId: string } }) {
+export async function GET(request: Request, props: { params: Promise<{ actionId: string }> }) {
+  const params = await props.params;
   const panel = await requirePanel(request);
   if (panel instanceof NextResponse) return panel;
   const status = await joinActionStatus(params.actionId);

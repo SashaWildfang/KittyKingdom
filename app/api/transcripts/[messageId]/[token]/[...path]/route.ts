@@ -30,7 +30,11 @@ const PAGE_CSP = [
 const base = { "Cache-Control": "private, max-age=3600", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer" };
 
 /** A member's redacted transcript: the page, its stylesheet, and the avatars/emojis it shows. */
-export async function GET(request: Request, { params }: { params: { messageId: string; token: string; path: string[] } }) {
+export async function GET(
+  request: Request,
+  props: { params: Promise<{ messageId: string; token: string; path: string[] }> }
+) {
+  const params = await props.params;
   if (!verifyMemberTranscriptToken(params.messageId, params.token)) {
     return new Response("This transcript link has expired. Open it again from My Account → Transcripts.", { status: 403 });
   }

@@ -18,7 +18,8 @@ async function canViewAs(discordId: string) {
 }
 
 /** Everything about one member for the admin panel's member drawer. */
-export async function GET(request: Request, { params }: { params: { userId: string } }) {
+export async function GET(request: Request, props: { params: Promise<{ userId: string }> }) {
+  const params = await props.params;
   const panel = await requirePanel(request);
   if (panel instanceof NextResponse) return panel;
   const isAdmin = panel.level === "admin";

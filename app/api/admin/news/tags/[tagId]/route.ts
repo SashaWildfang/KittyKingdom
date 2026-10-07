@@ -7,7 +7,8 @@ import { audit, tagError } from "../../../../../../lib/news-admin";
 
 export const dynamic = "force-dynamic";
 
-export async function PATCH(request: Request, { params }: { params: { tagId: string } }) {
+export async function PATCH(request: Request, props: { params: Promise<{ tagId: string }> }) {
+  const params = await props.params;
   const admin = await requireAdmin(request);
   if (admin instanceof NextResponse) return admin;
   try {
@@ -20,7 +21,8 @@ export async function PATCH(request: Request, { params }: { params: { tagId: str
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { tagId: string } }) {
+export async function DELETE(request: Request, props: { params: Promise<{ tagId: string }> }) {
+  const params = await props.params;
   const admin = await requireAdmin(request);
   if (admin instanceof NextResponse) return admin;
   const twoFactor = await requireTwoFactorForAction();

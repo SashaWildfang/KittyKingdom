@@ -8,7 +8,10 @@ const CODE_STATUS: Record<string, string> = {
 };
 
 /** Forgot password: an email link, or (for accounts with two-factor on) a code from the authenticator app. */
-export default function ForgotPasswordPage({ searchParams }: { searchParams: { sent?: string; with?: string; status?: string } }) {
+export default async function ForgotPasswordPage(
+  props: { searchParams: Promise<{ sent?: string; with?: string; status?: string }> }
+) {
+  const searchParams = await props.searchParams;
   const sent = searchParams.sent === "1";
   const withCode = searchParams.with === "code";
   const codeError = withCode && searchParams.status ? CODE_STATUS[searchParams.status] ?? CODE_STATUS.failed : null;

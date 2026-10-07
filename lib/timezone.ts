@@ -24,9 +24,9 @@ export function requestTimeZone(request: Request): string {
 }
 
 /** In server components and route handlers (anywhere next/headers works). */
-export function userTimeZone(): string {
+export async function userTimeZone(): Promise<string> {
   try {
-    return validTimeZone(cookies().get(TZ_COOKIE)?.value) ?? DEFAULT_TIME_ZONE;
+    return validTimeZone((await cookies()).get(TZ_COOKIE)?.value) ?? DEFAULT_TIME_ZONE;
   } catch {
     return DEFAULT_TIME_ZONE;
   }
