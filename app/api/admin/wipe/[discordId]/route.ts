@@ -13,7 +13,8 @@ function fail(error: unknown) {
 }
 
 /** Owner only: what wiping this member would remove (nothing changes). */
-export async function GET(request: Request, { params }: { params: { discordId: string } }) {
+export async function GET(request: Request, props: { params: Promise<{ discordId: string }> }) {
+  const params = await props.params;
   const admin = await requireAdmin(request);
   if (admin instanceof NextResponse) return admin;
   try {
@@ -24,7 +25,8 @@ export async function GET(request: Request, { params }: { params: { discordId: s
 }
 
 /** Owner only, with 2FA: { confirm: "<their Discord id>" } wipes everything except safety records. */
-export async function POST(request: Request, { params }: { params: { discordId: string } }) {
+export async function POST(request: Request, props: { params: Promise<{ discordId: string }> }) {
+  const params = await props.params;
   const admin = await requireAdmin(request);
   if (admin instanceof NextResponse) return admin;
   const twoFactor = await requireTwoFactorForAction();

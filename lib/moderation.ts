@@ -292,6 +292,7 @@ export type StatsQuery = {
 };
 
 export async function punishmentStats(q: StatsQuery) {
+  const tz = await userTimeZone();
   const [col, botId, bans] = await Promise.all([getBotCollection("punishments"), getBotUserId(), getCurrentBans()]);
   const match: Document = {};
   if (q.from || q.to) match.timestamp = { ...(q.from ? { $gte: q.from } : {}), ...(q.to ? { $lte: q.to } : {}) };
@@ -307,7 +308,7 @@ export async function punishmentStats(q: StatsQuery) {
           byAction: [{ $group: { _id: "$n_action", n: { $sum: 1 } } }, { $sort: { n: -1 } }],
           bySource: [{ $group: { _id: "$n_source", n: { $sum: 1 } } }],
           timeline: [
-            { $group: { _id: { t: { $dateTrunc: { date: "$timestamp", unit: q.unit, timezone: userTimeZone() } }, a: "$n_action" }, n: { $sum: 1 } } },
+            { $group: { _id: { t: { $dateTrunc: { date: "$timestamp", unit: q.unit, timezone: tz } }, a: "$n_action" }, n: { $sum: 1 } } },
             { $sort: { "_id.t": 1 } },
           ],
           topUsers: [{ $match: { n_user: { $ne: null } } }, { $group: { _id: "$n_user", n: { $sum: 1 }, last: { $max: "$timestamp" } } }, { $sort: { n: -1, last: -1 } }, { $limit: 10 }],
@@ -318,7 +319,7 @@ export async function punishmentStats(q: StatsQuery) {
             { $sort: { n: -1 } },
             { $limit: 8 },
           ],
-          hours: [{ $group: { _id: { $hour: { date: "$timestamp", timezone: userTimeZone() } }, n: { $sum: 1 } } }],
+          hours: [{ $group: { _id: { $hour: { date: "$timestamp", timezone: tz } }, n: { $sum: 1 } } }],
           total: [{ $count: "n" }],
         },
       },

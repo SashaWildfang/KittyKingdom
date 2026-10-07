@@ -97,8 +97,8 @@ const lengthText = (seconds: number) => {
 };
 const PUNISHMENT_WORDS: Record<string, string> = { ban: "Ban", kick: "Kick", kick_unverified: "Kick", tempmute: "Mute", mute: "Mute", muzzle: "Muzzle", timeout: "Timeout", warn: "Warning" };
 
-function formatMonthYear(date: Date) {
-  return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: userTimeZone() }).format(date);
+function formatMonthYear(date: Date, timeZone: string) {
+  return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone }).format(date);
 }
 
 function DiscordIcon() {
@@ -109,16 +109,17 @@ function DiscordIcon() {
   );
 }
 
-export default async function AccountPage({
-  searchParams,
-}: {
-  searchParams: {
-    account?: string;
-    discord?: string;
-    verify?: string;
-    login?: string;
-  };
-}) {
+export default async function AccountPage(
+  props: {
+    searchParams: Promise<{
+      account?: string;
+      discord?: string;
+      verify?: string;
+      login?: string;
+    }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const [user, discord] = await Promise.all([
     getCurrentUser(),
     getDiscordInviteSummary(),
@@ -143,7 +144,7 @@ export default async function AccountPage({
     user.discordId ? myPunishments(String(user.discordId)).catch(() => null) : Promise.resolve(null),
     profileExtras(user.discordId ? String(user.discordId) : null).catch(() => null),
   ]);
-  const tz = userTimeZone();
+  const tz = await userTimeZone();
   const punDate = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", timeZone: tz });
   const activeCount = punishments?.filter((p) => p.active).length ?? 0;
   const phone = typeof user.phone === "string" ? user.phone : null;
@@ -155,15 +156,15 @@ export default async function AccountPage({
   // No display name set: their Discord nickname, then Discord username
   const shownName = accountName(user, roles);
   // Greets them by their own time of day (their time zone)
-  const greeting = accountGreeting(shownName, userTimeZone());
+  const greeting = accountGreeting(shownName, tz);
   // Sections they folded (saved in a cookie so the page is drawn that way from the start)
-  const collapsed = new Set((cookies().get("kk_collapsed")?.value ?? "").split(",").map((v) => decodeURIComponent(v)).filter(Boolean));
+  const collapsed = new Set(((await cookies()).get("kk_collapsed")?.value ?? "").split(",").map((v) => decodeURIComponent(v)).filter(Boolean));
   const heading = displayName || user.discordId ? greeting.title : "My Account";
   const discordLinked = Boolean(user.discordId);
   const twoFactor = twoFactorStatus(user);
   const discordName = discordLinked ? String(user.discord?.username ?? roles.username ?? user.discordId) : null;
   // "Member since" is when they joined the Discord server (not when they signed up or applied)
-  const memberSince = joinedServer ? formatMonthYear(joinedServer) : null;
+  const memberSince = joinedServer ? formatMonthYear(joinedServer, tz) : null;
   const statusText = status ? statusMessages[status] ?? `Status: ${status}` : null;
   // Today's daily reward is waiting (shown even while the card is folded)
   // (same rule as the Daily Reward card: not claimed yet, or the next claim has opened)

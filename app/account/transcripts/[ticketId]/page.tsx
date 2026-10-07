@@ -10,7 +10,8 @@ export const dynamic = "force-dynamic";
 const dateFmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
 
 /** A member's own ticket transcript (media redacted), opened from My Account or the bot's DM. */
-export default async function MemberTranscriptPage({ params }: { params: { ticketId: string } }) {
+export default async function MemberTranscriptPage(props: { params: Promise<{ ticketId: string }> }) {
+  const params = await props.params;
   const ticketId = Number(params.ticketId);
   const user = await getCurrentUser();
   if (!user) redirect(`/login?account=transcript-login&next=${encodeURIComponent(`/account/transcripts/${Number.isInteger(ticketId) ? ticketId : ""}`)}`);

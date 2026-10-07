@@ -3,7 +3,8 @@ import { readNewsMedia } from "../../../../lib/news-media";
 export const dynamic = "force-dynamic";
 
 /** A news image or video (public, cached for a year since files never change). */
-export async function GET(_request: Request, { params }: { params: { file: string } }) {
+export async function GET(_request: Request, props: { params: Promise<{ file: string }> }) {
+  const params = await props.params;
   const id = params.file.split(".")[0];
   const media = await readNewsMedia(id).catch(() => null);
   if (!media) return new Response("Not found", { status: 404 });

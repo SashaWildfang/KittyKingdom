@@ -23,11 +23,12 @@ const statusMessages: Record<string, string> = {
     "The account database is not reachable right now. Please try again after the database network settings are updated.",
 };
 
-export default async function RegisterPage({
-  searchParams,
-}: {
-  searchParams: { register?: string; step?: string };
-}) {
+export default async function RegisterPage(
+  props: {
+    searchParams: Promise<{ register?: string; step?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   // Steps 2 and 3: confirm the email, then link Discord with /link (only verified server members can finish signing up)
   if (searchParams.step === "link" && (await pendingRegistration().catch(() => null))) {
     return (

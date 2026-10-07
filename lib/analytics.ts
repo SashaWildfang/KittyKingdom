@@ -156,6 +156,7 @@ const rows = (docs: Document[] | undefined, fallback = "Unknown") =>
   (docs ?? []).map((d) => ({ key: d._id === null || d._id === undefined || d._id === "" ? fallback : String(d._id), views: d.views as number, visitors: d.visitors as number }));
 
 export async function trafficReport(range: TrafficRange) {
+  const tz = await userTimeZone();
   const span = RANGE_MS[range] ?? RANGE_MS["7d"];
   const to = new Date();
   const from = new Date(to.getTime() - span);
@@ -172,7 +173,7 @@ export async function trafficReport(range: TrafficRange) {
         {
           $facet: {
             timeline: [
-              { $group: { _id: { $dateTrunc: { date: "$ts", unit, timezone: userTimeZone() } }, views: { $sum: 1 }, visitors: { $addToSet: "$vid" } } },
+              { $group: { _id: { $dateTrunc: { date: "$ts", unit, timezone: tz } }, views: { $sum: 1 }, visitors: { $addToSet: "$vid" } } },
               { $project: { views: 1, visitors: { $size: "$visitors" } } },
               { $sort: { _id: 1 } },
             ],
@@ -190,10 +191,10 @@ export async function trafficReport(range: TrafficRange) {
             browsers: top("device.browser", 8),
             os: top("device.os", 8),
             screens: top("screen", 5, [{ $match: { screen: { $ne: null } } }]),
-            hours: [{ $group: { _id: { $hour: { date: "$ts", timezone: userTimeZone() } }, n: { $sum: 1 }, v: { $addToSet: "$vid" } } }, { $project: { n: 1, v: { $size: "$v" } } }],
-            weekdays: [{ $group: { _id: { $dayOfWeek: { date: "$ts", timezone: userTimeZone() } }, n: { $sum: 1 }, v: { $addToSet: "$vid" } } }, { $project: { n: 1, v: { $size: "$v" } } }],
+            hours: [{ $group: { _id: { $hour: { date: "$ts", timezone: tz } }, n: { $sum: 1 }, v: { $addToSet: "$vid" } } }, { $project: { n: 1, v: { $size: "$v" } } }],
+            weekdays: [{ $group: { _id: { $dayOfWeek: { date: "$ts", timezone: tz } }, n: { $sum: 1 }, v: { $addToSet: "$vid" } } }, { $project: { n: 1, v: { $size: "$v" } } }],
             heat: [
-              { $group: { _id: { d: { $dayOfWeek: { date: "$ts", timezone: userTimeZone() } }, h: { $hour: { date: "$ts", timezone: userTimeZone() } } }, n: { $sum: 1 }, v: { $addToSet: "$vid" } } },
+              { $group: { _id: { d: { $dayOfWeek: { date: "$ts", timezone: tz } }, h: { $hour: { date: "$ts", timezone: tz } } }, n: { $sum: 1 }, v: { $addToSet: "$vid" } } },
               { $project: { n: 1, v: { $size: "$v" } } },
             ],
             audience: [{ $group: { _id: { $cond: ["$linked", "Discord linked", { $cond: ["$signedIn", "Signed in", "Guest"] }] }, views: { $sum: 1 }, visitors: { $addToSet: "$vid" } } }, { $project: { views: 1, visitors: { $size: "$visitors" } } }],
@@ -251,6 +252,7 @@ export async function trafficReport(range: TrafficRange) {
 
 /** Account and engagement numbers from the rest of the site, for the same range. */
 async function siteStats(from: Date, to: Date, prevFrom: Date, unit: "hour" | "day" | "week") {
+  const tz = await userTimeZone();
   const client = await getMongoClient();
   const db = client.db(process.env.MONGODB_DB ?? "website");
   const users = db.collection("users");
@@ -267,7 +269,7 @@ async function siteStats(from: Date, to: Date, prevFrom: Date, unit: "hour" | "d
     sessions.countDocuments({ createdAt: { $gte: prevFrom, $lt: from } }),
     sessions.distinct("userId", { lastSeenAt: inRange }).then((ids) => ids.length),
     users
-      .aggregate([{ $match: { createdAt: inRange } }, { $group: { _id: { $dateTrunc: { date: "$createdAt", unit, timezone: userTimeZone() } }, n: { $sum: 1 } } }, { $sort: { _id: 1 } }])
+      .aggregate([{ $match: { createdAt: inRange } }, { $group: { _id: { $dateTrunc: { date: "$createdAt", unit, timezone: tz } }, n: { $sum: 1 } } }, { $sort: { _id: 1 } }])
       .toArray(),
     db.collection("news").countDocuments({ published: { $ne: false } }),
   ]);
@@ -291,10 +293,10 @@ async function siteStats(from: Date, to: Date, prevFrom: Date, unit: "hour" | "d
  * (0 = Sunday), or both, within the report range. Times are in the viewer's time zone.
  */
 export async function trafficSlot(range: TrafficRange, slot: { hour?: number; weekday?: number }) {
+  const tz = await userTimeZone();
   const span = RANGE_MS[range] ?? RANGE_MS["7d"];
   const to = new Date();
   const from = new Date(to.getTime() - span);
-  const tz = userTimeZone();
   const conds: Document[] = [];
   if (slot.hour !== undefined) conds.push({ $eq: [{ $hour: { date: "$ts", timezone: tz } }, slot.hour] });
   if (slot.weekday !== undefined) conds.push({ $eq: [{ $dayOfWeek: { date: "$ts", timezone: tz } }, slot.weekday + 1] });
