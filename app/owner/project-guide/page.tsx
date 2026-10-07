@@ -9,6 +9,7 @@ import { DEEP_DIVES, PITCH, SECTIONS, type Block, type Section } from "./content
 import "./guide.css";
 import { Md } from "./md";
 import { RequirementExplorer } from "./requirements";
+import { CommuteMap } from "./commute-map";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Project Guide | Kitty Kingdom", robots: { index: false, follow: false } };
@@ -324,6 +325,15 @@ function Pitch() {
               </div>
             ))}
           </dl>
+        </div>
+        <div className="pp-commute">
+          <div className="pp-commute-text">
+            <h3>{PITCH.company.commute.title}</h3>
+            <p>
+              <Md text={PITCH.company.commute.text} />
+            </p>
+          </div>
+          <CommuteMap homeLabel={PITCH.company.commute.home} officeLabel={PITCH.company.commute.office} />
         </div>
       </section>
 

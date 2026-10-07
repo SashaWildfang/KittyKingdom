@@ -577,11 +577,18 @@ export const PITCH = {
       "I want my work to help others. Consumer Direct was **founded right here in Missoula in 1990** and now supports people in **15 states**. I'd be proud to build the software that helps caregivers get paid accurately and on time, and helps people stay at home with the care they need.",
       "I was referred by a family friend, **LaDonna Knowlton**, a **UTEX Supervisor** who has been with the company for about **nine years**. Hearing how her team makes sure caregivers' time is correct before it goes to payroll showed me how much the technology behind the scenes matters, and that people who join Consumer Direct choose to stay.",
     ],
+    commute: {
+      title: "I'm right down the road",
+      text: "Consumer Direct's office at **100 Consumer Direct Way** is only about **5 minutes** from my home at **Grant Creek Village Apartments** (5385 Elyn Loop), so being in the office for a hybrid schedule is easy.",
+      home: "Home · Grant Creek Village",
+      office: "Consumer Direct · 100 Consumer Direct Way",
+    },
     facts: [
       ["Founded", "Missoula, MT · 1990"],
       ["Reach", "Supporting people in 15 states"],
       ["Mission", "Helping people receive care at home"],
       ["Referred by", "LaDonna Knowlton, UTEX Supervisor (about 9 years)"],
+      ["Commute", "About 5 minutes from home"],
     ],
   },
   fitIntro: "I didn't just study these patterns. I built them, I run them, and real people depend on them every day.",
