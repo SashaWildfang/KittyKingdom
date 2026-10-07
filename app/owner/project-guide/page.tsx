@@ -305,6 +305,28 @@ function Pitch() {
         </div>
       </section>
 
+      <section className="pp-block pp-company" id="company">
+        <p className="pg-kicker">{PITCH.company.kicker}</p>
+        <h2>{PITCH.company.title}</h2>
+        <div className="pp-company-grid">
+          <div className="pp-why-text">
+            {PITCH.company.paragraphs.map((t) => (
+              <p key={t}>
+                <Md text={t} />
+              </p>
+            ))}
+          </div>
+          <dl className="pp-company-facts">
+            {PITCH.company.facts.map(([k, v]) => (
+              <div key={k}>
+                <dt>{k}</dt>
+                <dd>{v}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
       <section className="pp-block" id="fit">
         <p className="pg-kicker">Why I&apos;m a fit</p>
         <h2>Why I&apos;m a fit for this role</h2>

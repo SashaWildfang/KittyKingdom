@@ -1738,3 +1738,46 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Why Consumer Direct */
+.pp-company {
+  border-color: color-mix(in srgb, #e5484d 30%, var(--line));
+  background:
+    radial-gradient(circle at 0% 0%, color-mix(in srgb, #e5484d 12%, transparent), transparent 55%),
+    var(--panel);
+}
+.pp-company-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 1.2rem;
+  align-items: start;
+}
+.pp-company-facts {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+}
+.pp-company-facts > div {
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--line);
+  border-left: 4px solid #e5484d;
+  border-radius: 12px;
+  background: var(--panel-strong);
+}
+.pp-company-facts dt {
+  color: #f07a7e;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.pp-company-facts dd {
+  margin: 0.15rem 0 0;
+  font-weight: 700;
+  line-height: 1.4;
+}
+@media (max-width: 860px) {
+  .pp-company-grid {
+    grid-template-columns: 1fr;
+  }
+}
