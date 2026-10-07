@@ -1,4 +1,4 @@
-# 🍂 Kitty Kingdom
+# Kitty Kingdom
 
 **A full-stack community platform: a Next.js web app, background services and a shared cloud database.**
 
