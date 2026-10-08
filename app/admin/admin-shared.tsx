@@ -228,10 +228,15 @@ export function PersonTag({ id, people, automod }: { id: string | null; people: 
   );
 }
 
-export function ActionBadge({ action }: { action: string }) {
+const TIMED = ["mute", "tempmute", "timeout", "muzzle", "tempban"];
+
+/** The action pill. Pass `seconds` to show how long a mute, muzzle, timeout or tempban lasts ("Tempmute · 1h"). */
+export function ActionBadge({ action, seconds }: { action: string; seconds?: number | null }) {
+  const length = seconds && seconds > 0 && TIMED.includes(action) ? formatDuration(seconds) : null;
   return (
-    <span className="adm-action" style={{ "--c": actionColor(action) } as React.CSSProperties}>
+    <span className="adm-action" style={{ "--c": actionColor(action) } as React.CSSProperties} title={length ? `${prettyAction(action)} for ${length}` : undefined}>
       {prettyAction(action)}
+      {length ? <span className="adm-action-len"> · {length}</span> : null}
     </span>
   );
 }

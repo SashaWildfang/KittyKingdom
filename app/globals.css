@@ -7993,6 +7993,11 @@ input[type="submit"] {
   white-space: nowrap;
 }
 
+.adm-action-len {
+  font-weight: 700;
+  opacity: 0.85;
+}
+
 .adm-status {
   color: var(--muted);
   font-size: 0.8rem;
@@ -10230,10 +10235,16 @@ button.adm-barlist-row:hover .adm-barlist-go {
 /* Latest punishments */
 .adm-recent {
   display: grid;
+  /* minmax(0, …): a long reason (e.g. the join-form auto-ban) gets cut off instead of stretching the card */
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.35rem;
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.adm-recent li {
+  min-width: 0;
 }
 
 .adm-recent button {

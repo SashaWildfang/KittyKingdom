@@ -133,7 +133,7 @@ export function MemberDrawer({
                   {issued.data.rows.slice(0, 5).map((p) => (
                     <li key={p.id}>
                       <div className="adm-timeline-head">
-                        <ActionBadge action={p.action} />
+                        <ActionBadge action={p.action} seconds={p.durationSeconds} />
                         <span className="adm-muted" title={formatDate(p.timestamp)}>
                           {timeAgo(p.timestamp)}
                         </span>
@@ -178,7 +178,7 @@ export function MemberDrawer({
                   {data.punishments.map((p) => (
                     <li key={p.id}>
                       <div className="adm-timeline-head">
-                        <ActionBadge action={p.action} />
+                        <ActionBadge action={p.action} seconds={p.durationSeconds} />
                         <span className="adm-muted" title={formatDate(p.timestamp)}>
                           {timeAgo(p.timestamp)}
                         </span>

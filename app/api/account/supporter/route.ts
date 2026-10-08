@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { MINUTE, hit } from "../../../../lib/rate-limit";
 import { StoreError } from "../../../../lib/store";
 import { requireStoreUser, storeErrorResponse } from "../../../../lib/store-auth";
-import { SupporterError, saveCustomRole, saveTitle, supporterStatus } from "../../../../lib/supporter";
+import { SupporterError, removeOwnCustomRole, saveCustomRole, saveTitle, supporterStatus } from "../../../../lib/supporter";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 10;
@@ -24,13 +24,18 @@ export async function GET(request: Request) {
   }
 }
 
-/** Save your title (King/Queen…) or custom role design (Prince/Princess and up). The bot applies it within seconds. */
+/** Save your title (King/Queen…), save your custom role design (Prince/Princess and up) or remove it ({ action: "remove-role" }). The bot applies it within seconds. */
 export async function POST(request: Request) {
   try {
     const user = await requireStoreUser(request);
     if (!(await hit(`supporter-save:${user.discordId}`, 10, MINUTE)).ok) throw new StoreError("You're saving too fast. Try again in a minute.", 429);
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
-    const status = body.action === "title" ? await saveTitle(user.discordId, body.variant) : await saveCustomRole(user.discordId, body);
+    const status =
+      body.action === "title"
+        ? await saveTitle(user.discordId, body.variant)
+        : body.action === "remove-role"
+          ? await removeOwnCustomRole(user.discordId)
+          : await saveCustomRole(user.discordId, body);
     return NextResponse.json({ ok: true, status }, { headers: NO_STORE });
   } catch (error) {
     return errorResponse(error);

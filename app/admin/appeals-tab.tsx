@@ -143,7 +143,10 @@ function AppealCard({ appeal, onDone, onOpenMember }: { appeal: AdminAppeal; onD
               </dt>
               <dd>
                 <span className="ap-pun">
-                  <ActionBadge action={appeal.punishment.action} />
+                  <ActionBadge
+                    action={appeal.punishment.action}
+                    seconds={appeal.punishment.at && appeal.punishment.expiresAt ? Math.round((Date.parse(appeal.punishment.expiresAt) - Date.parse(appeal.punishment.at)) / 1000) : null}
+                  />
                   <span className="adm-muted">{appeal.punishment.at ? formatDate(appeal.punishment.at) : "Date unknown"}</span>
                 </span>
                 {appeal.punishment.reason || "No reason recorded"}
