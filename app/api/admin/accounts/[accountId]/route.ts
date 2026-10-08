@@ -15,11 +15,11 @@ export async function GET(request: Request, { params }: { params: { accountId: s
   return NextResponse.json({ ok: true, account }, { headers: { "Cache-Control": "no-store" } });
 }
 
-/** { action } — send-reset | temp-password | sign-out | verify-email */
+/** { action, value? } — see AccountAction (value is the new username or display name) */
 export async function POST(request: Request, { params }: { params: { accountId: string } }) {
   const admin = await requireAdmin(request);
   if (admin instanceof NextResponse) return admin;
-  const body = (await request.json().catch(() => ({}))) as { action?: string; confirm?: unknown };
+  const body = (await request.json().catch(() => ({}))) as { action?: string; confirm?: unknown; value?: unknown };
   if (!isAccountAction(body.action)) {
     return NextResponse.json({ ok: false, error: "Unknown action." }, { status: 400 });
   }
@@ -33,7 +33,7 @@ export async function POST(request: Request, { params }: { params: { accountId: 
     return NextResponse.json({ ok: false, error: "Type CONFIRM to delete this account." }, { status: 400 });
   }
   try {
-    const result = await accountAction(params.accountId, body.action as AccountAction, admin, new URL(request.url).origin);
+    const result = await accountAction(params.accountId, body.action as AccountAction, admin, new URL(request.url).origin, typeof body.value === "string" ? body.value.slice(0, 60) : "");
     const account = body.action === "delete" ? null : await getAccount(params.accountId);
     return NextResponse.json({ ok: true, ...result, account, deleted: body.action === "delete" }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {

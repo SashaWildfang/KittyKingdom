@@ -1,11 +1,11 @@
 "use client";
 
-import { ArrowRight, Check, CheckCheck, Clock, Megaphone, Pin, Search, X } from "lucide-react";
+import { ArrowRight, Check, CheckCheck, Clock, Eye, Megaphone, Pin, Search, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { isRead, markAllNewsRead, useNewsReads } from "./news-seen";
 
-export type NewsItem = { id: string; title: string; excerpt: string; cover: string | null; tag: string; tagColor: string; pinned: boolean; publishedAt: string; date: string; month: string; monthLabel: string; minutes: number; search: string };
+export type NewsItem = { id: string; title: string; excerpt: string; cover: string | null; tag: string; tagColor: string; pinned: boolean; publishedAt: string; date: string; month: string; monthLabel: string; minutes: number; views: number; search: string };
 type Show = "all" | "unread" | "read";
 
 /** The News list: filter by read state, tag, month and search, all instantly. */
@@ -187,6 +187,11 @@ function Meta({ p, read, latest }: { p: NewsItem; read: boolean | null; latest?:
       <span>
         <Clock size={12} aria-hidden="true" /> {p.minutes} min
       </span>
+      {p.views ? (
+        <span title="Times this post was read">
+          <Eye size={12} aria-hidden="true" /> {p.views.toLocaleString()}
+        </span>
+      ) : null}
       {read === null ? null : read ? (
         <span className="nw2-state is-read">
           <Check size={12} aria-hidden="true" /> Read

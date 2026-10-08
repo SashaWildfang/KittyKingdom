@@ -12,6 +12,7 @@ import { FallingLeaves } from "../../fall-effects";
 import { NewsBody } from "../../news-body";
 import { SiteNav } from "../../site-nav";
 import { NewsSeen } from "../news-seen";
+import { NewsViews } from "../news-views";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +61,7 @@ export default async function NewsArticle({ params }: { params: { id: string } }
               <Clock size={13} aria-hidden="true" /> {newsReadMinutes(post.body)} min read
             </span>
             {post.authorName ? <span>by {post.authorName}</span> : null}
+            <NewsViews id={post.id} initial={post.views} />
           </p>
         </header>
         <div className="news-card-body nw-article-body">
