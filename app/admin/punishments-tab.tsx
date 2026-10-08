@@ -268,7 +268,7 @@ export function PunishmentsTab({
                       {!compact ? <small>{formatDate(row.timestamp)}</small> : null}
                     </td>
                     <td>
-                      <ActionBadge action={row.action} />
+                      <ActionBadge action={row.action} seconds={row.durationSeconds} />
                     </td>
                     <td>
                       <PersonLink id={row.userId} people={people} onOpen={onOpenMember} compact={compact} />

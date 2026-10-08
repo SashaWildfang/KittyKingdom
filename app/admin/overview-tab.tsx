@@ -197,7 +197,7 @@ export function OverviewTab({
                         <span className="adm-recent-time" title={formatDate(r.timestamp)}>
                           {timeAgo(r.timestamp)}
                         </span>
-                        <ActionBadge action={r.action} />
+                        <ActionBadge action={r.action} seconds={r.durationSeconds} />
                         <PersonTag id={r.userId} people={recent.data!.people} />
                         <span className="adm-recent-reason">
                           {r.reason ? <RichText text={r.reason} mentions={recent.data!.mentions} people={recent.data!.people} /> : <span className="adm-muted">No reason</span>}

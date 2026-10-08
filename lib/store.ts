@@ -9,6 +9,7 @@ import { Long, MongoServerError, type Document } from "mongodb";
 import { ITEM, MAX_CUSTOM_BADGES, cleanFlair, cosmeticOf, rarityFor, type CosmeticSlot, type CustomBadge, type CustomTitle, type Flair, type Rarity } from "./cosmetics";
 import { getBotCollection, getUsersCollection } from "./mongodb";
 import { storeDiscountFromRoles } from "./perks";
+import { hasActiveCustomRole } from "./supporter";
 import { withTierAliases } from "./tier-roles";
 import { SITE_ITEMS, ensureSiteCatalog, inWindow } from "./store-catalog";
 import {
@@ -597,6 +598,10 @@ export async function getOwnedColorRoles(discordId: string) {
 
 export async function equipRole(discordId: string, itemId: string) {
   const roleId = await ownedRoleId(discordId, itemId);
+  // A Patreon custom role is your color: shop color roles stay in your inventory but can't be worn with it
+  if (await hasActiveCustomRole(discordId)) {
+    throw new StoreError("Your Patreon custom role is your color now, so shop color roles can't be equipped with it. Remove your custom role on My Account → Supporter perks (or /myrole remove) to wear this one.");
+  }
   const memberRoles = await getMemberRoleIds(discordId);
   if (!memberRoles) throw new StoreError("You need to be in the Kitty Kingdom Discord server to equip roles.");
   if (memberRoles.includes(roleId)) throw new StoreError("That role is already equipped.");

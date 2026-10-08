@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, CircleAlert, Crown, Gem, Loader2, Lock, Palette, PauseCircle, Sparkles } from "lucide-react";
+import { Check, CircleAlert, Crown, Gem, Loader2, Lock, Palette, PauseCircle, RotateCcw, Sparkles, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { NITRO, TIERS, itemsLabel, pct, type Tier } from "../../lib/perks";
 import type { RoleStyle, SupporterStatus } from "../../lib/supporter";
@@ -78,6 +78,8 @@ export function SupporterCard({ displayName }: { displayName: string }) {
   const [titleSaving, setTitleSaving] = useState(false);
   const [editing, setEditing] = useState<"color" | "color2">("color");
   const [saved, setSaved] = useState<string | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  const [removing, setRemoving] = useState(false);
   const [form, setForm] = useState({ name: "", style: "solid" as RoleStyle, color: "#E8622C", color2: "#F5B83D", icon: "" });
 
   const load = useCallback(async (fillForm = false) => {
@@ -124,6 +126,29 @@ export function SupporterCard({ displayName }: { displayName: string }) {
     if (!res?.ok) return setError(res?.error ?? "Couldn't save your role.");
     setStatus(res.status);
     setSaved("Saved! Your role updates in Discord in a few seconds.");
+  }
+
+  async function removeRole() {
+    setRemoving(true);
+    setError(null);
+    setSaved(null);
+    const res = await fetch("/api/account/supporter", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "remove-role" }) })
+      .then((r) => r.json())
+      .catch(() => null);
+    setRemoving(false);
+    setConfirmRemove(false);
+    if (!res?.ok) return setError(res?.error ?? "Couldn't remove your role.");
+    setStatus(res.status);
+    setForm({ name: displayName.slice(0, 32), style: "solid", color: "#E8622C", color2: "#F5B83D", icon: "" });
+    setSaved("Removed. Your role disappears from Discord in a few seconds, and you can equip shop color roles again.");
+  }
+
+  // Back to the saved design (or the defaults if there isn't one)
+  function resetForm() {
+    const r = status?.customRole;
+    setForm(r ? { name: r.name, style: r.style, color: r.color, color2: r.color2 ?? "#F5B83D", icon: r.icon ?? "" } : { name: displayName.slice(0, 32), style: "solid", color: "#E8622C", color2: "#F5B83D", icon: "" });
+    setError(null);
+    setSaved(null);
   }
 
   if (!status) return <p className="roles-muted">{error ?? "Loading your perks…"}</p>;
@@ -276,9 +301,31 @@ export function SupporterCard({ displayName }: { displayName: string }) {
               </label>
               {error ? <p className="sp-error" role="alert">{error}</p> : null}
               {saved ? <p className="sp-saved" role="status">{saved}</p> : null}
-              <button type="button" className="sp-save" onClick={save} disabled={saving || !form.name.trim()}>
-                {saving ? "Saving…" : role ? "Save changes" : "Create my role"}
-              </button>
+              <div className="sp-actions">
+                <button type="button" className="sp-save" onClick={save} disabled={saving || removing || !form.name.trim()}>
+                  {saving ? "Saving…" : role ? "Save changes" : "Create my role"}
+                </button>
+                <button type="button" className="sp-ghost" onClick={resetForm} disabled={saving || removing}>
+                  <RotateCcw size={14} aria-hidden="true" /> Reset
+                </button>
+                {role ? (
+                  confirmRemove ? (
+                    <>
+                      <button type="button" className="sp-ghost sp-danger" onClick={() => void removeRole()} disabled={removing}>
+                        <Trash2 size={14} aria-hidden="true" /> {removing ? "Removing…" : "Yes, remove it"}
+                      </button>
+                      <button type="button" className="sp-ghost" onClick={() => setConfirmRemove(false)} disabled={removing}>
+                        Keep it
+                      </button>
+                    </>
+                  ) : (
+                    <button type="button" className="sp-ghost sp-danger" onClick={() => setConfirmRemove(true)} disabled={saving}>
+                      <Trash2 size={14} aria-hidden="true" /> Remove my role
+                    </button>
+                  )
+                ) : null}
+              </div>
+              {role ? <p className="sp-note">Your custom role replaces shop color roles: while you have it, those stay in your inventory but can&apos;t be equipped.</p> : null}
               <p className="sp-note">You can also use <code>/myrole</code> in Discord. Names are checked by AutoMod.</p>
             </div>
             <RolePreview name={form.name} style={form.style} color={form.color} color2={form.color2} icon={status.canExtras ? form.icon : ""} displayName={displayName} />
