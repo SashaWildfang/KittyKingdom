@@ -9,7 +9,12 @@ import {
   Crown,
   Download,
   CalendarDays,
+  BadgeCheck,
+  Bell,
+  ClipboardList,
   DoorOpen,
+  Folder,
+  PanelTop,
   Lock,
   LogOut,
   SquareTerminal,
@@ -73,6 +78,11 @@ const ICONS: Record<string, LucideIcon> = {
   lock: Lock,
   terminal: SquareTerminal,
   trash: Trash2,
+  folder: Folder,
+  bell: Bell,
+  clipboard: ClipboardList,
+  badge: BadgeCheck,
+  panel: PanelTop,
 };
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);

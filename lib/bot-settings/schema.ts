@@ -508,13 +508,80 @@ const MODERATION: BotDef = {
   ],
 };
 
-const soon = (key: string, name: string, about: string): BotDef => ({ key, name, about, ready: false, sections: [] });
+const TICKETING: BotDef = {
+  key: "ticketing",
+  name: "Ticket Bot",
+  about: "Support tickets, staff applications, NSFW verification tickets, transcripts and staff alerts.",
+  ready: true,
+  sections: [
+    {
+      key: "tickets",
+      title: "Ticket categories",
+      icon: "folder",
+      about: "Where ticket channels live as they move from open to claimed to closed.",
+      fields: [
+        { key: "tickets.openCategory", label: "Open tickets", help: "New support, staff application and NSFW verification tickets are created here.", type: "channel", channelKind: "category", default: "1362459990245245151" },
+        { key: "tickets.claimedCategory", label: "Claimed tickets", help: "Tickets move here once a staff member claims them.", type: "channel", channelKind: "category", default: "1362461644768411758" },
+        { key: "tickets.escalatedCategory", label: "Escalated tickets", help: "Tickets handed up to higher staff.", type: "channel", channelKind: "category", default: "1529626932256182372" },
+        { key: "tickets.closedCategory", label: "Closed tickets", help: "Closed tickets wait here until they're deleted.", type: "channel", channelKind: "category", default: "1448247633574363237" },
+      ],
+    },
+    {
+      key: "alerts",
+      title: "Staff alerts & logs",
+      icon: "bell",
+      about: "How staff hear about new tickets, and where tickets are logged.",
+      fields: [
+        { key: "alerts.enabled", label: "Ping staff for new tickets", help: "", type: "toggle", default: true },
+        { key: "alerts.channel", label: "Alert channel", help: "Where the new-ticket ping goes.", type: "channel", channelKind: "text", default: "1485825407654559846" },
+        { key: "alerts.pingRole", label: "Ping role", help: "", type: "role", default: "1358470109965979859" },
+        { key: "logs.bot", label: "Ticket log", help: "Opened, claimed and closed tickets, and NSFW verifications.", type: "channel", channelKind: "text", default: "1360344042705256660" },
+        { key: "logs.transcripts", label: "Transcript channel", help: "Where closed-ticket transcripts are saved (members also see theirs on the website).", type: "channel", channelKind: "text", default: "1445923851178610718" },
+      ],
+    },
+    {
+      key: "staffApps",
+      title: "Staff applications",
+      icon: "clipboard",
+      about: "Who can open a staff application ticket.",
+      fields: [
+        { key: "staffApps.enabled", label: "Applications open", help: "Turn off to close staff applications (the button explains they're closed).", type: "toggle", default: true },
+        { key: "staffApps.minLevel", label: "Minimum level", help: "", type: "number", default: 5, min: 0, max: 200 },
+        { key: "staffApps.minDays", label: "Minimum time in the server", help: "", type: "number", default: 30, min: 0, max: 3650, unit: "days" },
+      ],
+    },
+    {
+      key: "nsfw",
+      title: "NSFW verification",
+      icon: "badge",
+      about: "/nsfwverify and the welcome to the 18+ side.",
+      fields: [
+        { key: "nsfw.role", label: "18+ Verified role", help: "Given when staff verify someone.", type: "role", default: "1358469974552870913" },
+        { key: "nsfw.memberRole", label: "Required role", help: "Only members with this role can be verified.", type: "role", default: "1358469854725931038" },
+        { key: "nsfw.welcome", label: "Welcome message", help: "Welcome newly verified members on the 18+ side.", type: "toggle", default: true },
+        { key: "nsfw.welcomeChannel", label: "Welcome channel", help: "", type: "channel", channelKind: "text", default: "1358487735811182682" },
+      ],
+    },
+    {
+      key: "panels",
+      title: "Ticket panels",
+      icon: "panel",
+      about: "The channels with the open-a-ticket buttons. Changes take effect the next time the bot starts.",
+      fields: [
+        { key: "panels.supportChannel", label: "Support panel channel", help: "", type: "channel", channelKind: "text", default: "1495841072423899276" },
+        { key: "panels.staffChannel", label: "Staff application panel channel", help: "", type: "channel", channelKind: "text", default: "1495830924926128148" },
+        { key: "panels.nsfwChannel", label: "NSFW verification panel channel", help: "", type: "channel", channelKind: "text", default: "1358485673991999721" },
+      ],
+    },
+  ],
+};
+
 
 export const BOTS: BotDef[] = [
   MAIN,
   ECONOMY,
   MODERATION,
-  soon("ticketing", "Ticket Bot", "Support tickets, transcripts and NSFW verification."),
+  TICKETING,
 ];
 
 export const botDef = (key: string) => BOTS.find((b) => b.key === key) ?? null;
