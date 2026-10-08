@@ -4,7 +4,7 @@ import { isDatabaseConnectionError } from "../../../../lib/db-errors";
 import { getUsersCollection } from "../../../../lib/mongodb";
 import { HOUR, allow, clientIp } from "../../../../lib/rate-limit";
 import { removeAbandonedRegistrations, sendSignupVerification, setRegistrationCookie } from "../../../../lib/registration";
-import { cleanEmail, cleanPassword, isFormPost } from "../../../../lib/validate";
+import { cleanEmail, cleanPassword, isBlockedEmailDomain, isFormPost } from "../../../../lib/validate";
 
 export const maxDuration = 10;
 
@@ -27,6 +27,10 @@ export async function POST(request: Request) {
         `${origin}/register?register=email-required`,
         303,
       );
+    }
+
+    if (isBlockedEmailDomain(email)) {
+      return NextResponse.redirect(`${origin}/register?register=email-blocked`, 303);
     }
 
     if (!acceptedPolicies) {
