@@ -202,7 +202,7 @@ export const PROCEDURES: Procedure[] = [
     steps: [
       { title: "Open the pending list", detail: "Use the website's Join Apps tab, or list them in Discord.", example: "/pending" },
       { title: "Check the age", detail: "Date of birth must be filled in properly and show they're 18 or older. Underage forms are kicked automatically." },
-      { title: "Check the password", detail: "It must match the password hidden in the rules.", example: "/getpassword" },
+      { title: "Check the password", detail: "It must match the password hidden in the rules. The bot already handles wrong ones: a near miss is auto-denied with a 5-minute wait, and a guess that's nowhere close is banned automatically (appealable).", example: "/getpassword" },
       { title: "Check the answers", detail: "Look for real effort in how they found us, their fursona and the bit about themselves." },
     ],
     outcomes: [
@@ -210,7 +210,10 @@ export const PROCEDURES: Procedure[] = [
       { when: "Something's missing or wrong", tone: "warn", do: "Deny with a clear reason so they can fix it and apply again." },
       { when: "Raider, troll or obvious fake", tone: "bad", do: "Use Ban on the application. It's logged like any other ban." },
     ],
-    notes: ["Denied someone who should get another try straight away? /resetverification user:@member lifts the waiting period."],
+    notes: [
+      "Denied someone who should get another try straight away? /resetverification user:@member lifts the waiting period.",
+      "Anyone who joins and leaves within 2 minutes is banned automatically as a likely raid or spam account. The ban is appealable, so a real person can appeal and be unbanned.",
+    ],
   },
   {
     key: "problem",
