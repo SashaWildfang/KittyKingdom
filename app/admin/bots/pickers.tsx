@@ -1,6 +1,6 @@
 "use client";
 
-import { Hash, Search, Volume2, X } from "lucide-react";
+import { Folder, Hash, Search, Volume2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 export type Meta = {
@@ -9,11 +9,13 @@ export type Meta = {
   roles: { id: string; name: string; color: string | null; managed: boolean }[];
 };
 
-type Option = { id: string; label: string; sub?: string | null; color?: string | null; voice?: boolean };
+type Option = { id: string; label: string; sub?: string | null; color?: string | null; voice?: boolean; category?: boolean };
 
-export function channelOptions(meta: Meta | null, kind: "text" | "voice" | "any" | "category" = "any"): Option[] {
+export function channelOptions(meta: Meta | null, kind: "text" | "voice" | "any" | "category" | "mixed" = "any"): Option[] {
   if (!meta) return [];
-  if (kind === "category") return meta.categories.map((c) => ({ id: c.id, label: c.name }));
+  const cats = meta.categories.map((c) => ({ id: c.id, label: c.name, sub: "Category", category: true }));
+  if (kind === "category") return cats;
+  if (kind === "mixed") return [...cats, ...channelOptions(meta, "any")];
   return meta.channels
     .filter((c) => (kind === "voice" ? c.type === 2 || c.type === 13 : kind === "text" ? c.type !== 2 && c.type !== 13 : true))
     .map((c) => ({ id: c.id, label: c.name, sub: c.category, voice: c.type === 2 || c.type === 13 }));
@@ -28,6 +30,8 @@ function OptionLabel({ o, kind }: { o: Option; kind: "channel" | "role" }) {
     <span className="bs-opt">
       {kind === "role" ? (
         <i className="bs-dot" style={{ background: o.color ?? "var(--muted)" }} aria-hidden="true" />
+      ) : o.category ? (
+        <Folder size={13} aria-hidden="true" />
       ) : o.voice ? (
         <Volume2 size={13} aria-hidden="true" />
       ) : (

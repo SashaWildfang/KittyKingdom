@@ -14,6 +14,7 @@ import { serverGuidePath } from "./server-guide";
 import { Long, type Document } from "mongodb";
 import { getMemberRoleIds } from "./discord-member";
 import { getBotCollection } from "./mongodb";
+import { economyNumber } from "./bot-settings/live";
 import { ITEM, SHIELD_MAX_GAP } from "./cosmetics";
 import { StoreError } from "./store";
 
@@ -62,7 +63,14 @@ const num = (v: unknown) => (typeof v === "bigint" ? Number(v) : typeof v === "n
 const idFilter = (discordId: string) => ({ discordId: { $in: [Long.fromString(discordId), discordId] } });
 const cycleDayOf = (streak: number) => ((streak - 1) % CYCLE_DAYS) + 1;
 /** Base + the Patreon tier bonus (every claim) + the Nitro streak bonus */
-const rewardFor = (streak: number, nitro: boolean, patron = 0) => DAILY_BASE + patron + (nitro ? STREAK_STEP * cycleDayOf(streak) : 0);
+const rewardFor = (streak: number, nitro: boolean, patron: number, cfg: DailyConfig) => cfg.base + patron + (nitro ? cfg.step * cycleDayOf(streak) : 0);
+
+type DailyConfig = { base: number; step: number; gap: number };
+/** The amounts admins can change in Admin → Bots → Economy Bot (shared with /daily). */
+async function dailyConfig(): Promise<DailyConfig> {
+  const [base, step, gap] = await Promise.all([economyNumber("daily.base", DAILY_BASE), economyNumber("daily.streakStep", STREAK_STEP), economyNumber("daily.shieldMaxGap", SHIELD_MAX_GAP)]);
+  return { base, step, gap };
+}
 
 /** Nitro (streak bonus) and the Patreon tier's bonus on every claim, from the member's roles. */
 async function memberPerks(discordId: string) {
@@ -75,13 +83,13 @@ function lastDailyOf(doc: Document | null) {
   return v instanceof Date && !Number.isNaN(v.getTime()) ? v : null;
 }
 
-function statusFrom(doc: Document | null, nitro: boolean, now = new Date(), shields = 0, patron = 0): DailyStatus {
+function statusFrom(doc: Document | null, nitro: boolean, cfg: DailyConfig, now = new Date(), shields = 0, patron = 0): DailyStatus {
   const last = lastDailyOf(doc);
   const daysSince = last ? utcDay(now) - utcDay(last) : null;
   const claimedToday = daysSince === 0;
   // Days missed since the last claim, and whether shields can cover them
   const gap = daysSince !== null && daysSince > 1 ? daysSince - 1 : 0;
-  const shielded = gap > 0 && gap <= SHIELD_MAX_GAP && shields >= gap;
+  const shielded = gap > 0 && gap <= cfg.gap && shields >= gap;
   const alive = daysSince !== null && (daysSince <= 1 || shielded);
   const streak = alive ? Math.max(0, num(doc?.streak)) : 0;
 
@@ -99,15 +107,15 @@ function statusFrom(doc: Document | null, nitro: boolean, now = new Date(), shie
     nextClaimAt: new Date(claimedToday ? tomorrow : now.getTime()).toISOString(),
     // Lost at the start of the day after the last safe one: the day after the last claim, plus a day
     // for each shield still left over after covering days already missed
-    streakEndsAt: streak && last ? new Date((utcDay(last) + 2 + Math.min(SHIELD_MAX_GAP, shields) ) * DAY_MS).toISOString() : null,
+    streakEndsAt: streak && last ? new Date((utcDay(last) + 2 + Math.min(cfg.gap, shields)) * DAY_MS).toISOString() : null,
     nitro,
     cycleDone,
     nextCycleDay: cycleDayOf(nextStreak),
-    nextReward: rewardFor(nextStreak, nitro, patron),
-    nextRewardWithNitro: rewardFor(nextStreak, true, patron),
-    base: DAILY_BASE + patron,
+    nextReward: rewardFor(nextStreak, nitro, patron, cfg),
+    nextRewardWithNitro: rewardFor(nextStreak, true, patron, cfg),
+    base: cfg.base + patron,
     patronBonus: patron,
-    step: STREAK_STEP,
+    step: cfg.step,
     perksPath: null,
     shields,
     shieldsNeeded: shielded ? gap : 0,
@@ -120,18 +128,18 @@ async function shieldCount(discordId: string) {
 
 export async function getDailyStatus(discordId: string) {
   const users = await getBotCollection("users");
-  const [doc, perks, shields] = await Promise.all([users.findOne(idFilter(discordId), { projection: { balance: 1, streak: 1, lastDaily: 1 }, ...BIG }), memberPerks(discordId), shieldCount(discordId)]);
-  const [status, perksPath] = [statusFrom(doc, perks.nitro, new Date(), shields, perks.patron), await serverGuidePath("boost").catch(() => null)];
+  const [doc, perks, shields, cfg] = await Promise.all([users.findOne(idFilter(discordId), { projection: { balance: 1, streak: 1, lastDaily: 1 }, ...BIG }), memberPerks(discordId), shieldCount(discordId), dailyConfig()]);
+  const [status, perksPath] = [statusFrom(doc, perks.nitro, cfg, new Date(), shields, perks.patron), await serverGuidePath("boost").catch(() => null)];
   return { ...status, perksPath };
 }
 
 /** Claims today's reward. Safe against double clicks: the write only lands if nobody claimed in between. */
 export async function claimDaily(discordId: string) {
   const users = await getBotCollection("users");
-  const [doc, perks, shields] = await Promise.all([users.findOne(idFilter(discordId), { ...BIG }), memberPerks(discordId), shieldCount(discordId)]);
+  const [doc, perks, shields, cfg] = await Promise.all([users.findOne(idFilter(discordId), { ...BIG }), memberPerks(discordId), shieldCount(discordId), dailyConfig()]);
   const { nitro, patron } = perks;
   const now = new Date();
-  let before = statusFrom(doc, nitro, now, shields, patron);
+  let before = statusFrom(doc, nitro, cfg, now, shields, patron);
   if (before.claimedToday) throw new StoreError("You already claimed today's leaves. Come back after the reset!", 409);
 
   // Missed days: use one shield per day (all or none); if any can't be taken, the streak resets
@@ -149,13 +157,13 @@ export async function claimDaily(discordId: string) {
       // Not enough after all (used elsewhere at the same moment): give them back, the streak resets
       if (taken.length) await inv.insertMany(taken).catch(() => undefined);
       usedShields = 0;
-      before = statusFrom(doc, nitro, now, 0, patron);
+      before = statusFrom(doc, nitro, cfg, now, 0, patron);
     }
   }
 
   const streak = before.streak + 1;
-  const reward = rewardFor(streak, nitro, patron);
-  const bonus = reward - DAILY_BASE - patron;
+  const reward = rewardFor(streak, nitro, patron, cfg);
+  const bonus = reward - cfg.base - patron;
 
   if (doc) {
     const res = await users.updateOne(
@@ -172,7 +180,7 @@ export async function claimDaily(discordId: string) {
   const saved = usedShields && before.streak ? ` 🛡️ ${usedShields} Streak Shield${usedShields === 1 ? "" : "s"} kept your streak alive.` : "";
   const message =
     (bonus
-      ? `+${reward.toLocaleString()} leaves! (${DAILY_BASE}${patron ? ` + ${patron} supporter bonus` : ""} + ${bonus} day ${cycleDayOf(streak)} streak bonus)`
+      ? `+${reward.toLocaleString()} leaves! (${cfg.base}${patron ? ` + ${patron} supporter bonus` : ""} + ${bonus} day ${cycleDayOf(streak)} streak bonus)`
       : `+${reward.toLocaleString()} leaves!${patron ? ` (includes your +${patron} supporter bonus)` : ""} Streak: ${streak} day${streak === 1 ? "" : "s"}.`) + saved;
   return { message, reward, bonus, status: { ...after, perksPath: await serverGuidePath("boost").catch(() => null) } };
 }

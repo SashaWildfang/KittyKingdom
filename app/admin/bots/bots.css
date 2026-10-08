@@ -213,6 +213,10 @@
   padding: 0.05rem 0.45rem;
   text-transform: uppercase;
 }
+.bs-tag.is-shared {
+  background: rgba(62, 155, 255, 0.18);
+  color: #7fb8ff;
+}
 .bs-tag.is-unsaved {
   background: rgba(255, 179, 71, 0.22);
   color: #ffb347;
