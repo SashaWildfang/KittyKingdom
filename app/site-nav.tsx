@@ -11,7 +11,6 @@ import { MobileMenu } from "./mobile-menu";
 import { MessagesButton } from "./messages-nav-badge";
 import { OWNER_DISCORD_ID } from "../lib/ticket-delete";
 
-const PATREON_URL = "https://www.patreon.com/c/thekittykingdom/membership";
 
 type SiteNavProps = {
   signedIn: boolean;
@@ -36,7 +35,7 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
     { href: "/news", label: "News", icon: "news" as const },
     { href: "/rules", label: "Rules", icon: "rules" as const },
     { href: "https://discord.com/invite/M9XKHFdYQV", label: "Discord", icon: "discord" as const, external: true },
-    { href: PATREON_URL, label: "Patreon", icon: "patreon" as const, external: true },
+    { href: "/patreon", label: "Patreon", icon: "patreon" as const },
     ...(dating ? [{ href: "/social", label: "Social", icon: "dating" as const }] : []),
     ...(linked ? [{ href: "/store", label: "Store", icon: "store" as const }, { href: "/games", label: "Games", icon: "games" as const }, { href: "/leaderboards", label: "Leaderboards", icon: "leaderboards" as const }] : []),
     ...(panel ? [{ href: "/admin", label: panel.level === "admin" ? "Admin" : "Staff Panel", icon: "admin" as const }] : []),
@@ -70,7 +69,7 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
         <a href="https://discord.com/invite/M9XKHFdYQV" target="_blank" rel="noopener noreferrer">
           Discord
         </a>
-        <a className="nav-patreon-tab" href={PATREON_URL} target="_blank" rel="noopener noreferrer">
+        <a className="nav-patreon-tab" href="/patreon">
           Patreon
         </a>
         {dating ? (

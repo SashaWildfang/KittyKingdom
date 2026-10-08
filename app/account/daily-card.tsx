@@ -1,7 +1,7 @@
 "use client";
 
 import { DAILY_CLAIMED_EVENT } from "./daily-ready";
-import { Check, Clock, ExternalLink, Flame, Gem, Gift, Lock, ShieldCheck } from "lucide-react";
+import { Check, Clock, ExternalLink, Flame, Gem, Gift, Lock, ShieldCheck, Crown } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DailyStatus } from "../../lib/daily";
 import { LeafEmote } from "../ui-icons";
@@ -184,6 +184,12 @@ export function DailyCard({ initial, guildId }: { initial: DailyStatus | null; g
           );
         })}
       </ol>
+
+      {status.patronBonus ? (
+        <p className="daily-nitro-on">
+          <Crown size={15} aria-hidden="true" /> Supporter bonus: <b>+{status.patronBonus}</b> leaves on every claim. Thank you for supporting us!
+        </p>
+      ) : null}
 
       {status.nitro ? (
         <p className="daily-nitro-on">

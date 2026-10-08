@@ -1,0 +1,397 @@
+/* My Account → Supporter perks */
+.sp {
+  display: grid;
+  gap: 1rem;
+}
+.sp-hero {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid color-mix(in srgb, var(--tier) 55%, var(--line));
+  border-radius: 16px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--tier) 22%, transparent), transparent 70%);
+}
+.sp-hero-emoji {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--tier) 25%, transparent);
+  font-size: 1.6rem;
+}
+.sp-hero small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.sp-hero h3 {
+  margin: 0.1rem 0;
+  font-size: 1.25rem;
+}
+.sp-hero p {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0;
+  color: var(--muted);
+}
+.sp-perks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 0.8rem;
+}
+.sp-perks > div {
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel-strong, var(--panel));
+}
+.sp-perks h4,
+.sp-role h4 {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+.sp-perks ul {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sp-perks li {
+  display: flex;
+  gap: 0.45rem;
+  line-height: 1.4;
+  font-size: 0.93rem;
+}
+.sp-perks li svg {
+  flex: none;
+  margin-top: 0.2rem;
+  color: #46a758;
+}
+
+/* Custom role */
+.sp-role {
+  padding: 1rem 1.05rem;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel-strong, var(--panel));
+}
+.sp-role-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+.sp-role-head h4 {
+  margin: 0;
+}
+.sp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+.sp-badge.is-live {
+  background: rgba(70, 167, 88, 0.16);
+  color: #5fc06f;
+}
+.sp-badge.is-pending {
+  background: rgba(62, 155, 255, 0.16);
+  color: #8fc4ff;
+}
+.sp-badge.is-paused {
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+  color: var(--muted);
+}
+.sp-badge.is-error {
+  background: rgba(229, 72, 77, 0.16);
+  color: #f07a7e;
+}
+.sp-spin {
+  animation: sp-spin 1s linear infinite;
+}
+@keyframes sp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.sp-role-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+.sp-form {
+  display: grid;
+  gap: 0.75rem;
+}
+.sp-form label,
+.sp-field {
+  display: grid;
+  gap: 0.3rem;
+}
+.sp-form label > span,
+.sp-field > span {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+.sp-form label > span em {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-style: normal;
+  color: var(--gold);
+}
+.sp-form input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+}
+.sp-form input:disabled {
+  opacity: 0.55;
+}
+.sp-seg {
+  display: flex;
+  gap: 0.3rem;
+  padding: 0.25rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.sp-seg button {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.45rem 0.5rem;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.sp-seg button.is-on {
+  background: var(--ember);
+  color: #1d0b05;
+}
+.sp-seg button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.sp-colors {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.6rem;
+}
+.sp-color {
+  display: flex;
+  gap: 0.4rem;
+}
+.sp-form .sp-color input[type="color"] {
+  flex: none;
+  width: 2.6rem;
+  height: 2.4rem;
+  padding: 0.15rem;
+  cursor: pointer;
+}
+.sp-save {
+  justify-self: start;
+  padding: 0.65rem 1.2rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ember);
+  color: #1d0b05;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+.sp-save:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.sp-note {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.sp-error {
+  margin: 0;
+  color: #f07a7e;
+  font-weight: 700;
+}
+.sp-saved {
+  margin: 0;
+  color: #5fc06f;
+  font-weight: 700;
+}
+
+/* Discord-style preview (always dark, like Discord) */
+.sp-preview {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.9rem;
+  border-radius: 14px;
+  background: #313338;
+  color: #dbdee1;
+}
+.sp-preview > small {
+  color: #949ba4;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.sp-preview-msg {
+  display: flex;
+  gap: 0.75rem;
+}
+.sp-preview-avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f59b2a, #c85f18);
+  color: #fff;
+  font-weight: 900;
+}
+.sp-preview-msg p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem;
+  margin: 0;
+}
+.sp-preview-msg b {
+  font-size: 1rem;
+}
+.sp-holo {
+  background-size: 200% 100% !important;
+  animation: sp-holo 3s linear infinite;
+}
+@keyframes sp-holo {
+  to {
+    background-position: 200% 0;
+  }
+}
+.sp-preview-icon {
+  font-size: 1rem;
+}
+.sp-preview-time {
+  color: #949ba4;
+  font-size: 0.75rem;
+}
+.sp-preview-text {
+  margin-top: 0.15rem !important;
+  color: #dbdee1;
+}
+.sp-preview-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 0.4rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  background: #2b2d31;
+  color: #dbdee1;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.sp-preview-pill i {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+}
+
+/* Not a supporter / locked */
+.sp-empty,
+.sp-locked {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  line-height: 1.55;
+}
+.sp-empty svg,
+.sp-locked svg {
+  flex: none;
+  margin-top: 0.2rem;
+  color: var(--gold);
+}
+.sp-empty p,
+.sp-locked p {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+}
+.sp-locked p {
+  margin: 0;
+}
+.sp-locked a,
+.sp-empty a {
+  color: var(--gold);
+  font-weight: 800;
+}
+.sp-mini-tiers {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+.sp-mini-tiers > div {
+  display: grid;
+  justify-items: center;
+  gap: 0.15rem;
+  padding: 0.7rem 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--tier) 50%, var(--line));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--tier) 10%, transparent);
+  text-align: center;
+}
+.sp-mini-tiers span {
+  font-size: 1.4rem;
+}
+.sp-mini-tiers small {
+  color: var(--muted);
+}
+.sp-cta {
+  justify-self: start;
+  padding: 0.6rem 1.15rem;
+  border-radius: 999px;
+  background: var(--ember);
+  color: #1d0b05;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+@media (max-width: 760px) {
+  .sp-role-grid {
+    grid-template-columns: 1fr;
+  }
+  .sp-mini-tiers {
+    grid-template-columns: 1fr;
+  }
+}

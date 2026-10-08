@@ -1,6 +1,7 @@
 // FAQ & Guide content. Numbers come straight from the bots (main_bot: daily.py, leveling.py,
 // stats.py, store/items.py, ad_manager.py; dating/core/store.py), so keep them in sync when those change.
 
+import { NITRO, TIERS, pct } from "../../lib/perks";
 import type { ReactNode } from "react";
 
 export const DISCORD_INVITE = "https://discord.com/invite/M9XKHFdYQV";
@@ -250,7 +251,7 @@ export const TOPICS: Topic[] = [
       },
       {
         q: "What makes XP multipliers go up?",
-        a: "Server boosting (+15%), Patreon (+10%, +20% or +40% depending on tier), 2x XP weekends (every Friday to Sunday) and the 2x XP Booster from the Store all stack together.",
+        a: "Server boosting (+20%), Patreon (+25%, +50% or +100% depending on tier), 2x XP weekends (every Friday to Sunday) and the 2x XP Booster from the Store all stack together.",
         keywords: "multiplier boost bonus",
       },
     ],
@@ -312,7 +313,10 @@ export const TOPICS: Topic[] = [
               <b>Golden Leaf (Nitro) role</b> and a shiny booster badge
             </li>
             <li>
-              <b>750 Leaves</b> every time you boost, and <b>+15% Leaves and +15% XP</b> on everything you earn
+              <b>{NITRO.perBoost.toLocaleString()} Leaves</b> every time you boost, plus <b>{NITRO.monthly.toLocaleString()} Leaves and a Streak Shield</b> every month
+            </li>
+            <li>
+              <b>{pct(NITRO.leaf)} Leaves and {pct(NITRO.xp)} XP</b> on everything you earn
             </li>
             <li>
               <b>Daily streaks:</b> +100 to +700 extra Leaves on your Daily Reward
@@ -325,6 +329,9 @@ export const TOPICS: Topic[] = [
             </li>
             <li>
               <b>A bigger chance</b> in Social&apos;s hourly Featured draw
+            </li>
+            <li>
+              Use <b>emotes and stickers from other servers</b>
             </li>
           </ul>
         ),
@@ -353,16 +360,18 @@ export const TOPICS: Topic[] = [
         keywords: "patreon support tiers",
         body: (
           <div className="kb-tiers">
-            {[
-              { name: "Royal Kitten", xp: "+10% XP · 1,000 🍁 a month" },
-              { name: "Kitten Guardian", xp: "+20% XP · 2,000 🍁 a month" },
-              { name: "Legendary Neko", xp: "+40% XP · 4,000 🍁 a month" },
-            ].map((t, i) => (
+            {TIERS.map((t, i) => (
               <div key={t.name} className={`kb-tier kb-tier--${i + 1}`}>
-                <small>Tier {i + 1}</small>
+                <small>
+                  {t.emoji} ${t.price}/month
+                </small>
                 <b>{t.name}</b>
-                <span>{t.xp}</span>
-                <em>Exclusive role · a bigger chance in Social&apos;s Featured draw</em>
+                <span>
+                  {t.monthly.toLocaleString()} 🍁 a month · {pct(t.xp)} XP · {pct(t.leaf)} Leaves
+                </span>
+                <em>
+                  +{t.daily} on every Daily Reward{t.customRole ? " · custom role" : ""}{t.roleExtras ? " (holographic + icon)" : ""}{t.premiumGames ? " · premium games" : ""}
+                </em>
               </div>
             ))}
           </div>
@@ -374,13 +383,17 @@ export const TOPICS: Topic[] = [
         q: "How do I get my Patreon perks?",
         a: (
           <>
-            Join a tier on <a href={PATREON_URL}>our Patreon</a> and connect Discord in your Patreon settings. Your role (and its perks) arrive automatically. Use <Cmd>/patreon</Cmd> in the server for the link any time.
+            Join a tier on <a href={PATREON_URL}>our Patreon</a> and connect Discord in your Patreon settings. Your role and perks arrive within a few minutes. See everything on the <a href="/patreon">Patreon page</a>, or use <Cmd>/perks</Cmd> in the server.
           </>
         ),
       },
       {
         q: "Do Patreon and boosting stack?",
-        a: "Yes! Your Patreon XP bonus and booster bonus add together, on top of any XP weekend or Store booster.",
+        a: "Yes! Your Patreon and booster bonuses add together (Leaves, XP and monthly rewards), on top of any XP weekend or Store booster.",
+      },
+      {
+        q: "How do I design my custom role?",
+        a: "Maple Noble ($10) and Harvest Monarch ($20) supporters can design a role on My Account → Supporter perks (or with /myrole): a name, a solid or gradient color, and for Harvest Monarchs the holographic style and an emoji icon. It updates in Discord within seconds.",
       },
     ],
   },
