@@ -7,6 +7,7 @@
 // never leaves the server until the game is over. Each game is one record (`mn:<discordId>`) and every move is
 // applied with a version check, so a double click or a second tab can't reveal twice or cash out twice.
 
+import { economyNumber } from "../bot-settings/live";
 import { addToJackpot, charge, credit, gameCollections, GameError, getBalance, recordGame, shuffle } from "./core";
 
 export const MINES_TILES = 25;
@@ -96,8 +97,9 @@ export async function minesState(discordId: string) {
 export async function startMines(discordId: string, rawBet: unknown, rawMines: unknown) {
   const bet = Math.floor(Number(rawBet));
   const mines = Math.floor(Number(rawMines));
-  if (!Number.isFinite(bet) || bet < MINES_MIN_BET) throw new GameError(`The minimum bet is ${MINES_MIN_BET} leaves.`);
-  if (bet > MINES_MAX_BET) throw new GameError(`The most you can bet is ${MINES_MAX_BET.toLocaleString()} leaves.`);
+  const [minBet, maxBet] = await Promise.all([economyNumber("casino.minesMinBet", MINES_MIN_BET), economyNumber("casino.minesMaxBet", MINES_MAX_BET)]);
+  if (!Number.isFinite(bet) || bet < minBet) throw new GameError(`The minimum bet is ${minBet} leaves.`);
+  if (bet > maxBet) throw new GameError(`The most you can bet is ${maxBet.toLocaleString()} leaves.`);
   if (!Number.isFinite(mines) || mines < 1 || mines > MINES_TILES - 1) throw new GameError(`Pick between 1 and ${MINES_TILES - 1} mines.`);
   const existing = await load(discordId);
   if (existing?.status === "playing") throw new GameError("Finish your current board first (cash out or keep picking).", 409);

@@ -7,6 +7,7 @@ import { withTierAliases } from "../tier-roles";
 import { hasPremiumGames } from "../perks";
 import { Long } from "mongodb";
 import { getMemberRoleIds } from "../discord-member";
+import { economyNumber } from "../bot-settings/live";
 import { addToJackpot, BASE_JACKPOT, charge, credit, gameCollections, GameError, getBalance, num, random, userFilter } from "./core";
 import { PAIR_CHANCE, SLOT_SYMBOLS, TRIPLE_CHANCE, type SlotSymbol } from "./slot-symbols";
 
@@ -78,7 +79,7 @@ async function isNitro(discordId: string) {
 export async function getJackpot() {
   const { globals } = await gameCollections();
   const doc = await globals.findOne({ _id: "casino_jackpot" } as never);
-  return doc ? num(doc.amount) : BASE_JACKPOT;
+  return doc ? num(doc.amount) : await economyNumber("casino.jackpotReset", BASE_JACKPOT);
 }
 
 export async function slotsStatus(discordId: string) {
@@ -90,14 +91,16 @@ export async function slotsStatus(discordId: string) {
 /** Takes the whole jackpot (and resets it) in one step, so two winners can't both get it. */
 async function claimJackpot() {
   const { globals } = await gameCollections();
-  const before = await globals.findOneAndUpdate({ _id: "casino_jackpot" } as never, { $set: { amount: BASE_JACKPOT } }, { upsert: true, returnDocument: "before" });
-  return before ? num(before.amount) : BASE_JACKPOT;
+  const reset = await economyNumber("casino.jackpotReset", BASE_JACKPOT);
+  const before = await globals.findOneAndUpdate({ _id: "casino_jackpot" } as never, { $set: { amount: reset } }, { upsert: true, returnDocument: "before" });
+  return before ? num(before.amount) : reset;
 }
 
 export async function spinSlots(discordId: string, rawBet: unknown, rawSpins: unknown) {
   const bet = Math.floor(Number(rawBet));
   const spins = Math.floor(Number(rawSpins ?? 1));
-  if (!Number.isFinite(bet) || bet < SLOTS_MIN_BET) throw new GameError(`The minimum bet is ${SLOTS_MIN_BET} leaves a spin.`);
+  const minBet = await economyNumber("casino.slotsMinBet", SLOTS_MIN_BET);
+  if (!Number.isFinite(bet) || bet < minBet) throw new GameError(`The minimum bet is ${minBet} leaves a spin.`);
   if (bet > 10_000_000) throw new GameError("That bet is too big.");
   if (!Number.isFinite(spins) || spins < 1 || spins > SLOTS_MAX_SPINS) throw new GameError(`You can spin 1 to ${SLOTS_MAX_SPINS} times at once.`);
   if (spins > 1 && !(await isNitro(discordId))) throw new GameError("Multi-spin is for Nitro boosters.", 403);

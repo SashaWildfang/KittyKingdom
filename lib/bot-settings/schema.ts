@@ -23,6 +23,10 @@ export type Field = {
   maxLength?: number;
   /** Shown as a warning next to the field */
   warn?: string;
+  /** Channel pickers: which kinds to offer (default: text and voice channels) */
+  channelKind?: "any" | "text" | "voice" | "category" | "mixed";
+  /** Also used by the website (e.g. the website's games), so changing it changes both */
+  shared?: boolean;
 };
 
 export type Section = { key: string; title: string; icon: string; about: string; fields: Field[]; link?: { href: string; label: string } };
@@ -241,11 +245,177 @@ const MAIN: BotDef = {
   ],
 };
 
+
+const ECONOMY: BotDef = {
+  key: "economy",
+  name: "Economy Bot",
+  about: "Leaves and XP from chatting and voice, levels, the casino, Wordle, QOTD, chat events, daily rewards and monthly payouts.",
+  ready: true,
+  sections: [
+    {
+      key: "chat",
+      title: "Chat rewards",
+      icon: "message",
+      about: "Leaves and XP members earn for chatting (once per cooldown, before boosters and multipliers).",
+      fields: [
+        { key: "chat.enabled", label: "Reward chatting", help: "Turn off to stop Leaves and XP from messages.", type: "toggle", default: true },
+        { key: "chat.cooldownSeconds", label: "Cooldown", help: "Only one rewarded message per member in this time (stops spam farming).", type: "number", default: 60, min: 5, max: 3600, unit: "seconds" },
+        { key: "chat.leavesMin", label: "Leaves per message (min)", help: "A random amount between min and max.", type: "number", default: 30, min: 0, max: 10000 },
+        { key: "chat.leavesMax", label: "Leaves per message (max)", help: "", type: "number", default: 50, min: 0, max: 10000 },
+        { key: "chat.xpMin", label: "XP per message (min)", help: "A random amount between min and max.", type: "number", default: 25, min: 0, max: 10000 },
+        { key: "chat.xpMax", label: "XP per message (max)", help: "", type: "number", default: 50, min: 0, max: 10000 },
+        { key: "chat.ignoredChannels", label: "No rewards in these channels", help: "", type: "channels", default: ["1358486649360748665"] },
+        {
+          key: "chat.ignoredCategories",
+          label: "No rewards in these categories",
+          help: "",
+          type: "channels",
+          channelKind: "category",
+          default: ["1358485995649237103", "1362459990245245151", "1362461644768411758", "1448247633574363237", "1358485130242560020", "1358486463251091569"],
+        },
+      ],
+    },
+    {
+      key: "voice",
+      title: "Voice rewards",
+      icon: "mic",
+      about: "Leaves and XP for time spent in voice chat, and the AFK mover.",
+      fields: [
+        { key: "voice.minMinutes", label: "Minimum time", help: "Sessions shorter than this earn nothing.", type: "number", default: 5, min: 0, max: 600, unit: "minutes" },
+        { key: "voice.leavesPerMinute", label: "Leaves per minute", help: "Before multipliers.", type: "number", default: 4, min: 0, max: 1000 },
+        { key: "voice.xpPerMinute", label: "XP per minute", help: "Before multipliers.", type: "number", default: 5, min: 0, max: 1000 },
+        { key: "voice.notifyChannel", label: "Earnings channel", help: "Where members are told what a voice session earned.", type: "channel", default: "1358485891361804358" },
+        { key: "voice.logChannel", label: "Voice log channel", help: "Staff log of joins, leaves and moves.", type: "channel", default: "1503203701580365974" },
+        { key: "voice.afkChannel", label: "AFK channel", help: "Muted or deafened members are moved here.", type: "channel", channelKind: "voice", default: "1503213751862820984" },
+        { key: "voice.afkMinutes", label: "Move to AFK after", help: "How long someone can stay muted or deafened first.", type: "number", default: 5, min: 1, max: 240, unit: "minutes" },
+        {
+          key: "voice.afkExempt",
+          label: "Never move to AFK from",
+          help: "Voice channels or whole categories (music, streaming, sleep…).",
+          type: "channels",
+          channelKind: "mixed",
+          default: ["1358486797696630834", "1536206832551600168", "1534662928748253336"],
+        },
+      ],
+    },
+    {
+      key: "leveling",
+      title: "Levels",
+      icon: "trending",
+      about: "Level-up messages and the level that unlocks media.",
+      fields: [
+        { key: "leveling.announce", label: "Level-up messages", help: "Post a congrats message where members level up. Members can still turn theirs off with /levelups.", type: "toggle", default: true },
+        { key: "leveling.mediaEnabled", label: "Unlock media at a level", help: "Give Media Perms when a verified member reaches the level below.", type: "toggle", default: true },
+        { key: "leveling.mediaLevel", label: "Media unlock level", help: "", type: "number", default: 5, min: 0, max: 200 },
+      ],
+    },
+    {
+      key: "daily",
+      title: "Daily Reward",
+      icon: "calendar",
+      about: "/daily and the website's Daily Reward.",
+      fields: [
+        { key: "daily.base", label: "Daily Reward", help: "Leaves every claim (Patreon tiers add their bonus on top).", type: "number", default: 250, min: 0, max: 100000, shared: true },
+        { key: "daily.streakStep", label: "Booster streak step", help: "Boosters get this × their streak day (1–7) on top.", type: "number", default: 100, min: 0, max: 10000, shared: true },
+        { key: "daily.shieldMaxGap", label: "Streak Shields cover up to", help: "Missed days a Streak Shield can save in a row.", type: "number", default: 3, min: 0, max: 30, unit: "days", shared: true },
+      ],
+    },
+    {
+      key: "casino",
+      title: "Casino",
+      icon: "dice",
+      about: "Bet limits and the progressive jackpot, for the Discord commands and the website's games.",
+      fields: [
+        { key: "casino.slotsMinBet", label: "Slots minimum bet", help: "Per spin.", type: "number", default: 50, min: 1, max: 1000000, shared: true },
+        { key: "casino.blackjackMinBet", label: "Blackjack minimum bet", help: "", type: "number", default: 25, min: 1, max: 1000000, shared: true },
+        { key: "casino.minesMinBet", label: "Mines minimum bet", help: "", type: "number", default: 25, min: 1, max: 1000000, shared: true },
+        { key: "casino.minesMaxBet", label: "Mines maximum bet", help: "", type: "number", default: 1000000, min: 1, max: 100000000, shared: true },
+        { key: "casino.rouletteMinBet", label: "/roulette minimum bet", help: "Discord only (the website's live table has its own table limits).", type: "number", default: 25, min: 1, max: 1000000 },
+        { key: "casino.rouletteMaxBet", label: "/roulette maximum bet", help: "Stops doubling-up strategies from printing Leaves.", type: "number", default: 50000, min: 1, max: 100000000 },
+        { key: "casino.jackpotReset", label: "Jackpot resets to", help: "What the progressive jackpot starts at after someone wins it.", type: "number", default: 100000, min: 0, max: 100000000, shared: true },
+      ],
+    },
+    {
+      key: "games",
+      title: "Wordle & QOTD",
+      icon: "puzzle",
+      about: "Rewards for the daily Wordle and the Question of the Day.",
+      fields: [
+        { key: "wordle.leaves", label: "Wordle Leaves", help: "For solving the daily Wordle.", type: "number", default: 300, min: 0, max: 100000 },
+        { key: "wordle.xp", label: "Wordle XP", help: "", type: "number", default: 300, min: 0, max: 100000 },
+        { key: "qotd.channel", label: "QOTD channel", help: "Where the daily question is posted.", type: "channel", default: "1552119846584713287" },
+        { key: "qotd.pingRole", label: "QOTD ping role", help: "Pinged for each new question.", type: "role", default: "1552130421343395871" },
+        { key: "qotd.reward", label: "Leaves for a correct answer", help: "", type: "number", default: 250, min: 0, max: 100000 },
+        { key: "qotd.topStreaks", label: "Streaks shown in the reveal", help: "How many top streaks the daily answer post lists.", type: "number", default: 10, min: 1, max: 25 },
+      ],
+    },
+    {
+      key: "events",
+      title: "Chat events",
+      icon: "sparkles",
+      about: "Leaf Grab and Word Scramble pop up in busy chats.",
+      fields: [
+        { key: "leafGrab.enabled", label: "Leaf Grab", help: "A leaf drops in chat and the first to react gets it.", type: "toggle", default: true },
+        { key: "leafGrab.min", label: "Leaf Grab amount (min)", help: "", type: "number", default: 50, min: 0, max: 100000 },
+        { key: "leafGrab.max", label: "Leaf Grab amount (max)", help: "", type: "number", default: 100, min: 0, max: 100000 },
+        { key: "leafGrab.chancePercent", label: "Leaf Grab chance", help: "Checked every minute in channels with enough people chatting.", type: "number", default: 5, min: 0, max: 100, unit: "%" },
+        { key: "leafGrab.minChatters", label: "Leaf Grab needs", help: "People chatting in the channel.", type: "number", default: 2, min: 1, max: 50, unit: "people" },
+        { key: "leafGrab.chatterSeconds", label: "Counts as chatting for", help: "How long after their last message someone still counts.", type: "number", default: 60, min: 10, max: 3600, unit: "seconds" },
+        { key: "leafGrab.claimSeconds", label: "Time to grab it", help: "", type: "number", default: 60, min: 5, max: 600, unit: "seconds" },
+        {
+          key: "leafGrab.excludedCategories",
+          label: "No Leaf Grab in these categories",
+          help: "",
+          type: "channels",
+          channelKind: "category",
+          default: ["1358485130242560020", "1358486463251091569", "1362459990245245151", "1362461644768411758", "1448247633574363237", "1358487125661585658", "1358485995649237103"],
+        },
+        { key: "scramble.enabled", label: "Word Scramble", help: "Unscramble the word first to win.", type: "toggle", default: true },
+        { key: "scramble.channels", label: "Word Scramble channels", help: "Only these channels get it.", type: "channels", channelKind: "text", default: ["1358452494660796448", "1358487735811182682"] },
+        { key: "scramble.leaves", label: "Word Scramble Leaves", help: "", type: "number", default: 125, min: 0, max: 100000 },
+        { key: "scramble.xp", label: "Word Scramble XP", help: "", type: "number", default: 250, min: 0, max: 100000 },
+        { key: "scramble.chancePercent", label: "Word Scramble chance", help: "Per message in a busy channel.", type: "number", default: 2, min: 0, max: 100, unit: "%" },
+        { key: "scramble.seconds", label: "Time to answer", help: "", type: "number", default: 120, min: 10, max: 1800, unit: "seconds" },
+        { key: "scramble.cooldownSeconds", label: "Cooldown per channel", help: "", type: "number", default: 300, min: 0, max: 86400, unit: "seconds" },
+        { key: "scramble.minChatters", label: "Word Scramble needs", help: "People chatting in the channel.", type: "number", default: 2, min: 1, max: 50, unit: "people" },
+        { key: "scramble.chatterSeconds", label: "Counts as chatting for", help: "", type: "number", default: 60, min: 10, max: 3600, unit: "seconds" },
+      ],
+    },
+    {
+      key: "bump",
+      title: "Bump rewards",
+      icon: "rocket",
+      about: "What members get for bumping the server.",
+      fields: [
+        { key: "bump.disboardLeaves", label: "Disboard bump Leaves", help: "", type: "number", default: 250, min: 0, max: 100000 },
+        { key: "bump.disboardXp", label: "Disboard bump XP", help: "", type: "number", default: 300, min: 0, max: 100000 },
+        { key: "bump.discordMeLeaves", label: "Discord.me bump Leaves", help: "", type: "number", default: 500, min: 0, max: 100000 },
+        { key: "bump.discordMeXp", label: "Discord.me bump XP", help: "", type: "number", default: 500, min: 0, max: 100000 },
+      ],
+    },
+    {
+      key: "payouts",
+      title: "Payouts & XP Weekend",
+      icon: "gift",
+      about: "Where boosts, monthly supporter payouts and XP Weekend are announced.",
+      fields: [
+        { key: "payouts.boostChannel", label: "Boost thank-you channel", help: "", type: "channel", default: "1362519485650833468" },
+        { key: "payouts.monthlyChannel", label: "Monthly payout channel", help: "", type: "channel", default: "1362519485650833468" },
+        { key: "payouts.announcementChannel", label: "Announcements channel", help: "Monthly winners and supporter thank-yous.", type: "channel", default: "1358485236073238528" },
+        { key: "payouts.pingRole", label: "Announcement ping role", help: "", type: "role", default: "1363972415822237747" },
+        { key: "xpWeekend.multiplier", label: "XP Weekend multiplier", help: "XP from chatting is multiplied by this during XP Weekend.", type: "number", default: 2, min: 1, max: 10, unit: "×" },
+        { key: "xpWeekend.channel", label: "XP Weekend channel", help: "", type: "channel", default: "1358485236073238528" },
+        { key: "xpWeekend.pingRole", label: "XP Weekend ping role", help: "", type: "role", default: "1363972415822237747" },
+      ],
+    },
+  ],
+};
+
 const soon = (key: string, name: string, about: string): BotDef => ({ key, name, about, ready: false, sections: [] });
 
 export const BOTS: BotDef[] = [
   MAIN,
-  soon("economy", "Economy Bot", "Leaves, levels, the casino, Wordle, daily rewards and monthly payouts."),
+  ECONOMY,
   soon("moderation", "Moderation Bot", "AutoMod, punishments, join applications, rules and QOTD."),
   soon("ticketing", "Ticket Bot", "Support tickets, transcripts and NSFW verification."),
 ];
