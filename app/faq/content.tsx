@@ -392,8 +392,12 @@ export const TOPICS: Topic[] = [
         a: "Yes! Your Patreon and booster bonuses add together (Leaves, XP and monthly rewards), on top of any XP weekend or Store booster.",
       },
       {
+        q: "What commands do Patreon supporters get?",
+        a: "/chest opens a weekly Royal Chest of Leaves, /wheel spins the daily Royal Wheel, /title picks your title (King or Queen, Prince or Princess, Duke or Duchess), /myrole designs your custom role (Prince / Princess and up) and /perks shows everything you get. Supporters also save 5–15% in the Store.",
+      },
+      {
         q: "How do I design my custom role?",
-        a: "Maple Noble ($10) and Harvest Monarch ($20) supporters can design a role on My Account → Supporter perks (or with /myrole): a name, a solid or gradient color, and for Harvest Monarchs the holographic style and an emoji icon. It updates in Discord within seconds.",
+        a: "Prince / Princess ($10) and King / Queen ($20) supporters can design a role on My Account → Supporter perks (or with /myrole): a name, a solid or gradient color, and for Kings and Queens the holographic style and an emoji icon. It updates in Discord within seconds.",
       },
     ],
   },

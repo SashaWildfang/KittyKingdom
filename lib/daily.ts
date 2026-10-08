@@ -8,6 +8,7 @@
 // - Streak Shields (store item): a missed day uses one shield instead of breaking the streak
 //   (one shield per missed day, up to 3 missed days in a row)
 
+import { withTierAliases } from "./tier-roles";
 import { dailyBonusFromRoles } from "./perks";
 import { serverGuidePath } from "./server-guide";
 import { Long, type Document } from "mongodb";
@@ -65,7 +66,7 @@ const rewardFor = (streak: number, nitro: boolean, patron = 0) => DAILY_BASE + p
 
 /** Nitro (streak bonus) and the Patreon tier's bonus on every claim, from the member's roles. */
 async function memberPerks(discordId: string) {
-  const roles = await getMemberRoleIds(discordId).catch(() => null);
+  const roles = await withTierAliases(await getMemberRoleIds(discordId).catch(() => null));
   return { nitro: Boolean(roles?.includes(NITRO_ROLE_ID)), patron: dailyBonusFromRoles(roles) };
 }
 
