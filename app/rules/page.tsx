@@ -1,8 +1,34 @@
-import { Check, KeyRound, LifeBuoy, MessageCircle, X } from "lucide-react";
+import {
+  Ban,
+  Check,
+  ClipboardList,
+  Flame,
+  Gavel,
+  HeartHandshake,
+  KeyRound,
+  LifeBuoy,
+  Lock,
+  Megaphone,
+  MessageCircle,
+  MessagesSquare,
+  Mic,
+  RefreshCw,
+  ShieldCheck,
+  ShieldAlert,
+  Siren,
+  Sparkles,
+  TrendingUp,
+  Leaf,
+  UserCheck,
+  X,
+  Zap,
+  type LucideIcon,
+} from "lucide-react";
 import type { Metadata } from "next";
 import { Fragment, type CSSProperties, type ReactNode } from "react";
 import { getCurrentUser } from "../../lib/auth";
 import { getDiscordInviteSummary } from "../../lib/discord";
+import { stripEmojis } from "../../lib/names";
 import { RULES } from "../../lib/rules-data";
 import { DISCORD_INVITE } from "../faq/content";
 import { FallingLeaves } from "../fall-effects";
@@ -14,8 +40,30 @@ export const metadata: Metadata = {
   description: "The Kitty Kingdom rules: respect, 18+ only, SFW channels, dating on Social, asking before you DM, the 18+ area, safety, voice chats and how punishments work.",
 };
 
+// Icons instead of the emoji the Discord version uses
+const PART_ICONS: Record<string, LucideIcon> = {
+  basics: Leaf,
+  chat: MessagesSquare,
+  dating: HeartHandshake,
+  nsfw: Flame,
+  safety: ShieldCheck,
+  voice: Mic,
+  staff: Gavel,
+};
+const INFO_ICONS: [RegExp, LucideIcon][] = [
+  [/report/i, Siren],
+  [/punishment/i, TrendingUp],
+  [/record|appeal/i, ClipboardList],
+  [/change/i, RefreshCw],
+];
+// One icon per line of the short version, in order
+const TLDR_ICONS: LucideIcon[] = [Sparkles, UserCheck, ShieldAlert, HeartHandshake, MessageCircle, Ban, Lock, Gavel];
+
+const noEmoji = (text: string) => stripEmojis(text);
+
 /** **bold**, [links](url) and `code`, the only formatting the rules use. */
-function Md({ text }: { text: string }) {
+function Md({ text: raw }: { text: string }) {
+  const text = noEmoji(raw);
   const out: ReactNode[] = [];
   const re = /\*\*(.+?)\*\*|\[([^\]]+)\]\(([^)]+)\)|`([^`]+)`/g;
   let last = 0;
@@ -60,132 +108,158 @@ export default async function RulesPage() {
           </p>
         </section>
 
-        <section className="rl-intro">
-          <div className="rl-intro-text">
-            {RULES.intro.split("\n\n").map((para, i) => (
-              <p key={i}>
-                <Md text={para} />
-              </p>
-            ))}
-          </div>
-          <aside className="rl-tldr" aria-label="The short version">
-            <h2>⚡ The short version</h2>
-            <ul>
-              {RULES.tldr.map((t) => (
+        <section className="rl-tldr" aria-labelledby="rl-tldr-title">
+          <h2 id="rl-tldr-title">
+            <Zap size={18} aria-hidden="true" /> The short version
+          </h2>
+          <ul>
+            {RULES.tldr.map((t, i) => {
+              const Icon = TLDR_ICONS[i] ?? Check;
+              return (
                 <li key={t}>
-                  <Md text={t} />
+                  <span className="rl-tldr-icon" aria-hidden="true">
+                    <Icon size={17} />
+                  </span>
+                  <span>
+                    <Md text={t} />
+                  </span>
                 </li>
-              ))}
-            </ul>
-          </aside>
+              );
+            })}
+          </ul>
         </section>
 
-        <p className="rl-password">
-          <KeyRound size={17} aria-hidden="true" />
-          <span>
-            <b>Joining the server?</b> Your join form asks for a password that&apos;s hidden in the rules. It&apos;s only in the <b>#rules</b> channel in Discord, so read them there too.
-          </span>
-        </p>
-
-        <nav className="rl-toc" aria-label="Rule sections">
-          {RULES.parts.map((p) => {
-            const first = p.rules[0].n;
-            const last = p.rules[p.rules.length - 1].n;
-            return (
-              <a key={p.key} href={`#${p.key}`} style={{ "--tone": p.color } as CSSProperties}>
-                <span aria-hidden="true">{p.emoji}</span>
-                <span>
-                  <b>{p.title}</b>
-                  <small>{first === last ? `Rule ${first}` : `Rules ${first}–${last}`}</small>
-                </span>
-              </a>
-            );
-          })}
-        </nav>
-
-        {RULES.parts.map((part) => (
-          <section key={part.key} id={part.key} className="rl-part" style={{ "--tone": part.color } as CSSProperties}>
-            <header className="rl-part-head">
-              <span className="rl-part-emoji" aria-hidden="true">
-                {part.emoji}
+        <div className="rl-layout">
+          <aside className="rl-side">
+            <nav className="rl-toc" aria-label="Rule sections">
+              <p className="rl-toc-title">Sections</p>
+              {RULES.parts.map((p) => {
+                const Icon = PART_ICONS[p.key] ?? Megaphone;
+                const first = p.rules[0].n;
+                const last = p.rules[p.rules.length - 1].n;
+                return (
+                  <a key={p.key} href={`#${p.key}`} style={{ "--tone": p.color } as CSSProperties}>
+                    <span className="rl-toc-icon" aria-hidden="true">
+                      <Icon size={16} />
+                    </span>
+                    <span>
+                      <b>{p.title}</b>
+                      <small>{first === last ? `Rule ${first}` : `Rules ${first}–${last}`}</small>
+                    </span>
+                  </a>
+                );
+              })}
+            </nav>
+            <p className="rl-password">
+              <KeyRound size={17} aria-hidden="true" />
+              <span>
+                <b>Joining the server?</b> Your join form asks for a password. It&apos;s in the <b>#rules</b> channel in Discord, marked with a caution sign, so read them there too.
               </span>
-              <div>
-                <small>{part.label}</small>
-                <h2>{part.title}</h2>
-              </div>
-            </header>
-            {part.intro ? (
-              <p className="rl-part-intro">
-                <Md text={part.intro} />
-              </p>
-            ) : null}
-            <div className="rl-rules">
-              {part.rules.map((rule) => (
-                <article key={rule.n} id={`rule-${rule.n}`} className="rl-rule">
-                  <h3>
-                    <a href={`#rule-${rule.n}`} className="rl-num" aria-label={`Link to rule ${rule.n}`}>
-                      {rule.n}
-                    </a>
-                    {rule.title}
-                  </h3>
-                  <ul>
-                    {rule.points.map((pt) => (
-                      <li key={pt}>
-                        <Md text={pt} />
-                      </li>
-                    ))}
-                  </ul>
-                  {rule.bad.length || rule.good.length ? (
-                    <div className="rl-examples">
-                      {rule.bad.length ? (
-                        <div className="rl-ex is-bad">
-                          <h4>
-                            <X size={15} aria-hidden="true" /> Not okay
-                          </h4>
-                          <ul>
-                            {rule.bad.map((x) => (
-                              <li key={x}>
-                                <Md text={x} />
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      ) : null}
-                      {rule.good.length ? (
-                        <div className="rl-ex is-good">
-                          <h4>
-                            <Check size={15} aria-hidden="true" /> Okay
-                          </h4>
-                          <ul>
-                            {rule.good.map((x) => (
-                              <li key={x}>
-                                <Md text={x} />
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </article>
+            </p>
+          </aside>
+
+          <div className="rl-main">
+            <section className="rl-intro">
+              {RULES.intro.split("\n\n").map((para, i) => (
+                <p key={i}>
+                  <Md text={para} />
+                </p>
               ))}
-            </div>
-            {part.info.length ? (
-              <div className="rl-info">
-                {part.info.map((info) => (
-                  <div key={info.title}>
-                    <h3>{info.title}</h3>
-                    {info.body.split("\n").map((line) => (
-                      <p key={line}>
-                        <Md text={line} />
-                      </p>
+            </section>
+
+            {RULES.parts.map((part) => {
+              const Icon = PART_ICONS[part.key] ?? Megaphone;
+              return (
+                <section key={part.key} id={part.key} className="rl-part" style={{ "--tone": part.color } as CSSProperties}>
+                  <header className="rl-part-head">
+                    <span className="rl-part-icon" aria-hidden="true">
+                      <Icon size={22} />
+                    </span>
+                    <div>
+                      <small>{part.label}</small>
+                      <h2>{part.title}</h2>
+                    </div>
+                  </header>
+                  {part.intro ? (
+                    <p className="rl-part-intro">
+                      <Md text={part.intro} />
+                    </p>
+                  ) : null}
+                  <div className="rl-rules">
+                    {part.rules.map((rule) => (
+                      <article key={rule.n} id={`rule-${rule.n}`} className="rl-rule">
+                        <h3>
+                          <a href={`#rule-${rule.n}`} className="rl-num" aria-label={`Link to rule ${rule.n}`}>
+                            {rule.n}
+                          </a>
+                          <span>{noEmoji(rule.title)}</span>
+                        </h3>
+                        <ul>
+                          {rule.points.map((pt) => (
+                            <li key={pt}>
+                              <Md text={pt} />
+                            </li>
+                          ))}
+                        </ul>
+                        {rule.bad.length || rule.good.length ? (
+                          <div className="rl-examples">
+                            {rule.bad.length ? (
+                              <div className="rl-ex is-bad">
+                                <h4>
+                                  <X size={15} aria-hidden="true" /> Not okay
+                                </h4>
+                                <ul>
+                                  {rule.bad.map((x) => (
+                                    <li key={x}>
+                                      <Md text={x} />
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ) : null}
+                            {rule.good.length ? (
+                              <div className="rl-ex is-good">
+                                <h4>
+                                  <Check size={15} aria-hidden="true" /> Okay
+                                </h4>
+                                <ul>
+                                  {rule.good.map((x) => (
+                                    <li key={x}>
+                                      <Md text={x} />
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </article>
                     ))}
                   </div>
-                ))}
-              </div>
-            ) : null}
-          </section>
-        ))}
+                  {part.info.length ? (
+                    <div className="rl-info">
+                      {part.info.map((info) => {
+                        const InfoIcon = INFO_ICONS.find(([re]) => re.test(info.title))?.[1] ?? Megaphone;
+                        return (
+                          <div key={info.title}>
+                            <h3>
+                              <InfoIcon size={16} aria-hidden="true" /> {noEmoji(info.title)}
+                            </h3>
+                            {info.body.split("\n").map((line) => (
+                              <p key={line}>
+                                <Md text={line} />
+                              </p>
+                            ))}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </section>
+              );
+            })}
+          </div>
+        </div>
 
         <aside className="kb-cta">
           <div>
