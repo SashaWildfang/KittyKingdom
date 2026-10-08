@@ -138,15 +138,18 @@ type LevelUps = "on" | "quiet" | "off";
 function LevelUpSetting({ onStatus }: { onStatus: (saving: boolean, saved: string | null) => void }) {
   const [mode, setMode] = useState<LevelUps | null>(null);
   const [unlinked, setUnlinked] = useState(false);
+  const [failed, setFailed] = useState(false);
   useEffect(() => {
     fetch("/api/account/levelups", { cache: "no-store" })
       .then(async (r) => {
         const body = await r.json().catch(() => null);
         if (r.status === 403) setUnlinked(true);
         else if (body?.ok) setMode(body.mode);
+        else setFailed(true);
       })
-      .catch(() => undefined);
+      .catch(() => setFailed(true));
   }, []);
+  if (failed) return <p className="set-error">Couldn&apos;t load your level-up setting. Refresh the page to try again.</p>;
   if (unlinked) {
     return (
       <p className="set-note">
