@@ -31751,3 +31751,155 @@ a.apl-chip {
   color: var(--gold);
   font-weight: 800;
 }
+
+/* Homepage: The Royal Court (Patreon thank-you) */
+.hc-card {
+  display: grid;
+  justify-items: center;
+  gap: 1.3rem;
+  padding: clamp(1.4rem, 4vw, 2.6rem);
+  border: 1px solid color-mix(in srgb, #f5b83d 40%, var(--line));
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(245, 184, 61, 0.2), transparent 55%),
+    radial-gradient(circle at 100% 100%, rgba(232, 98, 44, 0.16), transparent 50%),
+    var(--panel);
+  box-shadow: 0 22px 54px var(--shadow);
+  text-align: center;
+}
+.hc-head {
+  display: grid;
+  justify-items: center;
+  gap: 0.55rem;
+  max-width: 44rem;
+}
+.hc-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(255, 90, 110, 0.14);
+  color: #ff8fa0;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.hc-head h2 {
+  margin: 0;
+  font-size: clamp(1.8rem, 4.5vw, 2.8rem);
+  letter-spacing: -0.03em;
+}
+.hc-head p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.hc-groups {
+  display: grid;
+  gap: 1rem;
+  width: 100%;
+}
+.hc-group {
+  display: grid;
+  gap: 0.7rem;
+  padding: 1rem;
+  border: 1px solid color-mix(in srgb, var(--tier) 40%, var(--line));
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--tier) 8%, transparent);
+}
+.hc-group h3 {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  margin: 0;
+  color: var(--tier);
+  font-size: 1.05rem;
+}
+.hc-group h3 small {
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tier) 22%, transparent);
+  color: var(--text);
+  font-size: 0.75rem;
+}
+.hc-group ul {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.hc-group li {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.4rem 0.85rem 0.4rem 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel-strong);
+  text-align: left;
+}
+.hc-group img {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 2px var(--tier);
+}
+.hc-group.is-monarch img {
+  width: 2.8rem;
+  height: 2.8rem;
+  box-shadow: 0 0 0 3px var(--tier), 0 0 18px color-mix(in srgb, var(--tier) 50%, transparent);
+}
+.hc-group li span {
+  display: grid;
+  line-height: 1.2;
+}
+.hc-group li b {
+  font-size: 0.92rem;
+}
+.hc-group li small {
+  color: var(--tier);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+.hc-empty {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.hc-empty span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--tier) 50%, var(--line));
+  border-radius: 999px;
+  color: var(--tier);
+  font-weight: 800;
+}
+.hc-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.75rem 1.4rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f5b83d, #e8622c);
+  color: #1d0b05;
+  font-weight: 900;
+  text-decoration: none;
+  box-shadow: 0 10px 26px rgba(232, 98, 44, 0.35);
+}
+
+/* Store discount banner icon */
+.store-supporter-discount svg {
+  vertical-align: -0.2em;
+  margin-right: 0.2rem;
+  color: var(--gold);
+}
