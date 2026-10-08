@@ -74,9 +74,10 @@ export function BotSettingsTab({ botKey }: { botKey: string }) {
   const [historyKey, setHistoryKey] = useState<string | null>(null);
   const [importText, setImportText] = useState<string | null>(null);
 
+  // Background refreshes keep the last good copy (and any unsaved edits) if one request fails
   const load = async () => {
     const r = await fetch(`/api/admin/bots/${botKey}`, { cache: "no-store" }).then((x) => x.json()).catch(() => null);
-    setData(r ?? { ok: false, error: "Couldn't load the settings." });
+    setData((prev) => (r?.ok ? r : prev?.ok ? prev : (r ?? { ok: false, error: "Couldn't load the settings." })));
   };
   useEffect(() => {
     if (!bot?.ready) return;
