@@ -411,12 +411,109 @@ const ECONOMY: BotDef = {
   ],
 };
 
+const MODERATION: BotDef = {
+  key: "moderation",
+  name: "Moderation Bot",
+  about: "Join applications and verification, auto-bans, punishment logs, mutes, lockdown, leave messages and command channels.",
+  ready: true,
+  sections: [
+    {
+      key: "join",
+      title: "Joining & verification",
+      icon: "door",
+      about: "The join form, its password checks and the automatic bans for raid accounts.",
+      fields: [
+        { key: "join.quickLeaveBan", label: "Ban join-and-leave accounts", help: "Ban (appealable) anyone who joins and leaves quickly, the way raid and spam accounts do. They get a DM with the reason and the appeal link when Discord allows it.", type: "toggle", default: true },
+        { key: "join.quickLeaveMinutes", label: "…if they leave within", help: "Kicked, banned, verified and staff members are never auto-banned.", type: "number", default: 10, min: 1, max: 1440, unit: "minutes" },
+        { key: "join.passwordBan", label: "Ban way-off passwords", help: "Ban (appealable) join forms whose password isn't even close (\"idk\", random text). Near misses are only denied.", type: "toggle", default: true },
+        { key: "join.passwordRetryMinutes", label: "Wait after a wrong password", help: "How long before someone with a near-miss password can submit again.", type: "number", default: 5, min: 0, max: 1440, unit: "minutes" },
+        { key: "join.denyHours", label: "Wait after a staff denial", help: "How long before someone denied by staff can submit a new form.", type: "number", default: 24, min: 0, max: 720, unit: "hours" },
+        { key: "join.unverifiedReminder", label: "Daily reminder for unverified members", help: "Ping unverified members once a day to finish their join form.", type: "toggle", default: true },
+        { key: "join.purgeUnverifiedChat", label: "Clear the unverified chat daily", help: "Wipe the unverified chat channel at midnight UTC.", type: "toggle", default: true },
+        { key: "join.welcomeChannel", label: "Welcome / verify channel", help: "Where new members verify and get denial notices.", type: "channel", default: "1358486077916057691" },
+        { key: "join.applicationsChannel", label: "Applications channel", help: "Where staff review join forms.", type: "channel", default: "1381975737808191599" },
+        { key: "join.joinLogChannel", label: "Join log channel", help: "Where joins are logged.", type: "channel", default: "1358485536511234164" },
+        { key: "join.reminderChannel", label: "Unverified chat channel", help: "The reminder ping and the daily clear-out happen here.", type: "channel", default: "1487886250114547762" },
+        { key: "join.rulesChannel", label: "Rules channel", help: "Linked in the verification message.", type: "channel", default: "1383559103913267282" },
+        { key: "join.unverifiedRole", label: "Unverified role", help: "Given on join, removed when accepted.", type: "role", default: "1358469817191104716" },
+        { key: "join.memberRole", label: "Member role", help: "Given when a join form is accepted.", type: "role", default: "1358469854725931038" },
+      ],
+    },
+    {
+      key: "logs",
+      title: "Logs",
+      icon: "scroll",
+      about: "Where the bot reports punishments and alerts.",
+      fields: [
+        { key: "logs.punishments", label: "Punishment log", help: "Bans, kicks, warns, mutes and AutoMod actions.", type: "channel", default: "1358486649360748665" },
+        { key: "logs.bot", label: "Bot log", help: "Lockdowns, channel locks, clears, wipes and other staff tools.", type: "channel", default: "1360344042705256660" },
+        { key: "logs.muteAlerts", label: "Mute alerts", help: "Public notices when someone is muted, muzzled or unmuzzled.", type: "channel", default: "1358485891361804358" },
+        { key: "logs.staffAlerts", label: "Staff alerts", help: "Urgent alerts for staff (e.g. a member's 5th AutoMod offense).", type: "channel", default: "1485825407654559846" },
+      ],
+    },
+    {
+      key: "mutes",
+      title: "Mutes",
+      icon: "volumex",
+      about: "The role used for muzzles, tempmutes and AutoMod mutes.",
+      fields: [{ key: "mutes.role", label: "Muted role", help: "", type: "role", default: "1360956830263541950" }],
+    },
+    {
+      key: "automod",
+      title: "AutoMod",
+      icon: "shield",
+      about: "AutoMod's rules, word list and strikes have their own page.",
+      link: { href: "/admin?tab=automod", label: "Open Admin → AutoMod" },
+      fields: [],
+    },
+    {
+      key: "leave",
+      title: "Leave messages",
+      icon: "logout",
+      about: "The public message when someone leaves.",
+      fields: [
+        { key: "leave.enabled", label: "Post leave messages", help: "", type: "toggle", default: true },
+        { key: "leave.channel", label: "Leave channel", help: "", type: "channel", default: "1358485536511234164" },
+      ],
+    },
+    {
+      key: "lockdown",
+      title: "Lockdown",
+      icon: "lock",
+      about: "Where /lockdown announces itself.",
+      fields: [
+        { key: "lockdown.announceChannels", label: "Announce with a ping in", help: "", type: "channels", channelKind: "text", default: ["1358485236073238528"] },
+        { key: "lockdown.generalChannels", label: "Announce without a ping in", help: "", type: "channels", channelKind: "text", default: ["1358452494660796448", "1358487735811182682"] },
+        { key: "lockdown.pingRole", label: "Ping role", help: "", type: "role", default: "1363972415822237747" },
+      ],
+    },
+    {
+      key: "commands",
+      title: "Command channels",
+      icon: "terminal",
+      about: "Which channels members can use casino commands and Wordle in.",
+      fields: [
+        { key: "commands.enforce", label: "Enforce command channels", help: "Turn off to allow these commands anywhere.", type: "toggle", default: true },
+        { key: "commands.casinoChannels", label: "Casino channels", help: "/slots, /blackjack, /roulette, /mines and /scratchoff only work here.", type: "channels", channelKind: "text", default: ["1508896560266612756", "1526410143401509086"] },
+        { key: "commands.botCommandsChannel", label: "Wordle channel", help: "/wordle only works here.", type: "channel", channelKind: "text", default: "1358485820100706314" },
+      ],
+    },
+    {
+      key: "wipe",
+      title: "Wipe",
+      icon: "trash",
+      about: "The /wipe staff tool.",
+      fields: [{ key: "wipe.category", label: "Allowed category", help: "/wipe can only be run in this category.", type: "channel", channelKind: "category", default: "1358486463251091569" }],
+    },
+  ],
+};
+
 const soon = (key: string, name: string, about: string): BotDef => ({ key, name, about, ready: false, sections: [] });
 
 export const BOTS: BotDef[] = [
   MAIN,
   ECONOMY,
-  soon("moderation", "Moderation Bot", "AutoMod, punishments, join applications, rules and QOTD."),
+  MODERATION,
   soon("ticketing", "Ticket Bot", "Support tickets, transcripts and NSFW verification."),
 ];
 

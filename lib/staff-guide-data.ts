@@ -212,7 +212,7 @@ export const PROCEDURES: Procedure[] = [
     ],
     notes: [
       "Denied someone who should get another try straight away? /resetverification user:@member lifts the waiting period.",
-      "Anyone who joins and leaves within 2 minutes is banned automatically as a likely raid or spam account. The ban is appealable, so a real person can appeal and be unbanned.",
+      "Anyone who joins and leaves within 10 minutes is banned automatically as a likely raid or spam account. The ban is appealable, so a real person can appeal and be unbanned. Admins can change the time (or turn it off) in Admin → Bots → Moderation Bot.",
     ],
   },
   {

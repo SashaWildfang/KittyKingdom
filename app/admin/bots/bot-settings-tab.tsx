@@ -9,6 +9,12 @@ import {
   Crown,
   Download,
   CalendarDays,
+  DoorOpen,
+  Lock,
+  LogOut,
+  SquareTerminal,
+  Trash2,
+  VolumeX,
   Dices,
   ExternalLink,
   Gift,
@@ -61,6 +67,12 @@ const ICONS: Record<string, LucideIcon> = {
   puzzle: Puzzle,
   rocket: Rocket,
   gift: Gift,
+  door: DoorOpen,
+  volumex: VolumeX,
+  logout: LogOut,
+  lock: Lock,
+  terminal: SquareTerminal,
+  trash: Trash2,
 };
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
