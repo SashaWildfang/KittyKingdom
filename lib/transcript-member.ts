@@ -365,7 +365,7 @@ function timeParts(text: string) {
   const [, mo, d, y, h, mi, ap] = m;
   const day = `${y}-${mo}-${d}`;
   const minutes = Date.UTC(Number(y), Number(mo) - 1, Number(d)) / 60000 + ((Number(h) % 12) + (ap === "PM" ? 12 : 0)) * 60 + Number(mi);
-  return { day, minutes, label: DAY_LABEL.format(new Date(Date.UTC(Number(y), Number(mo) - 1, Number(d), 12))), clock: `${h}:${mi} ${ap}` };
+  return { day, minutes, label: DAY_LABEL.format(new Date(Date.UTC(Number(y), Number(mo) - 1, Number(d), 12))) };
 }
 
 const TYPE_LABELS: Record<string, string> = { nsfw: "NSFW verification", support: "Support", "staff-application": "Staff application", manual: "Manual" };
@@ -426,7 +426,7 @@ function renderPage(meta: MemberTicketMeta, messages: Message[], people: { opene
     out.push(`
         <div class="msg${continued ? " is-continued" : ""}" data-author-id="${m.authorId ?? ""}">
             ${m.avatar ? `<img src="${m.avatar}" class="avatar" alt="">` : `<div class="participant-avatar-fallback avatar"></div>`}
-            <div class="msg-content"${t ? ` data-time="${t.clock}"` : ""}>
+            <div class="msg-content"${continued ? ` title="${escapeHtml(m.time)}"` : ""}>
                 ${m.reply !== null ? `<div class="reply-line">${m.reply}</div>` : ""}
                 <div class="author">${escapeHtml(m.name)} ${badgeHtml(m.badge, "staff-badge")} <span class="timestamp">${escapeHtml(m.time)}</span></div>
                 <div class="content">${m.content}</div>`);

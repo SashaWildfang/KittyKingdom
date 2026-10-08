@@ -125,18 +125,6 @@ a { color: var(--link); }
 .msg.is-continued .avatar,
 .msg.is-continued .participant-avatar-fallback.avatar { visibility: hidden; height: 0; }
 .msg.is-continued .author { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-.msg.is-continued .msg-content::before {
-  content: attr(data-time);
-  position: absolute;
-  left: 0;
-  width: 70px;
-  color: var(--muted);
-  font-size: 10px;
-  text-align: center;
-  opacity: 0;
-  padding-top: 3px;
-}
-.msg.is-continued:hover .msg-content::before { opacity: 1; }
 .avatar, .participant-avatar-fallback.avatar {
   flex: none;
   width: 40px;
