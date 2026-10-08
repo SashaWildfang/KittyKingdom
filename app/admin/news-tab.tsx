@@ -20,6 +20,7 @@ type Post = {
   publishedAt: string;
   updatedAt: string | null;
   authorName: string | null;
+  views?: number;
 };
 
 type Tag = { id: string; name: string; color: string; count: number };
@@ -179,7 +180,10 @@ export function NewsTab() {
                   {p.pinned ? <Pin size={11} aria-label="Pinned" /> : null}
                 </span>
                 <b>{p.title}</b>
-                <small>{p.status === "published" ? (new Date(p.publishedAt).getTime() > Date.now() ? `goes live ${timeAgo(p.publishedAt)}` : timeAgo(p.publishedAt)) : `saved ${timeAgo(p.updatedAt ?? p.publishedAt)}`}</small>
+                <small>
+                  {p.status === "published" ? (new Date(p.publishedAt).getTime() > Date.now() ? `goes live ${timeAgo(p.publishedAt)}` : timeAgo(p.publishedAt)) : `saved ${timeAgo(p.updatedAt ?? p.publishedAt)}`}
+                  {p.status === "published" && p.views ? ` · ${p.views.toLocaleString()} views` : ""}
+                </small>
               </button>
             </li>
           ))}
@@ -209,6 +213,7 @@ export function NewsTab() {
                   <span className="adm-muted" title={formatDate(selected.publishedAt)}>
                     {selected.status === "published" ? formatDate(selected.publishedAt) : "Not public"}
                     {selected.authorName ? ` · ${selected.authorName}` : ""}
+                    {selected.status === "published" ? ` · ${(selected.views ?? 0).toLocaleString()} view${selected.views === 1 ? "" : "s"}` : ""}
                   </span>
                 </div>
                 <h2>{selected.title}</h2>

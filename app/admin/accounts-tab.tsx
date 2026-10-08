@@ -2,6 +2,7 @@
 
 import { BadgeCheck, BellRing, ShieldCheck, ShieldOff, Unlink, KeyRound, Trash2, TriangleAlert, Laptop, LogOut, Mail, MailCheck, MessageCircle, Search, Smartphone, Tablet, X, type LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
+import "./accounts-names.css";
 import { createPortal } from "react-dom";
 import { StackedBars } from "./admin-charts";
 import { CopyId, LiveBadge, Pager, formatDate, timeAgo, useLive, useStored } from "./admin-shared";
@@ -310,7 +311,62 @@ function Devices({ accountId }: { accountId: string }) {
   );
 }
 
+/** Change or reset one of a member's names (username or display name). */
+function NameField(p: {
+  label: string;
+  prefix?: string;
+  current: string | null;
+  placeholder: string;
+  hint: string;
+  busy: string | null;
+  saveKey: string;
+  resetKey: string;
+  onSave: (value: string) => void;
+  onReset: () => void;
+}) {
+  const [value, setValue] = useState(p.current ?? "");
+  const [confirmReset, setConfirmReset] = useState(false);
+  const changed = value.trim() && value.trim() !== (p.current ?? "");
+  return (
+    <div className="adm-name-field">
+      <div className="adm-name-top">
+        <strong>{p.label}</strong>
+        <span className="adm-muted">{p.current ? `${p.prefix ?? ""}${p.current}` : "Not set"}</span>
+      </div>
+      <div className="adm-name-row">
+        <input className="adm-input" value={value} onChange={(e) => setValue(e.target.value)} placeholder={p.placeholder} aria-label={`New ${p.label.toLowerCase()}`} maxLength={30} />
+        <button type="button" className="adm-btn adm-btn--small" disabled={!changed || p.busy === p.saveKey} onClick={() => p.onSave(value)}>
+          {p.busy === p.saveKey ? "Saving…" : "Change"}
+        </button>
+        {p.current ? (
+          confirmReset ? (
+            <>
+              <button type="button" className="adm-btn adm-btn--small adm-btn--danger" disabled={p.busy === p.resetKey} onClick={() => (setConfirmReset(false), p.onReset())}>
+                Confirm reset
+              </button>
+              <button type="button" className="adm-btn adm-btn--ghost adm-btn--small" onClick={() => setConfirmReset(false)}>
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button type="button" className="adm-btn adm-btn--ghost adm-btn--small" onClick={() => setConfirmReset(true)}>
+              Reset
+            </button>
+          )
+        ) : null}
+      </div>
+      <small className="adm-muted">{p.hint}</small>
+    </div>
+  );
+}
+
 const ACTION_LABELS: Record<string, string> = {
+  "set-username": "Changed the username",
+  "reset-username": "Reset the username",
+  "set-display-name": "Changed the display name",
+  "reset-display-name": "Reset the display name",
+  "unlink-discord": "Unlinked Discord",
+  "reset-2fa": "Turned off two-factor",
   "disconnect-device": "Disconnected a device",
   delete: "Deleted the account",
   "send-reset": "Sent a password reset link",
@@ -584,6 +640,7 @@ function AccountDrawer({ id, onClose, onChanged, onOpenMember }: { id: string; o
   const [confirming, setConfirming] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ text: string; tone: "ok" | "error" } | null>(null);
   const [tempPassword, setTempPassword] = useState<string | null>(null);
+  const [lastAction, setLastAction] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -607,16 +664,17 @@ function AccountDrawer({ id, onClose, onChanged, onOpenMember }: { id: string; o
 
   // Deleting takes three steps: Delete… → type CONFIRM → one last click
   const [deleteText, setDeleteText] = useState("");
-  async function run(action: string) {
+  async function run(action: string, value?: string) {
     setConfirming(null);
     setDeleteText("");
     setBusy(action);
+    setLastAction(action);
     setNotice(null);
     try {
       const r = await fetch(`/api/admin/accounts/${id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, ...(action === "delete" ? { confirm: "CONFIRM" } : {}) }),
+        body: JSON.stringify({ action, ...(value !== undefined ? { value } : {}), ...(action === "delete" ? { confirm: "CONFIRM" } : {}) }),
       });
       const body = await r.json();
       if (!r.ok || !body.ok) throw new Error(body.error ?? "That didn't work.");
@@ -792,11 +850,42 @@ function AccountDrawer({ id, onClose, onChanged, onOpenMember }: { id: string; o
               ) : null}
             </section>
 
+            <section className="adm-drawer-section">
+              <h3>Names</h3>
+              <p className="adm-muted adm-name-help">The member gets an email whenever staff change something on their account.</p>
+              {notice && lastAction && /name$/.test(lastAction) ? <p className={notice.tone === "ok" ? "adm-notice" : "adm-error"}>{notice.text}</p> : null}
+              <NameField
+                key={`u-${account.username ?? ""}`}
+                label="Username"
+                prefix="@"
+                current={account.username}
+                placeholder="new_username"
+                hint="3 to 20 lowercase letters, numbers or _. Used to log in. Reset lets them pick a new one."
+                busy={busy}
+                onSave={(v) => run("set-username", v)}
+                onReset={() => run("reset-username")}
+                saveKey="set-username"
+                resetKey="reset-username"
+              />
+              <NameField
+                key={`d-${account.displayName ?? ""}`}
+                label="Display name"
+                current={account.displayName}
+                placeholder="New display name"
+                hint="3 to 18 letters, numbers or spaces. Reset makes the site use their Discord name."
+                busy={busy}
+                onSave={(v) => run("set-display-name", v)}
+                onReset={() => run("reset-display-name")}
+                saveKey="set-display-name"
+                resetKey="reset-display-name"
+              />
+            </section>
+
             <Devices accountId={account.id} />
 
             <section className="adm-drawer-section">
               <h3>Password &amp; sign-in</h3>
-              {notice ? <p className={notice.tone === "ok" ? "adm-notice" : "adm-error"}>{notice.text}</p> : null}
+              {notice && !(lastAction && /name$/.test(lastAction)) ? <p className={notice.tone === "ok" ? "adm-notice" : "adm-error"}>{notice.text}</p> : null}
               {tempPassword ? (
                 <div className="adm-temp">
                   <p>Give them this temporary password. It&apos;s shown once and isn&apos;t stored anywhere readable.</p>

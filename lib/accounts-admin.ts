@@ -5,7 +5,7 @@ import { randomBytes, randomInt } from "crypto";
 import { ObjectId, type Document } from "mongodb";
 import { isStaffDiscordId, type PanelUser } from "./admin";
 import { createVerificationTokenEntry, hashPassword, maxActiveVerificationTokens } from "./auth";
-import { sendDiscordLinkReminderEmail, sendVerificationReminderEmail } from "./email";
+import { sendDiscordLinkReminderEmail, sendStaffActionEmail, sendVerificationReminderEmail } from "./email";
 import { getMongoClient, getUsersCollection } from "./mongodb";
 import { formatDateOfBirth } from "./dates";
 import { applicationBirthday, getJoinApplication } from "./join-application";
@@ -226,7 +226,9 @@ function temporaryPassword() {
   return `${pick()}-${pick()}-${randomInt(1000, 10000)}${symbols[randomInt(symbols.length)]}`;
 }
 
-export type AccountAction = "send-reset" | "temp-password" | "sign-out" | "verify-email" | "remind-verify" | "remind-link" | "unlink-discord" | "reset-2fa" | "delete";
+export type AccountAction =
+  | "send-reset" | "temp-password" | "sign-out" | "verify-email" | "remind-verify" | "remind-link" | "unlink-discord" | "reset-2fa" | "delete"
+  | "set-username" | "reset-username" | "set-display-name" | "reset-display-name";
 
 /** Whether a request's action is one the admin panel supports. */
 export function isAccountAction(value: unknown): value is AccountAction {
@@ -240,13 +242,17 @@ export function isAccountAction(value: unknown): value is AccountAction {
     case "unlink-discord":
     case "reset-2fa":
     case "delete":
+    case "set-username":
+    case "reset-username":
+    case "set-display-name":
+    case "reset-display-name":
       return true;
     default:
       return false;
   }
 }
 
-export async function accountAction(id: string, action: AccountAction, admin: PanelUser, origin: string) {
+export async function accountAction(id: string, action: AccountAction, admin: PanelUser, origin: string, value = "") {
   if (!ObjectId.isValid(id)) throw new Error("Unknown account.");
   const _id = new ObjectId(id);
   const users = await getUsersCollection();
@@ -254,6 +260,8 @@ export async function accountAction(id: string, action: AccountAction, admin: Pa
   if (!target) throw new Error("Unknown account.");
 
   let result: { message: string; temporaryPassword?: string };
+  // The email the member gets about what staff changed (none for actions that already email them)
+  let notice: [title: string, message: string, nextStep?: string] | null = null;
   if (action === "send-reset") {
     const sent = await startPasswordReset(_id, origin, true);
     if (!sent.sent) throw new Error(`The email couldn't be sent${"reason" in sent && sent.reason ? `: ${sent.reason}` : "."}`);
@@ -271,20 +279,24 @@ export async function accountAction(id: string, action: AccountAction, admin: Pa
     );
     await revokeAllSessions(_id, `admin:${admin.discordId}`);
     result = { message: "Temporary password set and all their sessions signed out. They'll be asked to change it.", temporaryPassword: password };
+    notice = ["Your password was reset", "A staff member set a temporary password on your account and signed you out on every device.", "Staff will give you the temporary password directly. After logging in with it you'll be asked to choose a new one."];
   } else if (action === "sign-out") {
     await users.updateOne({ _id }, { $inc: { sessionVersion: 1 } });
     await revokeAllSessions(_id, `admin:${admin.discordId}`);
     result = { message: "Signed out of the website on every device." };
+    notice = ["You were signed out everywhere", "A staff member signed your account out of the website on every device.", "Log in again whenever you're ready."];
   } else if (action === "unlink-discord") {
     if (!target.discordId) throw new Error("Their Discord isn't linked.");
     const name = String(target.discord?.globalName ?? target.discord?.username ?? target.discordId);
     await users.updateOne({ _id }, { $set: { discordId: null, discord: null, updatedAt: new Date() } });
     result = { message: `Unlinked their Discord (${name}). They can link again with a new code from My Account.` };
+    notice = ["Your Discord was unlinked", `A staff member disconnected the Discord account ${name} from your website account.`, "To link it again, get a new code on My Account and use /link in the Discord server."];
   } else if (action === "reset-2fa") {
     if (!target.twoFactor?.enabled) throw new Error("Two-factor authentication is already off for this account.");
     await users.updateOne({ _id }, { $set: { twoFactor: { enabled: false }, updatedAt: new Date() }, $inc: { sessionVersion: 1 } });
     await revokeAllSessions(_id, `admin:${admin.discordId}`);
     result = { message: "Two-factor authentication turned off and every session signed out. They can log in with just their password and set it up again." };
+    notice = ["Two-factor authentication was turned off", "A staff member turned off two-factor authentication on your account and signed you out on every device.", "You can log in with just your password now. We recommend turning two-factor back on in My Account → Security."];
   } else if (action === "delete") {
     if (id === admin.websiteUserId) throw new Error("You can't delete your own account from here.");
     // Staff accounts are protected, even from the owner
@@ -298,6 +310,7 @@ export async function accountAction(id: string, action: AccountAction, admin: Pa
       deleteBadgeHistory(target.discordId).catch(() => undefined),
     ]);
     result = { message: `Deleted the website account for ${target.email}. Their Discord and bot data are untouched.` };
+    notice = ["Your website account was deleted", "A staff member deleted your kittykingdom.net account. Your Discord account and your server progress (levels, Leaves and so on) are untouched.", "You can make a new website account any time at kittykingdom.net/register."];
   } else if (action === "remind-verify" || action === "remind-link") {
     // Reminders: at most one of each per day, so nobody gets spammed
     const kind = action === "remind-verify" ? "verify" : "link";
@@ -324,14 +337,51 @@ export async function accountAction(id: string, action: AccountAction, admin: Pa
   } else if (action === "verify-email") {
     await users.updateOne({ _id }, { $set: { emailVerified: true, updatedAt: new Date() }, $unset: { emailVerificationTokens: "", emailVerificationTokenHash: "" } });
     result = { message: "Email marked as verified." };
+    notice = ["Your email was confirmed", "A staff member confirmed your email address, so you can log in without clicking the confirmation link."];
+  } else if (action === "set-username" || action === "reset-username") {
+    const old = target.username ? String(target.username) : null;
+    if (action === "set-username") {
+      const username = value.trim().toLowerCase().replace(/^@/, "");
+      if (!/^[a-z0-9_]{3,20}$/.test(username)) throw new Error("Usernames are 3 to 20 characters: lowercase letters, numbers and underscores.");
+      if (username === old) throw new Error("That's already their username.");
+      if (await users.findOne({ username, _id: { $ne: _id } }, { projection: { _id: 1 } })) throw new Error("Another account already has that username.");
+      await users.updateOne({ _id }, { $set: { username, updatedAt: new Date() } });
+      result = { message: `Username changed${old ? ` from @${old}` : ""} to @${username}.` };
+      notice = ["Your username was changed", `A staff member changed your username${old ? ` from @${old}` : ""} to @${username}.`, `If you log in with your username, use @${username} from now on. Your email still works too.`];
+    } else {
+      if (!old) throw new Error("They don't have a username to reset.");
+      await users.updateOne({ _id }, { $unset: { username: "" }, $set: { updatedAt: new Date() } });
+      result = { message: `Username @${old} removed. They can pick a new one on My Account.` };
+      notice = ["Your username was reset", `A staff member removed your username @${old}.`, "Pick a new username any time on My Account. Until then, log in with your email."];
+    }
+  } else if (action === "set-display-name" || action === "reset-display-name") {
+    const old = target.displayName ? String(target.displayName) : null;
+    if (action === "set-display-name") {
+      const displayName = value.trim().replace(/\s+/g, " ");
+      if (!/^[A-Za-z0-9 ]{3,18}$/.test(displayName)) throw new Error("Display names are 3 to 18 letters, numbers or spaces.");
+      if (displayName === old) throw new Error("That's already their display name.");
+      await users.updateOne({ _id }, { $set: { displayName, updatedAt: new Date() } });
+      result = { message: `Display name changed to "${displayName}".` };
+      notice = ["Your display name was changed", `A staff member changed your display name${old ? ` from "${old}"` : ""} to "${displayName}".`, "You can change it again on My Account, as long as it follows the server rules."];
+    } else {
+      if (!old) throw new Error("They don't have a display name set.");
+      await users.updateOne({ _id }, { $unset: { displayName: "" }, $set: { updatedAt: new Date() } });
+      result = { message: `Display name "${old}" removed. The site uses their Discord name instead.` };
+      notice = ["Your display name was reset", `A staff member removed your display name "${old}". The website now shows your Discord name instead.`, "You can set a new display name on My Account, as long as it follows the server rules."];
+    }
   } else {
     throw new Error("Unknown action.");
+  }
+
+  if (notice) {
+    await sendStaffActionEmail(String(target.email), ...notice).catch((e) => console.error("Staff action email failed", e));
   }
 
   // Every admin action on an account is recorded (never the temporary password itself)
   await (await auditCollection()).insertOne({
     at: new Date(),
     action,
+    ...(value ? { value: value.slice(0, 40) } : {}),
     targetUserId: id,
     targetEmail: target.email,
     adminDiscordId: admin.discordId,

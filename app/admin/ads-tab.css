@@ -1,0 +1,196 @@
+/* Admin → Ads */
+.ads {
+  display: grid;
+  gap: 1rem;
+}
+
+.ads .ads-card > * {
+  flex: none;
+}
+
+.ads-card p {
+  margin: 0 0 0.8rem;
+}
+
+.ads-numbers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 0.6rem;
+}
+
+.ads-number {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  background: var(--panel-strong);
+  padding: 0.65rem 0.8rem;
+}
+
+.ads-number > span:first-child {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.ads-number small,
+.ads-toggle small {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.ads-number-input {
+  display: grid;
+  flex: none;
+  justify-items: center;
+  gap: 0.15rem;
+}
+
+.ads-number-input input,
+.ads-excludes textarea {
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+}
+
+.ads-number-input input {
+  width: 5rem;
+  padding: 0.35rem 0.5rem;
+  text-align: center;
+}
+
+.ads-list {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ads-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  background: var(--panel-strong);
+  padding: 0.6rem 0.8rem;
+}
+
+.ads-list li.is-off {
+  opacity: 0.6;
+}
+
+.ads-toggle {
+  display: flex;
+  flex: 1 1 18rem;
+  align-items: flex-start;
+  gap: 0.6rem;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.ads-toggle input {
+  width: 1.05rem;
+  height: 1.05rem;
+  margin-top: 0.15rem;
+  accent-color: var(--ember);
+}
+
+.ads-toggle > span {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.ads-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.ads-meta small {
+  min-width: 5.5rem;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.ads-bar {
+  display: block;
+  width: 6rem;
+  height: 0.4rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 242, 215, 0.1);
+}
+
+.ads-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #f5b83d, #e8622c);
+}
+
+.ads-excludes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.8rem;
+}
+
+.ads-excludes label {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.ads-excludes textarea {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  padding: 0.55rem 0.65rem;
+  resize: vertical;
+}
+
+.ads-save {
+  position: sticky;
+  bottom: 0.8rem;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.ads-save p {
+  margin: 0;
+}
+
+.ads-recent {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ads-recent li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  border-bottom: 1px solid var(--line);
+  padding: 0.45rem 0;
+  font-size: 0.86rem;
+}
+
+.ads-recent li:last-child {
+  border-bottom: 0;
+}
+
+.ads-recent time {
+  margin-left: auto;
+}

@@ -29,6 +29,7 @@ export default async function NewsPage({ searchParams }: { searchParams: { tag?:
       month,
       monthLabel: new Date(`${month}-15T12:00:00Z`).toLocaleDateString("en-US", { month: "long", year: "numeric" }),
       minutes: newsReadMinutes(p.body),
+      views: p.views,
       search: `${p.title} ${newsPlainText(p.body)}`.toLowerCase(),
     };
   });
