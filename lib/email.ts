@@ -2,6 +2,7 @@
 // styles only, light "official" look that doesn't get inverted by dark-mode mail apps), with a
 // plain-text version alongside every HTML email.
 
+import { getMongoClient } from "./mongodb";
 import { userTimeZone, zoneLabel } from "./timezone";
 
 const SITE = "https://www.kittykingdom.net";
@@ -151,8 +152,36 @@ function layout(o: {
 </html>`;
 }
 
-/** Sends any email through Resend. */
-async function sendEmail(to: string, subject: string, html: string, text: string) {
+/** Hides one-time links (verify, reset) so the admin log never holds a working token. */
+function redactTokens(value: string) {
+  return value.replace(/([?&](?:token|code|key|sig|signature)=)[^&"'\s<>]+/gi, "$1[hidden]");
+}
+
+/** Keeps a copy of every email for Admin → Emails (website DB, email_log). Never throws. */
+async function logEmail(entry: { to: string; subject: string; kind: string; html: string; text: string; sent: boolean; error: string | null }) {
+  try {
+    const client = await getMongoClient();
+    const col = client.db(process.env.MONGODB_DB ?? "website").collection("email_log");
+    await col.insertOne({
+      ...entry,
+      html: redactTokens(entry.html).slice(0, 200_000),
+      text: redactTokens(entry.text).slice(0, 50_000),
+      error: entry.error ? entry.error.slice(0, 500) : null,
+      at: new Date(),
+    });
+  } catch (error) {
+    console.error("Couldn't log email", error);
+  }
+}
+
+/** Sends any email through Resend (and logs it for admins). */
+async function sendEmail(to: string, subject: string, html: string, text: string, kind = "other") {
+  const result = await deliver(to, subject, html, text);
+  await logEmail({ to, subject, kind, html, text, sent: result.sent, error: result.sent ? null : result.reason ?? null });
+  return result;
+}
+
+async function deliver(to: string, subject: string, html: string, text: string): Promise<{ sent: boolean; reason?: string }> {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.EMAIL_FROM;
   if (!apiKey || !from) {
@@ -237,7 +266,7 @@ export function verificationEmail(email: string, verifyUrl: string, details: { d
 
 export async function sendVerificationEmail(email: string, verifyUrl: string, details: { discordName?: string | null; newAccount?: boolean } = {}) {
   const m = verificationEmail(email, verifyUrl, details);
-  return sendEmail(email, m.subject, m.html, m.text);
+  return sendEmail(email, m.subject, m.html, m.text, "verification");
 }
 
 export function passwordResetEmail(email: string, resetUrl: string, requestedByStaff: boolean) {
@@ -276,7 +305,7 @@ export function passwordResetEmail(email: string, resetUrl: string, requestedByS
 
 export async function sendPasswordResetEmail(email: string, resetUrl: string, requestedByStaff: boolean) {
   const m = passwordResetEmail(email, resetUrl, requestedByStaff);
-  return sendEmail(email, m.subject, m.html, m.text);
+  return sendEmail(email, m.subject, m.html, m.text, "password-reset");
 }
 
 /** "Something changed on your account" notice, e.g. two-factor turned on or off. */
@@ -301,7 +330,7 @@ export function securityNoticeEmail(email: string, title: string, message: strin
 
 export async function sendSecurityNoticeEmail(email: string, title: string, message: string) {
   const m = securityNoticeEmail(email, title, message);
-  return sendEmail(email, m.subject, m.html, m.text);
+  return sendEmail(email, m.subject, m.html, m.text, "security");
 }
 
 /** Staff-sent nudge for accounts that never confirmed their email (Admin → Website). */
@@ -338,7 +367,7 @@ export function verificationReminderEmail(email: string, verifyUrl: string, name
 
 export async function sendVerificationReminderEmail(email: string, verifyUrl: string, name: string | null) {
   const m = verificationReminderEmail(email, verifyUrl, name);
-  return sendEmail(email, m.subject, m.html, m.text);
+  return sendEmail(email, m.subject, m.html, m.text, "verification-reminder");
 }
 
 /** Staff-sent how-to for accounts that haven't linked Discord yet (Admin → Website). */
@@ -381,7 +410,7 @@ export function discordLinkReminderEmail(email: string, name: string | null) {
 
 export async function sendDiscordLinkReminderEmail(email: string, name: string | null) {
   const m = discordLinkReminderEmail(email, name);
-  return sendEmail(email, m.subject, m.html, m.text);
+  return sendEmail(email, m.subject, m.html, m.text, "discord-reminder");
 }
 
 // ---------- Appeals ----------
@@ -408,7 +437,7 @@ export async function sendAppealReceivedEmail(email: string, a: { username: stri
     reason: "You're receiving this because this address was entered on an appeal at kittykingdom.net.",
   });
   const text = [`Kitty Kingdom: we've got your appeal`, "", `An admin will review your appeal for the ${kind.toLowerCase()} on @${a.username}.`, `Reference: ${a.reference}`, "", `Check it any time: ${SITE}/appeals`].join("\n");
-  return sendEmail(email, "We've received your appeal", html, text);
+  return sendEmail(email, "We've received your appeal", html, text, "appeal-received");
 }
 
 /** The decision on an appeal, with staff's reply. */
@@ -436,7 +465,7 @@ export async function sendAppealDecisionEmail(email: string, a: { username: stri
     reason: "You're receiving this because this address was entered on an appeal at kittykingdom.net.",
   });
   const text = [`Kitty Kingdom: ${title.toLowerCase()}`, "", a.accepted ? `Your appeal for the ${kind.toLowerCase()} on @${a.username} was accepted.` : `Your appeal for the ${kind.toLowerCase()} on @${a.username} was not accepted.`, ...(a.response ? ["", "Message from staff:", a.response] : []), "", `Reference: ${a.reference}`, `${SITE}/appeals`].join("\n");
-  return sendEmail(email, title, html, text);
+  return sendEmail(email, title, html, text, "appeal-decision");
 }
 
 /** Sent when a member is banned from the Discord server: their website account has been closed. */
@@ -471,5 +500,5 @@ export async function sendBanAccountClosedEmail(email: string, a: { name: string
     "",
     `${SITE} · Support: ${SITE}/support`,
   ].join("\n");
-  return sendEmail(email, "You've been banned from Kitty Kingdom", html, text);
+  return sendEmail(email, "You've been banned from Kitty Kingdom", html, text, "ban-closed");
 }

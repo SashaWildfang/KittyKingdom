@@ -1,6 +1,7 @@
 import { AuthCard, type AuthStatus } from "../auth-card";
 import { pendingRegistration } from "../../lib/registration";
 import { RegisterLink } from "./register-link";
+import { BLOCKED_EMAIL_MESSAGE } from "../../lib/validate";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,7 @@ const statusMessages: Record<string, string> = {
   "email-exists": "An account already exists for that email.",
   "discord-required": "Accounts are for members of the Kitty Kingdom Discord. After confirming your email, you'll link yours with /link.",
   "email-required": "Enter a valid email address.",
+  "email-blocked": BLOCKED_EMAIL_MESSAGE,
   "too-many": "Too many sign-ups from your network. Please try again in an hour.",
   "email-provider-needed":
     "The account was created, but the confirmation email could not be sent. Check the email provider settings.",

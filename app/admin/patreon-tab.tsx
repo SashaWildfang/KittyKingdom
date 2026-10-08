@@ -1,9 +1,9 @@
 "use client";
 
 import "./patreon-admin.css";
-import { AlertTriangle, CheckCircle2, Link2Off, Palette, RefreshCw, Search, Trash2, UserPlus, UserX } from "lucide-react";
-import { useMemo, useState } from "react";
-import type { PatreonOverview, PatronRow } from "../../lib/patreon-admin";
+import { AlertTriangle, CheckCircle2, ChevronDown, Link2Off, Palette, RefreshCw, Search, Trash2, UserPlus, UserX } from "lucide-react";
+import { Fragment, useMemo, useState } from "react";
+import type { MonthStat, PatreonOverview, PatronRow, PledgeEvent } from "../../lib/patreon-admin";
 import { TIERS, type TierKey } from "../../lib/perks";
 import { TierIcon } from "../tier-icon";
 import { MemberSearch, PersonLink, timeAgo, useLive, type People } from "./admin-shared";
@@ -31,6 +31,7 @@ export function PatreonTab({ onOpenMember }: { onOpenMember: (id: string) => voi
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
   const [grantText, setGrantText] = useState("");
   const [grantId, setGrantId] = useState<string | null>(null);
   const [grantTier, setGrantTier] = useState<TierKey>("knight");
@@ -126,7 +127,24 @@ export function PatreonTab({ onOpenMember }: { onOpenMember: (id: string) => voi
           <strong>{data.unlinked}</strong>
           <span>no Discord connected on Patreon</span>
         </button>
+        <div className="adm-kpi">
+          <small>Raised all time</small>
+          <strong>{money(data.lifetimeUsd)}</strong>
+          <span>everything patrons have paid</span>
+        </div>
+        <div className="adm-kpi">
+          <small>Average pledge</small>
+          <strong>{money(data.averagePledge)}</strong>
+          <span>per paying patron</span>
+        </div>
+        <div className="adm-kpi">
+          <small>Average loyalty</small>
+          <strong>{data.hasHistory ? `${data.averageMonths} mo` : "…"}</strong>
+          <span>{data.hasHistory ? "paid months per current patron" : "after the next bot sync"}</span>
+        </div>
       </div>
+
+      <RevenueChart months={data.months} hasHistory={data.hasHistory} />
 
       {/* Manual grant */}
       <div className="adm-card pa-grant">
@@ -210,14 +228,22 @@ export function PatreonTab({ onOpenMember }: { onOpenMember: (id: string) => voi
               {rows.map((r) => {
                 const tier = TIERS.find((t) => t.key === r.tier);
                 const charge = r.lastChargeStatus && r.lastChargeStatus !== "Paid" ? r.lastChargeStatus : null;
+                const isOpen = expanded === r.key;
                 return (
-                  <tr key={r.key}>
+                  <Fragment key={r.key}>
+                  <tr
+                    className={`pa-row${isOpen ? " is-open" : ""}`}
+                    onClick={(e) => {
+                      if ((e.target as HTMLElement).closest("button, a")) return;
+                      setExpanded(isOpen ? null : r.key);
+                    }}
+                  >
                     <td data-label="Member"><div className="pa-cell">
                       {r.discordId ? (
                         <PersonLink id={r.discordId} people={people} onOpen={onOpenMember} />
                       ) : (
                         <span className="pa-unlinked">
-                          <Link2Off size={15} aria-hidden="true" /> Not linked to Discord
+                          <Link2Off size={15} aria-hidden="true" /> {r.fullName ? <span>{r.fullName}<small className="pa-sub">Patreon name · Discord not linked</small></span> : "Not linked to Discord"}
                         </span>
                       )}
                     </div></td>
@@ -233,7 +259,7 @@ export function PatreonTab({ onOpenMember }: { onOpenMember: (id: string) => voi
                     <td data-label="Pledge"><div className="pa-cell">
                       {r.source === "manual" ? (
                         <span className="adm-muted" title={r.grantedBy ? `Granted by ${r.grantedBy}` : undefined}>
-                          Free{r.grantedBy ? ` · by ${r.grantedBy}` : ""}
+                          Manual grant{r.grantedBy ? ` · by ${r.grantedBy}` : ""}
                         </span>
                       ) : (
                         <>
@@ -304,8 +330,19 @@ export function PatreonTab({ onOpenMember }: { onOpenMember: (id: string) => voi
                           <Trash2 size={14} aria-hidden="true" /> Revoke
                         </button>
                       ) : null}
+                      <button type="button" className="adm-btn adm-btn--ghost adm-btn--small pa-more" aria-expanded={isOpen} onClick={() => setExpanded(isOpen ? null : r.key)}>
+                        <ChevronDown size={14} aria-hidden="true" /> {isOpen ? "Less" : "Details"}
+                      </button>
                     </td>
                   </tr>
+                  {isOpen ? (
+                    <tr className="pa-detail-row">
+                      <td colSpan={6}>
+                        <PatronDetail row={r} />
+                      </td>
+                    </tr>
+                  ) : null}
+                  </Fragment>
                 );
               })}
             </tbody>
@@ -316,5 +353,139 @@ export function PatreonTab({ onOpenMember }: { onOpenMember: (id: string) => voi
         Titles (King or Queen and so on) are each member's choice on My Account or with <code>/title</code>. Pledges and charges come from Patreon; refunds and cancellations are handled on Patreon itself.
       </p>
     </section>
+  );
+}
+
+const EVENT: Record<string, string> = {
+  pledge_start: "Started pledging",
+  pledge_upgrade: "Upgraded",
+  pledge_downgrade: "Downgraded",
+  pledge_delete: "Cancelled",
+  subscription: "Monthly charge",
+};
+
+function monthLabel(key: string) {
+  const [y, m] = key.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString(undefined, { month: "short", timeZone: "UTC" });
+}
+
+function Bars({ values, labels, format }: { values: number[]; labels: string[]; format: (n: number) => string }) {
+  const max = Math.max(1, ...values);
+  return (
+    <div className="pa-bars" role="img" aria-label={labels.map((l, i) => `${l}: ${format(values[i])}`).join(", ")}>
+      {values.map((v, i) => (
+        <div key={labels[i] + i} className="pa-bar" title={`${labels[i]}: ${format(v)}`}>
+          <span className="pa-bar-val">{v ? format(v) : ""}</span>
+          <span className="pa-bar-fill" style={{ height: `${Math.max(v ? 4 : 0, (v / max) * 100)}%` }} />
+          <small>{labels[i]}</small>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Monthly revenue from Patreon's payment history, with joins and cancellations. */
+function RevenueChart({ months, hasHistory }: { months: MonthStat[]; hasHistory: boolean }) {
+  const joined = months.reduce((n, m) => n + m.joined, 0);
+  const left = months.reduce((n, m) => n + m.left, 0);
+  const total = months.reduce((n, m) => n + m.revenue, 0);
+  return (
+    <div className="adm-card pa-chart">
+      <h3>Monthly contributions</h3>
+      {hasHistory ? (
+        <>
+          <p className="adm-muted">
+            Last 12 months: <b>{money(total)}</b> paid · <b>{joined}</b> new pledge{joined === 1 ? "" : "s"} · <b>{left}</b> cancellation{left === 1 ? "" : "s"}
+          </p>
+          <Bars values={months.map((m) => m.revenue)} labels={months.map((m) => monthLabel(m.month))} format={(n) => `$${Math.round(n)}`} />
+        </>
+      ) : (
+        <p className="adm-muted">Payment history shows up here after the main bot's next Patreon sync with the updated sync file.</p>
+      )}
+    </div>
+  );
+}
+
+/** One patron: totals, a 12-month chart and every pledge event. */
+function PatronDetail({ row }: { row: PatronRow }) {
+  if (row.source === "manual") {
+    return <p className="adm-muted pa-detail">Manual grant{row.grantedBy ? ` by ${row.grantedBy}` : ""}{row.since ? ` on ${day(row.since)}` : ""}. No Patreon payments: they get the tier for free until it's revoked.</p>;
+  }
+  const history: PledgeEvent[] = row.history ?? [];
+  const paid = history.filter((h) => h.status === "Paid" && h.amount > 0 && h.type !== "pledge_delete");
+  const now = new Date();
+  const keys = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 11 + i, 1));
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+  });
+  const perMonth = keys.map((k) => paid.filter((h) => h.date.slice(0, 7) === k).reduce((n, h) => n + h.amount, 0));
+  const biggest = paid.reduce((n, h) => Math.max(n, h.amount), 0);
+  return (
+    <div className="pa-detail">
+      <div className="pa-detail-stats">
+        <div>
+          <small>Paid all time</small>
+          <b>{money(row.lifetime)}</b>
+        </div>
+        <div>
+          <small>Paid months</small>
+          <b>{row.history ? paid.length : "…"}</b>
+        </div>
+        <div>
+          <small>Current pledge</small>
+          <b>{row.status === "active_patron" ? `${money(row.pledge)}/mo` : "None"}</b>
+        </div>
+        <div>
+          <small>Biggest payment</small>
+          <b>{row.history ? money(biggest) : "…"}</b>
+        </div>
+        <div>
+          <small>Supporting since</small>
+          <b>{row.since ? day(row.since) : "—"}</b>
+        </div>
+        <div>
+          <small>Next charge</small>
+          <b>{row.nextChargeDate && row.status === "active_patron" ? day(row.nextChargeDate) : "—"}</b>
+        </div>
+      </div>
+      {row.fullName ? <p className="adm-muted">Patreon name: {row.fullName}</p> : null}
+      {row.history ? (
+        <>
+          <h4>Monthly contributions (last 12 months)</h4>
+          <Bars values={perMonth} labels={keys.map(monthLabel)} format={(n) => `$${n % 1 ? n.toFixed(2) : n}`} />
+          <h4>Pledge history</h4>
+          {history.length ? (
+            <div className="pa-history">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Event</th>
+                    <th>Tier</th>
+                    <th>Amount</th>
+                    <th>Payment</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...history].reverse().map((h, i) => (
+                    <tr key={h.date + i}>
+                      <td>{day(h.date)}</td>
+                      <td>{EVENT[h.type] ?? h.type}</td>
+                      <td>{h.tier ?? "—"}</td>
+                      <td>{h.amount ? money(h.amount) : "—"}</td>
+                      <td className={h.status && h.status !== "Paid" ? "pa-warn" : undefined}>{h.status ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="adm-muted">Patreon has no pledge events for them.</p>
+          )}
+        </>
+      ) : (
+        <p className="adm-muted">Their month-by-month history shows up after the main bot's next Patreon sync with the updated sync file.</p>
+      )}
+    </div>
   );
 }

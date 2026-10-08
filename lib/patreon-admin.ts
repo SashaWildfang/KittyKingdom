@@ -29,8 +29,18 @@ export type PatronRow = {
   nextChargeDate: string | null;
   since: string | null;
   grantedBy: string | null;
+  /** Patreon name (shown for patrons who didn't link Discord) */
+  fullName: string | null;
+  /** Everything they've paid this campaign, in dollars */
+  lifetime: number;
+  /** Patreon's pledge events (charges, upgrades, cancellations), oldest first; null until the bot has synced them */
+  history: PledgeEvent[] | null;
   customRole: { name: string; style: string; color: string; color2: string | null; icon: string | null; status: string; error: string | null } | null;
 };
+
+export type PledgeEvent = { date: string; amount: number; type: string; tier: string | null; status: string | null };
+
+export type MonthStat = { month: string; revenue: number; payments: number; joined: number; left: number };
 
 export type PatreonOverview = {
   sync: { at: string | null; ok: boolean | null; error: string | null; members: number; active: number; linked: number; requested: boolean; configured: boolean };
@@ -39,6 +49,12 @@ export type PatreonOverview = {
   unlinked: number;
   manual: number;
   monthlyUsd: number;
+  lifetimeUsd: number;
+  averagePledge: number;
+  averageMonths: number;
+  /** Last 12 months from the pledge history (oldest first) */
+  months: MonthStat[];
+  hasHistory: boolean;
   rows: PatronRow[];
 };
 
@@ -76,12 +92,14 @@ export async function patreonOverview(): Promise<PatreonOverview> {
   const rows: PatronRow[] = [];
   const manualIds = new Set(overrides.map((o) => String(o.discordId)));
   for (const m of members) {
+    // Free Patreon members (followers who never pledged) aren't supporters
+    if (!m.status && !Number(m.cents ?? 0) && !Number(m.lifetimeCents ?? 0)) continue;
     const id = m.discordId ? String(m.discordId) : null;
     const tier = tierKey(m.tier);
     rows.push({
       key: `p:${m._id}`,
       discordId: id,
-      name: id ? who[id]?.name ?? "Unknown member" : "Not linked to Discord",
+      name: id ? who[id]?.name ?? "Unknown member" : m.fullName ? String(m.fullName) : "Not linked to Discord",
       avatar: id ? who[id]?.avatar ?? null : null,
       inServer: id ? who[id]?.inServer !== false : false,
       tier,
@@ -94,6 +112,14 @@ export async function patreonOverview(): Promise<PatreonOverview> {
       nextChargeDate: iso(m.nextChargeDate),
       since: iso(m.since),
       grantedBy: null,
+      fullName: m.fullName ? String(m.fullName) : null,
+      lifetime: Number(m.lifetimeCents ?? 0) / 100,
+      history: Array.isArray(m.history)
+        ? m.history.map((h: Record<string, unknown>) => ({
+            date: String(h.date), amount: Number(h.cents ?? 0) / 100, type: String(h.type ?? ""),
+            tier: h.tier ? String(h.tier) : null, status: h.status ? String(h.status) : null,
+          }))
+        : null,
       customRole: toRole(id),
     });
   }
@@ -116,6 +142,9 @@ export async function patreonOverview(): Promise<PatreonOverview> {
       nextChargeDate: null,
       since: iso(o.at),
       grantedBy: o.by ? who[String(o.by)]?.name ?? String(o.by) : null,
+      fullName: null,
+      lifetime: 0,
+      history: null,
       customRole: toRole(id),
     });
   }
@@ -125,6 +154,30 @@ export async function patreonOverview(): Promise<PatreonOverview> {
   const activeRows = rows.filter((r) => r.tier && (r.source === "manual" || r.status === "active_patron"));
   const counts = { knight: 0, noble: 0, monarch: 0 } as Record<TierKey, number>;
   for (const r of activeRows) if (r.tier && r.discordId) counts[r.tier]++;
+  const pledgers = rows.filter((r) => r.source === "patreon");
+  const paying = pledgers.filter((r) => r.status === "active_patron");
+  const hasHistory = pledgers.some((r) => r.history);
+  const monthKey = (d: Date) => `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+  const months: MonthStat[] = [];
+  const nowDate = new Date();
+  for (let i = 11; i >= 0; i--) {
+    months.push({ month: monthKey(new Date(Date.UTC(nowDate.getUTCFullYear(), nowDate.getUTCMonth() - i, 1))), revenue: 0, payments: 0, joined: 0, left: 0 });
+  }
+  const byMonth = new Map(months.map((m) => [m.month, m]));
+  for (const r of pledgers) {
+    for (const h of r.history ?? []) {
+      const m = byMonth.get(monthKey(new Date(h.date)));
+      if (!m) continue;
+      if (h.type === "pledge_start") m.joined++;
+      if (h.type === "pledge_delete") m.left++;
+      if (h.status === "Paid" && h.type !== "pledge_delete" && h.amount > 0) {
+        m.revenue += h.amount;
+        m.payments++;
+      }
+    }
+  }
+  for (const m of months) m.revenue = Math.round(m.revenue * 100) / 100;
+  const monthsSupported = (r: PatronRow) => (r.history ?? []).filter((h) => h.status === "Paid" && h.amount > 0 && h.type !== "pledge_delete").length;
   const requestedAt = cfg?.requestedAt instanceof Date ? cfg.requestedAt : null;
   const handledAt = cfg?.requestHandledAt instanceof Date ? cfg.requestHandledAt : null;
   const at = cfg?.at instanceof Date ? cfg.at : null;
@@ -143,7 +196,12 @@ export async function patreonOverview(): Promise<PatreonOverview> {
     active: activeRows.filter((r) => r.discordId).length,
     unlinked: rows.filter((r) => r.source === "patreon" && r.status === "active_patron" && !r.discordId).length,
     manual: manualIds.size,
-    monthlyUsd: Math.round(rows.filter((r) => r.source === "patreon" && r.status === "active_patron").reduce((n, r) => n + r.pledge, 0) * 100) / 100,
+    monthlyUsd: Math.round(paying.reduce((n, r) => n + r.pledge, 0) * 100) / 100,
+    lifetimeUsd: Math.round(pledgers.reduce((n, r) => n + r.lifetime, 0) * 100) / 100,
+    averagePledge: paying.length ? Math.round((paying.reduce((n, r) => n + r.pledge, 0) / paying.length) * 100) / 100 : 0,
+    averageMonths: hasHistory && paying.length ? Math.round((paying.reduce((n, r) => n + monthsSupported(r), 0) / paying.length) * 10) / 10 : 0,
+    months,
+    hasHistory,
     rows,
   };
 }

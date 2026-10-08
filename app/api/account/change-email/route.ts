@@ -3,7 +3,7 @@ import { verifyPassword } from "../../../../lib/auth";
 import { getUsersCollection } from "../../../../lib/mongodb";
 import { HOUR, allow, clientIp } from "../../../../lib/rate-limit";
 import { changeUnverifiedEmail, pendingRegistration } from "../../../../lib/registration";
-import { cleanEmail, cleanIdentifier, cleanPassword, hasOperatorKeys } from "../../../../lib/validate";
+import { BLOCKED_EMAIL_MESSAGE, cleanEmail, cleanIdentifier, cleanPassword, hasOperatorKeys, isBlockedEmailDomain } from "../../../../lib/validate";
 
 export const maxDuration = 10;
 
@@ -21,6 +21,7 @@ export async function POST(request: Request) {
   const input = body as { email?: unknown; identifier?: unknown; password?: unknown };
   const email = cleanEmail(input.email);
   if (!email) return NextResponse.json({ ok: false, message: "Enter a valid email address." }, { status: 400 });
+  if (isBlockedEmailDomain(email)) return NextResponse.json({ ok: false, message: BLOCKED_EMAIL_MESSAGE }, { status: 400 });
 
   if (!(await allow([{ key: `change-email:ip:${await clientIp()}`, limit: 8, windowMs: HOUR }]))) {
     return NextResponse.json({ ok: false, message: "You've tried a few times already. Please wait a while, then try again." }, { status: 429 });

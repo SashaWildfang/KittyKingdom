@@ -1,0 +1,148 @@
+/* Admin → Emails */
+.em {
+  display: grid;
+  gap: 1rem;
+}
+
+.em .em-kpis {
+  grid-template-columns: repeat(2, minmax(0, 14rem));
+}
+
+.em-layout {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 1000px) {
+  .em-layout.has-open {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    align-items: start;
+  }
+}
+
+.em-rows {
+  display: grid;
+  margin: 0 0 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--panel);
+  list-style: none;
+  overflow: hidden;
+  padding: 0;
+}
+
+.em-rows li + li {
+  border-top: 1px solid var(--line);
+}
+
+.em-rows button {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  padding: 0.7rem 0.9rem;
+  text-align: left;
+}
+
+.em-rows button:hover,
+.em-rows button.is-on {
+  background: rgba(245, 155, 42, 0.1);
+}
+
+.em-ok {
+  flex: none;
+  color: #3ddc84;
+}
+
+.em-bad {
+  flex: none;
+  color: #ff6b6b;
+}
+
+.em-main {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.em-main b,
+.em-main small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.em-main small,
+.em-rows time {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.em-rows time {
+  flex: none;
+}
+
+.em-view {
+  display: grid;
+  gap: 0.7rem;
+}
+
+@media (min-width: 1000px) {
+  .em-view {
+    position: sticky;
+    top: 5rem;
+  }
+}
+
+.em-view header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.em-view header div {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.em .em-view > * {
+  flex: none;
+}
+
+.em-view-seg {
+  justify-self: start;
+}
+
+.em-frame {
+  width: 100%;
+  height: min(70vh, 640px);
+  border: 1px solid var(--line);
+  border-radius: 0.8rem;
+  background: #fff;
+}
+
+.em-text {
+  max-height: min(70vh, 640px);
+  margin: 0;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 0.8rem;
+  background: var(--panel-strong);
+  font-size: 0.82rem;
+  padding: 0.9rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.em-note {
+  margin: 0;
+  font-size: 0.8rem;
+}

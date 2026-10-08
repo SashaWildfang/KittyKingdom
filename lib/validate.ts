@@ -15,6 +15,17 @@ export function cleanEmail(value: unknown): string | null {
   return email;
 }
 
+// Email providers new accounts can't sign up with (Proton addresses were used for throwaway/ban-evasion accounts)
+const BLOCKED_DOMAINS = ["proton.me", "protonmail.com", "protonmail.ch", "pm.me", "proton.ch"];
+
+/** True when an email is on a provider new accounts can't use. */
+export function isBlockedEmailDomain(email: string) {
+  const domain = email.slice(email.lastIndexOf("@") + 1).toLowerCase();
+  return BLOCKED_DOMAINS.some((d) => domain === d || domain.endsWith(`.${d}`));
+}
+
+export const BLOCKED_EMAIL_MESSAGE = "Proton email addresses (proton.me, protonmail.com, pm.me) can't be used for Kitty Kingdom accounts. Please use another email provider.";
+
 /** Email or username for logging in / resets. */
 export function cleanIdentifier(value: unknown): string | null {
   if (typeof value !== "string") return null;
