@@ -6,6 +6,7 @@
 // (`_id: "bj:<discordId>"`); every move is applied with a version check so a double click or two tabs
 // can't play the same move twice.
 
+import { economyNumber } from "../bot-settings/live";
 import { addToJackpot, charge, credit, gameCollections, GameError, getBalance, recordGame, shuffle } from "./core";
 
 export const MIN_BET = 25;
@@ -147,7 +148,8 @@ export async function blackjackState(discordId: string) {
 
 export async function startHand(discordId: string, rawBet: unknown) {
   const bet = Math.floor(Number(rawBet));
-  if (!Number.isFinite(bet) || bet < MIN_BET) throw new GameError(`The minimum bet is ${MIN_BET} leaves.`);
+  const minBet = await economyNumber("casino.blackjackMinBet", MIN_BET);
+  if (!Number.isFinite(bet) || bet < minBet) throw new GameError(`The minimum bet is ${minBet} leaves.`);
   if (bet > MAX_BET) throw new GameError(`The maximum bet is ${MAX_BET.toLocaleString()} leaves.`);
 
   let existing = await load(discordId);

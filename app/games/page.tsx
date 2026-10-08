@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "../../lib/auth";
 import { getDiscordInviteSummary } from "../../lib/discord";
+import { economyNumber } from "../../lib/bot-settings/live";
 import { blackjackState, MIN_BET } from "../../lib/games/blackjack";
 import { scratchStatus, TICKETS } from "../../lib/games/scratch";
 import { slotsStatus } from "../../lib/games/slots";
@@ -20,7 +21,13 @@ export default async function GamesPage({ searchParams }: { searchParams: { game
   if (!user.discordId) redirect("/account?account=link-required#discord-account");
   const discordId = String(user.discordId);
 
-  const [bj, scratch, slots, mines] = await Promise.all([blackjackState(discordId).catch(() => null), scratchStatus(discordId).catch(() => null), slotsStatus(discordId).catch(() => null), minesState(discordId).catch(() => null)]);
+  const [bj, scratch, slots, mines, minBet] = await Promise.all([
+    blackjackState(discordId).catch(() => null),
+    scratchStatus(discordId).catch(() => null),
+    slotsStatus(discordId).catch(() => null),
+    minesState(discordId).catch(() => null),
+    economyNumber("casino.blackjackMinBet", MIN_BET),
+  ]);
 
   return (
     <main className="site-shell games-shell">
@@ -35,7 +42,7 @@ export default async function GamesPage({ searchParams }: { searchParams: { game
         initialMines={mines?.game ?? null}
         myId={discordId}
         tickets={TICKETS}
-        minBet={MIN_BET}
+        minBet={minBet}
         loadError={!bj || !scratch}
       />
     </main>

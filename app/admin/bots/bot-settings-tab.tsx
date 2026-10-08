@@ -8,7 +8,14 @@ import {
   Code2,
   Crown,
   Download,
+  CalendarDays,
+  Dices,
   ExternalLink,
+  Gift,
+  MessageSquare,
+  Puzzle,
+  Rocket,
+  TrendingUp,
   Gem,
   Heart,
   History,
@@ -47,6 +54,13 @@ const ICONS: Record<string, LucideIcon> = {
   mic: Mic,
   sparkles: Sparkles,
   megaphone: Megaphone,
+  message: MessageSquare,
+  trending: TrendingUp,
+  calendar: CalendarDays,
+  dice: Dices,
+  puzzle: Puzzle,
+  rocket: Rocket,
+  gift: Gift,
 };
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
@@ -266,6 +280,7 @@ export function BotSettingsTab({ botKey }: { botKey: string }) {
                         <div className="bs-field-text">
                           <b>
                             {f.label}
+                            {f.shared ? <em className="bs-tag is-shared" title="The website uses this setting too">bot + website</em> : null}
                             {unsaved ? <em className="bs-tag is-unsaved">unsaved</em> : !isDefault ? <em className="bs-tag">changed</em> : null}
                           </b>
                           <small>{f.help}</small>
@@ -387,10 +402,10 @@ function Control({ field: f, value, meta, onChange }: { field: Field; value: unk
           kind="channel"
           multiple={f.type === "channels"}
           allowEmpty={f.default === null}
-          options={channelOptions(meta, "any")}
+          options={channelOptions(meta, f.channelKind ?? "any")}
           value={(value as string | string[] | null) ?? (f.type === "channels" ? [] : null)}
           onChange={onChange}
-          placeholder={f.type === "channels" ? "No channels" : "Pick a channel"}
+          placeholder={f.type === "channels" ? (f.channelKind === "category" ? "No categories" : "None") : "Pick a channel"}
         />
       );
     case "role":
