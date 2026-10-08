@@ -9,6 +9,7 @@ import { Matcher } from "./automod-engine";
 import { getGuildRoles, getMemberRoleIds } from "./discord-member";
 import { getBotCollection } from "./mongodb";
 import { NITRO, isNitroRoles, tierFromRoles, type TierKey } from "./perks";
+import { withTierAliases } from "./tier-roles";
 
 export class SupporterError extends Error {
   constructor(message: string, public status = 400) {
@@ -38,6 +39,10 @@ export type SupporterStatus = {
   canCustomRole: boolean;
   canExtras: boolean;
   customRole: CustomRole | null;
+  /** 0 = King / Prince / Duke, 1 = Queen / Princess / Duchess */
+  variant: 0 | 1;
+  /** True while the bot is switching their title role */
+  titlePending: boolean;
 };
 
 const HEX = /^#?([0-9a-f]{6})$/i;
@@ -64,12 +69,13 @@ function toRole(doc: Record<string, unknown> | null): CustomRole | null {
 }
 
 export async function supporterStatus(discordId: string): Promise<SupporterStatus> {
-  const roles = await getMemberRoleIds(discordId).catch(() => null);
+  const roles = await withTierAliases(await getMemberRoleIds(discordId).catch(() => null));
   const tier = tierFromRoles(roles);
   const nitro = isNitroRoles(roles);
-  const [roleDoc, patron] = await Promise.all([
+  const [roleDoc, patron, pref] = await Promise.all([
     (await roleCol()).findOne({ _id: discordId } as never).catch(() => null),
     (await getBotCollection("patreon_members")).findOne({ discordId, tier: { $ne: null } }).catch(() => null),
+    (await getBotCollection("supporter_prefs")).findOne({ _id: discordId } as never).catch(() => null),
   ]);
   return {
     inServer: roles !== null,
@@ -81,6 +87,8 @@ export async function supporterStatus(discordId: string): Promise<SupporterStatu
     canCustomRole: Boolean(tier?.customRole),
     canExtras: Boolean(tier?.roleExtras),
     customRole: toRole(roleDoc as Record<string, unknown> | null),
+    variant: pref?.variant === 1 ? 1 : 0,
+    titlePending: Boolean(pref && pref.version !== pref.appliedVersion),
   };
 }
 
@@ -92,10 +100,10 @@ function hex(value: unknown, field: string) {
 
 /** Saves a custom role design; the bot applies it in Discord within a few seconds. */
 export async function saveCustomRole(discordId: string, input: Record<string, unknown>) {
-  const roles = await getMemberRoleIds(discordId);
+  const roles = await withTierAliases(await getMemberRoleIds(discordId));
   if (!roles) throw new SupporterError("You need to be in the Discord server to have a custom role.", 403);
   const tier = tierFromRoles(roles);
-  if (!tier?.customRole) throw new SupporterError("Custom roles are a perk for Maple Noble ($10) and Harvest Monarch ($20) supporters.", 403);
+  if (!tier?.customRole) throw new SupporterError("Custom roles are a perk for Prince / Princess ($10) and King / Queen ($20) supporters.", 403);
 
   const name = String(input.name ?? "").replace(/\s+/g, " ").trim();
   if (name.length < 1 || name.length > 32) throw new SupporterError("Role names must be 1 to 32 characters.");
@@ -112,13 +120,13 @@ export async function saveCustomRole(discordId: string, input: Record<string, un
 
   const style = String(input.style ?? "solid") as RoleStyle;
   if (!["solid", "gradient", "holographic"].includes(style)) throw new SupporterError("Pick a role style.");
-  if (style === "holographic" && !tier.roleExtras) throw new SupporterError("The holographic style is a Harvest Monarch perk.", 403);
+  if (style === "holographic" && !tier.roleExtras) throw new SupporterError("The holographic style is a King / Queen perk.", 403);
   const color = hex(input.color, "color");
   const color2 = style === "gradient" ? hex(input.color2, "second color") : null;
 
   let icon: string | null = String(input.icon ?? "").trim() || null;
   if (icon) {
-    if (!tier.roleExtras) throw new SupporterError("Role icons are a Harvest Monarch perk.", 403);
+    if (!tier.roleExtras) throw new SupporterError("Role icons are a King / Queen perk.", 403);
     if (icon.length > 16 || !EMOJI.test(icon)) throw new SupporterError("The icon must be a single standard emoji, like 🦊.");
   }
 
@@ -129,6 +137,17 @@ export async function saveCustomRole(discordId: string, input: Record<string, un
       $inc: { version: 1 },
       $setOnInsert: { appliedVersion: 0, roleId: null },
     },
+    { upsert: true },
+  );
+  return supporterStatus(discordId);
+}
+
+/** Choose King / Prince / Duke (0) or Queen / Princess / Duchess (1). The bot switches the role within seconds. */
+export async function saveTitle(discordId: string, rawVariant: unknown) {
+  const variant = Number(rawVariant) === 1 ? 1 : 0;
+  await (await getBotCollection("supporter_prefs")).updateOne(
+    { _id: discordId } as never,
+    { $set: { variant, updatedAt: new Date(), updatedVia: "website" }, $inc: { version: 1 }, $setOnInsert: { appliedVersion: 0 } },
     { upsert: true },
   );
   return supporterStatus(discordId);

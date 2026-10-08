@@ -17,7 +17,10 @@ function tierPerks(t: Tier) {
   ];
   if (t.customRole) out.push(t.roleExtras ? "Custom role with gradient, holographic style and an icon" : "Custom role: your own name and colors");
   if (t.premiumGames) out.push("25 slot spins at once and the premium scratch-offs");
-  out.push(`${t.weight > 0 ? "+" + t.weight : t.weight} weight in Social's hourly Featured draw`);
+  out.push(`Weekly Royal Chest (/chest): ${t.chest.toLocaleString()}+ Leaves${t.chestItems.length ? ` + ${t.chestItems.join(", ")}` : ""}`);
+  out.push(`Daily Royal Wheel (/wheel): Leaf prizes ×${t.wheelMult}`);
+  out.push(`${Math.round(t.discount * 100)}% off everything in the Store`);
+  out.push(`+${t.weight} weight in Social's hourly Featured draw`);
   return out;
 }
 
@@ -70,6 +73,7 @@ export function SupporterCard({ displayName }: { displayName: string }) {
   const [status, setStatus] = useState<SupporterStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [titleSaving, setTitleSaving] = useState(false);
   const [saved, setSaved] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", style: "solid" as RoleStyle, color: "#E8622C", color2: "#F5B83D", icon: "" });
 
@@ -87,12 +91,22 @@ export function SupporterCard({ displayName }: { displayName: string }) {
     void load(true);
   }, [load]);
 
+  async function chooseTitle(variant: 0 | 1) {
+    setTitleSaving(true);
+    const res = await fetch("/api/account/supporter", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "title", variant }) })
+      .then((r) => r.json())
+      .catch(() => null);
+    setTitleSaving(false);
+    if (res?.ok) setStatus(res.status);
+    else setError(res?.error ?? "Couldn't change your title.");
+  }
+
   // While the bot is applying a change, check back every few seconds
   useEffect(() => {
-    if (status?.customRole?.status !== "pending") return;
+    if (status?.customRole?.status !== "pending" && !status?.titlePending) return;
     const t = window.setInterval(() => void load(false), 3000);
     return () => window.clearInterval(t);
-  }, [status?.customRole?.status, load]);
+  }, [status?.customRole?.status, status?.titlePending, load]);
 
   async function save() {
     setSaving(true);
@@ -159,7 +173,7 @@ export function SupporterCard({ displayName }: { displayName: string }) {
         <div>
           <small>Your supporter perks</small>
           <h3>
-            {tier ? tier.name : null}
+            {tier ? tier.titles[status.variant] : null}
             {tier && status.nitro ? " + " : null}
             {status.nitro ? "Nitro Booster" : null}
           </h3>
@@ -170,10 +184,30 @@ export function SupporterCard({ displayName }: { displayName: string }) {
         </div>
       </div>
 
+      {tier ? (
+        <div className="sp-title">
+          <span>Your title</span>
+          <div className="sp-seg" role="radiogroup" aria-label="Your title">
+            {tier.titles.map((t, i) => (
+              <button key={t} type="button" role="radio" aria-checked={status.variant === i} className={status.variant === i ? "is-on" : ""} disabled={titleSaving} onClick={() => chooseTitle(i as 0 | 1)}>
+                {t}
+              </button>
+            ))}
+          </div>
+          {status.titlePending ? (
+            <span className="sp-badge is-pending">
+              <Loader2 size={13} className="sp-spin" aria-hidden="true" /> Switching your role…
+            </span>
+          ) : (
+            <small>Your Discord role is “{tier.titles[status.variant]} (Patreon)”.</small>
+          )}
+        </div>
+      ) : null}
+
       <div className="sp-perks">
         {tier ? (
           <div>
-            <h4>{tier.emoji} {tier.name}</h4>
+            <h4>{tier.emoji} {tier.titles[status.variant]} perks</h4>
             <ul>{tierPerks(tier).map((p) => <li key={p}><Check size={14} aria-hidden="true" /> {p}</li>)}</ul>
           </div>
         ) : null}
@@ -203,7 +237,7 @@ export function SupporterCard({ displayName }: { displayName: string }) {
                   {(["solid", "gradient", "holographic"] as RoleStyle[]).map((s) => {
                     const locked = s === "holographic" && !status.canExtras;
                     return (
-                      <button key={s} type="button" role="radio" aria-checked={form.style === s} className={form.style === s ? "is-on" : ""} disabled={locked} onClick={() => setForm({ ...form, style: s })} title={locked ? "Harvest Monarch perk" : undefined}>
+                      <button key={s} type="button" role="radio" aria-checked={form.style === s} className={form.style === s ? "is-on" : ""} disabled={locked} onClick={() => setForm({ ...form, style: s })} title={locked ? "King / Queen perk" : undefined}>
                         {locked ? <Lock size={12} aria-hidden="true" /> : null} {s[0].toUpperCase() + s.slice(1)}
                       </button>
                     );
@@ -234,7 +268,7 @@ export function SupporterCard({ displayName }: { displayName: string }) {
               )}
               <label>
                 <span>
-                  Role icon {status.canExtras ? "(one emoji, optional)" : <em><Lock size={11} aria-hidden="true" /> Harvest Monarch</em>}
+                  Role icon {status.canExtras ? "(one emoji, optional)" : <em><Lock size={11} aria-hidden="true" /> King / Queen</em>}
                 </span>
                 <input value={form.icon} maxLength={16} disabled={!status.canExtras} onChange={(e) => setForm({ ...form, icon: e.target.value })} placeholder={status.canExtras ? "🦊" : "Upgrade to add an icon"} />
               </label>
@@ -251,7 +285,7 @@ export function SupporterCard({ displayName }: { displayName: string }) {
           <div className="sp-locked">
             <Lock size={18} aria-hidden="true" />
             <p>
-              Design your own role (name, solid or gradient color) with <b>Maple Noble ($10)</b>. <b>Harvest Monarch ($20)</b> adds the holographic style and a role icon.{" "}
+              Design your own role (name, solid or gradient color) as a <b>Prince / Princess ($10)</b>. <b>King / Queen ($20)</b> adds the holographic style and a role icon.{" "}
               <a href="/patreon">See the tiers</a>
             </p>
           </div>

@@ -3,6 +3,7 @@
 // win the shared progressive jackpot; every losing spin feeds it. Up to 25 spins at a time (Nitro
 // boosters, like the bot). The latest batch is kept as `sl:<discordId>` so it can be watched live.
 
+import { withTierAliases } from "../tier-roles";
 import { hasPremiumGames } from "../perks";
 import { Long } from "mongodb";
 import { getMemberRoleIds } from "../discord-member";
@@ -68,9 +69,9 @@ export type SlotsSession = {
   updatedAt: Date;
 };
 
-/** Premium games (25 spins, premium scratch-offs): Nitro boosters and Maple Noble+ Patreon supporters */
+/** Premium games (25 spins, premium scratch-offs): Nitro boosters and Prince / Princess+ Patreon supporters */
 async function isNitro(discordId: string) {
-  const roles = await getMemberRoleIds(discordId).catch(() => null);
+  const roles = await withTierAliases(await getMemberRoleIds(discordId).catch(() => null));
   return hasPremiumGames(roles);
 }
 

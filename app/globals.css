@@ -31728,3 +31728,26 @@ a.apl-chip {
   font-size: 0.82rem;
   font-weight: 700;
 }
+
+/* Store: Patreon supporter discount banner */
+.store-supporter-discount {
+  position: relative;
+  z-index: 2;
+  width: min(1180px, calc(100% - 2rem));
+  margin: 1rem auto 0;
+  padding: 0.7rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--gold) 45%, var(--line));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--gold) 12%, var(--panel));
+  color: var(--text);
+  line-height: 1.5;
+}
+.store-supporter-discount.is-upsell {
+  border-color: var(--line);
+  background: var(--panel);
+  color: var(--muted);
+}
+.store-supporter-discount a {
+  color: var(--gold);
+  font-weight: 800;
+}
