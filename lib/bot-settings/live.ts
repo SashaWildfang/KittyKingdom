@@ -14,11 +14,32 @@ async function values(bot: string) {
   return v;
 }
 
+/** Any saved setting ("transcripts.accent"), or undefined when it isn't set. */
+export async function botValue(bot: string, key: string): Promise<unknown> {
+  return key.split(".").reduce<unknown>((o, k) => (o && typeof o === "object" ? (o as Record<string, unknown>)[k] : undefined), await values(bot).catch(() => ({})));
+}
+
 /** A number setting from a bot's saved settings ("daily.base"), or the fallback when it isn't set. */
 export async function botNumber(bot: string, key: string, fallback: number) {
-  const v = key.split(".").reduce<unknown>((o, k) => (o && typeof o === "object" ? (o as Record<string, unknown>)[k] : undefined), await values(bot).catch(() => ({})));
+  const v = await botValue(bot, key);
   const n = typeof v === "number" ? v : Number(v);
   return v !== undefined && v !== null && Number.isFinite(n) ? n : fallback;
 }
 
 export const economyNumber = (key: string, fallback: number) => botNumber("economy", key, fallback);
+
+/** How transcripts look (Admin → Bots → Ticket Bot → Transcripts), with the defaults filled in. */
+export async function transcriptLook() {
+  const { DEFAULT_LOOK } = await import("../transcript-member");
+  const [title, accent, groupMessages, dayDividers, staffBadges, memberNote] = await Promise.all(
+    ["transcripts.title", "transcripts.accent", "transcripts.groupMessages", "transcripts.dayDividers", "transcripts.staffBadges", "transcripts.memberNote"].map((k) => botValue("ticketing", k)),
+  );
+  return {
+    title: typeof title === "string" && title.trim() ? title.trim().slice(0, 80) : DEFAULT_LOOK.title,
+    accent: typeof accent === "string" && /^#[0-9a-f]{6}$/i.test(accent) ? accent : DEFAULT_LOOK.accent,
+    groupMessages: typeof groupMessages === "boolean" ? groupMessages : DEFAULT_LOOK.groupMessages,
+    dayDividers: typeof dayDividers === "boolean" ? dayDividers : DEFAULT_LOOK.dayDividers,
+    staffBadges: typeof staffBadges === "boolean" ? staffBadges : DEFAULT_LOOK.staffBadges,
+    memberNote: typeof memberNote === "string" ? memberNote.slice(0, 300) : DEFAULT_LOOK.memberNote,
+  };
+}

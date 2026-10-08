@@ -10,7 +10,7 @@
 import { parse, type HTMLElement, type Node } from "node-html-parser";
 import { openTranscriptFile } from "./transcript-store";
 
-const RENDER_VERSION = 2;
+const RENDER_VERSION = 3;
 /** The current transcript stylesheet, served by both viewers (old zips carry an old style.css) */
 export const TRANSCRIPT_CSS_FILE = "kk-transcript.css";
 
@@ -19,7 +19,32 @@ export type MemberTicketMeta = {
   created: string | null;
   resolvedAt: string | null;
   claimedBy: string | null;
+  type?: string | null;
+  topic?: string | null;
+  escalated?: boolean;
 };
+
+/** How transcripts look (Admin → Bots → Ticket Bot → Transcripts). */
+export type TranscriptLook = {
+  title: string;
+  accent: string;
+  groupMessages: boolean;
+  dayDividers: boolean;
+  staffBadges: boolean;
+  memberNote: string;
+};
+
+export const DEFAULT_LOOK: TranscriptLook = {
+  title: "Kitty Kingdom Support",
+  accent: "#ff8b3d",
+  groupMessages: true,
+  dayDividers: true,
+  staffBadges: true,
+  memberNote: "This is your copy of the ticket. Images, videos, files and stickers are removed for privacy.",
+};
+
+// Set for the length of one (synchronous) build, like staffCopy
+let look: TranscriptLook = DEFAULT_LOOK;
 
 type Message = {
   authorId: string | null;
@@ -328,35 +353,80 @@ const SEARCH_SCRIPT = `<script>
 </script>`;
 
 function badgeHtml(badge: Message["badge"], cls: "staff-badge" | "staff-team-badge") {
-  return badge ? `<span class="${cls} ${badge.cls}">${escapeHtml(badge.text.toUpperCase())}</span>` : "";
+  return badge && look.staffBadges ? `<span class="${cls} ${badge.cls}">${escapeHtml(badge.text.toUpperCase())}</span>` : "";
 }
+
+// "09/27/2026 • 04:05 PM" (Mountain Time) -> day key and minutes, for day dividers and grouping
+const MSG_TIME = /(\d{2})\/(\d{2})\/(\d{4}) • (\d{2}):(\d{2}) (AM|PM)/;
+const DAY_LABEL = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", weekday: "long", month: "long", day: "numeric", year: "numeric" });
+function timeParts(text: string) {
+  const m = MSG_TIME.exec(text);
+  if (!m) return null;
+  const [, mo, d, y, h, mi, ap] = m;
+  const day = `${y}-${mo}-${d}`;
+  const minutes = Date.UTC(Number(y), Number(mo) - 1, Number(d)) / 60000 + ((Number(h) % 12) + (ap === "PM" ? 12 : 0)) * 60 + Number(mi);
+  return { day, minutes, label: DAY_LABEL.format(new Date(Date.UTC(Number(y), Number(mo) - 1, Number(d), 12))) };
+}
+
+const TYPE_LABELS: Record<string, string> = { nsfw: "NSFW verification", support: "Support", "staff-application": "Staff application", manual: "Manual" };
 
 function renderPage(meta: MemberTicketMeta, messages: Message[], people: { opener: string; closer: string }, fallbackBody: string | null, localTimesScript: string) {
   const created = mountainTime(meta.created);
   const closed = mountainTime(meta.resolvedAt);
+  const accent = /^#[0-9a-f]{6}$/i.test(look.accent) ? look.accent : DEFAULT_LOOK.accent;
+  const claimer = meta.claimedBy ? messages.find((m) => m.authorId === meta.claimedBy)?.name ?? null : null;
+  const authors = new Set(messages.map((m) => m.authorId ?? m.name));
+  const chips = [
+    meta.type ? `<span class="tx-chip is-accent">${escapeHtml(TYPE_LABELS[meta.type] ?? meta.type)}</span>` : "",
+    meta.escalated ? '<span class="tx-chip is-danger">Escalated</span>' : "",
+    claimer ? `<span class="tx-chip">Claimed by ${escapeHtml(claimer)}</span>` : "",
+    staffCopy ? '<span class="tx-chip">Staff copy</span>' : '<span class="tx-chip">Your copy</span>',
+  ].join("");
   const out: string[] = [];
   out.push(`<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Transcript ${meta.ticketId}</title>
+<title>Ticket #${meta.ticketId} · ${escapeHtml(look.title)}</title>
 <link rel="stylesheet" href="${TRANSCRIPT_CSS_FILE}">
+<style>:root { --accent: ${accent}; }</style>
 </head>
 <body>
-<div class="layout-container">
+<div class="layout-container" id="top">
     <div class="main-content">
-        <h1>Transcript — #${meta.ticketId}</h1>
-        <div class="header-times">Opened: ${created} MT &nbsp;&nbsp;|&nbsp;&nbsp; Closed: ${closed} MT &nbsp;&nbsp;|&nbsp;&nbsp; Resolution Time: ${duration(meta.created, meta.resolvedAt)}</div>
-        ${staffCopy ? "" : '<div class="member-note">🔒 This is your copy of the ticket. Images, videos, files and stickers are removed for privacy.</div>'}
+        <header class="tx-header">
+            <p class="tx-kicker">${escapeHtml(look.title)}</p>
+            <h1>Ticket #${meta.ticketId}</h1>
+            <div class="tx-chips">${chips}</div>
+            <div class="tx-stats">
+                <div><small>Opened</small><b>${created} MT</b></div>
+                <div><small>Closed</small><b>${closed} MT</b></div>
+                <div><small>Open for</small><b>${duration(meta.created, meta.resolvedAt)}</b></div>
+                <div><small>Messages</small><b>${messages.length}</b></div>
+                <div><small>People</small><b>${authors.size}</b></div>
+            </div>
+        </header>
+        <div class="header-times">Opened: ${created} MT | Closed: ${closed} MT</div>
+        ${staffCopy || !look.memberNote.trim() ? "" : `<div class="member-note">🔒 ${escapeHtml(look.memberNote)}</div>`}
+        <div class="tx-messages">
 `);
 
   if (fallbackBody !== null) out.push(`<div class="fallback-body">${fallbackBody}</div>`);
+  let prev = null as { author: string; minutes: number; day: string } | null;
   for (const m of messages) {
+    const t = timeParts(m.time);
+    if (look.dayDividers && t && t.day !== (prev ? prev.day : null)) {
+      out.push(`<div class="day-divider"><span>${t.label}</span></div>`);
+      prev = null;
+    }
+    const author = m.authorId ?? m.name;
+    const continued = Boolean(look.groupMessages && prev && t && prev.author === author && t.minutes - prev.minutes <= 7 && m.reply === null);
+    prev = t ? { author, minutes: t.minutes, day: t.day } : null;
     out.push(`
-        <div class="msg" data-author-id="${m.authorId ?? ""}">
+        <div class="msg${continued ? " is-continued" : ""}" data-author-id="${m.authorId ?? ""}">
             ${m.avatar ? `<img src="${m.avatar}" class="avatar" alt="">` : `<div class="participant-avatar-fallback avatar"></div>`}
-            <div class="msg-content">
+            <div class="msg-content"${continued ? ` title="${escapeHtml(m.time)}"` : ""}>
                 ${m.reply !== null ? `<div class="reply-line">${m.reply}</div>` : ""}
                 <div class="author">${escapeHtml(m.name)} ${badgeHtml(m.badge, "staff-badge")} <span class="timestamp">${escapeHtml(m.time)}</span></div>
                 <div class="content">${m.content}</div>`);
@@ -367,16 +437,19 @@ function renderPage(meta: MemberTicketMeta, messages: Message[], people: { opene
     if (m.buttons.length) out.push(`<div class="button-row">${m.buttons.map((b) => `<div class="discord-button ${b.cls}">${b.label}</div>`).join("")}</div>`);
     out.push(`</div></div>`);
   }
-  out.push(`<div class="transcript-end">Ticket Transcript Ended @ ${closed} MT</div>
+  out.push(`
+        </div>
+        <div class="transcript-end" id="end">Ticket closed ${closed} MT</div>
     </div>
-    <div class="sidebar">
+    <aside class="sidebar">
         <div class="meta-box">
             <b>Opened by:</b> ${escapeHtml(people.opener || "Unknown")}<br>
             <b>Closed by:</b> ${escapeHtml(people.closer || "Unknown")}<br>
             <b>Total Messages:</b> ${messages.length}
             <div class="search-container">
-                <input type="text" id="searchInput" placeholder="Search messages...">
+                <input type="text" id="searchInput" placeholder="Search messages…" aria-label="Search messages">
                 <span id="searchCount"></span>
+                <div class="tx-jump"><a href="#top">↑ Top</a><a href="#end">↓ End</a></div>
             </div>
         </div>
         <div class="participants-box">
@@ -392,21 +465,21 @@ function renderPage(meta: MemberTicketMeta, messages: Message[], people: { opene
   }
   const rows = Array.from(seen.values()).sort((a, b) => Number(Boolean(b.m.badge)) - Number(Boolean(a.m.badge)) || b.count - a.count);
   for (const { m, count } of rows) {
-    const claimer = meta.claimedBy && m.authorId === meta.claimedBy ? '<span class="claimer-badge">CLAIMER</span>' : "";
+    const claimerTag = meta.claimedBy && m.authorId === meta.claimedBy ? '<span class="claimer-badge">CLAIMER</span>' : "";
     out.push(`
-        <div ${m.authorId ? `id="user-${m.authorId}" ` : ""}class="participant-row">
+        <label ${m.authorId ? `id="user-${m.authorId}" ` : ""}class="participant-row">
             <input type="checkbox" class="filter-cb" value="${m.authorId ?? ""}">
             ${m.avatar ? `<img src="${m.avatar}" class="participant-avatar" alt="">` : '<div class="participant-avatar-fallback"></div>'}
             <div class="participant-info">
-                <div class="participant-name-row"><b>${escapeHtml(m.name)}</b> ${badgeHtml(m.badge, "staff-team-badge")} ${claimer}</div>
-                ${m.authorId ? `<div class="participant-id">(${m.authorId})</div>` : ""}
-                <div class="participant-msgs">Messages: ${count}</div>
+                <div class="participant-name-row"><b>${escapeHtml(m.name)}</b> ${badgeHtml(m.badge, "staff-team-badge")} ${claimerTag}</div>
+                ${m.authorId ? `<div class="participant-id">${m.authorId}</div>` : ""}
+                <div class="participant-msgs">${count} message${count === 1 ? "" : "s"}</div>
             </div>
-        </div>`);
+        </label>`);
   }
   out.push(`
         </div>
-    </div>
+    </aside>
 </div>
 ${SEARCH_SCRIPT}
 ${localTimesScript}
@@ -418,18 +491,25 @@ ${localTimesScript}
 // Public
 // ------------------------------------------------------------------
 /** Turns a staff transcript page (old or new format) into the member's redacted copy. */
-export function buildMemberTranscript(staffHtml: string, meta: MemberTicketMeta, localTimesScript = "") {
+export function buildMemberTranscript(staffHtml: string, meta: MemberTicketMeta, localTimesScript = "", style: TranscriptLook = DEFAULT_LOOK) {
   staffCopy = false;
-  return buildTranscript(staffHtml, meta, localTimesScript);
+  look = style;
+  try {
+    return buildTranscript(staffHtml, meta, localTimesScript);
+  } finally {
+    look = DEFAULT_LOOK;
+  }
 }
 
-/** An old-format staff transcript redrawn in the current layout, with all its media (Admin viewer). */
-export function buildStaffTranscript(staffHtml: string, meta: MemberTicketMeta, localTimesScript = "") {
+/** A staff transcript (any format) redrawn in the current layout, with all its media (Admin viewer). */
+export function buildStaffTranscript(staffHtml: string, meta: MemberTicketMeta, localTimesScript = "", style: TranscriptLook = DEFAULT_LOOK) {
   staffCopy = true;
+  look = style;
   try {
     return buildTranscript(staffHtml, meta, localTimesScript);
   } finally {
     staffCopy = false;
+    look = DEFAULT_LOOK;
   }
 }
 
@@ -452,15 +532,15 @@ function buildTranscript(staffHtml: string, meta: MemberTicketMeta, localTimesSc
 const rendered = new Map<string, string>();
 
 /** The member copy of a transcript, cached for a while since it never changes. */
-export async function memberTranscriptPage(messageId: string, meta: MemberTicketMeta, localTimesScript: string) {
-  const key = `${RENDER_VERSION}:${messageId}`;
+export async function memberTranscriptPage(messageId: string, meta: MemberTicketMeta, localTimesScript: string, style: TranscriptLook = DEFAULT_LOOK) {
+  const key = `${RENDER_VERSION}:${messageId}:${JSON.stringify(style)}`;
   const hit = rendered.get(key);
   if (hit) return hit;
   const file = await openTranscriptFile(messageId, "index.html");
   if (!file) return null;
   const data = await file.read(0, Math.max(0, file.size - 1));
   const bytes = data instanceof Uint8Array ? data : new Uint8Array(await new Response(data).arrayBuffer());
-  const page = buildMemberTranscript(new TextDecoder().decode(bytes), meta, localTimesScript);
+  const page = buildMemberTranscript(new TextDecoder().decode(bytes), meta, localTimesScript, style);
   rendered.set(key, page);
   while (rendered.size > 40) rendered.delete(rendered.keys().next().value as string);
   return page;
