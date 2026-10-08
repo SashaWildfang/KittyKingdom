@@ -55,7 +55,8 @@ async function roleCol() {
 }
 
 function toRole(doc: Record<string, unknown> | null): CustomRole | null {
-  if (!doc) return null;
+  // Being removed (by them or staff): treat it as gone
+  if (!doc || doc.remove) return null;
   const pending = doc.version !== doc.appliedVersion;
   return {
     name: String(doc.name ?? ""),
@@ -134,12 +135,34 @@ export async function saveCustomRole(discordId: string, input: Record<string, un
     { _id: discordId } as never,
     {
       $set: { name, style, color, color2, icon, status: "pending", error: null, updatedAt: new Date(), updatedVia: "website" },
+      // Saving a new design cancels a removal the bot hasn't done yet
+      $unset: { remove: "" },
       $inc: { version: 1 },
       $setOnInsert: { appliedVersion: 0, roleId: null },
     },
     { upsert: true },
   );
   return supporterStatus(discordId);
+}
+
+/** Deletes your custom role: the bot removes it from Discord within seconds (a role that was never
+ * applied is just forgotten). Shop color roles can be equipped again afterwards. */
+export async function removeOwnCustomRole(discordId: string) {
+  const col = await roleCol();
+  const doc = (await col.findOne({ _id: discordId } as never)) as Record<string, unknown> | null;
+  if (!doc) throw new SupporterError("You don't have a custom role.", 404);
+  if (!doc.roleId) {
+    await col.deleteOne({ _id: discordId } as never);
+  } else {
+    await col.updateOne({ _id: discordId } as never, { $set: { remove: "self", status: "pending", updatedAt: new Date(), updatedVia: "website" }, $inc: { version: 1 } });
+  }
+  return supporterStatus(discordId);
+}
+
+/** True while a member has a Patreon custom role in Discord (it replaces shop color roles). */
+export async function hasActiveCustomRole(discordId: string) {
+  const doc = await (await roleCol()).findOne({ _id: discordId, roleId: { $nin: [null, ""] }, remove: { $exists: false } } as never, { projection: { _id: 1 } });
+  return Boolean(doc);
 }
 
 /** Choose King / Prince / Duke (0) or Queen / Princess / Duchess (1). The bot switches the role within seconds. */
