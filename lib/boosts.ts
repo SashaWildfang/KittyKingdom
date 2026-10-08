@@ -1,6 +1,7 @@
 // A member's boosts in one place: Store boosters running right now, the XP and leaf multipliers they
 // earn at (the same rules the bots use) and their weight and odds in Social's hourly Featured draw.
 
+import { withTierAliases } from "./tier-roles";
 import { Long } from "mongodb";
 import { getMemberRoleIds } from "./discord-member";
 import { featuredOdds } from "./dating/discover";
@@ -30,7 +31,7 @@ export async function boostStatus(discordId: string) {
     boostersCol.find({ discordId, end_time: { $gt: now }, item_id: { $nin: RETIRED } }).sort({ end_time: 1 }).toArray(),
     users.findOne({ discordId: { $in: [Long.fromString(discordId), discordId] } } as never, { projection: { xpMultiplier: 1, multiplier: 1 }, useBigInt64: true }),
     globals.findOne({ isXpWeekend: { $exists: true } }).then((g) => g ?? globals.findOne({})),
-    getMemberRoleIds(discordId).catch(() => null),
+    getMemberRoleIds(discordId).catch(() => null).then(withTierAliases),
     featuredOdds(discordId).catch(() => null),
   ]);
   const has = new Set(running.map((b) => String(b.item_id)));

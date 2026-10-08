@@ -395,3 +395,20 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Title picker (King / Queen…) */
+.sp-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 0.8rem;
+}
+.sp-title > span {
+  font-weight: 800;
+}
+.sp-title .sp-seg {
+  min-width: 220px;
+}
+.sp-title small {
+  color: var(--muted);
+}
