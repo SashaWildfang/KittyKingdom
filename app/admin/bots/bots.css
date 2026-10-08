@@ -654,3 +654,22 @@
     gap: 0.5rem;
   }
 }
+
+.bs-color {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.bs-color input[type="color"] {
+  width: 2.6rem;
+  height: 2.3rem;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  background: none;
+  cursor: pointer;
+  padding: 0.15rem;
+}
+.bs-color .bs-text {
+  width: 7.5rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}

@@ -3,7 +3,8 @@ import { LOCAL_TIMES_SCRIPT, localizeTranscriptTimes } from "../../../../../../.
 import { requestTimeZone } from "../../../../../../../lib/timezone";
 import { getTicketByTranscript } from "../../../../../../../lib/tickets";
 import { TRANSCRIPT_CSS } from "../../../../../../../lib/transcript-member-css";
-import { TRANSCRIPT_CSS_FILE, buildStaffTranscript, isOldTranscript } from "../../../../../../../lib/transcript-member";
+import { TRANSCRIPT_CSS_FILE, buildStaffTranscript } from "../../../../../../../lib/transcript-member";
+import { transcriptLook } from "../../../../../../../lib/bot-settings/live";
 import { openTranscriptFile } from "../../../../../../../lib/transcript-store";
 
 export const dynamic = "force-dynamic";
@@ -62,7 +63,7 @@ export async function GET(
 
   const name = params.path.map((part) => decodeURIComponent(part)).join("/");
   // The current stylesheet, for old transcripts redrawn in the current layout
-  if (name === TRANSCRIPT_CSS_FILE) {
+  if (name === TRANSCRIPT_CSS_FILE || name === "style.css") {
     return new Response(TRANSCRIPT_CSS, { headers: { "Content-Type": "text/css; charset=utf-8", "Cache-Control": "private, max-age=3600", "X-Content-Type-Options": "nosniff" } });
   }
   const file = await openTranscriptFile(params.messageId, name).catch(() => null);
@@ -84,14 +85,20 @@ export async function GET(
     const bytes = await file.read(0, Math.max(0, file.size - 1)).catch(() => null);
     if (!bytes) return new Response("This file couldn't be loaded from Discord right now. Try again.", { status: 502 });
     let page = new TextDecoder().decode(bytes instanceof Uint8Array ? bytes : new Uint8Array(await new Response(bytes).arrayBuffer()));
-    // Transcripts from before the sidebar layout are redrawn in the current format (media kept)
-    if (name === "index.html" && isOldTranscript(page)) {
-      const ticket = await getTicketByTranscript(params.messageId).catch(() => null);
+    // Every transcript (any age) is redrawn in the current design with all its media kept, so they all
+    // look the same and follow the Transcripts settings
+    if (name === "index.html") {
+      const [ticket, style] = await Promise.all([getTicketByTranscript(params.messageId).catch(() => null), transcriptLook().catch(() => undefined)]);
       if (ticket) {
         try {
-          page = buildStaffTranscript(page, { ticketId: ticket.ticketId, created: ticket.created, resolvedAt: ticket.resolvedAt, claimedBy: ticket.claimedBy }, LOCAL_TIMES_SCRIPT);
+          page = buildStaffTranscript(
+            page,
+            { ticketId: ticket.ticketId, created: ticket.created, resolvedAt: ticket.resolvedAt, claimedBy: ticket.claimedBy, type: ticket.type, topic: ticket.topic, escalated: ticket.escalated },
+            LOCAL_TIMES_SCRIPT,
+            style,
+          );
         } catch (error) {
-          console.error("Converting an old transcript failed; showing the original", error);
+          console.error("Redrawing a transcript failed; showing the original", error);
         }
       }
     }

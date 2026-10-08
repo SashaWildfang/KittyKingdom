@@ -5,7 +5,7 @@
 //
 // Client-safe: no database code in this file.
 
-export type FieldType = "toggle" | "number" | "text" | "textarea" | "list" | "channel" | "channels" | "role" | "roles" | "select" | "timezone";
+export type FieldType = "toggle" | "number" | "text" | "textarea" | "list" | "channel" | "channels" | "role" | "roles" | "select" | "timezone" | "color";
 
 export type Field = {
   key: string;
@@ -514,6 +514,87 @@ const TICKETING: BotDef = {
   about: "Support tickets, staff applications, NSFW verification tickets, transcripts and staff alerts.",
   ready: true,
   sections: [
+    {
+      key: "staff",
+      title: "Staff ranks",
+      icon: "shield",
+      about: "Which role is which staff rank. Ranks decide who can claim, close, escalate and delete tickets, who can see manual tickets, and the badges in transcripts.",
+      fields: [
+        { key: "staff.ownerRole", label: "Owner", help: "Rank 7: everything.", type: "role", default: "1358473248534167663" },
+        { key: "staff.srAdminRole", label: "Sr Admin", help: "Rank 6.", type: "role", default: "1358472635234779207" },
+        { key: "staff.adminRole", label: "Admin", help: "Rank 5.", type: "role", default: "1358472511133585564" },
+        { key: "staff.srModRole", label: "Sr Mod", help: "Rank 4.", type: "role", default: "1358472588430676018" },
+        { key: "staff.modRole", label: "Mod", help: "Rank 3.", type: "role", default: "1358472532222808126" },
+        { key: "staff.jrModRole", label: "Jr Mod", help: "Rank 2.", type: "role", default: "1358472557862457537" },
+        { key: "staff.helperRole", label: "Helper", help: "Rank 1: can handle tickets but not admin actions.", type: "role", default: "1358470318087340342" },
+        { key: "staff.teamRole", label: "Staff team role", help: "Everyone on staff. Staff applications are refused for people who already have it.", type: "role", default: "1358470109965979859" },
+        {
+          key: "staff.adminFrom",
+          label: "Admin powers from",
+          help: "This rank and up count as admins for tickets (e.g. seeing escalated tickets).",
+          type: "select",
+          default: "admin",
+          options: [
+            { value: "helper", label: "Helper and up" },
+            { value: "jrMod", label: "Jr Mod and up" },
+            { value: "mod", label: "Mod and up" },
+            { value: "srMod", label: "Sr Mod and up" },
+            { value: "admin", label: "Admin and up" },
+            { value: "srAdmin", label: "Sr Admin and up" },
+            { value: "owner", label: "Owner only" },
+          ],
+        },
+        { key: "tickets.supportFrom", label: "Support tickets are seen by", help: "Plus the 'always see' roles.", type: "select", default: "helper", options: [
+            { value: "helper", label: "Helper and up" },
+            { value: "jrMod", label: "Jr Mod and up" },
+            { value: "mod", label: "Mod and up" },
+            { value: "srMod", label: "Sr Mod and up" },
+            { value: "admin", label: "Admin and up" },
+            { value: "srAdmin", label: "Sr Admin and up" },
+            { value: "owner", label: "Owner only" },
+          ] },
+        { key: "tickets.nsfwFrom", label: "NSFW verification tickets are seen by", help: "Plus the 'always see' roles.", type: "select", default: "jrMod", options: [
+            { value: "helper", label: "Helper and up" },
+            { value: "jrMod", label: "Jr Mod and up" },
+            { value: "mod", label: "Mod and up" },
+            { value: "srMod", label: "Sr Mod and up" },
+            { value: "admin", label: "Admin and up" },
+            { value: "srAdmin", label: "Sr Admin and up" },
+            { value: "owner", label: "Owner only" },
+          ] },
+        { key: "tickets.staffAppFrom", label: "Staff applications are seen by", help: "Plus the 'always see' roles.", type: "select", default: "admin", options: [
+            { value: "helper", label: "Helper and up" },
+            { value: "jrMod", label: "Jr Mod and up" },
+            { value: "mod", label: "Mod and up" },
+            { value: "srMod", label: "Sr Mod and up" },
+            { value: "admin", label: "Admin and up" },
+            { value: "srAdmin", label: "Sr Admin and up" },
+            { value: "owner", label: "Owner only" },
+          ] },
+        { key: "staff.alwaysSee", label: "Always see manual tickets", help: "These roles are added to every manual ticket, whatever the creator's rank.", type: "roles", default: ["1416866395366359193", "1358473248534167663"] },
+      ],
+    },
+    {
+      key: "transcripts",
+      title: "Transcripts",
+      icon: "file",
+      about: "How ticket transcripts look on the website (every transcript, old and new) and in the downloaded zips.",
+      fields: [
+        { key: "transcripts.title", label: "Title", help: "Shown above the ticket number.", type: "text", default: "Kitty Kingdom Support", maxLength: 80, shared: true },
+        { key: "transcripts.accent", label: "Accent color", help: "Headings, embeds and highlights.", type: "color", default: "#ff8b3d", shared: true },
+        { key: "transcripts.groupMessages", label: "Group messages", help: "Messages from the same person a few minutes apart join up, like in Discord.", type: "toggle", default: true, shared: true },
+        { key: "transcripts.dayDividers", label: "Day dividers", help: "A line with the date whenever a new day starts.", type: "toggle", default: true, shared: true },
+        { key: "transcripts.staffBadges", label: "Staff badges", help: "Show rank badges (Owner, Admin, Mod…) next to staff names.", type: "toggle", default: true, shared: true },
+        {
+          key: "transcripts.memberNote",
+          label: "Note on members' copies",
+          help: "Shown at the top of a member's own copy (theirs never include images, videos or files). Leave empty to hide it.",
+          type: "textarea",
+          default: "This is your copy of the ticket. Images, videos, files and stickers are removed for privacy.",
+          maxLength: 300,
+        },
+      ],
+    },
     {
       key: "tickets",
       title: "Ticket categories",

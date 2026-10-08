@@ -22,6 +22,7 @@ import {
   VolumeX,
   Dices,
   ExternalLink,
+  FileText,
   Gift,
   MessageSquare,
   Puzzle,
@@ -83,6 +84,7 @@ const ICONS: Record<string, LucideIcon> = {
   clipboard: ClipboardList,
   badge: BadgeCheck,
   panel: PanelTop,
+  file: FileText,
 };
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
@@ -402,6 +404,15 @@ function Control({ field: f, value, meta, onChange }: { field: Field; value: unk
           ) : null}
         </>
       );
+    case "color": {
+      const hex = typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value) ? value : String(f.default);
+      return (
+        <span className="bs-color">
+          <input type="color" value={hex} onChange={(e) => onChange(e.target.value)} aria-label={f.label} />
+          <input className="bs-text" value={String(value ?? "")} maxLength={7} onChange={(e) => onChange(e.target.value)} spellCheck={false} />
+        </span>
+      );
+    }
     case "textarea":
       return <textarea className="bs-text" rows={4} value={String(value ?? "")} onChange={(e) => onChange(e.target.value)} maxLength={f.maxLength} />;
     case "list": {

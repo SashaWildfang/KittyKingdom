@@ -59,6 +59,11 @@ export function cleanValue(field: Field, raw: unknown): unknown {
       if (field.maxLength && s.length > field.maxLength) throw bad(`must be ${field.maxLength} characters or fewer.`);
       return s;
     }
+    case "color": {
+      const s = String(raw ?? "").trim();
+      if (!/^#[0-9a-f]{6}$/i.test(s)) throw bad("pick a color (#RRGGBB).");
+      return s.toLowerCase();
+    }
     case "timezone": {
       const s = String(raw ?? "").trim();
       if (!TIMEZONE_OK(s)) throw bad("isn't a time zone (e.g. US/Mountain or America/Denver).");

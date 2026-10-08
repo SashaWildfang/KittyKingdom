@@ -4,6 +4,7 @@ import { LOCAL_TIMES_SCRIPT, localizeTranscriptTimes } from "../../../../../../l
 import { requestTimeZone } from "../../../../../../lib/timezone";
 import { TRANSCRIPT_CSS } from "../../../../../../lib/transcript-member-css";
 import { TRANSCRIPT_CSS_FILE, memberMayLoad, memberTranscriptPage } from "../../../../../../lib/transcript-member";
+import { transcriptLook } from "../../../../../../lib/bot-settings/live";
 import { openTranscriptFile } from "../../../../../../lib/transcript-store";
 
 export const dynamic = "force-dynamic";
@@ -37,9 +38,10 @@ export async function GET(request: Request, { params }: { params: { messageId: s
   const name = params.path.map((part) => decodeURIComponent(part)).join("/");
 
   if (name === "index.html") {
-    const ticket = await getTicketByTranscript(params.messageId).catch(() => null);
+    const [ticket, style] = await Promise.all([getTicketByTranscript(params.messageId).catch(() => null), transcriptLook().catch(() => undefined)]);
     if (!ticket) return new Response("Transcript not found.", { status: 404 });
-    const page = await memberTranscriptPage(params.messageId, { ticketId: ticket.ticketId, created: ticket.created, resolvedAt: ticket.resolvedAt, claimedBy: ticket.claimedBy }, LOCAL_TIMES_SCRIPT).catch((error) => {
+    const meta = { ticketId: ticket.ticketId, created: ticket.created, resolvedAt: ticket.resolvedAt, claimedBy: ticket.claimedBy, type: ticket.type, topic: ticket.topic, escalated: ticket.escalated };
+    const page = await memberTranscriptPage(params.messageId, meta, LOCAL_TIMES_SCRIPT, style).catch((error) => {
       console.error("Member transcript failed", error);
       return null;
     });
