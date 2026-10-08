@@ -412,3 +412,15 @@
 .sp-title small {
   color: var(--muted);
 }
+
+.sp-hero-emoji {
+  color: var(--tier);
+}
+.sp-perks h4 svg {
+  color: var(--gold);
+}
+.sp-mini-tiers span {
+  display: grid;
+  place-items: center;
+  color: var(--tier);
+}

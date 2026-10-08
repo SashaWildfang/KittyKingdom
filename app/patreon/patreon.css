@@ -490,3 +490,12 @@
 .pt-cmd-grid p {
   font-size: 0.92rem;
 }
+
+.pt-tier-emoji {
+  color: var(--tier);
+}
+.pt-th-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}

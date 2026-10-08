@@ -1,6 +1,7 @@
 // FAQ & Guide content. Numbers come straight from the bots (main_bot: daily.py, leveling.py,
 // stats.py, store/items.py, ad_manager.py; dating/core/store.py), so keep them in sync when those change.
 
+import { TierIcon } from "../tier-icon";
 import { NITRO, TIERS, pct } from "../../lib/perks";
 import type { ReactNode } from "react";
 
@@ -363,11 +364,11 @@ export const TOPICS: Topic[] = [
             {TIERS.map((t, i) => (
               <div key={t.name} className={`kb-tier kb-tier--${i + 1}`}>
                 <small>
-                  {t.emoji} ${t.price}/month
+                  <TierIcon tier={t.key} size={13} /> ${t.price}/month
                 </small>
                 <b>{t.name}</b>
                 <span>
-                  {t.monthly.toLocaleString()} 🍁 a month · {pct(t.xp)} XP · {pct(t.leaf)} Leaves
+                  {t.monthly.toLocaleString()} Leaves a month · {pct(t.xp)} XP · {pct(t.leaf)} Leaves
                 </span>
                 <em>
                   +{t.daily} on every Daily Reward{t.customRole ? " · custom role" : ""}{t.roleExtras ? " (holographic + icon)" : ""}{t.premiumGames ? " · premium games" : ""}
