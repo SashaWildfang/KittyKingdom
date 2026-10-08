@@ -1,6 +1,6 @@
 import { userTimeZone } from "../../lib/timezone";
 import { accountGreeting } from "../../lib/greeting";
-import { Backpack, ChevronDown, Gift, ShieldCheck, Check, CircleAlert, ClipboardList, FileText, Gavel, KeyRound, Lock, Mail, MessageCircle, Rocket, Sparkles, TriangleAlert, UserRound } from "lucide-react";
+import { Backpack, ChevronDown, Crown, Gift, ShieldCheck, Check, CircleAlert, ClipboardList, FileText, Gavel, KeyRound, Lock, Mail, MessageCircle, Rocket, Sparkles, TriangleAlert, UserRound } from "lucide-react";
 import { LeafEmote } from "../ui-icons";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -22,6 +22,7 @@ import { ChangePasswordForm } from "./change-password-form";
 import { twoFactorStatus } from "../../lib/two-factor-account";
 import { BoostsCard } from "./boosts-card";
 import { DailyCard } from "./daily-card";
+import { SupporterCard } from "./supporter-card";
 import { getDailyStatus } from "../../lib/daily";
 import { AccountInventory } from "./account-inventory";
 import { DiscordLinkCode } from "./discord-link-code";
@@ -239,6 +240,7 @@ export default async function AccountPage({
 
           <nav className="acct-nav" aria-label="Account sections">
             {discordLinked ? <a href="#daily"><Gift size={16} aria-hidden="true" /> Daily Reward<DailyReadyDot ready={dailyReady} /></a> : null}
+            {discordLinked ? <a href="#supporter"><Crown size={16} aria-hidden="true" /> Supporter perks</a> : null}
             <a href="#discord-account"><MessageCircle size={16} aria-hidden="true" /> Discord</a>
             <a href="#overview"><ClipboardList size={16} aria-hidden="true" /> Overview</a>
             {discordLinked ? <a href="#roles"><Sparkles size={16} aria-hidden="true" /> Server roles</a> : null}
@@ -257,6 +259,12 @@ export default async function AccountPage({
           {discordLinked ? (
             <CollapsibleCard id="daily" defaultOpen={!collapsed.has("daily")} title="Daily Reward" description="Claim free leaves once a day. Claim every day to build your streak." summary={dailyReady ? "🎁 Ready to claim!" : undefined}>
               <DailyCard initial={dailyStatus} guildId={serverId} />
+            </CollapsibleCard>
+          ) : null}
+
+          {discordLinked ? (
+            <CollapsibleCard id="supporter" defaultOpen={!collapsed.has("supporter")} title="Supporter perks" description="Your Patreon and Nitro perks, and your custom role if you have one.">
+              <SupporterCard displayName={(displayName || discordName || "You").slice(0, 32)} />
             </CollapsibleCard>
           ) : null}
 

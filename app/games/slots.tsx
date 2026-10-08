@@ -314,7 +314,7 @@ export function Slots({ balance, onBalance, initialStatus, viewers = 0 }: { bala
             {SPIN_COUNTS.map((n) => {
               const locked = n > status.maxSpins;
               return (
-                <button key={n} type="button" className={spins === n ? "is-on" : ""} disabled={locked} onClick={() => setSpins(n)} title={locked ? "Extra spins are for Nitro boosters" : `${n} spin${n > 1 ? "s" : ""}`}>
+                <button key={n} type="button" className={spins === n ? "is-on" : ""} disabled={locked} onClick={() => setSpins(n)} title={locked ? "Extra spins: Nitro boosters and $10+ supporters" : `${n} spin${n > 1 ? "s" : ""}`}>
                   {locked ? <Lock size={12} aria-hidden="true" /> : null}×{n}
                 </button>
               );
@@ -322,11 +322,11 @@ export function Slots({ balance, onBalance, initialStatus, viewers = 0 }: { bala
           </div>
           {status.maxSpins <= 1 ? (
             <p className="sl-nitro-note">
-              <Lock size={13} aria-hidden="true" /> Extra spins are for <b>Nitro Boosters</b> only.
+              <Lock size={13} aria-hidden="true" /> Extra spins are for <b>Nitro boosters</b> and <a href="/patreon">Maple Noble+ supporters</a>.
             </p>
           ) : (
             <p className="sl-nitro-note is-on">
-              <Sparkles size={13} aria-hidden="true" /> Nitro booster: spin up to 25 times at once.
+              <Sparkles size={13} aria-hidden="true" /> Premium perk: spin up to 25 times at once.
             </p>
           )}
         </div>
@@ -384,7 +384,7 @@ function Paytable() {
       </ul>
       <p>
         Any <b>two matching</b> symbols give your bet back (26% of spins). Three different symbols lose (62%). Overall the machine pays back about 95% of what's bet. Every losing spin goes into the progressive jackpot, and three gold mice
-        win all of it. Minimum bet 50 leaves a spin. Nitro boosters can spin up to 25 times at once. Same machine and jackpot as /slots in Discord.
+        win all of it. Minimum bet 50 leaves a spin. Nitro boosters and Maple Noble+ supporters can spin up to 25 times at once. Same machine and jackpot as /slots in Discord.
       </p>
     </div>
   );

@@ -3,10 +3,10 @@
 // scratching on screen is only the reveal: closing the page can't change the result. There's no daily
 // limit; Black Diamond and every ticket above it are Nitro-only.
 
+import { hasPremiumGames } from "../perks";
 import { getMemberRoleIds } from "../discord-member";
 import { addToJackpot, charge, credit, gameCollections, GameError, num, random, recordGame, shuffle, userFilter } from "./core";
 
-const NITRO_ROLE_ID = "1360260086500561237";
 
 type Prize = { symbol: string; payout: number; weight: number };
 export type Ticket = { id: string; name: string; icon: string; tier: "low" | "mid" | "high" | "vip"; cost: number; winChance: number; prizes: Prize[]; nitro?: boolean; colors: [string, string] };
@@ -118,9 +118,10 @@ export async function scratchProgress(discordId: string, raw: unknown) {
   return { saved: true };
 }
 
+/** Premium games (25 spins, premium scratch-offs): Nitro boosters and Maple Noble+ Patreon supporters */
 async function isNitro(discordId: string) {
   const roles = await getMemberRoleIds(discordId).catch(() => null);
-  return Boolean(roles?.includes(NITRO_ROLE_ID));
+  return hasPremiumGames(roles);
 }
 
 export async function scratchStatus(discordId: string) {
@@ -133,7 +134,7 @@ export async function buyTicket(discordId: string, ticketId: unknown) {
   const ticket = typeof ticketId === "string" ? byId.get(ticketId) : undefined;
   if (!ticket) throw new GameError("Pick a ticket.");
   const nitro = await isNitro(discordId);
-  if (ticket.nitro && !nitro) throw new GameError(`${ticket.name} is a premium ticket: Black Diamond and up are for Nitro boosters.`, 403);
+  if (ticket.nitro && !nitro) throw new GameError(`${ticket.name} is a premium ticket: Black Diamond and up are for Nitro boosters and Maple Noble ($10) supporters and up.`, 403);
 
   await charge(discordId, ticket.cost).catch(() => {
     throw new GameError(`You need ${ticket.cost.toLocaleString()} leaves for a ${ticket.name} ticket.`);

@@ -101,7 +101,7 @@ export async function SiteFooter() {
             <a href={DISCORD_INVITE} target="_blank" rel="noopener noreferrer">
               <MessageCircle size={13} aria-hidden="true" /> Discord
             </a>
-            <a href={PATREON_URL} target="_blank" rel="noopener noreferrer">
+            <a href="/patreon">
               <Heart size={13} aria-hidden="true" /> Patreon
             </a>
             {canViewStaffPage(user) ? (

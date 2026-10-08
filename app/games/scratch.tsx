@@ -441,10 +441,10 @@ export function ScratchOffs({
           <div className={`gm-note${status.nitro ? " is-nitro" : ""}`}>
             <Gem size={16} aria-hidden="true" />
             <span>
-              <b>Premium tickets are for Nitro boosters.</b>{" "}
+              <b>Premium tickets are for Nitro boosters and $10+ supporters.</b>{" "}
               {status.nitro
-                ? `You're boosting, so all ${premium.length} premium tickets (💎 Black Diamond and up) are unlocked for you.`
-                : `💎 Black Diamond and every ticket above it (${premium.length} in all) unlock when you boost the server.`}{" "}
+                ? `All ${premium.length} premium tickets (💎 Black Diamond and up) are unlocked for you.`
+                : `💎 Black Diamond and every ticket above it (${premium.length} in all) unlock when you boost the server or support on Patreon from Maple Noble ($10).`}{" "}
               No daily limit on any ticket.
             </span>
           </div>
@@ -468,7 +468,7 @@ export function ScratchOffs({
                         style={{ "--t1": t.colors[0], "--t2": t.colors[1], "--i": i } as CSSProperties}
                         disabled={!!busy || locked || short}
                         onClick={() => buy(t)}
-                        title={locked ? "Nitro boosters only" : short ? "Not enough leaves" : `Buy ${t.name}`}
+                        title={locked ? "Nitro boosters and $10+ supporters" : short ? "Not enough leaves" : `Buy ${t.name}`}
                       >
                         <span className="sc-card-shine" aria-hidden="true" />
                         {t.nitro ? <span className="sc-premium">Premium</span> : null}
@@ -513,7 +513,7 @@ export function ScratchOffs({
               </div>
             ))}
             <p className="gm-fine">
-              No daily limit. Black Diamond and every ticket above it are for Nitro boosters. Most wins are a free ticket (your cost back).
+              No daily limit. Black Diamond and every ticket above it are for Nitro boosters and Maple Noble+ supporters. Most wins are a free ticket (your cost back).
             </p>
           </div>
         ) : null}
