@@ -1,3 +1,5 @@
+import { HomePatrons } from "./home-patrons";
+import { patronWall } from "../lib/patrons";
 import type { CSSProperties } from "react";
 import { Bot, Coffee, Heart, HeartHandshake, Mic, Palette, Shield, ShoppingBag, Star, Trophy, type LucideIcon } from "lucide-react";
 import { LeafEmote } from "./ui-icons";
@@ -189,12 +191,13 @@ export default async function Home({ searchParams }: { searchParams?: { register
   const offsetMs = zoneOffsetMinutes(tz) * 60_000;
   const local = new Date(Date.now() + offsetMs);
   const startOfToday = new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate()) - offsetMs);
-  const [reviews, discord, user, latestNews, growth] = await Promise.all([
+  const [reviews, discord, user, latestNews, growth, patrons] = await Promise.all([
     getReviews(),
     getDiscordInviteSummary(),
     getCurrentUser(),
     publishedNews({ limit: 6 }),
     memberGrowth(startOfToday).catch(() => null),
+    patronWall().catch(() => []),
   ]);
   // Newest three posts written by admins in the Admin tab
   // Show up to three; "All news" only when there's more than that to see
@@ -448,6 +451,8 @@ export default async function Home({ searchParams }: { searchParams?: { register
       </section>
 
       {/* Discord call to action */}
+      <HomePatrons groups={patrons} />
+
       <section className="home-section" id="discord" data-reveal>
         <div className="home-cta">
           <div className="home-cta-leaves" aria-hidden="true">

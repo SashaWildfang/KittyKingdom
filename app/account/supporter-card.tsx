@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { NITRO, TIERS, itemsLabel, pct, type Tier } from "../../lib/perks";
 import type { RoleStyle, SupporterStatus } from "../../lib/supporter";
 import { LeafEmote } from "../ui-icons";
+import { TierIcon } from "../tier-icon";
 import "./supporter-card.css";
 
 const HOLO = ["#A9C9FF", "#FFBBEC", "#FFC3A0"];
@@ -57,7 +58,7 @@ function RolePreview({ name, style, color, color2, icon, displayName }: { name: 
             {icon ? <span className="sp-preview-icon">{icon}</span> : null}
             <span className="sp-preview-time">Today at 4:20 PM</span>
           </p>
-          <p className="sp-preview-text">Check out my new role! 🍂</p>
+          <p className="sp-preview-text">Check out my new role!</p>
         </div>
       </div>
       <span className="sp-preview-pill">
@@ -141,7 +142,7 @@ export function SupporterCard({ displayName }: { displayName: string }) {
         <div className="sp-mini-tiers">
           {TIERS.map((t) => (
             <div key={t.key} style={{ "--tier": t.color } as React.CSSProperties}>
-              <span>{t.emoji}</span>
+              <span><TierIcon tier={t.key} size={22} /></span>
               <b>{t.name}</b>
               <small>${t.price}/month</small>
             </div>
@@ -169,7 +170,7 @@ export function SupporterCard({ displayName }: { displayName: string }) {
   return (
     <div className="sp">
       <div className="sp-hero" style={{ "--tier": tier?.color ?? NITRO.color } as React.CSSProperties}>
-        <span className="sp-hero-emoji" aria-hidden="true">{tier?.emoji ?? NITRO.emoji}</span>
+        <span className="sp-hero-emoji"><TierIcon tier={tier?.key ?? "nitro"} size={24} /></span>
         <div>
           <small>Your supporter perks</small>
           <h3>
@@ -207,13 +208,13 @@ export function SupporterCard({ displayName }: { displayName: string }) {
       <div className="sp-perks">
         {tier ? (
           <div>
-            <h4>{tier.emoji} {tier.titles[status.variant]} perks</h4>
+            <h4><TierIcon tier={tier.key} size={16} /> {tier.titles[status.variant]} perks</h4>
             <ul>{tierPerks(tier).map((p) => <li key={p}><Check size={14} aria-hidden="true" /> {p}</li>)}</ul>
           </div>
         ) : null}
         {status.nitro ? (
           <div>
-            <h4><Gem size={15} aria-hidden="true" /> Nitro Booster</h4>
+            <h4><TierIcon tier="nitro" size={16} /> Nitro Booster</h4>
             <ul>{NITRO_PERKS.map((p) => <li key={p}><Check size={14} aria-hidden="true" /> {p}</li>)}</ul>
           </div>
         ) : null}
