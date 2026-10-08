@@ -5,6 +5,7 @@ import { getCurrentUser } from "../../lib/auth";
 import { getDiscordInviteSummary } from "../../lib/discord";
 import { NITRO, PATREON_URL, TIERS, itemsLabel, pct } from "../../lib/perks";
 import { FallingLeaves } from "../fall-effects";
+import { TierIcon } from "../tier-icon";
 import { SiteNav } from "../site-nav";
 import { LeafEmote } from "../ui-icons";
 import "./patreon.css";
@@ -87,7 +88,7 @@ export default async function PatreonPage() {
           {TIERS.map((t) => (
             <article key={t.key} className={`pt-tier${t.key === "noble" ? " is-popular" : ""}`} style={{ "--tier": t.color } as CSSProperties}>
               {t.key === "noble" ? <span className="pt-popular">Most popular</span> : null}
-              <span className="pt-tier-emoji" aria-hidden="true">{t.emoji}</span>
+              <span className="pt-tier-emoji"><TierIcon tier={t.key} size={26} /></span>
               <h2>{t.name}</h2>
               <p className="pt-price">
                 <b>${t.price}</b>/month
@@ -144,12 +145,12 @@ export default async function PatreonPage() {
                   <th>Perk</th>
                   {TIERS.map((t) => (
                     <th key={t.key} style={{ "--tier": t.color } as CSSProperties}>
-                      {t.emoji} {t.name}
+                      <span className="pt-th-name"><TierIcon tier={t.key} size={15} /> {t.name}</span>
                       <small>${t.price}/mo</small>
                     </th>
                   ))}
                   <th className="is-nitro">
-                    {NITRO.emoji} Nitro Booster
+                    <span className="pt-th-name"><TierIcon tier="nitro" size={15} /> Nitro Booster</span>
                     <small>Boost the server</small>
                   </th>
                 </tr>
@@ -159,11 +160,11 @@ export default async function PatreonPage() {
                   <tr key={r.label}>
                     <td>{r.label}</td>
                     {r.values.map((v, i) => (
-                      <td key={i} data-label={`${TIERS[i].emoji} ${TIERS[i].name}`}>
+                      <td key={i} data-label={TIERS[i].name}>
                         <Cell v={v} />
                       </td>
                     ))}
-                    <td data-label="💎 Nitro Booster" className="is-nitro">
+                    <td data-label="Nitro Booster" className="is-nitro">
                       <Cell v={r.nitro} />
                     </td>
                   </tr>
