@@ -27,6 +27,10 @@ const ROWS: Row[] = [
   { label: "Gradient role colors", values: TIERS.map((t) => t.customRole), nitro: false },
   { label: "Holographic role style + role icon", values: TIERS.map((t) => t.roleExtras), nitro: false },
   { label: "25 slot spins + premium scratch-offs", values: TIERS.map((t) => t.premiumGames), nitro: true },
+  { label: "Weekly Royal Chest (/chest)", values: TIERS.map((t) => `${t.chest.toLocaleString()}+${t.chestItems.length ? " + XP Booster" : ""}`), nitro: false },
+  { label: "Daily Royal Wheel (/wheel)", values: TIERS.map((t) => `×${t.wheelMult} prizes`), nitro: false },
+  { label: "Store discount", values: TIERS.map((t) => `${Math.round(t.discount * 100)}% off`), nitro: false },
+  { label: "Choose your title (e.g. King or Queen)", values: TIERS.map(() => true), nitro: false },
   { label: "Social Featured draw weight", values: TIERS.map((t) => `+${t.weight}`), nitro: `+${NITRO.weight}` },
   { label: "Exclusive supporter role", values: TIERS.map(() => true), nitro: true },
   { label: "Leaves for every server boost", values: TIERS.map(() => false), nitro: NITRO.perBoost.toLocaleString() },
@@ -47,7 +51,10 @@ function tierPoints(t: (typeof TIERS)[number]) {
   ];
   if (t.customRole) pts.push(<><b>Custom role</b>: your own name, solid or gradient color{t.roleExtras ? ", holographic style and an icon" : ""}</>);
   if (t.premiumGames) pts.push(<>25 slot spins at once + the <b>premium scratch-offs</b></>);
-  pts.push(<>Exclusive <b>{t.name}</b> role and a bigger Social Featured chance</>);
+  pts.push(<>A weekly <b>Royal Chest</b> worth {t.chest.toLocaleString()}+ <LeafEmote size={14} />{t.chestItems.length ? " and a 2x XP Booster" : ""}</>);
+  pts.push(<>A daily spin of the <b>Royal Wheel</b>{t.wheelMult > 1 ? <> with <b>×{t.wheelMult}</b> prizes</> : null}</>);
+  pts.push(<><b>{Math.round(t.discount * 100)}% off</b> everything in the Store</>);
+  pts.push(<>The <b>{t.titles[0]}</b> or <b>{t.titles[1]}</b> role (your choice) and a bigger Social Featured chance</>);
   return pts;
 }
 
@@ -122,7 +129,7 @@ export default async function PatreonPage() {
             </div>
             <div className="pt-demo-msg">
               <span className="pt-demo-avatar">H</span>
-              <b className="pt-demo-grad is-holo" style={{ backgroundImage: "linear-gradient(90deg, #A9C9FF, #FFBBEC, #FFC3A0, #A9C9FF)" }}>Harvest Monarch</b>
+              <b className="pt-demo-grad is-holo" style={{ backgroundImage: "linear-gradient(90deg, #A9C9FF, #FFBBEC, #FFC3A0, #A9C9FF)" }}>Queen of Autumn</b>
               <span>👑</span>
             </div>
           </div>
@@ -167,6 +174,40 @@ export default async function PatreonPage() {
           <p className="pt-small">Patreon tiers and Nitro boosting stack: support both and you get both sets of perks.</p>
         </section>
 
+        <section className="pt-block pt-cmds">
+          <span className="pt-eyebrow">
+            <Crown size={14} aria-hidden="true" /> Supporter-only commands
+          </span>
+          <h2>Royal commands</h2>
+          <div className="pt-cmd-grid">
+            <div>
+              <code>/chest</code>
+              <b>Weekly Royal Chest</b>
+              <p>Open a chest of Leaves every week, with a lucky bonus of up to 25%. Kings and Queens also find a 2x XP Booster inside.</p>
+            </div>
+            <div>
+              <code>/wheel</code>
+              <b>Daily Royal Wheel</b>
+              <p>One free spin every day for prizes up to 3,000 Leaves, Streak Shields and Leaf Boosters. Higher tiers win bigger.</p>
+            </div>
+            <div>
+              <code>/myrole</code>
+              <b>Custom role</b>
+              <p>Prince / Princess and up: rename and recolor your own role, with gradients (and holographic + an icon for Kings and Queens).</p>
+            </div>
+            <div>
+              <code>/title</code>
+              <b>Choose your title</b>
+              <p>Be a King or a Queen, a Prince or a Princess, a Duke or a Duchess. Switch any time.</p>
+            </div>
+            <div>
+              <code>/perks</code>
+              <b>Your perks</b>
+              <p>See everything your tier gives you, any time.</p>
+            </div>
+          </div>
+        </section>
+
         <section className="pt-block pt-nitro" style={{ "--tier": NITRO.color } as CSSProperties}>
           <div>
             <span className="pt-eyebrow">
@@ -185,7 +226,7 @@ export default async function PatreonPage() {
             <li>
               <span><Wallet size={18} aria-hidden="true" /></span>
               <b>Pick a tier on Patreon</b>
-              <p>Choose Acorn Knight, Maple Noble or Harvest Monarch.</p>
+              <p>Choose Duke / Duchess, Prince / Princess or King / Queen, then pick your title on My Account.</p>
             </li>
             <li>
               <span><Link2 size={18} aria-hidden="true" /></span>
@@ -200,7 +241,7 @@ export default async function PatreonPage() {
             <li>
               <span><Sparkles size={18} aria-hidden="true" /></span>
               <b>Design your role</b>
-              <p>From Maple Noble, open My Account → Supporter perks and make it yours.</p>
+              <p>As a Prince or Princess and up, open My Account → Supporter perks and make it yours.</p>
             </li>
           </ol>
         </section>

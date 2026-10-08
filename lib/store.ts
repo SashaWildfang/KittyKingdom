@@ -8,6 +8,8 @@
 import { Long, MongoServerError, type Document } from "mongodb";
 import { ITEM, MAX_CUSTOM_BADGES, cleanFlair, cosmeticOf, rarityFor, type CosmeticSlot, type CustomBadge, type CustomTitle, type Flair, type Rarity } from "./cosmetics";
 import { getBotCollection, getUsersCollection } from "./mongodb";
+import { storeDiscountFromRoles } from "./perks";
+import { withTierAliases } from "./tier-roles";
 import { SITE_ITEMS, ensureSiteCatalog, inWindow } from "./store-catalog";
 import {
   addMemberRole,
@@ -369,7 +371,8 @@ export async function buyItem(discordId: string, itemId: string, amount: number)
     }
   }
 
-  const total = num(item.price) * amount;
+  const discount = await supporterDiscount(discordId);
+  const total = Math.floor(num(item.price) * amount * (1 - discount));
   const balanceDoc = await getBalanceDoc(discordId);
   if (!balanceDoc || num(balanceDoc.balance) < total) {
     throw new StoreError(`You need ${total.toLocaleString()} leaves for this.`);
@@ -414,6 +417,7 @@ export const MAX_CART_LINES = 15;
  * and the items handed out. If any step fails, anything already taken is put back.
  */
 export async function checkout(discordId: string, rawLines: unknown) {
+  const discount = await supporterDiscount(discordId);
   if (!Array.isArray(rawLines) || !rawLines.length) throw new StoreError("Your cart is empty.");
   // Same item twice = one line
   const wanted = new Map<string, number>();
@@ -450,7 +454,7 @@ export async function checkout(discordId: string, rawLines: unknown) {
       const left = Math.max(dailyLimit - (bought.get(itemId) ?? 0), 0);
       throw new StoreError(left === 0 ? `You've reached today's limit for ${name}.` : `You can buy ${left} more ${name} today.`);
     }
-    lines.push({ item, itemId, amount, stock, cost: num(item.price) * amount });
+    lines.push({ item, itemId, amount, stock, cost: Math.floor(num(item.price) * amount * (1 - discount)) });
   }
 
   const total = lines.reduce((n, l) => n + l.cost, 0);
@@ -782,4 +786,10 @@ export async function adminSetInventory(discordId: string, itemId: string, wante
     if (wanted === 0 && roleId) await removeMemberRole(discordId, roleId).catch(() => false);
   }
   return { name: String((item ?? existing[0]).name ?? itemId), before: existing.length, after: wanted };
+}
+
+/** Patreon supporters get a Store discount (5% / 10% / 15% by tier, lib/perks.ts). */
+export async function supporterDiscount(discordId: string) {
+  const roles = await withTierAliases(await getMemberRoleIds(discordId).catch(() => null));
+  return storeDiscountFromRoles(roles);
 }

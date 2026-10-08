@@ -1,3 +1,4 @@
+import { supporterDiscount } from "../../lib/store";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "../../lib/auth";
 import { getDiscordInviteSummary } from "../../lib/discord";
@@ -24,6 +25,7 @@ export default async function StorePage() {
   const discordId = user.discordId ? String(user.discordId) : null;
   let state: StoreState | null = null;
   let loadError = false;
+  const discount = discordId ? await supporterDiscount(discordId).catch(() => 0) : 0;
   if (discordId) {
     try {
       state = await getStoreState(discordId);
@@ -83,7 +85,18 @@ export default async function StorePage() {
           </div>
         </section>
       ) : (
-        <StoreClient initialState={state} />
+        <>
+          {discount ? (
+            <p className="store-supporter-discount">
+              👑 <b>Supporter discount: {Math.round(discount * 100)}% off</b> everything, taken off automatically when you buy. Thank you for supporting Kitty Kingdom!
+            </p>
+          ) : (
+            <p className="store-supporter-discount is-upsell">
+              👑 Patreon supporters save <b>5–15%</b> on everything in the Store. <a href="/patreon">See the perks</a>
+            </p>
+          )}
+          <StoreClient initialState={state} />
+        </>
       )}
     </main>
   );

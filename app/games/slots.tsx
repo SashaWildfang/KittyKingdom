@@ -322,7 +322,7 @@ export function Slots({ balance, onBalance, initialStatus, viewers = 0 }: { bala
           </div>
           {status.maxSpins <= 1 ? (
             <p className="sl-nitro-note">
-              <Lock size={13} aria-hidden="true" /> Extra spins are for <b>Nitro boosters</b> and <a href="/patreon">Maple Noble+ supporters</a>.
+              <Lock size={13} aria-hidden="true" /> Extra spins are for <b>Nitro boosters</b> and <a href="/patreon">Prince / Princess+ supporters</a>.
             </p>
           ) : (
             <p className="sl-nitro-note is-on">
@@ -384,7 +384,7 @@ function Paytable() {
       </ul>
       <p>
         Any <b>two matching</b> symbols give your bet back (26% of spins). Three different symbols lose (62%). Overall the machine pays back about 95% of what's bet. Every losing spin goes into the progressive jackpot, and three gold mice
-        win all of it. Minimum bet 50 leaves a spin. Nitro boosters and Maple Noble+ supporters can spin up to 25 times at once. Same machine and jackpot as /slots in Discord.
+        win all of it. Minimum bet 50 leaves a spin. Nitro boosters and Prince / Princess+ supporters can spin up to 25 times at once. Same machine and jackpot as /slots in Discord.
       </p>
     </div>
   );

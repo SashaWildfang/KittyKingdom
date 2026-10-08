@@ -444,7 +444,7 @@ export function ScratchOffs({
               <b>Premium tickets are for Nitro boosters and $10+ supporters.</b>{" "}
               {status.nitro
                 ? `All ${premium.length} premium tickets (💎 Black Diamond and up) are unlocked for you.`
-                : `💎 Black Diamond and every ticket above it (${premium.length} in all) unlock when you boost the server or support on Patreon from Maple Noble ($10).`}{" "}
+                : `💎 Black Diamond and every ticket above it (${premium.length} in all) unlock when you boost the server or support on Patreon as a Prince or Princess ($10).`}{" "}
               No daily limit on any ticket.
             </span>
           </div>
@@ -513,7 +513,7 @@ export function ScratchOffs({
               </div>
             ))}
             <p className="gm-fine">
-              No daily limit. Black Diamond and every ticket above it are for Nitro boosters and Maple Noble+ supporters. Most wins are a free ticket (your cost back).
+              No daily limit. Black Diamond and every ticket above it are for Nitro boosters and Prince / Princess+ supporters. Most wins are a free ticket (your cost back).
             </p>
           </div>
         ) : null}
