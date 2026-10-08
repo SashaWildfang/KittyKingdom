@@ -35,6 +35,8 @@ export type NewsPost = {
   publishedAt: string;
   updatedAt: string | null;
   authorName: string | null;
+  /** How many times the post was read (one per visitor per day) */
+  views: number;
 };
 
 // The first three posts the site shipped with; copied into the database once so admins can edit them
@@ -165,7 +167,20 @@ function toPost(d: Document, colors: Map<string, string>): NewsPost {
     publishedAt: (d.publishedAt instanceof Date ? d.publishedAt : new Date()).toISOString(),
     updatedAt: d.updatedAt instanceof Date ? d.updatedAt.toISOString() : null,
     authorName: d.authorName ? String(d.authorName) : null,
+    views: Number(d.views ?? 0),
   };
+}
+
+/** Counts one read of a published post. */
+export async function addNewsView(id: string) {
+  if (!ObjectId.isValid(id)) return null;
+  const col = await collection();
+  const res = await col.findOneAndUpdate(
+    { _id: new ObjectId(id), published: { $ne: false }, status: { $nin: ["pending", "draft"] }, publishedAt: { $lte: new Date() } },
+    { $inc: { views: 1 } },
+    { returnDocument: "after", projection: { views: 1 } },
+  );
+  return res ? Number(res.views ?? 0) : null;
 }
 
 /** Published posts for the public site: pinned first, then newest. */

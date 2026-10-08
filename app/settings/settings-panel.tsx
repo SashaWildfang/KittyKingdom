@@ -48,7 +48,7 @@ type NotifyType = { key: string; label: string; hint?: string };
 
 type Category = "account" | "notifications" | "privacy" | "messages" | "discover" | "profile";
 const CATEGORIES: { key: Category; label: string; blurb: string; icon: LucideIcon; social?: boolean }[] = [
-  { key: "account", label: "Account", blurb: "Appearance, sign-in and your account", icon: UserRound },
+  { key: "account", label: "Account", blurb: "Appearance, Discord level-ups and your account", icon: UserRound },
   { key: "notifications", label: "Notifications", blurb: "What you're told about, and where", icon: Bell, social: true },
   { key: "privacy", label: "Privacy", blurb: "What others can see", icon: Lock, social: true },
   { key: "messages", label: "Messages", blurb: "Who can reach you", icon: MessageCircle, social: true },
@@ -132,13 +132,62 @@ function LinkRow({ href, icon: Icon, title, hint, danger }: { href: string; icon
   );
 }
 
-function AccountPane({ social }: { social: boolean }) {
+type LevelUps = "on" | "quiet" | "off";
+
+/** Discord level-up messages: with a ping, without, or none at all (needs Discord linked). */
+function LevelUpSetting({ onStatus }: { onStatus: (saving: boolean, saved: string | null) => void }) {
+  const [mode, setMode] = useState<LevelUps | null>(null);
+  const [unlinked, setUnlinked] = useState(false);
+  useEffect(() => {
+    fetch("/api/account/levelups", { cache: "no-store" })
+      .then(async (r) => {
+        const body = await r.json().catch(() => null);
+        if (r.status === 403) setUnlinked(true);
+        else if (body?.ok) setMode(body.mode);
+      })
+      .catch(() => undefined);
+  }, []);
+  if (unlinked) {
+    return (
+      <p className="set-note">
+        <Bell size={15} aria-hidden="true" /> Link your Discord on My Account to choose how level-ups are announced.
+      </p>
+    );
+  }
+  if (!mode) return <div className="set-loading" aria-busy="true" />;
+  return (
+    <ChoiceRow
+      title="Level-up messages in Discord"
+      value={mode}
+      onChange={async (v) => {
+        const prev = mode;
+        setMode(v);
+        onStatus(true, null);
+        const res = await fetch("/api/account/levelups", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: v }) })
+          .then((r) => r.json())
+          .catch(() => null);
+        if (!res?.ok) setMode(prev);
+        onStatus(false, res?.ok ? "Saved" : res?.error ?? "Couldn't save. Try again.");
+      }}
+      options={[
+        ["on", "On", "A congrats message where you levelled up, with an @mention."],
+        ["quiet", "Quiet", "The same message, but it won't ping you."],
+        ["off", "Off", "No level-up messages. You still get your level roles and perks."],
+      ]}
+    />
+  );
+}
+
+function AccountPane({ social, onStatus }: { social: boolean; onStatus: (saving: boolean, saved: string | null) => void }) {
   return (
     <>
       <Group title="Appearance">
         <Row title="Theme" hint="Light, dark, or match your device.">
           <ThemeSwitch />
         </Row>
+      </Group>
+      <Group title="Discord">
+        <LevelUpSetting onStatus={onStatus} />
       </Group>
       <Group title="Your account" intro="These open on My Account.">
         <LinkRow href="/account#profile" icon={PenLine} title="Name, username & phone" hint="How you appear around the site, and your private phone number" />
@@ -243,7 +292,16 @@ export function SettingsPanel({ social }: { social: boolean }) {
   const socialReady = Boolean(s && settingsApi.data);
 
   let pane: ReactNode = null;
-  if (!needsSocial) pane = <AccountPane social={social} />;
+  if (!needsSocial)
+    pane = (
+      <AccountPane
+        social={social}
+        onStatus={(busy, msg) => {
+          setSaving(busy);
+          if (msg) setSaved(msg);
+        }}
+      />
+    );
   else if (settingsApi.error) pane = <p className="set-error">{settingsApi.error}</p>;
   else if (!socialReady || !s) pane = <div className="set-loading" aria-busy="true" />;
   else if (cat === "notifications") {

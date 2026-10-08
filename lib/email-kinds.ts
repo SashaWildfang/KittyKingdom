@@ -5,6 +5,7 @@ export const EMAIL_KINDS: Record<string, string> = {
   "verification-reminder": "Confirm-email reminder",
   "password-reset": "Password reset",
   security: "Security notice",
+  "staff-action": "Staff changed account",
   "discord-reminder": "Link Discord reminder",
   "appeal-received": "Appeal received",
   "appeal-decision": "Appeal decision",

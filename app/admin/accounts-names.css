@@ -1,0 +1,53 @@
+/* Admin → Accounts → Names */
+.adm-name-help {
+  margin: 0 0 0.6rem;
+  font-size: 0.82rem;
+}
+
+.adm-name-field {
+  display: grid;
+  gap: 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  background: var(--panel);
+  padding: 0.7rem 0.8rem;
+}
+
+.adm-name-field + .adm-name-field {
+  margin-top: 0.5rem;
+}
+
+.adm-name-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.adm-name-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.adm-name-row .adm-input {
+  flex: 1 1 10rem;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 0.7rem;
+  background: var(--panel-strong);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.88rem;
+  padding: 0.45rem 0.65rem;
+}
+
+.adm-name-row .adm-input:focus {
+  border-color: var(--ember);
+  outline: none;
+}
+
+.adm-name-field small {
+  font-size: 0.76rem;
+}

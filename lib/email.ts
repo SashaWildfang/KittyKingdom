@@ -334,6 +334,32 @@ export async function sendSecurityNoticeEmail(email: string, title: string, mess
 }
 
 /** Staff-sent nudge for accounts that never confirmed their email (Admin → Website). */
+/** "Staff changed something on your account" (Admin → Accounts actions). Never includes passwords or links that sign in. */
+export function staffActionEmail(email: string, title: string, message: string, nextStep?: string) {
+  const html = layout({
+    preheader: message,
+    eyebrow: "Account update",
+    title,
+    intro: escapeHtml(message),
+    rows: [
+      { label: "Account", value: email },
+      { label: "Changed by", value: "Kitty Kingdom staff" },
+      { label: "When", value: stamp() },
+    ],
+    button: { label: "Open My Account", url: `${SITE}/account` },
+    expiry: nextStep ? escapeHtml(nextStep) : "Nothing else is needed from you.",
+    security: "Didn't ask for this? Open a ticket in the Kitty Kingdom Discord and staff will look into it.",
+    reason: "You're receiving this because a Kitty Kingdom staff member made a change to your kittykingdom.net account.",
+  });
+  const text = [`Kitty Kingdom: ${title}`, "", message, ...(nextStep ? ["", nextStep] : []), "", `My Account: ${SITE}/account`, "", "Didn't ask for this? Open a ticket in the Kitty Kingdom Discord."].join("\n");
+  return { subject: `Account update: ${title}`, html, text };
+}
+
+export async function sendStaffActionEmail(email: string, title: string, message: string, nextStep?: string) {
+  const m = staffActionEmail(email, title, message, nextStep);
+  return sendEmail(email, m.subject, m.html, m.text, "staff-action");
+}
+
 export function verificationReminderEmail(email: string, verifyUrl: string, name: string | null) {
   const hi = name ? `Hi ${escapeHtml(name)}! ` : "Hi! ";
   const html = layout({

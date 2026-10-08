@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { HomePatrons } from "./home-patrons";
 import { patronWall } from "../lib/patrons";
 import type { CSSProperties } from "react";
@@ -182,6 +183,9 @@ function Hills() {
     </svg>
   );
 }
+
+// Only the homepage is canonical at "/" (setting it in the layout would point every page here)
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 export const dynamic = "force-dynamic";
 
@@ -483,8 +487,25 @@ export default async function Home({ searchParams }: { searchParams?: { register
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@graph": [
-              { "@type": "Organization", name: "Kitty Kingdom", url: "https://www.kittykingdom.net", logo: "https://www.kittykingdom.net/logo.png", sameAs: [DISCORD_INVITE, "https://www.patreon.com/c/thekittykingdom"] },
-              { "@type": "WebSite", name: "Kitty Kingdom", url: "https://www.kittykingdom.net", description: "A cozy 18+ furry Discord community with Social profiles, events and an economy." },
+              {
+                "@type": "Organization",
+                "@id": "https://www.kittykingdom.net/#org",
+                name: "Kitty Kingdom",
+                alternateName: ["Kitty Kingdom Discord", "Kitty Kingdom Furry Community", "kittykingdom.net"],
+                url: "https://www.kittykingdom.net",
+                logo: "https://www.kittykingdom.net/logo.png",
+                description: "A cozy, fall-themed 18+ furry Discord server and community website.",
+                sameAs: [DISCORD_INVITE, "https://www.patreon.com/c/thekittykingdom", "https://disboard.org/server/1358452494128250940"],
+              },
+              {
+                "@type": "WebSite",
+                "@id": "https://www.kittykingdom.net/#website",
+                name: "Kitty Kingdom",
+                alternateName: "Kitty Kingdom Furry Discord",
+                url: "https://www.kittykingdom.net",
+                publisher: { "@id": "https://www.kittykingdom.net/#org" },
+                description: "A cozy 18+ furry Discord community with Social profiles, events and an economy.",
+              },
             ],
           }),
         }}
