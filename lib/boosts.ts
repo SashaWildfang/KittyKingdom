@@ -5,13 +5,11 @@ import { Long } from "mongodb";
 import { getMemberRoleIds } from "./discord-member";
 import { featuredOdds } from "./dating/discover";
 import { getBotCollection } from "./mongodb";
+import { NITRO, NITRO_ROLE_ID, TIERS } from "./perks";
 
-const BOOSTER_ROLE = "1360260086500561237";
-const PATREON = [
-  { id: "1362502871639396362", name: "Legendary Neko", xp: 0.4, weight: 2.5 },
-  { id: "1362502662721114245", name: "Kitten Guardian", xp: 0.2, weight: 2.0 },
-  { id: "1362102163693633818", name: "Royal Kitten", xp: 0.1, weight: 1.5 },
-];
+const BOOSTER_ROLE = NITRO_ROLE_ID;
+// Highest first (only the highest Patreon tier counts), from lib/perks.ts
+const PATREON = [...TIERS].reverse().map((t) => ({ id: t.roleId, name: t.name, xp: t.xp, leaf: t.leaf, weight: t.weight }));
 const RETIRED = ["booster_crab"];
 const WHAT: Record<string, string> = {
   booster_xp: "Doubles the XP you earn",
@@ -45,12 +43,13 @@ export async function boostStatus(discordId: string) {
   const roleXp = num(user?.xpMultiplier) || 1;
   const roleLeaf = num(user?.multiplier) || 1;
   const xpParts: Part[] = [{ label: "Base", value: "1×" }];
-  if (booster) xpParts.push({ label: "Server booster", value: "+0.15" });
+  if (booster) xpParts.push({ label: "Server booster", value: `+${NITRO.xp}` });
   if (patreon) xpParts.push({ label: patreon.name, value: `+${patreon.xp}` });
   if (weekend) xpParts.push({ label: "XP weekend", value: "×2" });
   if (has.has("booster_xp")) xpParts.push({ label: "XP Booster", value: "×2" });
   const leafParts: Part[] = [{ label: "Base", value: "1×" }];
-  if (booster) leafParts.push({ label: "Server booster", value: "+0.15" });
+  if (booster) leafParts.push({ label: "Server booster", value: `+${NITRO.leaf}` });
+  if (patreon?.leaf) leafParts.push({ label: patreon.name, value: `+${patreon.leaf}` });
   if (has.has("booster_balance")) leafParts.push({ label: "Leaf Booster", value: "×2" });
 
   // Featured weight: base 1, +1 as a server booster, + your Patreon tier, ×2 with a Profile Booster
