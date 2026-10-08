@@ -251,3 +251,158 @@
 .pa-cell {
   min-width: 0;
 }
+
+.pa-row {
+  cursor: pointer;
+}
+
+.pa-row:hover td,
+.pa-row.is-open td {
+  background: rgba(245, 155, 42, 0.06);
+}
+
+.pa-more svg {
+  transition: transform 0.15s ease;
+}
+
+.pa-more[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.pa-detail-row > td {
+  background: var(--panel-strong);
+}
+
+.pa-detail {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.4rem 0.2rem 0.6rem;
+}
+
+.pa-detail h4 {
+  margin: 0.3rem 0 0;
+  font-size: 0.85rem;
+}
+
+.pa-detail p {
+  margin: 0;
+}
+
+.pa-detail-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.5rem;
+}
+
+.pa-detail-stats div {
+  display: grid;
+  gap: 0.1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.8rem;
+  background: var(--panel);
+  padding: 0.55rem 0.7rem;
+}
+
+.pa-detail-stats small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pa .pa-chart > * {
+  flex: none;
+}
+
+.pa-chart p {
+  margin: 0 0 0.6rem;
+}
+
+.pa-bars {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  align-items: end;
+  gap: 0.35rem;
+  height: 10rem;
+}
+
+.pa-bar {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  align-items: end;
+  height: 100%;
+  min-width: 0;
+  text-align: center;
+}
+
+.pa-bar-val {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.pa-bar-fill {
+  align-self: end;
+  width: 100%;
+  border-radius: 0.4rem 0.4rem 0.15rem 0.15rem;
+  background: linear-gradient(180deg, #f5b83d, #e8622c);
+}
+
+.pa-bar small {
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+.pa-history {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 0.8rem;
+}
+
+.pa-history table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.pa-history th,
+.pa-history td {
+  border-bottom: 1px solid var(--line);
+  padding: 0.45rem 0.65rem;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.pa-history th {
+  color: var(--muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pa-history tr:last-child td {
+  border-bottom: 0;
+}
+
+@media (max-width: 720px) {
+  .pa-table tr.pa-detail-row {
+    padding: 0;
+  }
+
+  .pa-table tr.pa-detail-row > td {
+    display: block;
+    padding: 0.6rem 0.8rem;
+  }
+
+  .pa-bars {
+    gap: 0.15rem;
+  }
+
+  .pa-bar-val {
+    display: none;
+  }
+}
