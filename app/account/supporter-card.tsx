@@ -6,6 +6,7 @@ import { NITRO, TIERS, itemsLabel, pct, type Tier } from "../../lib/perks";
 import type { RoleStyle, SupporterStatus } from "../../lib/supporter";
 import { LeafEmote } from "../ui-icons";
 import { TierIcon } from "../tier-icon";
+import { ColorPicker } from "./color-picker";
 import "./supporter-card.css";
 
 const HOLO = ["#A9C9FF", "#FFBBEC", "#FFC3A0"];
@@ -75,6 +76,7 @@ export function SupporterCard({ displayName }: { displayName: string }) {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [titleSaving, setTitleSaving] = useState(false);
+  const [editing, setEditing] = useState<"color" | "color2">("color");
   const [saved, setSaved] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", style: "solid" as RoleStyle, color: "#E8622C", color2: "#F5B83D", icon: "" });
 
@@ -247,22 +249,21 @@ export function SupporterCard({ displayName }: { displayName: string }) {
               </div>
               {form.style !== "holographic" ? (
                 <div className="sp-colors">
-                  <label>
-                    <span>{form.style === "gradient" ? "Start color" : "Color"}</span>
-                    <span className="sp-color">
-                      <input type="color" value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value.toUpperCase() })} aria-label="Color" />
-                      <input value={form.color} maxLength={7} onChange={(e) => setForm({ ...form, color: e.target.value })} aria-label="Color hex" />
-                    </span>
-                  </label>
                   {form.style === "gradient" ? (
-                    <label>
-                      <span>End color</span>
-                      <span className="sp-color">
-                        <input type="color" value={form.color2} onChange={(e) => setForm({ ...form, color2: e.target.value.toUpperCase() })} aria-label="Second color" />
-                        <input value={form.color2} maxLength={7} onChange={(e) => setForm({ ...form, color2: e.target.value })} aria-label="Second color hex" />
-                      </span>
-                    </label>
+                    <div className="sp-seg sp-color-tabs" role="tablist" aria-label="Which color">
+                      {(["color", "color2"] as const).map((k) => (
+                        <button key={k} type="button" role="tab" aria-selected={editing === k} className={editing === k ? "is-on" : ""} onClick={() => setEditing(k)}>
+                          <i style={{ background: form[k] }} aria-hidden="true" /> {k === "color" ? "Start color" : "End color"}
+                        </button>
+                      ))}
+                    </div>
                   ) : null}
+                  {form.style === "gradient" ? <div className="sp-grad-bar" style={{ background: `linear-gradient(90deg, ${form.color}, ${form.color2})` }} aria-hidden="true" /> : null}
+                  <ColorPicker
+                    label={form.style === "gradient" ? (editing === "color" ? "Start color" : "End color") : "Role color"}
+                    value={form.style === "gradient" ? form[editing] : form.color}
+                    onChange={(hex) => setForm((f) => ({ ...f, [form.style === "gradient" ? editing : "color"]: hex }))}
+                  />
                 </div>
               ) : (
                 <p className="sp-note"><Crown size={14} aria-hidden="true" /> Discord&apos;s shimmering holographic style (fixed colors).</p>
