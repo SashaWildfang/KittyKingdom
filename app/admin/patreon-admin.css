@@ -1,0 +1,253 @@
+/* Admin → Patreon */
+.pa {
+  display: grid;
+  gap: 1rem;
+}
+
+.pa .pa-sync {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-color: color-mix(in srgb, #3ddc84 40%, var(--line));
+  text-align: left;
+}
+
+.pa .pa-sync.is-bad {
+  border-color: color-mix(in srgb, #ff6b6b 55%, var(--line));
+}
+
+.pa-sync-text {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.pa-sync-text > svg {
+  flex: none;
+  margin-top: 0.1rem;
+  color: #3ddc84;
+}
+
+.pa-sync.is-bad .pa-sync-text > svg {
+  color: #ff6b6b;
+}
+
+.pa-sync-text div {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.pa-sync-text small {
+  overflow-wrap: anywhere;
+}
+
+.pa-spin {
+  animation: pa-spin 1s linear infinite;
+}
+
+@keyframes pa-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.pa .adm-kpis {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+@media (max-width: 1100px) {
+  .pa .adm-kpis {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .pa .adm-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.pa-kpi-tier small {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.pa-kpi-tier small svg {
+  color: var(--tone);
+}
+
+.pa-grant h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.pa-grant-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.pa-grant-search {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.pa-note {
+  margin: 0;
+  border: 1px solid color-mix(in srgb, #3ddc84 45%, var(--line));
+  border-radius: 0.8rem;
+  background: color-mix(in srgb, #3ddc84 10%, transparent);
+  padding: 0.6rem 0.85rem;
+  font-size: 0.88rem;
+}
+
+.pa-seg {
+  flex-wrap: wrap;
+}
+
+.pa-search {
+  flex: 1 1 14rem;
+}
+
+.pa-table td {
+  vertical-align: top;
+}
+
+.pa-tier {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid color-mix(in srgb, var(--tier) 55%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tier) 18%, transparent);
+  font-size: 0.8rem;
+  font-weight: 900;
+  padding: 0.18rem 0.6rem;
+  white-space: nowrap;
+}
+
+.pa-tier svg {
+  color: var(--tier);
+}
+
+.pa-sub {
+  display: block;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.pa-warn {
+  color: #ffb347;
+}
+
+.pa-unlinked {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.pa-role {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-weight: 800;
+}
+
+.pa-swatch {
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-top: 0.1rem;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+}
+
+.pa-actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.pa-actions .adm-btn + .adm-btn {
+  margin-left: 0.35rem;
+}
+
+.pa-danger {
+  color: #ff8a8a;
+}
+
+.pa-foot {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+/* Phones: each patron becomes a small card */
+@media (max-width: 720px) {
+  .pa-table thead {
+    display: none;
+  }
+
+  .pa-table,
+  .pa-table tbody,
+  .pa-table tr,
+  .pa-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .pa-table tr {
+    border-bottom: 1px solid var(--line);
+    padding: 0.5rem 0;
+  }
+
+  .pa-table td {
+    display: grid;
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+    gap: 0.5rem;
+    border: 0;
+    padding: 0.3rem 0.8rem;
+  }
+
+  .pa-table td[data-label]::before {
+    content: attr(data-label);
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .pa-table td.pa-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.35rem;
+  }
+
+  .pa-table td.pa-actions:empty {
+    display: none;
+  }
+
+  .pa-actions .adm-btn + .adm-btn {
+    margin-left: 0;
+  }
+}
+
+.pa .pa-sync > .adm-btn,
+.pa .pa-grant > * {
+  flex: none;
+}
+
+.pa-cell {
+  min-width: 0;
+}
