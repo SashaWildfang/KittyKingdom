@@ -6,6 +6,7 @@ import { NITRO, TIERS, pct } from "../../lib/perks";
 import type { ReactNode } from "react";
 import { CurrencyName } from "../season-context";
 import { CurrencyAmount, LeafEmote } from "../ui-icons";
+import { SeasonLevelRoles } from "./level-roles";
 
 export const DISCORD_INVITE = "https://discord.com/invite/M9XKHFdYQV";
 export const PATREON_URL = "https://www.patreon.com/c/thekittykingdom/membership";
@@ -21,20 +22,6 @@ const Leaf = ({ n }: { n: string }) => (
     {n} <LeafEmote size={15} />
   </b>
 );
-
-export const LEVEL_ROLES = [
-  { levels: "1–4", name: "Wanderer", emoji: "🍂", perk: "Welcome to the kingdom!" },
-  { levels: "5–10", name: "Trail Scout", emoji: "🦊", perk: "Unlocks Media Perms (pictures, GIFs & reactions)" },
-  { levels: "11–20", name: "Forager", emoji: "🐿️" },
-  { levels: "21–30", name: "Pumpkin Spice", emoji: "🎃" },
-  { levels: "31–40", name: "Cocoa Addict", emoji: "☕" },
-  { levels: "41–50", name: "Maple Leaf", emoji: "🍁" },
-  { levels: "51–60", name: "Rosewood", emoji: "🌹" },
-  { levels: "61–70", name: "Campfire", emoji: "🔥" },
-  { levels: "71–80", name: "Scarf Season", emoji: "🧣" },
-  { levels: "81–90", name: "Biscuit Thief", emoji: "🥐" },
-  { levels: "91–100+", name: "Gobble Gobble", emoji: "🦃" },
-];
 
 export const EARN = [
   { how: "Chatting", amount: "30–50 🍁 + 25–50 XP", when: "Once a minute while you chat", cmd: null },
@@ -217,20 +204,7 @@ export const TOPICS: Topic[] = [
         icon: "Award",
         keywords: "roles ranks levels media perms",
         body: (
-          <div className="kb-roles">
-            {LEVEL_ROLES.map((r) => (
-              <div key={r.name} className="kb-role">
-                <span className="kb-role-emoji" aria-hidden="true">
-                  {r.emoji}
-                </span>
-                <div>
-                  <b>{r.name}</b>
-                  <small>Levels {r.levels}</small>
-                  {r.perk ? <em>{r.perk}</em> : null}
-                </div>
-              </div>
-            ))}
-          </div>
+          <SeasonLevelRoles />
         ),
       },
     ],
