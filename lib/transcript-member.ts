@@ -192,7 +192,7 @@ function parseMessage(msg: HTMLElement): Message {
   let name = "";
   if (author) {
     for (const child of author.childNodes) {
-      if (isElement(child) && (hasClass(child, "staff-badge") || hasClass(child, "timestamp") || hasClass(child, "userid"))) continue;
+      if (isElement(child) && (hasClass(child, "staff-badge") || hasClass(child, "claimer-badge") || hasClass(child, "timestamp") || hasClass(child, "userid"))) continue;
       name += child.nodeType === 3 ? child.text : isElement(child) ? child.text : "";
     }
   }
