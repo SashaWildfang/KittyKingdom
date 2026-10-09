@@ -127,7 +127,7 @@
   height: 0.4rem;
   overflow: hidden;
   border-radius: 999px;
-  background: rgba(255, 242, 215, 0.1);
+  background: rgba(var(--cream-rgb), 0.1);
 }
 
 .ads-bar span {

@@ -7,6 +7,7 @@ import { DISCORD_INVITE, PATREON_URL } from "../faq/content";
 import { FallingLeaves } from "../fall-effects";
 import { SiteNav } from "../site-nav";
 import { SupportFixes, type Fix } from "./support-client";
+import { seasonal } from "../../lib/season-store";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -160,7 +161,7 @@ export default async function SupportPage() {
               <span className="kb-topic-icon">
                 <c.icon size={20} aria-hidden="true" />
               </span>
-              <b>{c.title}</b>
+              <b>{seasonal(c.title)}</b>
               <small>{c.text}</small>
             </a>
           ))}
@@ -176,7 +177,7 @@ export default async function SupportPage() {
               <p>Step-by-step answers. Most problems are solved in a minute.</p>
             </div>
           </header>
-          <SupportFixes fixes={FIXES} />
+          <SupportFixes fixes={FIXES.map((f) => ({ ...f, title: seasonal(f.title), tags: seasonal(f.tags) }))} />
         </section>
 
         <section id="contact" className="kb-section">

@@ -3,6 +3,7 @@
 import { Check, Copy, ExternalLink, Mail, MailCheck, RefreshCw, ShieldAlert } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { ChangeEmailForm } from "../change-email-form";
+import { SiteLogo } from "../ui-icons";
 
 type State =
   | { state: "verify-email"; email: string }
@@ -92,7 +93,7 @@ export function RegisterLink() {
   return (
     <div className="reg">
       <header className="reg-head">
-        <img src="/logo.png" alt="" width={56} height={56} />
+        <SiteLogo alt="" width={56} height={56} />
         <div>
           <p className="reg-kicker">Create your account</p>
           <h1>{step === 4 ? "You're all set!" : step === 2 ? "Confirm your email" : "Verify you're in the server"}</h1>

@@ -6,6 +6,7 @@ import type { Card, HandResult, PublicCard, PublicTable } from "../../lib/games/
 import { LeafEmote } from "../ui-icons";
 import { CardFace } from "./cards";
 import { Confetti, CountUp } from "./games-client";
+import { useCurrency } from "../season-context";
 
 const SUIT: Record<Card["suit"], { glyph: string; red: boolean; name: string }> = {
   S: { glyph: "♠", red: false, name: "spades" },
@@ -76,6 +77,7 @@ export function BlackjackTable({
   /** Lets the page stand on every hand when the player leaves mid-hand */
   control?: MutableRefObject<{ quit: () => Promise<void> } | null>;
 }) {
+  const cur = useCurrency();
   const [table, setTable] = useState<PublicTable | null>(initialTable);
   const [bet, setBet] = useState(Math.max(minBet, 100));
   const [busy, setBusy] = useState(false);
@@ -184,8 +186,8 @@ export function BlackjackTable({
 
   const deal = useCallback(
     (amount: number) => {
-      if (amount < minBet) return setError(`The minimum bet is ${minBet} leaves.`);
-      if (amount > balance) return setError("You don't have enough leaves for that bet.");
+      if (amount < minBet) return setError(cur.text(`The minimum bet is ${minBet} leaves.`));
+      if (amount > balance) return setError(cur.text("You don't have enough leaves for that bet."));
       setLastBet(amount);
       setShowResult(false);
       void act({ action: "deal", bet: amount });

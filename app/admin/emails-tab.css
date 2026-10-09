@@ -51,7 +51,7 @@
 
 .em-rows button:hover,
 .em-rows button.is-on {
-  background: rgba(245, 155, 42, 0.1);
+  background: rgba(var(--ember-rgb), 0.1);
 }
 
 .em-ok {

@@ -9,6 +9,7 @@ import { ObjectId, type Document } from "mongodb";
 import { people, type Person } from "./admin-people";
 import { getBotCollection } from "./mongodb";
 import { RETIRED_ITEM_IDS } from "./store";
+import { seasonal } from "./season-store";
 
 export class GiveawayError extends Error {
   constructor(message: string, public status = 400) {
@@ -145,7 +146,7 @@ const date = (v: unknown, label: string) => {
 
 async function cleanPrize(raw: Partial<Prize> | undefined): Promise<Prize> {
   const type = raw?.type;
-  if (type === "leaves") return { type, amount: whole(raw?.amount, "The Leaves prize", 1, 10_000_000) };
+  if (type === "leaves") return { type, amount: whole(raw?.amount, seasonal("The Leaves prize"), 1, 10_000_000) };
   if (type === "item") {
     const itemId = String(raw?.itemId ?? "");
     const item = itemId && !RETIRED_ITEM_IDS.includes(itemId) ? await (await getBotCollection("store_inventory")).findOne({ item_id: itemId, retired: { $ne: true } }) : null;

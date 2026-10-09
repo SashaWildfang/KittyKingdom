@@ -88,7 +88,7 @@ const sections: LegalSection[] = [
             result, not copies of identity documents, unless you choose to share images in a verification ticket (see Tickets below).
           </li>
           <li>
-            <b>Community and economy data:</b> level, XP, Leaf balance, total messages sent, voice time, server bumps, daily streaks, inventory, purchases,
+            <b>Community and economy data:</b> level, XP, currency balance, total messages sent, voice time, server bumps, daily streaks, inventory, purchases,
             gifts, game results (for example slots and Wordle), and Question of the Day answers.
           </li>
           <li>
@@ -245,7 +245,7 @@ const sections: LegalSection[] = [
         <p>We use personal information to:</p>
         <ul>
           <li>create, secure and run your account and the Services you ask for (performance of our agreement with you);</li>
-          <li>link your Site account to Discord, sync roles, levels, Leaves and purchases, and show your stats (performance of our agreement);</li>
+          <li>link your Site account to Discord, sync roles, levels, currency and purchases, and show your stats (performance of our agreement);</li>
           <li>verify ages for 18+ areas, moderate the community, handle tickets and reports, and investigate rule-breaking, fraud and abuse (our legitimate interest in a safe community, and to protect members);</li>
           <li>keep the Services secure, prevent spam and brute-force attacks, and fix problems (legitimate interests);</li>
           <li>understand how the Site is used so we can improve it, using privacy-friendly statistics (legitimate interests);</li>
@@ -341,7 +341,7 @@ const sections: LegalSection[] = [
               <tr><td>Online count, rate limits, link codes</td><td>Minutes to hours, deleted automatically</td></tr>
               <tr><td>Ticket activity (while a ticket is open)</td><td>Until the ticket is closed and its transcript saved (at most 21 days if it is never closed)</td></tr>
               <tr><td>Ticket transcripts, moderation records, punishment appeals, server logs, join applications, verification records</td><td>As long as needed for community safety and to handle appeals, disputes and repeat rule-breaking</td></tr>
-              <tr><td>Levels, Leaves, inventory, purchases, activity statistics</td><td>While you are part of the community, or until you ask us to delete them</td></tr>
+              <tr><td>Levels, currency, inventory, purchases, activity statistics</td><td>While you are part of the community, or until you ask us to delete them</td></tr>
             </tbody>
           </table>
         </div>

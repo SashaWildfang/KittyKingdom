@@ -50,7 +50,7 @@
 }
 
 .br-filter button.is-on {
-  background: linear-gradient(135deg, var(--ember, #f59b2a), var(--maple, #d9572b));
+  background: linear-gradient(135deg, var(--ember, rgb(var(--ember-rgb))), var(--maple, #d9572b));
   color: #fff;
 }
 

@@ -258,7 +258,7 @@
 
 .pa-row:hover td,
 .pa-row.is-open td {
-  background: rgba(245, 155, 42, 0.06);
+  background: rgba(var(--ember-rgb), 0.06);
 }
 
 .pa-more svg {

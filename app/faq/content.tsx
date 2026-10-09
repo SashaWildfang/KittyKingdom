@@ -4,6 +4,8 @@
 import { TierIcon } from "../tier-icon";
 import { NITRO, TIERS, pct } from "../../lib/perks";
 import type { ReactNode } from "react";
+import { CurrencyName } from "../season-context";
+import { CurrencyAmount, LeafEmote } from "../ui-icons";
 
 export const DISCORD_INVITE = "https://discord.com/invite/M9XKHFdYQV";
 export const PATREON_URL = "https://www.patreon.com/c/thekittykingdom/membership";
@@ -16,7 +18,7 @@ export type Topic = { id: string; title: string; icon: string; blurb: string; gu
 const Cmd = ({ children }: { children: ReactNode }) => <code className="kb-cmd">{children}</code>;
 const Leaf = ({ n }: { n: string }) => (
   <b className="kb-leaf">
-    {n} <span aria-label="leaves">🍁</span>
+    {n} <LeafEmote size={15} />
   </b>
 );
 
@@ -63,10 +65,10 @@ export const TOPICS: Topic[] = [
             <li>Join the server and read the rules.</li>
             <li>Get verified so you can see the whole kingdom (you must be 18+).</li>
             <li>
-              Say hi! Every message earns Leaves and XP. Type <Cmd>/help</Cmd> for a menu of every command.
+              Say hi! Every message earns <CurrencyName /> and XP. Type <Cmd>/help</Cmd> for a menu of every command.
             </li>
             <li>
-              Claim your <Cmd>/daily</Cmd> Leaves and try the <Cmd>/wordle</Cmd>.
+              Claim your <Cmd>/daily</Cmd> <CurrencyName /> and try the <Cmd>/wordle</Cmd>.
             </li>
             <li>Make a website account and link Discord to unlock the Store, your stats and badges here.</li>
           </ol>
@@ -76,7 +78,7 @@ export const TOPICS: Topic[] = [
     faqs: [
       {
         q: "What is Kitty Kingdom?",
-        a: "A warm, fall-themed furry community for adults: friends, dating profiles, events, games, an economy with its own currency (Leaves 🍁) and a website that syncs with Discord.",
+        a: "A warm, cozy furry community for adults: friends, dating profiles, events, games, an economy with its own currency (it changes with the seasons) and a website that syncs with Discord.",
       },
       {
         q: "Do I have to be 18?",
@@ -106,7 +108,7 @@ export const TOPICS: Topic[] = [
     id: "economy",
     title: "Leaves & economy",
     icon: "Leaf",
-    blurb: "How to earn, send and spend Leaves 🍁.",
+    blurb: "How to earn, send and spend Leaves.",
     guides: [
       {
         title: "Ways to earn Leaves",
@@ -128,7 +130,9 @@ export const TOPICS: Topic[] = [
                     <td>
                       <b>{e.how}</b> {e.cmd ? <Cmd>{e.cmd}</Cmd> : null}
                     </td>
-                    <td>{e.amount}</td>
+                    <td>
+                      <CurrencyAmount text={e.amount} />
+                    </td>
                     <td>{e.when}</td>
                   </tr>
                 ))}
@@ -173,7 +177,7 @@ export const TOPICS: Topic[] = [
         q: "Can I send Leaves to someone?",
         a: (
           <>
-            Yes: <Cmd>/pay [user] [amount]</Cmd> sends Leaves straight to another member. You can also buy them a gift from the Store.
+            Yes: <Cmd>/pay [user] [amount]</Cmd> sends <CurrencyName /> straight to another member. You can also buy them a gift from the Store.
           </>
         ),
         keywords: "pay give transfer",
@@ -314,13 +318,13 @@ export const TOPICS: Topic[] = [
               <b>Golden Leaf (Nitro) role</b> and a shiny booster badge
             </li>
             <li>
-              <b>{NITRO.perBoost.toLocaleString()} Leaves</b> every time you boost, plus <b>{NITRO.monthly.toLocaleString()} Leaves and a Streak Shield</b> every month
+              <b>{NITRO.perBoost.toLocaleString()} <CurrencyName /></b> every time you boost, plus <b>{NITRO.monthly.toLocaleString()} <CurrencyName /> and a Streak Shield</b> every month
             </li>
             <li>
-              <b>{pct(NITRO.leaf)} Leaves and {pct(NITRO.xp)} XP</b> on everything you earn
+              <b>{pct(NITRO.leaf)} <CurrencyName /> and {pct(NITRO.xp)} XP</b> on everything you earn
             </li>
             <li>
-              <b>Daily streaks:</b> +100 to +700 extra Leaves on your Daily Reward
+              <b>Daily streaks:</b> +100 to +700 extra <CurrencyName /> on your Daily Reward
             </li>
             <li>
               <b>Spin up to 25 slots</b> at a time
@@ -368,7 +372,7 @@ export const TOPICS: Topic[] = [
                 </small>
                 <b>{t.name}</b>
                 <span>
-                  {t.monthly.toLocaleString()} Leaves a month · {pct(t.xp)} XP · {pct(t.leaf)} Leaves
+                  {t.monthly.toLocaleString()} <CurrencyName /> a month · {pct(t.xp)} XP · {pct(t.leaf)} <CurrencyName />
                 </span>
                 <em>
                   +{t.daily} on every Daily Reward{t.customRole ? " · custom role" : ""}{t.roleExtras ? " (holographic + icon)" : ""}{t.premiumGames ? " · premium games" : ""}

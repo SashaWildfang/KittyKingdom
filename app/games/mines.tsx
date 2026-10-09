@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState, type CSSProperties, type Mut
 import type { PublicMines } from "../../lib/games/mines";
 import { LeafEmote } from "../ui-icons";
 import { Confetti, CountUp } from "./games-client";
+import { useCurrency } from "../season-context";
 
 const TILES = 25;
 const EDGE = 0.01;
@@ -100,6 +101,7 @@ export function Mines({
   onActive?: (active: boolean) => void;
   control?: MutableRefObject<{ quit: () => Promise<void> } | null>;
 }) {
+  const cur = useCurrency();
   const [game, setGame] = useState<PublicMines | null>(initial);
   const [bet, setBet] = useState(100);
   const [count, setCount] = useState(3);
@@ -143,8 +145,8 @@ export function Mines({
   }, [control, game, act]);
 
   const start = () => {
-    if (bet < 25) return setError("The minimum bet is 25 leaves.");
-    if (bet > balance) return setError("You don't have enough leaves for that bet.");
+    if (bet < 25) return setError(cur.text("The minimum bet is 25 leaves."));
+    if (bet > balance) return setError(cur.text("You don't have enough leaves for that bet."));
     void act({ action: "start", bet, mines: count });
   };
   const pick = (i: number) => {

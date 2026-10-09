@@ -6,6 +6,7 @@ import type { BadgeEarned } from "../../lib/badge-history";
 import { TIER_NAMES, badgeAbout, badgeById, type BadgeShape, type BadgeShowcase } from "../../lib/badges";
 import type { CustomBadge, CustomTitle } from "../../lib/cosmetics";
 import { BadgeMedal } from "./badge-medal";
+import { useCurrency } from "../season-context";
 
 const dateFmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
 
@@ -30,15 +31,17 @@ export function earnedText(earned: BadgeEarned | null | undefined, tiers: number
 
 /** Hover (or focus) a badge to see what it is, its tier and when it was earned. */
 export function BadgeTip({ id, tier, earned, children, className }: { id: string; tier: number; earned?: BadgeEarned | null; children: ReactNode; className?: string }) {
+  const cur = useCurrency();
   const def = badgeById(id);
   if (!def) return <>{children}</>;
   const when = earnedText(earned, def.tiers);
-  const about = badgeAbout(id);
+  const about = cur.text(badgeAbout(id));
+  const name = cur.text(def.name);
   return (
-    <span className={`badge-tip-wrap ${className ?? ""}`} tabIndex={0} aria-label={`${def.name}, ${tierLabel(def.tiers, tier)}. ${about}${when ? ` ${when}.` : ""}`}>
+    <span className={`badge-tip-wrap ${className ?? ""}`} tabIndex={0} aria-label={`${name}, ${tierLabel(def.tiers, tier)}. ${about}${when ? ` ${when}.` : ""}`}>
       {children}
       <span className="badge-tip" role="tooltip" style={{ "--hue": def.hue } as CSSProperties}>
-        <b>{def.name}</b>
+        <b>{name}</b>
         <span className={`badge-tip-tier badge-tip-tier--${def.tiers.length === 1 ? "special" : tier}`}>{tierLabel(def.tiers, tier)}</span>
         <span className="badge-tip-desc">{about}</span>
         {when ? <span className="badge-tip-when">{when}</span> : null}

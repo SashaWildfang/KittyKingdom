@@ -12,6 +12,7 @@ import { Mines } from "./mines";
 import { Roulette } from "./roulette";
 import { ScratchOffs } from "./scratch";
 import { Slots, type SlotsStatus } from "./slots";
+import { CurrencyName } from "../season-context";
 
 export type ScratchStatus = { nitro: boolean };
 type Game = "blackjack" | "roulette" | "slots" | "mines" | "scratch" | "live";
@@ -194,7 +195,7 @@ export function GamesClient({
           <div>
             <p className="eyebrow">Kitty Kingdom Casino</p>
             <h1>Games</h1>
-            <p className="gm-sub">Play with the same leaves you earn in the server. Same tables, same odds as the bot.</p>
+            <p className="gm-sub">Play with the same <CurrencyName lower /> you earn in the server. Same tables, same odds as the bot.</p>
           </div>
         </div>
         <div className="gm-balance" aria-live="polite">

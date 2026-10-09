@@ -6,6 +6,7 @@ import type { PublicScratch } from "../../lib/games/live";
 import type { Ticket } from "../../lib/games/scratch";
 import { LeafEmote } from "../ui-icons";
 import { Confetti, CountUp, type ScratchStatus } from "./games-client";
+import { useCurrency } from "../season-context";
 
 const TIERS: { key: Ticket["tier"]; label: string; blurb: string }[] = [
   { key: "low", label: "Low Roller", blurb: "10 – 75 leaves" },
@@ -277,6 +278,7 @@ export function ScratchOffs({
   /** Lets the page reveal the rest of the ticket when the player leaves */
   control?: MutableRefObject<{ quit: () => Promise<void> } | null>;
 }) {
+  const cur = useCurrency();
   const [status, setStatus] = useState(initialStatus);
   const [play, setPlay] = useState<Play | null>(null);
   const [revealed, setRevealed] = useState<boolean[]>(Array(9).fill(false));
@@ -452,7 +454,7 @@ export function ScratchOffs({
             <section key={tier.key} className={`sc-tier is-${tier.key}`}>
               <header>
                 <h2>{tier.label}</h2>
-                <span>{tier.blurb}</span>
+                <span>{cur.text(tier.blurb)}</span>
               </header>
               <div className="sc-tickets">
                 {tickets
@@ -468,7 +470,7 @@ export function ScratchOffs({
                         style={{ "--t1": t.colors[0], "--t2": t.colors[1], "--i": i } as CSSProperties}
                         disabled={!!busy || locked || short}
                         onClick={() => buy(t)}
-                        title={locked ? "Nitro boosters and $10+ supporters" : short ? "Not enough leaves" : `Buy ${t.name}`}
+                        title={locked ? "Nitro boosters and $10+ supporters" : short ? `Not enough ${cur.lower}` : `Buy ${t.name}`}
                       >
                         <span className="sc-card-shine" aria-hidden="true" />
                         {t.nitro ? <span className="sc-premium">Premium</span> : null}
@@ -508,7 +510,7 @@ export function ScratchOffs({
                 <b>
                   {t.icon} {t.name}
                 </b>{" "}
-                · {t.cost.toLocaleString()} leaves · wins {(t.winChance * 100).toFixed(0)}% of the time
+                · {t.cost.toLocaleString()} {cur.lower} · wins {(t.winChance * 100).toFixed(0)}% of the time
                 <span>{t.prizes.map((p) => `${p.symbol} ${p.payout.toLocaleString()}`).join("  ·  ")}</span>
               </div>
             ))}

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SiteLogo } from "../ui-icons";
 
 const CODE_STATUS: Record<string, string> = {
   failed: "That didn't work. Check your email or username and the code. Codes only work if two-factor is turned on for the account.",
@@ -17,7 +18,7 @@ export default function ForgotPasswordPage({ searchParams }: { searchParams: { s
       <div className="auth-backdrop" />
       <section className="auth-card minehut-card">
         <Link className="auth-logo" href="/" aria-label="Kitty Kingdom home">
-          <img className="auth-logo-img" src="/logo.png" alt="Kitty Kingdom logo" />
+          <SiteLogo className="auth-logo-img" alt="Kitty Kingdom logo" />
         </Link>
         <h1>Password Reset</h1>
 

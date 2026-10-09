@@ -7,6 +7,7 @@ import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type C
 import { MAX_SHOWCASE, TIER_NAMES, badgeAbout, type BadgeCategory, type BadgeShowcase, type EarnedBadge } from "../../lib/badges";
 import { BadgeMedal } from "./badge-medal";
 import { BADGES_EVENT } from "./profile-badges";
+import { useCurrency } from "../season-context";
 
 const CATEGORIES: { key: BadgeCategory | "all"; label: string }[] = [
   { key: "all", label: "All" },
@@ -63,6 +64,7 @@ function Detail({
   onRemoveTitle: () => void;
   busy: boolean;
 }) {
+  const cur = useCurrency();
   const special = b.tiers.length === 1;
   const when = b.tier ? earnedText(earned, b.tiers) : null;
   return (
@@ -74,7 +76,7 @@ function Detail({
       <div className="st-bdetail-copy">
         <p className="st-eyebrow">{tierName(b)}</p>
         <h4>{b.name}</h4>
-        <p>{badgeAbout(b.id)}</p>
+        <p>{cur.text(badgeAbout(b.id))}</p>
         {/* One-off badges are done or not done, so there's no number to show */}
         {special ? null : (
           <p className="st-bdetail-yours">
@@ -185,7 +187,10 @@ function RecentBadges({ history, byId, onOpen }: { history: BadgeHistory; byId: 
   );
 }
 
-export function BadgeCollection({ badges, showcase, history, onSaved }: { badges: EarnedBadge[]; showcase: BadgeShowcase; history?: BadgeHistory; onSaved: (s: BadgeShowcase) => void }) {
+export function BadgeCollection({ badges: rawBadges, showcase, history, onSaved }: { badges: EarnedBadge[]; showcase: BadgeShowcase; history?: BadgeHistory; onSaved: (s: BadgeShowcase) => void }) {
+  const cur = useCurrency();
+  // Economy badges are named after the season's currency ("Leaf Hoarder" → "Snowflake Hoarder")
+  const badges = useMemo(() => rawBadges.map((b) => ({ ...b, name: cur.text(b.name), desc: cur.text(b.desc) })), [rawBadges, cur.many, cur.one]);
   const [cat, setCat] = useState<BadgeCategory | "all">("all");
   const [sort, setSort] = useState<"progress" | "tier" | "name">("tier");
   const [hideLocked, setHideLocked] = useState(false);
@@ -397,7 +402,7 @@ export function BadgeCollection({ badges, showcase, history, onSaved }: { badges
         <div className="st-seg st-seg--small" role="tablist" aria-label="Category">
           {CATEGORIES.map((c) => (
             <button key={c.key} type="button" role="tab" aria-selected={cat === c.key} className={cat === c.key ? "is-on" : undefined} onClick={() => setCat(c.key)}>
-              {c.label}
+              {cur.text(c.label)}
             </button>
           ))}
         </div>

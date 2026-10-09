@@ -17,6 +17,7 @@ import { getBotCollection } from "./mongodb";
 import { economyNumber } from "./bot-settings/live";
 import { ITEM, SHIELD_MAX_GAP } from "./cosmetics";
 import { StoreError } from "./store";
+import { seasonal } from "./season-store";
 
 // 🍂 Golden Leaf (Nitro), given to server boosters
 export const NITRO_ROLE_ID = "1360260086500561237";
@@ -182,5 +183,5 @@ export async function claimDaily(discordId: string) {
     (bonus
       ? `+${reward.toLocaleString()} leaves! (${cfg.base}${patron ? ` + ${patron} supporter bonus` : ""} + ${bonus} day ${cycleDayOf(streak)} streak bonus)`
       : `+${reward.toLocaleString()} leaves!${patron ? ` (includes your +${patron} supporter bonus)` : ""} Streak: ${streak} day${streak === 1 ? "" : "s"}.`) + saved;
-  return { message, reward, bonus, status: { ...after, perksPath: await serverGuidePath("boost").catch(() => null) } };
+  return { message: seasonal(message), reward, bonus, status: { ...after, perksPath: await serverGuidePath("boost").catch(() => null) } };
 }
