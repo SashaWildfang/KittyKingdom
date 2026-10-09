@@ -10,7 +10,7 @@
 import { parse, type HTMLElement, type Node } from "node-html-parser";
 import { openTranscriptFile } from "./transcript-store";
 
-const RENDER_VERSION = 3;
+const RENDER_VERSION = 4;
 /** The current transcript stylesheet, served by both viewers (old zips carry an old style.css) */
 export const TRANSCRIPT_CSS_FILE = "kk-transcript.css";
 
@@ -296,17 +296,19 @@ function duration(from: string | null, to: string | null) {
   return parts.length ? parts.join(" ") : `${s}s`;
 }
 
-const SEARCH_SCRIPT = `<script>
+// The page's own script: search, people filter, theme toggle. Runs sandboxed (no storage, no network).
+const PAGE_SCRIPT = `<script>
 (function () {
   var input = document.getElementById("searchInput");
   var count = document.getElementById("searchCount");
   var boxes = Array.prototype.slice.call(document.querySelectorAll(".filter-cb"));
   var msgs = Array.prototype.slice.call(document.querySelectorAll(".msg"));
-  function clear() {
+  var clearBtn = document.getElementById("clearFilters");
+  function unmark() {
     Array.prototype.slice.call(document.querySelectorAll("mark[data-kk]")).forEach(function (m) {
-      var parent = m.parentNode;
-      parent.replaceChild(document.createTextNode(m.textContent), m);
-      parent.normalize();
+      var p = m.parentNode;
+      p.replaceChild(document.createTextNode(m.textContent), m);
+      p.normalize();
     });
   }
   function highlight(node, words) {
@@ -333,8 +335,8 @@ const SEARCH_SCRIPT = `<script>
     });
   }
   function apply() {
-    clear();
-    var q = input.value.toLowerCase().trim();
+    unmark();
+    var q = input ? input.value.toLowerCase().trim() : "";
     var words = q.split(/\\s+/).filter(Boolean);
     var ids = boxes.filter(function (b) { return b.checked; }).map(function (b) { return b.value; });
     var n = 0;
@@ -342,13 +344,26 @@ const SEARCH_SCRIPT = `<script>
       var okAuthor = !ids.length || ids.indexOf(m.getAttribute("data-author-id")) >= 0;
       var c = m.querySelector(".content");
       var okText = !words.length || (c && words.every(function (w) { return c.textContent.toLowerCase().indexOf(w) >= 0; }));
-      m.style.display = okAuthor && okText ? "flex" : "none";
-      if (okAuthor && okText && words.length && c) { highlight(c, words); n++; }
+      var show = okAuthor && okText;
+      m.classList.toggle("is-hidden", !show);
+      m.classList.toggle("is-filtered", Boolean(ids.length || words.length));
+      if (show && words.length && c) { highlight(c, words); n++; }
     });
-    count.textContent = words.length ? n + " results" : "";
+    document.body.classList.toggle("is-filtering", Boolean(ids.length || words.length));
+    if (count) count.textContent = words.length ? n + (n === 1 ? " match" : " matches") : "";
+    if (clearBtn) clearBtn.hidden = !ids.length;
   }
   boxes.forEach(function (b) { b.addEventListener("change", apply); });
-  input.addEventListener("input", apply);
+  if (input) input.addEventListener("input", apply);
+  if (clearBtn) clearBtn.addEventListener("click", function () { boxes.forEach(function (b) { b.checked = false; }); apply(); });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "/" && document.activeElement !== input && input) { e.preventDefault(); input.focus(); }
+  });
+  var themeBtn = document.getElementById("themeBtn");
+  if (themeBtn) themeBtn.addEventListener("click", function () {
+    var root = document.documentElement;
+    root.setAttribute("data-theme", root.getAttribute("data-theme") === "light" ? "dark" : "light");
+  });
 })();
 </script>`;
 
@@ -356,7 +371,7 @@ function badgeHtml(badge: Message["badge"], cls: "staff-badge" | "staff-team-bad
   return badge && look.staffBadges ? `<span class="${cls} ${badge.cls}">${escapeHtml(badge.text.toUpperCase())}</span>` : "";
 }
 
-// "09/27/2026 • 04:05 PM" (Mountain Time) -> day key and minutes, for day dividers and grouping
+// "09/27/2026 • 04:05 PM" (Mountain Time) -> day key and minutes, for day headers and grouping
 const MSG_TIME = /(\d{2})\/(\d{2})\/(\d{4}) • (\d{2}):(\d{2}) (AM|PM)/;
 const DAY_LABEL = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", weekday: "long", month: "long", day: "numeric", year: "numeric" });
 function timeParts(text: string) {
@@ -369,93 +384,41 @@ function timeParts(text: string) {
 }
 
 const TYPE_LABELS: Record<string, string> = { nsfw: "NSFW verification", support: "Support", "staff-application": "Staff application", manual: "Manual" };
+const initials = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join("") || "KK";
+
+const ICON = {
+  search: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+  theme: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/></svg>',
+  down: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg>',
+  lock: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+};
+
+/** src of every image/video in a message's media, for the Files & media gallery (staff copies only). */
+function mediaThumbs(m: Message) {
+  const out: { src: string; video: boolean }[] = [];
+  for (const html of m.media) {
+    const re = /<(img|video)[^>]*\ssrc="([^"]+)"/g;
+    let x: RegExpExecArray | null;
+    while ((x = re.exec(html))) out.push({ src: x[2], video: x[1] === "video" });
+  }
+  return out;
+}
 
 function renderPage(meta: MemberTicketMeta, messages: Message[], people: { opener: string; closer: string }, fallbackBody: string | null, localTimesScript: string) {
   const created = mountainTime(meta.created);
   const closed = mountainTime(meta.resolvedAt);
   const accent = /^#[0-9a-f]{6}$/i.test(look.accent) ? look.accent : DEFAULT_LOOK.accent;
   const claimer = meta.claimedBy ? messages.find((m) => m.authorId === meta.claimedBy)?.name ?? null : null;
-  const authors = new Set(messages.map((m) => m.authorId ?? m.name));
-  const chips = [
-    meta.type ? `<span class="tx-chip is-accent">${escapeHtml(TYPE_LABELS[meta.type] ?? meta.type)}</span>` : "",
-    meta.escalated ? '<span class="tx-chip is-danger">Escalated</span>' : "",
-    claimer ? `<span class="tx-chip">Claimed by ${escapeHtml(claimer)}</span>` : "",
-    staffCopy ? '<span class="tx-chip">Staff copy</span>' : '<span class="tx-chip">Your copy</span>',
-  ].join("");
-  const out: string[] = [];
-  out.push(`<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ticket #${meta.ticketId} · ${escapeHtml(look.title)}</title>
-<link rel="stylesheet" href="${TRANSCRIPT_CSS_FILE}">
-<style>:root { --accent: ${accent}; }</style>
-</head>
-<body>
-<div class="layout-container" id="top">
-    <div class="main-content">
-        <header class="tx-header">
-            <p class="tx-kicker">${escapeHtml(look.title)}</p>
-            <h1>Ticket #${meta.ticketId}</h1>
-            <div class="tx-chips">${chips}</div>
-            <div class="tx-stats">
-                <div><small>Opened</small><b>${created} MT</b></div>
-                <div><small>Closed</small><b>${closed} MT</b></div>
-                <div><small>Open for</small><b>${duration(meta.created, meta.resolvedAt)}</b></div>
-                <div><small>Messages</small><b>${messages.length}</b></div>
-                <div><small>People</small><b>${authors.size}</b></div>
-            </div>
-        </header>
-        <div class="header-times">Opened: ${created} MT | Closed: ${closed} MT</div>
-        ${staffCopy || !look.memberNote.trim() ? "" : `<div class="member-note">🔒 ${escapeHtml(look.memberNote)}</div>`}
-        <div class="tx-messages">
-`);
+  const typeLabel = meta.type ? TYPE_LABELS[meta.type] ?? meta.type : "Support";
+  const heading = meta.topic && meta.topic.trim() ? meta.topic.trim() : `${typeLabel} ticket`;
 
-  if (fallbackBody !== null) out.push(`<div class="fallback-body">${fallbackBody}</div>`);
-  let prev = null as { author: string; minutes: number; day: string } | null;
-  for (const m of messages) {
-    const t = timeParts(m.time);
-    if (look.dayDividers && t && t.day !== (prev ? prev.day : null)) {
-      out.push(`<div class="day-divider"><span>${t.label}</span></div>`);
-      prev = null;
-    }
-    const author = m.authorId ?? m.name;
-    const continued = Boolean(look.groupMessages && prev && t && prev.author === author && t.minutes - prev.minutes <= 7 && m.reply === null);
-    prev = t ? { author, minutes: t.minutes, day: t.day } : null;
-    out.push(`
-        <div class="msg${continued ? " is-continued" : ""}" data-author-id="${m.authorId ?? ""}">
-            ${m.avatar ? `<img src="${m.avatar}" class="avatar" alt="">` : `<div class="participant-avatar-fallback avatar"></div>`}
-            <div class="msg-content"${continued ? ` title="${escapeHtml(m.time)}"` : ""}>
-                ${m.reply !== null ? `<div class="reply-line">${m.reply}</div>` : ""}
-                <div class="author">${escapeHtml(m.name)} ${badgeHtml(m.badge, "staff-badge")} <span class="timestamp">${escapeHtml(m.time)}</span></div>
-                <div class="content">${m.content}</div>`);
-    if (m.forwarded !== null) out.push(`<div class="forwarded">${m.forwarded}</div>`);
-    for (const e of m.embeds) out.push(`<div class="embed-box">${e}</div>`);
-    out.push(...m.media);
-    if (m.reactions !== null) out.push(`<div class="reactions">${m.reactions}</div>`);
-    if (m.buttons.length) out.push(`<div class="button-row">${m.buttons.map((b) => `<div class="discord-button ${b.cls}">${b.label}</div>`).join("")}</div>`);
-    out.push(`</div></div>`);
-  }
-  out.push(`
-        </div>
-        <div class="transcript-end" id="end">Ticket closed ${closed} MT</div>
-    </div>
-    <aside class="sidebar">
-        <div class="meta-box">
-            <b>Opened by:</b> ${escapeHtml(people.opener || "Unknown")}<br>
-            <b>Closed by:</b> ${escapeHtml(people.closer || "Unknown")}<br>
-            <b>Total Messages:</b> ${messages.length}
-            <div class="search-container">
-                <input type="text" id="searchInput" placeholder="Search messages…" aria-label="Search messages">
-                <span id="searchCount"></span>
-                <div class="tx-jump"><a href="#top">↑ Top</a><a href="#end">↓ End</a></div>
-            </div>
-        </div>
-        <div class="participants-box">
-            <b>Participants</b>`);
-
-  // Everyone who wrote, staff first, then by how much they wrote
+  // People: everyone who wrote, staff first, then by how much they wrote
   const seen = new Map<string, { m: Message; count: number }>();
   for (const m of messages) {
     const key = m.authorId ?? m.name;
@@ -464,24 +427,139 @@ function renderPage(meta: MemberTicketMeta, messages: Message[], people: { opene
     else seen.set(key, { m, count: 1 });
   }
   const rows = Array.from(seen.values()).sort((a, b) => Number(Boolean(b.m.badge)) - Number(Boolean(a.m.badge)) || b.count - a.count);
+  const most = Math.max(1, ...rows.map((r) => r.count));
+  const staffCount = rows.filter((r) => r.m.badge).length;
+
+  const out: string[] = [];
+  out.push(`<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ticket #${meta.ticketId} · ${escapeHtml(look.title)}</title>
+<link rel="stylesheet" href="${TRANSCRIPT_CSS_FILE}">
+<style>:root { --accent: ${accent}; }</style>
+</head>
+<body>
+<header class="tx-bar">
+  <div class="tx-bar-in">
+    <a class="tx-brand" href="#top">
+      <span class="tx-logo">${escapeHtml(initials(look.title))}</span>
+      <span class="tx-brand-text"><small>${escapeHtml(look.title)}</small><b>Ticket #${meta.ticketId}</b></span>
+    </a>
+    <label class="tx-search">${ICON.search}<input type="search" id="searchInput" placeholder="Search this ticket" aria-label="Search messages"><span id="searchCount"></span><kbd>/</kbd></label>
+    <div class="tx-bar-actions">
+      <button type="button" class="tx-icon-btn" id="themeBtn" title="Light / dark">${ICON.theme}</button>
+      <a class="tx-icon-btn" href="#end" title="Jump to the end">${ICON.down}</a>
+    </div>
+  </div>
+</header>
+<main class="tx-page" id="top">
+  <section class="tx-hero">
+    <div class="tx-hero-main">
+      <div class="tx-chips">
+        <span class="tx-chip is-accent">${escapeHtml(typeLabel)}</span>
+        ${meta.escalated ? '<span class="tx-chip is-danger">Escalated</span>' : ""}
+        <span class="tx-chip is-closed">Closed</span>
+        <span class="tx-chip">${staffCopy ? "Staff copy" : "Your copy"}</span>
+      </div>
+      <h1>${escapeHtml(heading)}</h1>
+      <p class="tx-sub">Ticket #${meta.ticketId} · opened by <b>${escapeHtml(people.opener || "Unknown")}</b>${people.closer ? ` · closed by <b>${escapeHtml(people.closer)}</b>` : ""}</p>
+      <ol class="tx-timeline">
+        <li class="is-done"><span class="tx-dot"></span><b>Opened</b><small>${created} MT</small></li>
+        <li class="${claimer ? "is-done" : ""}"><span class="tx-dot"></span><b>Claimed</b><small>${claimer ? `by ${escapeHtml(claimer)}` : "Not claimed"}</small></li>
+        ${meta.escalated ? '<li class="is-done is-danger"><span class="tx-dot"></span><b>Escalated</b><small>To higher staff</small></li>' : ""}
+        <li class="is-done"><span class="tx-dot"></span><b>Closed</b><small>${closed} MT</small></li>
+      </ol>
+    </div>
+    <div class="tx-hero-stats">
+      <div><b>${duration(meta.created, meta.resolvedAt)}</b><small>Open for</small></div>
+      <div><b>${messages.length}</b><small>Messages</small></div>
+      <div><b>${rows.length}</b><small>People</small></div>
+      <div><b>${staffCount}</b><small>Staff</small></div>
+    </div>
+  </section>
+  ${staffCopy || !look.memberNote.trim() ? "" : `<p class="member-note">${ICON.lock}<span>${escapeHtml(look.memberNote)}</span></p>`}
+  <div class="tx-grid">
+    <section class="tx-chat" aria-label="Conversation">
+`);
+
+  if (fallbackBody !== null) out.push(`<div class="fallback-body">${fallbackBody}</div>`);
+  let prev = null as { author: string; minutes: number; day: string } | null;
+  const gallery: { src: string; video: boolean; at: number }[] = [];
+  messages.forEach((m, i) => {
+    const t = timeParts(m.time);
+    if (look.dayDividers && t && t.day !== (prev ? prev.day : null)) {
+      out.push(`<div class="day-divider"><span>${t.label}</span></div>`);
+      prev = null;
+    }
+    const author = m.authorId ?? m.name;
+    const continued = Boolean(look.groupMessages && prev && t && prev.author === author && t.minutes - prev.minutes <= 7 && m.reply === null);
+    prev = t ? { author, minutes: t.minutes, day: t.day } : null;
+    if (staffCopy) for (const g of mediaThumbs(m)) gallery.push({ ...g, at: i });
+    const cls = ["msg", continued ? "is-continued" : "", m.badge ? "is-staff" : ""].filter(Boolean).join(" ");
+    out.push(`
+      <article class="${cls}" id="m-${i}" data-author-id="${m.authorId ?? ""}">
+        ${m.avatar ? `<img src="${m.avatar}" class="avatar" alt="">` : `<div class="participant-avatar-fallback avatar">${escapeHtml(initials(m.name))}</div>`}
+        <div class="msg-content"${continued ? ` title="${escapeHtml(m.time)}"` : ""}>
+          ${m.reply !== null ? `<div class="reply-line">${m.reply}</div>` : ""}
+          <div class="author">${escapeHtml(m.name)} ${badgeHtml(m.badge, "staff-badge")}${meta.claimedBy && m.authorId === meta.claimedBy ? ' <span class="claimer-badge">CLAIMER</span>' : ""} <span class="timestamp">${escapeHtml(m.time)}</span></div>
+          <div class="content">${m.content}</div>`);
+    if (m.forwarded !== null) out.push(`<div class="forwarded">${m.forwarded}</div>`);
+    for (const e of m.embeds) out.push(`<div class="embed-box">${e}</div>`);
+    out.push(...m.media);
+    if (m.reactions !== null) out.push(`<div class="reactions">${m.reactions}</div>`);
+    if (m.buttons.length) out.push(`<div class="button-row">${m.buttons.map((b) => `<div class="discord-button ${b.cls}">${b.label}</div>`).join("")}</div>`);
+    out.push(`</div></article>`);
+  });
+  out.push(`
+      <div class="transcript-end" id="end"><span>Ticket closed · ${closed} MT</span></div>
+    </section>
+    <aside class="tx-rail">
+      <div class="tx-card meta-box">
+        <h2>Details</h2>
+        <b>Opened by:</b> ${escapeHtml(people.opener || "Unknown")}<br>
+        <b>Closed by:</b> ${escapeHtml(people.closer || "Unknown")}<br>
+        <b>Total Messages:</b> ${messages.length}<br>
+        <b>Type:</b> ${escapeHtml(typeLabel)}
+      </div>
+      <div class="tx-card participants-box">
+        <h2>People <button type="button" id="clearFilters" class="tx-link" hidden>Show everyone</button></h2>
+        <p class="tx-hint">Tick people to see only their messages.</p>`);
   for (const { m, count } of rows) {
     const claimerTag = meta.claimedBy && m.authorId === meta.claimedBy ? '<span class="claimer-badge">CLAIMER</span>' : "";
     out.push(`
         <label ${m.authorId ? `id="user-${m.authorId}" ` : ""}class="participant-row">
-            <input type="checkbox" class="filter-cb" value="${m.authorId ?? ""}">
-            ${m.avatar ? `<img src="${m.avatar}" class="participant-avatar" alt="">` : '<div class="participant-avatar-fallback"></div>'}
-            <div class="participant-info">
-                <div class="participant-name-row"><b>${escapeHtml(m.name)}</b> ${badgeHtml(m.badge, "staff-team-badge")} ${claimerTag}</div>
-                ${m.authorId ? `<div class="participant-id">${m.authorId}</div>` : ""}
-                <div class="participant-msgs">${count} message${count === 1 ? "" : "s"}</div>
-            </div>
+          <input type="checkbox" class="filter-cb" value="${m.authorId ?? ""}">
+          ${m.avatar ? `<img src="${m.avatar}" class="participant-avatar" alt="">` : `<div class="participant-avatar-fallback">${escapeHtml(initials(m.name))}</div>`}
+          <div class="participant-info">
+            <div class="participant-name-row"><b>${escapeHtml(m.name)}</b> ${badgeHtml(m.badge, "staff-team-badge")} ${claimerTag}</div>
+            <div class="participant-share"><span style="width:${Math.round((count / most) * 100)}%"></span></div>
+            <div class="participant-msgs">${count} message${count === 1 ? "" : "s"}${m.authorId ? ` · <span class="participant-id">${m.authorId}</span>` : ""}</div>
+          </div>
         </label>`);
   }
   out.push(`
-        </div>
+      </div>`);
+  if (staffCopy) {
+    out.push(`
+      <div class="tx-card tx-media">
+        <h2>Files &amp; media <span class="tx-count">${gallery.length}</span></h2>
+        ${
+          gallery.length
+            ? `<div class="tx-media-grid">${gallery
+                .slice(0, 60)
+                .map((g) => `<a href="#m-${g.at}" title="Go to the message">${g.video ? `<video src="${g.src}" muted preload="metadata"></video>` : `<img src="${g.src}" alt="" loading="lazy">`}</a>`)
+                .join("")}</div>`
+            : '<p class="tx-hint">No pictures or videos in this ticket.</p>'
+        }
+      </div>`);
+  }
+  out.push(`
     </aside>
-</div>
-${SEARCH_SCRIPT}
+  </div>
+</main>
+${PAGE_SCRIPT}
 ${localTimesScript}
 </body></html>`);
   return out.join("\n");
