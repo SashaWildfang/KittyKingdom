@@ -22,6 +22,7 @@ import { NewsTab } from "./news-tab";
 import { PatreonTab } from "./patreon-tab";
 import { EmailsTab } from "./emails-tab";
 import { AdsTab } from "./ads-tab";
+import { TabBoundary } from "./tab-boundary";
 import { RemovedTab } from "./removed-tab";
 import { BotSettingsTab } from "./bots/bot-settings-tab";
 import { BotsHistoryTab } from "./bots/change-log";
@@ -273,6 +274,7 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false }: { admin
         </nav>
       ) : null}
 
+      <TabBoundary key={tab} name={tab}>
       {tab === "overview" ? (
         <OverviewTab
           level={level}
@@ -311,6 +313,7 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false }: { admin
       {isAdmin && tab === "server" ? <ServerSettingsTab /> : null}
       {isAdmin && tab === "bot-history" ? <BotsHistoryTab /> : null}
       {isAdmin && tab === "traffic" ? <TrafficTab /> : null}
+      </TabBoundary>
 
       {/* Overlays render at the page root so they sit above the site's top bar */}
       {member
