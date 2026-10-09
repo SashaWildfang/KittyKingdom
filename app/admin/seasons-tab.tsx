@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   Bot,
   CalendarRange,
+  Crown,
   Check,
   Eye,
   EyeOff,
@@ -20,12 +21,26 @@ import {
   Wand2,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { SEASONS, SEASON_KEYS, seasonWindow, type AssetKind, type SeasonConfig, type SeasonKey, type SeasonView } from "../../lib/seasons";
+import {
+  BOT_ROLE_NAMES,
+  DEFAULT_BOT_COLORS,
+  DEFAULT_LEVEL_ROLES,
+  LEVEL_TIERS,
+  SEASONS,
+  SEASON_KEYS,
+  levelRoleName,
+  seasonWindow,
+  type AssetKind,
+  type LevelRole,
+  type SeasonConfig,
+  type SeasonKey,
+  type SeasonView,
+} from "../../lib/seasons";
 import type { AssetInfo, SeasonState } from "../../lib/season-store";
 import { SeasonGlyph } from "../fall-effects";
 import { SeasonOverride, readPreview, setSeasonPreview } from "../season-context";
 import { formatDate, timeAgo, useLive, type People } from "./admin-shared";
-import type { Meta } from "./bots/pickers";
+import { Picker, type Meta } from "./bots/pickers";
 
 type Data = {
   ok: boolean;
@@ -265,6 +280,7 @@ export function SeasonsTab() {
           settings={draft.seasons[tab]}
           onChange={(p) => setSeason(tab, p)}
           assets={data.assets.filter((a) => a.season === tab)}
+          botRoles={resolveBotRoles(meta, draft.discord.botRoles)}
           view={data.views[tab]}
           previewing={preview === tab}
           people={data.people}
@@ -318,6 +334,20 @@ export function SeasonsTab() {
   );
 }
 
+type BotRole = { id: string; name: string; color: string | null };
+
+/** The bot roles that get seasonal colors: the picked ones, or the bots' own roles named Zeo, Economy, Moderation or Tickets. */
+function resolveBotRoles(meta: Meta | null, picked: string[]): BotRole[] {
+  if (!meta) return [];
+  if (picked.length) return picked.map((id) => meta.roles.find((r) => r.id === id) ?? { id, name: "Unknown role", color: null, managed: true });
+  return meta.roles.filter((r) => r.managed && BOT_ROLE_NAMES.includes(r.name.trim().toLowerCase()));
+}
+
+/** A bot role's color this season (its own setting, or the season's colors in order). */
+function botColor(settings: SeasonConfig["seasons"][SeasonKey], season: SeasonKey, roleId: string, index: number) {
+  return settings.botRoleColors[roleId] ?? DEFAULT_BOT_COLORS[season][index % DEFAULT_BOT_COLORS[season].length];
+}
+
 /** Only the fields an admin edits (not version / timestamps). */
 function strip(c: SeasonConfig) {
   return {
@@ -367,7 +397,9 @@ function SeasonEditor({
   people,
   onAssetsChanged,
   setMsg,
+  botRoles,
 }: {
+  botRoles: BotRole[];
   season: SeasonKey;
   settings: SeasonConfig["seasons"][SeasonKey];
   onChange: (p: Partial<SeasonConfig["seasons"][SeasonKey]>) => void;
@@ -456,6 +488,70 @@ function SeasonEditor({
           </div>
         </fieldset>
       </div>
+
+      <fieldset className="sn-fieldset">
+        <legend>
+          <Crown size={14} aria-hidden="true" /> Level roles
+        </legend>
+        <p className="adm-muted sn-note">The same 11 roles all year: members keep them (and their perks), only the name and color change with the season.</p>
+        <div className="sn-levels">
+          {settings.levelRoles.map((lr, i) => (
+            <LevelRow
+              key={LEVEL_TIERS[i].id}
+              index={i}
+              role={lr}
+              onChange={(next) => onChange({ levelRoles: settings.levelRoles.map((x, j) => (j === i ? next : x)) })}
+            />
+          ))}
+        </div>
+        <div className="sn-slot-actions">
+          <button type="button" className="adm-btn adm-btn--ghost adm-btn--tiny" onClick={() => onChange({ levelRoles: DEFAULT_LEVEL_ROLES[season].map((x) => ({ ...x })) })}>
+            <RotateCcw size={12} aria-hidden="true" /> Use the suggested {info.name} roles
+          </button>
+        </div>
+      </fieldset>
+
+      <fieldset className="sn-fieldset">
+        <legend>
+          <Bot size={14} aria-hidden="true" /> Bot role colors
+        </legend>
+        {botRoles.length ? (
+          <div className="sn-botroles">
+            {botRoles.map((br, i) => {
+              const color = botColor(settings, season, br.id, i);
+              return (
+                <label key={br.id} className="sn-botrole">
+                  <input type="color" value={color} onChange={(e) => onChange({ botRoleColors: { ...settings.botRoleColors, [br.id]: e.target.value } })} />
+                  <span className="sn-pill" style={{ color, borderColor: color }}>
+                    @{br.name}
+                  </span>
+                </label>
+              );
+            })}
+            {Object.keys(settings.botRoleColors).length ? (
+              <button type="button" className="adm-btn adm-btn--ghost adm-btn--tiny" onClick={() => onChange({ botRoleColors: {} })}>
+                Use the season&apos;s colors
+              </button>
+            ) : null}
+          </div>
+        ) : (
+          <p className="adm-muted sn-note">No bot roles found yet. Pick them in the Discord section below.</p>
+        )}
+      </fieldset>
+    </div>
+  );
+}
+
+function LevelRow({ index, role, onChange }: { index: number; role: LevelRole; onChange: (r: LevelRole) => void }) {
+  return (
+    <div className="sn-level">
+      <small className="sn-level-range">Lv {LEVEL_TIERS[index].range}</small>
+      <input type="color" value={role.color} onChange={(e) => onChange({ ...role, color: e.target.value })} aria-label={`Color for levels ${LEVEL_TIERS[index].range}`} />
+      <input className="sn-level-emoji" value={role.emoji} maxLength={16} onChange={(e) => onChange({ ...role, emoji: e.target.value })} aria-label="Emoji" />
+      <input className="sn-level-name" value={role.name} maxLength={40} onChange={(e) => onChange({ ...role, name: e.target.value })} aria-label="Name" />
+      <span className="sn-pill" style={{ color: role.color, borderColor: role.color }} title="How it looks in Discord">
+        {levelRoleName(role, index)}
+      </span>
     </div>
   );
 }
@@ -601,6 +697,19 @@ function DiscordCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [meta, JSON.stringify(emojis), to, draft.discord.renameCategories, draft.discord.renameChannels]);
   const changing = plan?.filter((r) => r.name !== r.next) ?? [];
+  const botRoles = resolveBotRoles(meta, draft.discord.botRoles);
+  const liveSettings = draft.seasons[liveKey];
+  const roleRows = [
+    ...(draft.discord.levelRoles
+      ? LEVEL_TIERS.map((t, i) => {
+          const now = meta?.roles.find((r) => r.id === t.id);
+          return { id: t.id, from: now?.name ?? "Level role", fromColor: now?.color ?? null, to: levelRoleName(liveSettings.levelRoles[i], i), toColor: liveSettings.levelRoles[i].color };
+        })
+      : []),
+    ...(draft.discord.botRoleColors
+      ? botRoles.map((b, i) => ({ id: b.id, from: b.name, fromColor: b.color, to: b.name, toColor: botColor(liveSettings, liveKey, b.id, i) }))
+      : []),
+  ];
 
   return (
     <div className="adm-card sn-card">
@@ -615,7 +724,24 @@ function DiscordCard({
         <Toggle label="Category emojis" value={draft.discord.renameCategories} onChange={(v) => set({ discord: { ...draft.discord, renameCategories: v } })} />
         <Toggle label="Server icon" value={draft.discord.swapIcon} onChange={(v) => set({ discord: { ...draft.discord, swapIcon: v } })} />
         <Toggle label="Server banner" value={draft.discord.swapBanner} onChange={(v) => set({ discord: { ...draft.discord, swapBanner: v } })} />
+        <Toggle label="Level roles" help="Names and colors" value={draft.discord.levelRoles} onChange={(v) => set({ discord: { ...draft.discord, levelRoles: v } })} />
+        <Toggle label="Bot role colors" value={draft.discord.botRoleColors} onChange={(v) => set({ discord: { ...draft.discord, botRoleColors: v } })} />
       </div>
+      {draft.discord.botRoleColors ? (
+        <div className="sn-field">
+          <span>
+            Bot roles to recolor <small>empty: the bots&apos; own roles named Zeo, Economy, Moderation or Tickets</small>
+          </span>
+          <Picker
+            kind="role"
+            multiple
+            value={draft.discord.botRoles}
+            onChange={(v) => set({ discord: { ...draft.discord, botRoles: (v as string[]) ?? [] } })}
+            options={(meta?.roles ?? []).filter((r) => r.managed).map((r) => ({ id: r.id, label: r.name, color: r.color, sub: "Bot role" }))}
+            placeholder={botRoles.length ? `Automatic: ${botRoles.map((b) => b.name).join(", ")}` : "Automatic"}
+          />
+        </div>
+      ) : null}
 
       <div className="sn-plan">
         <div className="sn-plan-head">
@@ -636,6 +762,29 @@ function DiscordCard({
           </ul>
         ) : plan ? (
           <p className="adm-muted">No channel or category names start with a season emoji.</p>
+        ) : null}
+        {roleRows.length ? (
+          <>
+            <b className="sn-plan-sub">Roles</b>
+            <ul className="sn-plan-list sn-plan-roles">
+              {roleRows.map((r) => {
+                const same = r.from === r.to && (r.fromColor ?? "").toLowerCase() === r.toColor.toLowerCase();
+                return (
+                  <li key={r.id} className={same ? "is-same" : undefined}>
+                    <i className="sn-dot" style={{ background: r.fromColor ?? "var(--muted)" }} />
+                    <span className="sn-from">{r.from}</span>
+                    {same ? (
+                      <span className="adm-muted">already set</span>
+                    ) : (
+                      <span className="sn-to">
+                        → <i className="sn-dot" style={{ background: r.toColor }} /> {r.to}
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </>
         ) : null}
         <ul className="sn-plan-extra">
           <li>
@@ -658,7 +807,12 @@ function DiscordCard({
           {data.state.appliedAt ? ` Last applied ${timeAgo(data.state.appliedAt)} (${data.state.applied ? SEASONS[data.state.applied].name : "?"}).` : ""}
         </span>
       </div>
-      {data.state.errors.length || data.state.channels.some((c) => !c.ok) ? (
+      {data.state.rolesPending ? (
+        <p className="adm-muted sn-note">
+          {data.state.rolesPending} role change{data.state.rolesPending === 1 ? " is" : "s are"} waiting for a bot ranked above {data.state.rolesPending === 1 ? "that role" : "those roles"} (the Main Bot can only edit roles below its own).
+        </p>
+      ) : null}
+      {data.state.errors.length || data.state.channels.some((c) => !c.ok) || data.state.roles.some((c) => !c.ok) ? (
         <div className="sn-errors">
           <b>
             <AlertTriangle size={14} aria-hidden="true" /> Last time, some things didn&apos;t work
@@ -667,6 +821,13 @@ function DiscordCard({
             {data.state.errors.map((e, i) => (
               <li key={i}>{e}</li>
             ))}
+            {data.state.roles
+              .filter((c) => !c.ok)
+              .map((c) => (
+                <li key={`r${c.id}`}>
+                  {c.from}: {c.error ?? "couldn't change"}
+                </li>
+              ))}
             {data.state.channels
               .filter((c) => !c.ok)
               .map((c) => (

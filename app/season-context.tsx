@@ -4,25 +4,13 @@
 // Admins can preview another season (Admin → Overview → Seasons); that's kept in this browser only.
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { seasonalText, type SeasonKey, type SeasonView } from "../lib/seasons";
+import { defaultSeasonConfig, seasonView, seasonalText, type SeasonKey, type SeasonView } from "../lib/seasons";
 
 export const PREVIEW_KEY = "kk-season-preview";
 
 const SeasonContext = createContext<SeasonView | null>(null);
 
-const FALLBACK: SeasonView = {
-  key: "fall",
-  name: "Autumn",
-  one: "Leaf",
-  many: "Leaves",
-  emote: "/leaf-emote.png",
-  logo: "/logo.png",
-  banner: "/banner.jpg",
-  particles: "full",
-  scenery: true,
-  bursts: true,
-  version: 0,
-};
+const FALLBACK: SeasonView = seasonView(defaultSeasonConfig(), "fall");
 
 export function readPreview(): SeasonKey | null {
   try {

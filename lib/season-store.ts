@@ -6,7 +6,9 @@ import { sniff } from "./news-media";
 import { getBotCollection } from "./mongodb";
 import {
   ASSET_KINDS,
+  LEVEL_TIERS,
   SEASONS,
+  levelRoleName,
   SEASON_KEYS,
   activeSeasonKey,
   defaultSeasonConfig,
@@ -29,6 +31,7 @@ const CONFIG_ID = "season";
 const STATE_ID = "season_state";
 const MAX_BYTES: Record<AssetKind, number> = { logo: 4 * 1024 * 1024, banner: 4 * 1024 * 1024, emote: 256 * 1024 };
 const ASSET_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp"];
+const HEX = /^#[0-9a-f]{6}$/;
 const iso = (v: unknown) => (v instanceof Date ? v.toISOString() : typeof v === "string" ? v : null);
 
 // ---------------------------------------------------------------- reading (cached briefly per server)
@@ -43,7 +46,14 @@ function normalise(doc: Document | null): SeasonConfig {
   const seasons = { ...base.seasons };
   for (const key of SEASON_KEYS) {
     const saved = (doc.seasons?.[key] ?? {}) as Partial<SeasonConfig["seasons"][SeasonKey]>;
-    seasons[key] = { ...defaultSeasonSettings(key), ...saved, assets: { ...(saved.assets ?? {}) } };
+    const base = defaultSeasonSettings(key);
+    seasons[key] = {
+      ...base,
+      ...saved,
+      assets: { ...(saved.assets ?? {}) },
+      levelRoles: base.levelRoles.map((d, i) => ({ ...d, ...((saved.levelRoles ?? [])[i] ?? {}) })),
+      botRoleColors: { ...(saved.botRoleColors ?? {}) },
+    };
   }
   return {
     mode: doc.mode === "manual" ? "manual" : "auto",
@@ -51,7 +61,7 @@ function normalise(doc: Document | null): SeasonConfig {
     timezone: typeof doc.timezone === "string" && doc.timezone ? doc.timezone : base.timezone,
     seasons,
     site: { ...base.site, ...(doc.site ?? {}) },
-    discord: { ...base.discord, ...(doc.discord ?? {}) },
+    discord: { ...base.discord, ...(doc.discord ?? {}), botRoles: Array.isArray(doc.discord?.botRoles) ? doc.discord.botRoles.map(String) : [] },
     version: Number(doc.version ?? 0),
     updatedAt: iso(doc.updatedAt),
     updatedBy: doc.updatedBy ? String(doc.updatedBy) : null,
@@ -113,6 +123,10 @@ export type SeasonState = {
   appliedVersion: number | null;
   heartbeat: string | null;
   channels: { id: string; from: string; to: string; ok: boolean; error?: string }[];
+  /** Level and bot roles the bots renamed/recolored last time */
+  roles: { id: string; from: string; to: string; ok: boolean; error?: string }[];
+  /** Role changes the Main Bot couldn't make (role above it) and left for the other bots */
+  rolesPending: number;
   icon: string | null;
   banner: string | null;
   emoji: string | null;
@@ -137,6 +151,8 @@ export async function getSeasonAdmin() {
     appliedVersion: st.appliedVersion ?? null,
     heartbeat: iso(st.heartbeat),
     channels: ((st.channels ?? []) as Document[]).map((c) => ({ id: String(c.id), from: String(c.from ?? ""), to: String(c.to ?? ""), ok: c.ok !== false, ...(c.error ? { error: String(c.error) } : {}) })),
+    roles: ((st.roles ?? []) as Document[]).map((c) => ({ id: String(c.id), from: String(c.from ?? ""), to: String(c.to ?? ""), ok: c.ok !== false, ...(c.error ? { error: String(c.error) } : {}) })),
+    rolesPending: Array.isArray(st.rolesPending) ? st.rolesPending.length : 0,
     icon: st.icon ? String(st.icon) : null,
     banner: st.banner ? String(st.banner) : null,
     emoji: st.emoji ? String(st.emoji) : null,
@@ -207,6 +223,30 @@ export async function saveSeasonConfig(raw: Partial<SeasonConfig>, by: string) {
         if (/[\s#@]/.test(e)) throw new SeasonError(`${name}: the channel emoji can't have spaces, # or @.`);
         s.channelEmoji = e;
       }
+      if (r.levelRoles !== undefined) {
+        if (!Array.isArray(r.levelRoles) || r.levelRoles.length !== LEVEL_TIERS.length) throw new SeasonError(`${name}: send all ${LEVEL_TIERS.length} level roles.`);
+        s.levelRoles = r.levelRoles.map((lr, i) => {
+          const label = `${name} level role ${LEVEL_TIERS[i].range}`;
+          const roleName = text(lr?.name, `${label}: name`, 40);
+          const emoji = String(lr?.emoji ?? "").trim();
+          if (emoji.length > 16 || /[\s@#]/.test(emoji)) throw new SeasonError(`${label}: the emoji should be one emoji.`);
+          const color = String(lr?.color ?? "").trim().toLowerCase();
+          if (!HEX.test(color)) throw new SeasonError(`${label}: pick a color.`);
+          // Discord role names max out at 100 characters
+          if (levelRoleName({ emoji, name: roleName, color }, i).length > 100) throw new SeasonError(`${label}: the name is too long.`);
+          return { emoji, name: roleName, color };
+        });
+      }
+      if (r.botRoleColors !== undefined) {
+        const out: Record<string, string> = {};
+        for (const [id, c] of Object.entries(r.botRoleColors ?? {})) {
+          if (!/^\d{15,21}$/.test(id)) continue;
+          const color = String(c).trim().toLowerCase();
+          if (!HEX.test(color)) throw new SeasonError(`${name}: bot role colors must be #RRGGBB.`);
+          out[id] = color;
+        }
+        s.botRoleColors = out;
+      }
       if (r.siteLogo !== undefined) s.siteLogo = Boolean(r.siteLogo);
       if (r.siteBanner !== undefined) s.siteBanner = Boolean(r.siteBanner);
     }
@@ -222,8 +262,13 @@ export async function saveSeasonConfig(raw: Partial<SeasonConfig>, by: string) {
     if (raw.site.bursts !== undefined) next.site.bursts = Boolean(raw.site.bursts);
   }
   if (raw.discord) {
-    for (const k of ["renameChannels", "renameCategories", "swapIcon", "swapBanner"] as const) {
+    for (const k of ["renameChannels", "renameCategories", "swapIcon", "swapBanner", "levelRoles", "botRoleColors"] as const) {
       if (raw.discord[k] !== undefined) next.discord[k] = Boolean(raw.discord[k]);
+    }
+    if (raw.discord.botRoles !== undefined) {
+      const ids = Array.isArray(raw.discord.botRoles) ? Array.from(new Set(raw.discord.botRoles.map(String))) : [];
+      if (ids.some((id) => !/^\d{15,21}$/.test(id)) || ids.length > 25) throw new SeasonError("Pick bot roles from the list.");
+      next.discord.botRoles = ids;
     }
   }
   const changes = describeChanges(current, next);
@@ -255,6 +300,9 @@ function describeChanges(a: SeasonConfig, b: SeasonConfig) {
     if (x.currencyOne !== y.currencyOne || x.currencyMany !== y.currencyMany) out.push(`${n} currency: ${y.currencyOne} / ${y.currencyMany}`);
     if (x.discordEmoji !== y.discordEmoji) out.push(`${n} Discord emoji: ${y.discordEmoji}`);
     if (x.channelEmoji !== y.channelEmoji) out.push(`${n} channel emoji: ${y.channelEmoji}`);
+    const changedLevels = y.levelRoles.filter((lr, i) => JSON.stringify(lr) !== JSON.stringify(x.levelRoles[i])).length;
+    if (changedLevels) out.push(`${n}: changed ${changedLevels} level role${changedLevels === 1 ? "" : "s"}`);
+    if (JSON.stringify(x.botRoleColors) !== JSON.stringify(y.botRoleColors)) out.push(`${n}: bot role colors`);
     if (x.siteLogo !== y.siteLogo) out.push(`${n}: ${y.siteLogo ? "show" : "hide"} the logo on the website`);
     if (x.siteBanner !== y.siteBanner) out.push(`${n}: ${y.siteBanner ? "show" : "hide"} the banner on the website`);
   }
@@ -266,6 +314,9 @@ function describeChanges(a: SeasonConfig, b: SeasonConfig) {
   if (a.discord.renameCategories !== b.discord.renameCategories) out.push(`Category emoji swap ${onOff(b.discord.renameCategories)}`);
   if (a.discord.swapIcon !== b.discord.swapIcon) out.push(`Server icon swap ${onOff(b.discord.swapIcon)}`);
   if (a.discord.swapBanner !== b.discord.swapBanner) out.push(`Server banner swap ${onOff(b.discord.swapBanner)}`);
+  if (a.discord.levelRoles !== b.discord.levelRoles) out.push(`Seasonal level roles ${onOff(b.discord.levelRoles)}`);
+  if (a.discord.botRoleColors !== b.discord.botRoleColors) out.push(`Seasonal bot role colors ${onOff(b.discord.botRoleColors)}`);
+  if (JSON.stringify(a.discord.botRoles) !== JSON.stringify(b.discord.botRoles)) out.push(b.discord.botRoles.length ? `Bot roles to recolor: ${b.discord.botRoles.length}` : "Bot roles to recolor: automatic");
   return out;
 }
 
