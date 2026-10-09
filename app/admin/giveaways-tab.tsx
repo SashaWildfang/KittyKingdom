@@ -31,6 +31,7 @@ import { createPortal } from "react-dom";
 import type { Giveaway, GiveawayInput, GiveawayList, Prize, StoreItem } from "../../lib/giveaways";
 import { Pager, formatDate, timeAgo, useLive, type People } from "./admin-shared";
 import { Picker, channelOptions, roleOptions, type Meta } from "./bots/pickers";
+import { useCurrency } from "../season-context";
 
 type Filter = "running" | "scheduled" | "ended" | "cancelled" | "all";
 type Detail = { ok: boolean; error?: string; giveaway: Giveaway; handed: string[]; entrants: { userId: string; at: string | null }[]; total: number; page: number; pageSize: number; people: People };
@@ -117,6 +118,7 @@ function useNow(ms = 1000) {
 
 /** Admin → Giveaways: set up, schedule and run giveaways for Leaves, store items or anything else. The Main Bot runs them. */
 export function GiveawaysTab() {
+  const cur = useCurrency();
   const [filter, setFilter] = useState<Filter>("running");
   const [q, setQ] = useState("");
   const [search, setSearch] = useState("");
@@ -153,7 +155,7 @@ export function GiveawaysTab() {
           <span>{data ? `${data.stats.entries.toLocaleString()} entries in total` : "…"}</span>
         </div>
         <div className="adm-kpi adm-kpi--green">
-          <small>Leaves given</small>
+          <small>{cur.many} given</small>
           <strong>{data?.stats.leaves.toLocaleString() ?? "…"}</strong>
           <span>{data ? `${data.stats.items.toLocaleString()} store items too` : "…"}</span>
         </div>
@@ -214,7 +216,7 @@ export function GiveawaysTab() {
                 <span className="gw-card-main">
                   <b>{g.title}</b>
                   <small>
-                    {prizeLabel(g.prize)} · {g.winners} winner{g.winners === 1 ? "" : "s"}
+                    {cur.text(prizeLabel(g.prize))} · {g.winners} winner{g.winners === 1 ? "" : "s"}
                     {channelName(g.postedChannelId ?? g.channelId) ? ` · #${channelName(g.postedChannelId ?? g.channelId)}` : ""}
                   </small>
                 </span>
@@ -297,6 +299,7 @@ function DetailDrawer({
   onChanged: () => void;
   onOpen: (id: string) => void;
 }) {
+  const cur = useCurrency();
   const [page, setPage] = useState(1);
   const { data, error, reload } = useLive<Detail>(`/api/admin/giveaways/${id}?page=${page}`, 5_000);
   const [busy, setBusy] = useState<string | null>(null);
@@ -362,7 +365,7 @@ function DetailDrawer({
                 <span className={`gw-status is-${g.status}`}>{STATUS[g.status]}</span>
                 <h2>{g.title}</h2>
                 <p className="adm-muted">
-                  {prizeLabel(g.prize)} · {g.winners} winner{g.winners === 1 ? "" : "s"} · {RECUR[g.recurring]}
+                  {cur.text(prizeLabel(g.prize))} · {g.winners} winner{g.winners === 1 ? "" : "s"} · {RECUR[g.recurring]}
                 </p>
               </div>
             </header>
@@ -622,6 +625,7 @@ function toDraft(g: Giveaway | null): Draft {
 }
 
 function Editor({ initial, meta, onClose, onSaved }: { initial: Giveaway | null; meta: Meta | null; onClose: () => void; onSaved: (id?: string) => void }) {
+  const cur = useCurrency();
   const [d, setD] = useState<Draft>(() => toDraft(initial));
   const [items, setItems] = useState<StoreItem[] | null>(null);
   const [itemQ, setItemQ] = useState("");
@@ -678,7 +682,7 @@ function Editor({ initial, meta, onClose, onSaved }: { initial: Giveaway | null;
     }
   };
 
-  const prizeText = d.prize.type === "leaves" ? `${(d.prize.amount ?? 0).toLocaleString()} 🍃` : d.prize.type === "item" ? `${(d.prize.quantity ?? 1) > 1 ? `${d.prize.quantity}× ` : ""}${picked?.name ?? "a store item"}` : d.prize.text || "a surprise prize";
+  const prizeText = d.prize.type === "leaves" ? `${(d.prize.amount ?? 0).toLocaleString()} ${cur.many}` : d.prize.type === "item" ? `${(d.prize.quantity ?? 1) > 1 ? `${d.prize.quantity}× ` : ""}${picked?.name ?? "a store item"}` : d.prize.text || "a surprise prize";
   const chan = meta?.channels.find((c) => c.id === d.channelId)?.name;
   const roleName = (id: string) => meta?.roles.find((r) => r.id === id)?.name ?? "role";
 
@@ -698,7 +702,7 @@ function Editor({ initial, meta, onClose, onSaved }: { initial: Giveaway | null;
               <legend>Basics</legend>
               <label className="gw-field">
                 <span>Title</span>
-                <input value={d.title} maxLength={100} onChange={(e) => set("title", e.target.value)} placeholder="Weekend Leaves drop" />
+                <input value={d.title} maxLength={100} onChange={(e) => set("title", e.target.value)} placeholder={`Weekend ${cur.many} drop`} />
               </label>
               <label className="gw-field">
                 <span>
@@ -713,7 +717,7 @@ function Editor({ initial, meta, onClose, onSaved }: { initial: Giveaway | null;
               <div className="adm-seg gw-seg" role="tablist" aria-label="Prize type">
                 {(
                   [
-                    ["leaves", "Leaves", Leaf],
+                    ["leaves", cur.many, Leaf],
                     ["item", "Store item", Package],
                     ["custom", "Something else", Gift],
                   ] as const
@@ -726,7 +730,7 @@ function Editor({ initial, meta, onClose, onSaved }: { initial: Giveaway | null;
               {d.prize.type === "leaves" ? (
                 <>
                   <label className="gw-field">
-                    <span>Leaves for each winner</span>
+                    <span>{cur.many} for each winner</span>
                     <input type="number" min={1} max={10_000_000} value={d.prize.amount ?? 0} onChange={(e) => setPrize({ amount: Math.max(0, Math.floor(Number(e.target.value) || 0)) })} />
                   </label>
                   <div className="gw-quick">
@@ -764,7 +768,7 @@ function Editor({ initial, meta, onClose, onSaved }: { initial: Giveaway | null;
                             <span>
                               <b>{i.name}</b>
                               <small>
-                                {i.price.toLocaleString()} Leaves{i.category ? ` · ${i.category}` : ""}
+                                {i.price.toLocaleString()} {cur.many}{i.category ? ` · ${i.category}` : ""}
                                 {i.active ? "" : " · not in the shop"}
                               </small>
                             </span>

@@ -1,6 +1,7 @@
 import { Star } from "lucide-react";
 import Link from "next/link";
 import { LEAVE_REVIEW_URL, REVIEWS_URL, getReviews } from "../../lib/reviews";
+import { SiteLogo } from "../ui-icons";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ export default async function ReviewsPage() {
     <main className="legal-page">
       <section className="legal-card reviews-page-card">
         <Link className="auth-logo" href="/" aria-label="Kitty Kingdom home">
-          <img className="auth-logo-img" src="/logo.png" alt="Kitty Kingdom logo" />
+          <SiteLogo className="auth-logo-img" alt="Kitty Kingdom logo" />
         </Link>
         <p className="eyebrow">Reviews</p>
         <h1>What people are saying</h1>

@@ -1,10 +1,17 @@
-// Shared icons: our custom leaf emote for the currency, and store item icons (Lucide).
+"use client";
+
+// Shared icons: the currency emote (changes with the season), and store item icons (Lucide).
+import { useSeason } from "./season-context";
 import { Award, Cake, Candy, Coffee, Cookie, CupSoda, Flower2, Gift, Heart, Mail, Package, PawPrint, Rocket, ShieldCheck, Sparkles, Star, Sun, Type } from "lucide-react";
 
-/** The server's custom leaf emote, used everywhere leafs (the currency) appear. */
+/** The currency emote (a leaf in autumn, a snowflake in winter…), used everywhere the currency appears. */
 export function LeafEmote({ size = 18, className }: { size?: number; className?: string }) {
-  return <img className={className ? `leaf-emote ${className}` : "leaf-emote"} src="/leaf-emote.png" alt="leafs" width={size} height={size} />;
+  const season = useSeason();
+  return <img className={className ? `leaf-emote ${className}` : "leaf-emote"} src={season.emote} alt={season.many.toLowerCase()} width={size} height={size} />;
 }
+
+/** The same emote under a clearer name. */
+export const CurrencyEmote = LeafEmote;
 
 const STORE_ICONS = {
   xp: Star,
@@ -33,4 +40,26 @@ export function StoreItemIcon({ icon, size = 22 }: { icon: string | null | undef
   if (icon === "leaf") return <LeafEmote size={size} />;
   const Icon = STORE_ICONS[(icon ?? "package") as keyof typeof STORE_ICONS] ?? Package;
   return <Icon size={size} strokeWidth={2} aria-hidden="true" />;
+}
+
+/** The server logo (the season's uploaded logo when there is one). Takes normal <img> props. */
+export function SiteLogo(props: Omit<React.ImgHTMLAttributes<HTMLImageElement>, "src">) {
+  const season = useSeason();
+  // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
+  return <img {...props} src={season.logo} />;
+}
+
+/** Text written with 🍁 for the currency ("250 🍁 + 300 XP"): the 🍁 becomes the season's emote. */
+export function CurrencyAmount({ text, size = 15 }: { text: string; size?: number }) {
+  const parts = text.split("🍁");
+  return (
+    <>
+      {parts.map((p, i) => (
+        <span key={i}>
+          {p}
+          {i < parts.length - 1 ? <LeafEmote size={size} /> : null}
+        </span>
+      ))}
+    </>
+  );
 }

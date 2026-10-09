@@ -26,7 +26,7 @@
   padding: 1.2rem 1.3rem;
   border: 1px solid var(--line);
   border-radius: 20px;
-  background: radial-gradient(circle at 0% 0%, rgba(245, 155, 42, 0.18), transparent 55%), var(--panel);
+  background: radial-gradient(circle at 0% 0%, rgba(var(--ember-rgb), 0.18), transparent 55%), var(--panel);
 }
 
 .sg-hero h2 {
@@ -43,7 +43,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  color: var(--ember, #f59b2a) !important;
+  color: var(--ember, rgb(var(--ember-rgb))) !important;
   font-size: 0.75rem;
   font-weight: 900;
   letter-spacing: 0.12em;
@@ -51,7 +51,7 @@
 }
 
 .sg-rank {
-  color: var(--ember, #f59b2a);
+  color: var(--ember, rgb(var(--ember-rgb)));
 }
 
 .sg-ladder {
@@ -78,7 +78,7 @@
 
 .sg-ladder li.is-you {
   border-color: transparent;
-  background: linear-gradient(135deg, var(--ember, #f59b2a), var(--maple, #d9572b));
+  background: linear-gradient(135deg, var(--ember, rgb(var(--ember-rgb))), var(--maple, #d9572b));
   color: #fff;
 }
 
@@ -124,7 +124,7 @@
 
 .sg-nav button.is-on {
   color: #fff;
-  background: linear-gradient(135deg, var(--ember, #f59b2a), var(--maple, #d9572b));
+  background: linear-gradient(135deg, var(--ember, rgb(var(--ember-rgb))), var(--maple, #d9572b));
 }
 
 .sg-dot {
@@ -132,7 +132,7 @@
   height: 7px;
   margin-left: auto;
   border-radius: 50%;
-  background: var(--ember, #f59b2a);
+  background: var(--ember, rgb(var(--ember-rgb)));
 }
 
 .sg-nav button.is-on .sg-dot {
@@ -206,7 +206,7 @@
   padding: 0.15rem 0.5rem;
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.2);
-  color: var(--ember, #f59b2a);
+  color: var(--ember, rgb(var(--ember-rgb)));
   font-size: 0.85rem;
   font-weight: 800;
 }
@@ -239,7 +239,7 @@
   position: relative;
   padding: 0.55rem 0.75rem 0.55rem 2rem;
   border-radius: 12px;
-  background: rgba(245, 155, 42, 0.08);
+  background: rgba(var(--ember-rgb), 0.08);
   font-size: 0.93rem;
 }
 
@@ -253,7 +253,7 @@
   width: 17px;
   height: 17px;
   border-radius: 50%;
-  background: var(--ember, #f59b2a);
+  background: var(--ember, rgb(var(--ember-rgb)));
   color: #fff;
   font-size: 0.7rem;
   font-weight: 900;
@@ -338,7 +338,7 @@
 }
 
 .sg-quick-card svg {
-  color: var(--ember, #f59b2a);
+  color: var(--ember, rgb(var(--ember-rgb)));
 }
 
 .sg-quick-card small {
@@ -347,7 +347,7 @@
 
 .sg-quick-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(245, 155, 42, 0.5);
+  border-color: rgba(var(--ember-rgb), 0.5);
 }
 
 /* ---------- roles ---------- */
@@ -369,8 +369,8 @@
 }
 
 .sg-role.is-you {
-  border-color: rgba(245, 155, 42, 0.7);
-  box-shadow: 0 0 0 1px rgba(245, 155, 42, 0.35);
+  border-color: rgba(var(--ember-rgb), 0.7);
+  box-shadow: 0 0 0 1px rgba(var(--ember-rgb), 0.35);
 }
 
 .sg-role-head {
@@ -397,14 +397,14 @@
 
 .sg-role.is-you .sg-role-n,
 .sg-role.is-below .sg-role-n {
-  background: rgba(245, 155, 42, 0.2);
-  color: var(--ember, #f59b2a);
+  background: rgba(var(--ember-rgb), 0.2);
+  color: var(--ember, rgb(var(--ember-rgb)));
 }
 
 .sg-you {
   padding: 0.1rem 0.5rem;
   border-radius: 999px;
-  background: linear-gradient(135deg, var(--ember, #f59b2a), var(--maple, #d9572b));
+  background: linear-gradient(135deg, var(--ember, rgb(var(--ember-rgb))), var(--maple, #d9572b));
   color: #fff;
   font-size: 0.72rem;
   font-weight: 900;
@@ -453,8 +453,8 @@
   width: 24px;
   height: 24px;
   border-radius: 8px;
-  background: rgba(245, 155, 42, 0.16);
-  color: var(--ember, #f59b2a);
+  background: rgba(var(--ember-rgb), 0.16);
+  color: var(--ember, rgb(var(--ember-rgb)));
   font-size: 0.78rem;
   font-weight: 900;
 }
@@ -497,7 +497,7 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--ember, #f59b2a), var(--maple, #d9572b));
+  background: linear-gradient(135deg, var(--ember, rgb(var(--ember-rgb))), var(--maple, #d9572b));
   color: #fff;
   font-weight: 900;
 }
@@ -598,7 +598,7 @@
 
 .sg-acc-head > svg:first-child {
   flex: none;
-  color: var(--ember, #f59b2a);
+  color: var(--ember, rgb(var(--ember-rgb)));
 }
 
 .sg-acc-head > span:not(.sg-rank-tag) {
@@ -692,7 +692,7 @@
 
 .sg-groups button.is-on {
   border-color: transparent;
-  background: linear-gradient(135deg, var(--ember, #f59b2a), var(--maple, #d9572b));
+  background: linear-gradient(135deg, var(--ember, rgb(var(--ember-rgb))), var(--maple, #d9572b));
   color: #fff;
 }
 
@@ -727,7 +727,7 @@
 }
 
 .sg-usage {
-  color: var(--ember, #f59b2a);
+  color: var(--ember, rgb(var(--ember-rgb)));
   font-size: 0.92rem;
   font-weight: 800;
   overflow-wrap: anywhere;
@@ -760,7 +760,7 @@
 
 /* ---------- notes ---------- */
 .sg-notes {
-  border-color: rgba(245, 155, 42, 0.45);
+  border-color: rgba(var(--ember-rgb), 0.45);
 }
 
 .sg-notes-body {
@@ -816,7 +816,7 @@
 
 .sg-btn.is-primary {
   border-color: transparent;
-  background: linear-gradient(135deg, var(--ember, #f59b2a), var(--maple, #d9572b));
+  background: linear-gradient(135deg, var(--ember, rgb(var(--ember-rgb))), var(--maple, #d9572b));
   color: #fff;
 }
 

@@ -124,14 +124,14 @@
 }
 .bs-nav button:hover,
 .bs-nav button.is-on {
-  background: rgba(245, 155, 42, 0.14);
+  background: rgba(var(--ember-rgb), 0.14);
 }
 .bs-nav button.is-on svg {
   color: var(--gold);
 }
 .bs-badge {
   border-radius: 999px;
-  background: rgba(255, 242, 215, 0.12);
+  background: rgba(var(--cream-rgb), 0.12);
   color: var(--muted);
   font-size: 0.7rem;
   font-style: normal;
@@ -204,7 +204,7 @@
 }
 .bs-tag {
   border-radius: 999px;
-  background: rgba(245, 155, 42, 0.18);
+  background: rgba(var(--ember-rgb), 0.18);
   color: var(--gold);
   font-size: 0.66rem;
   font-style: normal;
@@ -305,7 +305,7 @@
   width: 2.6rem;
   height: 1.45rem;
   border-radius: 999px;
-  background: rgba(255, 242, 215, 0.15);
+  background: rgba(var(--cream-rgb), 0.15);
   transition: background 0.15s ease;
 }
 .bs-switch span::after {
@@ -445,7 +445,7 @@
 }
 .bs-picker-menu li button:hover,
 .bs-picker-menu li button.is-on {
-  background: rgba(245, 155, 42, 0.14);
+  background: rgba(var(--ember-rgb), 0.14);
 }
 .bs-empty {
   color: var(--muted);
@@ -611,7 +611,7 @@
 }
 .bs-choices button.is-on {
   border-color: var(--ember);
-  background: rgba(245, 155, 42, 0.14);
+  background: rgba(var(--ember-rgb), 0.14);
 }
 .bs-flags {
   display: grid;

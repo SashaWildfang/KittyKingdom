@@ -4,7 +4,7 @@
 
 .dt {
   --dt-radius: 18px;
-  --dt-well: var(--well, rgba(255, 242, 215, 0.06));
+  --dt-well: var(--well, rgba(var(--cream-rgb), 0.06));
   --dt-pink: #ff6b9a;
   --dt-good: #46a758;
   --dt-bad: #e5484d;
@@ -110,7 +110,7 @@
 .dt-loading {
   height: 220px;
   border-radius: var(--dt-radius);
-  background: linear-gradient(90deg, var(--dt-well), rgba(245, 155, 42, 0.1), var(--dt-well));
+  background: linear-gradient(90deg, var(--dt-well), rgba(var(--ember-rgb), 0.1), var(--dt-well));
   background-size: 200% 100%;
   animation: dt-shimmer 1.4s ease-in-out infinite;
 }
@@ -159,15 +159,15 @@
   font-weight: 700;
   font-size: 0.92rem;
   cursor: pointer;
-  color: #2a1206;
+  color: rgb(var(--night-rgb));
   background: linear-gradient(135deg, var(--gold), var(--ember));
-  box-shadow: 0 6px 18px rgba(245, 155, 42, 0.25);
+  box-shadow: 0 6px 18px rgba(var(--ember-rgb), 0.25);
   transition: transform 0.15s, filter 0.15s, box-shadow 0.15s;
   white-space: nowrap;
 }
 :root[data-theme="light"] .dt-btn {
   color: #fff;
-  background: linear-gradient(135deg, #ec8a2c, #c85f18);
+  background: linear-gradient(135deg, #ec8a2c, rgb(var(--maple-rgb)));
 }
 .dt-btn:hover:not(:disabled) {
   transform: translateY(-1px);
@@ -332,7 +332,7 @@ textarea.dt-input {
 .dt-input:focus,
 .dt-select:focus {
   border-color: var(--ember);
-  box-shadow: 0 0 0 3px rgba(245, 155, 42, 0.2);
+  box-shadow: 0 0 0 3px rgba(var(--ember-rgb), 0.2);
 }
 .dt-input--num {
   width: 6rem;
@@ -381,7 +381,7 @@ textarea.dt-input {
   color: var(--ember);
 }
 .dt-field.is-flagged {
-  background: rgba(245, 155, 42, 0.08);
+  background: rgba(var(--ember-rgb), 0.08);
   border: 1px dashed var(--ember);
   border-radius: 14px;
   padding: 0.8rem;
@@ -626,7 +626,7 @@ textarea.dt-input {
   padding: 1.2rem 1.4rem;
   margin-bottom: 1.2rem;
   border-radius: var(--dt-radius);
-  background: linear-gradient(120deg, rgba(255, 107, 154, 0.16), rgba(245, 155, 42, 0.14));
+  background: linear-gradient(120deg, rgba(255, 107, 154, 0.16), rgba(var(--ember-rgb), 0.14));
   border: 1px solid rgba(255, 107, 154, 0.35);
 }
 .dt-hero-cta h1 {
@@ -985,7 +985,7 @@ textarea.dt-input {
   display: grid;
   place-items: center;
   color: var(--muted);
-  background: linear-gradient(135deg, rgba(255, 107, 154, 0.18), rgba(245, 155, 42, 0.12));
+  background: linear-gradient(135deg, rgba(255, 107, 154, 0.18), rgba(var(--ember-rgb), 0.12));
   filter: blur(0.3px);
 }
 .dt-count {
@@ -2067,7 +2067,7 @@ textarea.dt-input {
   font-size: 0.7rem;
   font-weight: 800;
   background: var(--ember);
-  color: #2a1206;
+  color: rgb(var(--night-rgb));
 }
 .dt-photo-tools {
   position: absolute;
@@ -3204,7 +3204,7 @@ a.dt-partner-chip:hover {
   height: 120px;
   background:
     radial-gradient(circle at 15% 30%, color-mix(in srgb, var(--acc) 70%, #fff) 0, transparent 45%),
-    linear-gradient(120deg, var(--acc), color-mix(in srgb, var(--acc) 45%, #1a0b06));
+    linear-gradient(120deg, var(--acc), color-mix(in srgb, var(--acc) 45%, rgb(var(--night-rgb))));
   opacity: 0.9;
 }
 .dt-hero-body {
@@ -3814,7 +3814,7 @@ a.dt-partner-chip:hover {
   background-color: var(--acc);
   background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='%23ffffff' fill-opacity='0.22'%3E%3Cg transform='translate(22 26) rotate(-18)'%3E%3Cellipse cx='12' cy='20' rx='9' ry='8'/%3E%3Ccircle cx='3' cy='9' r='3.6'/%3E%3Ccircle cx='9' cy='3' r='3.6'/%3E%3Ccircle cx='16' cy='3' r='3.6'/%3E%3Ccircle cx='22' cy='9' r='3.6'/%3E%3C/g%3E%3Cg transform='translate(78 72) rotate(16)'%3E%3Cellipse cx='12' cy='20' rx='9' ry='8'/%3E%3Ccircle cx='3' cy='9' r='3.6'/%3E%3Ccircle cx='9' cy='3' r='3.6'/%3E%3Ccircle cx='16' cy='3' r='3.6'/%3E%3Ccircle cx='22' cy='9' r='3.6'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"),
-    linear-gradient(120deg, color-mix(in srgb, var(--acc) 80%, #fff), var(--acc) 45%, color-mix(in srgb, var(--acc) 55%, #1a0b06));
+    linear-gradient(120deg, color-mix(in srgb, var(--acc) 80%, #fff), var(--acc) 45%, color-mix(in srgb, var(--acc) 55%, rgb(var(--night-rgb))));
   background-size: 120px 120px, cover;
 }
 .dt-hero-cover.dt-banner-default {
@@ -3878,7 +3878,7 @@ a.dt-partner-chip:hover {
   border-radius: 50%;
   cursor: pointer;
   color: #fff;
-  background: conic-gradient(#e5484d, #f59b2a, #46a758, #0ea5e9, #8e4ec6, #d6409f, #e5484d);
+  background: conic-gradient(#e5484d, rgb(var(--ember-rgb)), #46a758, #0ea5e9, #8e4ec6, #d6409f, #e5484d);
   box-shadow: 0 0 0 1px var(--line);
 }
 .dt-swatch-custom.is-on {
@@ -4517,7 +4517,7 @@ a.dt-partner-chip:hover {
 @keyframes dt-jump-flash {
   0%,
   60% {
-    box-shadow: 0 0 0 3px var(--ember), 0 0 24px rgba(245, 155, 42, 0.35);
+    box-shadow: 0 0 0 3px var(--ember), 0 0 24px rgba(var(--ember-rgb), 0.35);
   }
   100% {
     box-shadow: 0 0 0 0 transparent;
@@ -4533,8 +4533,8 @@ a.dt-partner-chip:hover {
   display: flex;
   align-items: flex-start;
   gap: 0.7rem;
-  border-color: rgba(245, 155, 42, 0.55);
-  background: rgba(245, 155, 42, 0.1);
+  border-color: rgba(var(--ember-rgb), 0.55);
+  background: rgba(var(--ember-rgb), 0.1);
 }
 .dt-banner--warn > svg {
   flex: none;

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { ChangeEmailForm } from "./change-email-form";
 import { ResendVerificationLink } from "./resend-verification-link";
+import { SiteLogo } from "./ui-icons";
 
 type Mode = "login" | "register";
 export type AuthStatus = { text: string; tone: "error" | "success" | "info"; unverified?: boolean } | null;
@@ -341,7 +342,7 @@ export function AuthCard({
   return (
     <section className="auth-card minehut-card kk-card" aria-label={mode === "login" ? "Login" : "Sign up"}>
       <Link className="auth-logo" href="/" aria-label="Kitty Kingdom home">
-        <img className="auth-logo-img" src="/logo.png" alt="Kitty Kingdom logo" />
+        <SiteLogo className="auth-logo-img" alt="Kitty Kingdom logo" />
       </Link>
       <h1>Kitty Kingdom</h1>
 

@@ -5,6 +5,7 @@ import { Check, Clock, ExternalLink, Flame, Gem, Gift, Lock, ShieldCheck, Crown 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DailyStatus } from "../../lib/daily";
 import { LeafEmote } from "../ui-icons";
+import { CurrencyName, useCurrency } from "../season-context";
 
 function countdown(ms: number) {
   const total = Math.max(0, Math.ceil(ms / 1000));
@@ -26,6 +27,7 @@ const localTime = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: 
 
 /** Daily leaves on My Account: claim, live cooldown, streak track and the Nitro streak bonus. */
 export function DailyCard({ initial, guildId }: { initial: DailyStatus | null; guildId: string | null }) {
+  const cur = useCurrency();
   const [status, setStatus] = useState<DailyStatus | null>(initial);
   const [now, setNow] = useState(() => Date.now());
   const [busy, setBusy] = useState(false);
@@ -122,7 +124,7 @@ export function DailyCard({ initial, guildId }: { initial: DailyStatus | null; g
         </div>
 
         {claimable ? (
-          <button type="button" className="daily-claim" onClick={() => void claim()} disabled={busy} aria-label={`Claim ${status.nextReward} leaves`}>
+          <button type="button" className="daily-claim" onClick={() => void claim()} disabled={busy} aria-label={`Claim ${status.nextReward} ${cur.lower}`}>
             <Gift size={18} aria-hidden="true" />
             {busy ? (
               "Claiming…"
@@ -187,7 +189,7 @@ export function DailyCard({ initial, guildId }: { initial: DailyStatus | null; g
 
       {status.patronBonus ? (
         <p className="daily-nitro-on">
-          <Crown size={15} aria-hidden="true" /> Supporter bonus: <b>+{status.patronBonus}</b> leaves on every claim. Thank you for supporting us!
+          <Crown size={15} aria-hidden="true" /> Supporter bonus: <b>+{status.patronBonus}</b> <CurrencyName lower /> on every claim. Thank you for supporting us!
         </p>
       ) : null}
 
@@ -204,7 +206,7 @@ export function DailyCard({ initial, guildId }: { initial: DailyStatus | null; g
             <strong>Unlock streak bonuses with Nitro</strong>
             <p>
               Boost Kitty Kingdom with Discord Nitro to get the <b>🍂 Golden Leaf (Nitro)</b> role. Boosters earn a streak bonus on top of the daily {status.base}: +{status.step} on
-              day 1, up to +{status.step * 7} on day 7, then the week starts again. That&apos;s up to <b>{(status.base * 7 + status.step * 28).toLocaleString()}</b> leaves a
+              day 1, up to +{status.step * 7} on day 7, then the week starts again. That&apos;s up to <b>{(status.base * 7 + status.step * 28).toLocaleString()}</b> <CurrencyName lower /> a
               week instead of {(status.base * 7).toLocaleString()}.
             </p>
             <p className="daily-nitro-next">

@@ -6,6 +6,7 @@ import { RARITY } from "../../lib/cosmetics";
 import type { StoreState } from "../../lib/store";
 import type { TradableGroup, Trade, TradeSide } from "../../lib/trades";
 import { LeafEmote } from "../ui-icons";
+import { CurrencyName, useCurrency } from "../season-context";
 
 type Person = { name: string; avatar: string | null };
 type TradesData = { incoming: Trade[]; outgoing: Trade[]; history: Trade[]; people: Record<string, Person>; fee: number; mine: TradableGroup[]; me: string };
@@ -149,6 +150,7 @@ function ItemPicker({ groups, picks, onChange, empty }: { groups: TradableGroup[
 }
 
 function TradeBuilder({ start, mine, balance, fee, busy, onClose, onSend }: { start: Draft | null; mine: TradableGroup[]; balance: number; fee: number; busy: boolean; onClose: () => void; onSend: (d: Draft) => void }) {
+  const cur = useCurrency();
   const [draft, setDraft] = useState<Draft | null>(start);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Member[]>([]);
@@ -221,7 +223,7 @@ function TradeBuilder({ start, mine, balance, fee, busy, onClose, onSend }: { st
                 <ItemPicker groups={mine} picks={draft.give} onChange={(give) => setDraft({ ...draft, give })} empty="You don't have anything you can trade yet." />
                 <label className="trade-leaves">
                   <LeafEmote size={16} />
-                  <input type="number" min={0} max={balance} value={draft.giveLeaves} onChange={(e) => setDraft({ ...draft, giveLeaves: e.target.value })} placeholder="Leaves (optional)" />
+                  <input type="number" min={0} max={balance} value={draft.giveLeaves} onChange={(e) => setDraft({ ...draft, giveLeaves: e.target.value })} placeholder={`${cur.many} (optional)`} />
                 </label>
                 {giveLeaves > balance ? <small className="trade-warn">You only have {balance.toLocaleString()}.</small> : null}
               </section>
@@ -231,11 +233,11 @@ function TradeBuilder({ start, mine, balance, fee, busy, onClose, onSend }: { st
                 {theirs === null ? (
                   <div className="adm-skeleton adm-skeleton--short" />
                 ) : (
-                  <ItemPicker groups={theirs} picks={draft.want} onChange={(want) => setDraft({ ...draft, want })} empty="They don't have anything tradable. You can still ask for leaves." />
+                  <ItemPicker groups={theirs} picks={draft.want} onChange={(want) => setDraft({ ...draft, want })} empty={`They don't have anything tradable. You can still ask for ${cur.lower}.`} />
                 )}
                 <label className="trade-leaves">
                   <LeafEmote size={16} />
-                  <input type="number" min={0} value={draft.wantLeaves} onChange={(e) => setDraft({ ...draft, wantLeaves: e.target.value })} placeholder="Leaves (optional)" />
+                  <input type="number" min={0} value={draft.wantLeaves} onChange={(e) => setDraft({ ...draft, wantLeaves: e.target.value })} placeholder={`${cur.many} (optional)`} />
                 </label>
                 {wantLeaves ? <small className="store-muted">You&apos;d receive {(wantLeaves - Math.ceil(wantLeaves * fee)).toLocaleString()} after the {Math.round(fee * 100)}% fee.</small> : null}
               </section>
@@ -326,7 +328,7 @@ export function TradesView({ state, onState, toast, onCount }: { state: StoreSta
           <h2>
             <Repeat size={20} aria-hidden="true" /> Trades
           </h2>
-          <p className="store-muted">Swap items and leaves with other members. Both of you confirm, and there&apos;s a {Math.round(data.fee * 100)}% fee on leaves that change hands.</p>
+          <p className="store-muted">Swap items and <CurrencyName lower /> with other members. Both of you confirm, and there&apos;s a {Math.round(data.fee * 100)}% fee on <CurrencyName lower /> that change hands.</p>
         </div>
         <button type="button" className="store-primary" onClick={() => setBuilder({ start: null })}>
           <Plus size={15} aria-hidden="true" /> New trade

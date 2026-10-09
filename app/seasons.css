@@ -1,0 +1,432 @@
+/* Season palettes (html[data-season], set by app/layout.tsx from Admin → Overview → Seasons).
+   Every stylesheet uses these channels: rgba(var(--ember-rgb), 0.2) and so on, so one block repaints the site.
+   --ember: the main accent · --maple: the deeper accent · --gold: highlights · --cream: text on dark
+   --bark / --soil: warm darks for lines and shadows · --night: the deepest background tones
+   --sb-*: the backdrop scenery (app/season-backdrop.tsx) */
+
+/* ---------- Autumn (the default) ---------- */
+:root {
+  --ember-rgb: 245, 155, 42;
+  --maple-rgb: 200, 95, 24;
+  --gold-rgb: 255, 210, 122;
+  --cream-rgb: 255, 242, 215;
+  --bark-rgb: 109, 55, 22;
+  --soil-rgb: 58, 29, 18;
+  --night-rgb: 29, 11, 5;
+  --night2-rgb: 36, 16, 6;
+  --sb-sky-top: #1a0a06;
+  --sb-sky-mid: #3a160b;
+  --sb-sky-low: #8a3512;
+  --sb-glow: rgba(255, 150, 60, 0.55);
+  --sb-sun: #ffb35c;
+  --sb-far: #4a1f10;
+  --sb-mid: #2f130a;
+  --sb-near: #1c0b06;
+  --sb-accent-1: #9c3d16;
+  --sb-accent-2: #b8691f;
+  --sb-accent-3: #7a2a12;
+  --sb-mist: rgba(255, 190, 120, 0.08);
+}
+:root[data-theme="light"] {
+  --sb-sky-top: #ffe7c4;
+  --sb-sky-mid: #ffd29a;
+  --sb-sky-low: #ffb070;
+  --sb-glow: rgba(255, 170, 80, 0.55);
+  --sb-sun: #ffcf7a;
+  --sb-far: #f2b679;
+  --sb-mid: #e59a5a;
+  --sb-near: #c9713a;
+  --sb-accent-1: #e0662a;
+  --sb-accent-2: #f5b13f;
+  --sb-accent-3: #c2441f;
+  --sb-mist: rgba(255, 255, 255, 0.25);
+}
+
+/* ---------- Winter ---------- */
+:root[data-season="winter"] {
+  --ember-rgb: 124, 196, 255;
+  --maple-rgb: 59, 111, 216;
+  --gold-rgb: 214, 238, 255;
+  --cream-rgb: 236, 244, 255;
+  --bark-rgb: 40, 70, 120;
+  --soil-rgb: 15, 30, 60;
+  --night-rgb: 6, 12, 26;
+  --night2-rgb: 10, 20, 40;
+  --bg: #070d1c;
+  --bg-soft: #0f1b33;
+  --panel: rgba(12, 22, 42, 0.78);
+  --panel-strong: rgba(16, 28, 52, 0.92);
+  --moss: #7fb3a0;
+  --shadow: rgba(0, 0, 0, 0.4);
+  --sb-sky-top: #030713;
+  --sb-sky-mid: #0a1630;
+  --sb-sky-low: #1c3563;
+  --sb-glow: rgba(110, 200, 255, 0.35);
+  --sb-sun: #e8f4ff;
+  --sb-far: #233a63;
+  --sb-mid: #162847;
+  --sb-near: #0b1629;
+  --sb-accent-1: #dff0ff;
+  --sb-accent-2: #1d4031;
+  --sb-accent-3: #2c5a45;
+  --sb-mist: rgba(200, 230, 255, 0.07);
+}
+:root[data-season="winter"][data-theme="light"] {
+  --bg: #f4f8ff;
+  --bg-soft: #e3eefc;
+  --panel: rgba(255, 255, 255, 0.88);
+  --panel-strong: rgba(255, 255, 255, 0.97);
+  --text: #0f1d33;
+  --muted: rgba(15, 29, 51, 0.7);
+  --line: rgba(40, 70, 120, 0.16);
+  --ember: #2f7fd6;
+  --maple: #1d4fa8;
+  --gold: #2a6cb8;
+  --moss: #4f7f6e;
+  --shadow: rgba(30, 60, 110, 0.18);
+  --well: rgba(40, 90, 170, 0.07);
+  --sb-sky-top: #dcebff;
+  --sb-sky-mid: #eef5ff;
+  --sb-sky-low: #ffffff;
+  --sb-glow: rgba(140, 200, 255, 0.45);
+  --sb-sun: #ffffff;
+  --sb-far: #c9dcf5;
+  --sb-mid: #e6f0fc;
+  --sb-near: #f7fbff;
+  --sb-accent-1: #ffffff;
+  --sb-accent-2: #3e6b57;
+  --sb-accent-3: #5a8c74;
+  --sb-mist: rgba(255, 255, 255, 0.4);
+}
+
+/* ---------- Spring ---------- */
+:root[data-season="spring"] {
+  --ember-rgb: 244, 114, 182;
+  --maple-rgb: 190, 75, 140;
+  --gold-rgb: 253, 230, 138;
+  --cream-rgb: 255, 240, 247;
+  --bark-rgb: 120, 60, 100;
+  --soil-rgb: 50, 24, 44;
+  --night-rgb: 18, 10, 20;
+  --night2-rgb: 26, 14, 30;
+  --bg: #140b17;
+  --bg-soft: #23122a;
+  --panel: rgba(32, 16, 36, 0.78);
+  --panel-strong: rgba(42, 20, 46, 0.92);
+  --moss: #9cc46a;
+  --shadow: rgba(0, 0, 0, 0.36);
+  --sb-sky-top: #120a1d;
+  --sb-sky-mid: #2c1640;
+  --sb-sky-low: #6b3a6e;
+  --sb-glow: rgba(255, 170, 210, 0.35);
+  --sb-sun: #ffd9ec;
+  --sb-far: #2f3d2a;
+  --sb-mid: #22301f;
+  --sb-near: #151d13;
+  --sb-accent-1: #f9a8d4;
+  --sb-accent-2: #fbcfe8;
+  --sb-accent-3: #f472b6;
+  --sb-mist: rgba(255, 200, 230, 0.07);
+}
+:root[data-season="spring"][data-theme="light"] {
+  --bg: #fff8fc;
+  --bg-soft: #fde9f3;
+  --panel: rgba(255, 255, 255, 0.88);
+  --panel-strong: rgba(255, 255, 255, 0.97);
+  --text: #3a1530;
+  --muted: rgba(58, 21, 48, 0.7);
+  --line: rgba(120, 60, 100, 0.16);
+  --ember: #db4f97;
+  --maple: #a3346f;
+  --gold: #b07a0c;
+  --moss: #5c8a2e;
+  --shadow: rgba(140, 60, 110, 0.16);
+  --well: rgba(200, 80, 140, 0.07);
+  --sb-sky-top: #d9efff;
+  --sb-sky-mid: #fdeff7;
+  --sb-sky-low: #fff7e8;
+  --sb-glow: rgba(255, 220, 150, 0.55);
+  --sb-sun: #fff2c4;
+  --sb-far: #bfe3a8;
+  --sb-mid: #9fd384;
+  --sb-near: #7cbf63;
+  --sb-accent-1: #f9a8d4;
+  --sb-accent-2: #fde2f0;
+  --sb-accent-3: #ec5fa5;
+  --sb-mist: rgba(255, 255, 255, 0.35);
+}
+
+/* ---------- Summer ---------- */
+:root[data-season="summer"] {
+  --ember-rgb: 255, 122, 89;
+  --maple-rgb: 232, 84, 62;
+  --gold-rgb: 255, 209, 102;
+  --cream-rgb: 255, 248, 235;
+  --bark-rgb: 30, 90, 110;
+  --soil-rgb: 8, 40, 52;
+  --night-rgb: 4, 20, 30;
+  --night2-rgb: 6, 28, 40;
+  --bg: #04161f;
+  --bg-soft: #0a2a36;
+  --panel: rgba(6, 30, 40, 0.78);
+  --panel-strong: rgba(8, 38, 50, 0.92);
+  --moss: #3fbfa8;
+  --shadow: rgba(0, 0, 0, 0.36);
+  --sb-sky-top: #031522;
+  --sb-sky-mid: #0b3550;
+  --sb-sky-low: #e0774f;
+  --sb-glow: rgba(255, 170, 90, 0.5);
+  --sb-sun: #ffd27a;
+  --sb-far: #0d5a73;
+  --sb-mid: #0a4357;
+  --sb-near: #5c4a2e;
+  --sb-accent-1: #7fe3f0;
+  --sb-accent-2: #11303a;
+  --sb-accent-3: #ff7a59;
+  --sb-mist: rgba(150, 230, 255, 0.07);
+}
+:root[data-season="summer"][data-theme="light"] {
+  --bg: #fffbf2;
+  --bg-soft: #fff0d6;
+  --panel: rgba(255, 255, 255, 0.88);
+  --panel-strong: rgba(255, 255, 255, 0.97);
+  --text: #10313c;
+  --muted: rgba(16, 49, 60, 0.72);
+  --line: rgba(30, 90, 110, 0.16);
+  --ember: #e8603c;
+  --maple: #c2452a;
+  --gold: #b7791f;
+  --moss: #1f9f8a;
+  --shadow: rgba(20, 80, 100, 0.16);
+  --well: rgba(30, 140, 170, 0.08);
+  --sb-sky-top: #6cc8f0;
+  --sb-sky-mid: #b8e8fb;
+  --sb-sky-low: #fff3d6;
+  --sb-glow: rgba(255, 230, 150, 0.65);
+  --sb-sun: #fff4c2;
+  --sb-far: #2fb3d1;
+  --sb-mid: #1b95b8;
+  --sb-near: #f6dfae;
+  --sb-accent-1: #ffffff;
+  --sb-accent-2: #2b6b3f;
+  --sb-accent-3: #ff7a59;
+  --sb-mist: rgba(255, 255, 255, 0.35);
+}
+
+/* The body's own gradient follows the season too (globals.css draws it from these) */
+:root[data-season] body {
+  background:
+    radial-gradient(circle at 12% 10%, rgba(var(--ember-rgb), 0.2), transparent 26rem),
+    radial-gradient(circle at 88% 5%, rgba(var(--gold-rgb), 0.14), transparent 24rem),
+    linear-gradient(140deg, var(--bg) 0%, var(--bg-soft) 52%, rgb(var(--night-rgb)) 100%);
+}
+:root[data-season][data-theme="light"] body {
+  background:
+    radial-gradient(circle at 12% 10%, rgba(var(--ember-rgb), 0.14), transparent 26rem),
+    radial-gradient(circle at 88% 5%, rgba(var(--gold-rgb), 0.18), transparent 24rem),
+    linear-gradient(160deg, var(--bg) 0%, var(--bg-soft) 100%);
+  background-attachment: fixed;
+}
+
+/* ============================================================ backdrop */
+.sb {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.sb-sky {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, var(--sb-sky-top) 0%, var(--sb-sky-mid) 55%, var(--sb-sky-low) 100%);
+  opacity: 0.9;
+}
+:root[data-theme="light"] .sb-sky { opacity: 0.75; }
+.sb-glow {
+  position: absolute;
+  left: 50%;
+  bottom: 14vh;
+  width: min(90vw, 70rem);
+  height: 40vh;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at 50% 100%, var(--sb-glow), transparent 70%);
+  filter: blur(10px);
+}
+.sb-sun {
+  position: absolute;
+  left: 72%;
+  bottom: 30vh;
+  width: 7rem;
+  height: 7rem;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--sb-sun) 0%, color-mix(in srgb, var(--sb-sun) 40%, transparent) 45%, transparent 70%);
+  filter: blur(1px);
+  animation: sb-breathe 9s ease-in-out infinite;
+}
+@keyframes sb-breathe {
+  50% { transform: scale(1.06); opacity: 0.9; }
+}
+.sb-land {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 34vh;
+  min-height: 12rem;
+}
+.sb-land svg { display: block; width: 100%; height: 100%; }
+/* The landscape fades in from the bottom and stays quiet behind content */
+.sb-land {
+  opacity: 0.8;
+  -webkit-mask-image: linear-gradient(to top, #000 55%, transparent 100%);
+  mask-image: linear-gradient(to top, #000 55%, transparent 100%);
+}
+:root[data-theme="light"] .sb-land { opacity: 0.65; }
+.sb-mist {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  bottom: 8vh;
+  height: 14vh;
+  background: linear-gradient(90deg, transparent, var(--sb-mist), transparent, var(--sb-mist), transparent);
+  filter: blur(14px);
+  animation: sb-drift 40s linear infinite;
+}
+@keyframes sb-drift {
+  from { transform: translateX(-6%); }
+  to { transform: translateX(6%); }
+}
+.sb-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* Keep the scenery quiet behind reading content */
+.sb-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 0%, rgba(var(--night-rgb), 0.15) 55%, rgba(var(--night-rgb), 0.35) 100%);
+}
+:root[data-theme="light"] .sb-scrim { background: linear-gradient(180deg, transparent 40%, rgba(255, 255, 255, 0.25) 100%); }
+
+/* Winter: northern lights + stars */
+.sb-aurora {
+  position: absolute;
+  left: -20%;
+  right: -20%;
+  top: 4vh;
+  height: 45vh;
+  opacity: 0.55;
+  filter: blur(28px);
+  background:
+    radial-gradient(ellipse 40% 30% at 30% 50%, rgba(80, 255, 190, 0.5), transparent 70%),
+    radial-gradient(ellipse 35% 25% at 62% 40%, rgba(110, 170, 255, 0.45), transparent 70%),
+    radial-gradient(ellipse 30% 22% at 80% 60%, rgba(200, 120, 255, 0.35), transparent 70%);
+  animation: sb-aurora 26s ease-in-out infinite alternate;
+}
+:root[data-theme="light"] .sb-aurora { opacity: 0.22; }
+@keyframes sb-aurora {
+  0% { transform: translateX(-4%) skewX(-6deg); }
+  100% { transform: translateX(4%) skewX(6deg); }
+}
+.sb-stars {
+  position: absolute;
+  inset: 0 0 40vh;
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 20%, #fff, transparent),
+    radial-gradient(1px 1px at 25% 8%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 40% 30%, #fff, transparent),
+    radial-gradient(1px 1px at 55% 12%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 68% 25%, #fff, transparent),
+    radial-gradient(1px 1px at 80% 6%, #fff, transparent),
+    radial-gradient(1px 1px at 90% 32%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 6% 38%, #fff, transparent),
+    radial-gradient(1px 1px at 33% 42%, #fff, transparent),
+    radial-gradient(1px 1px at 74% 44%, #fff, transparent);
+  opacity: 0.7;
+  animation: sb-twinkle 6s ease-in-out infinite alternate;
+}
+:root[data-theme="light"] .sb-stars { display: none; }
+@keyframes sb-twinkle { to { opacity: 0.35; } }
+
+/* Summer: moving waves */
+.sb-wave { animation: sb-wave 9s ease-in-out infinite alternate; }
+.sb-wave--2 { animation-duration: 12s; animation-direction: alternate-reverse; }
+@keyframes sb-wave {
+  from { transform: translateX(-2%); }
+  to { transform: translateX(2%); }
+}
+.sb-crab {
+  position: absolute;
+  bottom: 3vh;
+  left: -60px;
+  width: 46px;
+  animation: sb-crab 38s linear infinite;
+}
+.sb-crab svg { animation: sb-scuttle 0.5s steps(2) infinite; }
+@keyframes sb-crab {
+  0% { transform: translateX(0); }
+  45% { transform: translateX(55vw); }
+  55% { transform: translateX(55vw); }
+  100% { transform: translateX(calc(100vw + 120px)); }
+}
+@keyframes sb-scuttle { 50% { transform: translateY(-2px) rotate(-3deg); } }
+
+/* Spring: clouds */
+.sb-cloud {
+  position: absolute;
+  height: 3.2rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  filter: blur(6px);
+  animation: sb-cloud linear infinite;
+}
+:root[data-theme="light"] .sb-cloud { background: rgba(255, 255, 255, 0.8); }
+@keyframes sb-cloud {
+  from { transform: translateX(-30vw); }
+  to { transform: translateX(130vw); }
+}
+
+@media (max-width: 700px) {
+  .sb-land { height: 22vh; min-height: 8rem; }
+  .sb-sun { width: 4.5rem; height: 4.5rem; bottom: 26vh; opacity: 0.7; }
+  .sb-glow { height: 26vh; bottom: 8vh; }
+}
+
+/* Light/dark aside, never animate for people who asked for less motion */
+@media (prefers-reduced-motion: reduce) {
+  .sb *, .sb-crab svg { animation: none !important; }
+}
+
+/* Admin preview banner */
+.season-preview-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 1rem;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  transform: translateX(-50%);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel-strong);
+  box-shadow: 0 10px 30px var(--shadow);
+  color: var(--text);
+  font-size: 0.85rem;
+  padding: 0.4rem 0.5rem 0.4rem 0.9rem;
+  white-space: nowrap;
+  max-width: calc(100vw - 2rem);
+}
+.season-preview-bar small { color: var(--muted); }
+@media (max-width: 560px) {
+  .season-preview-bar small { display: none; }
+}
+.season-preview-bar button {
+  border: 0;
+  border-radius: 999px;
+  background: var(--ember);
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.3rem 0.8rem;
+}

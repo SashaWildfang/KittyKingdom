@@ -21,6 +21,7 @@ import {
   removeMemberRole,
   sendDirectMessage,
 } from "./discord-member";
+import { seasonal } from "./season-store";
 
 export const STACKABLE_CATEGORIES = ["Consumables", "Boosters", "Gifts", "Social"];
 export const MAX_BUY_AMOUNT = 50;
@@ -63,11 +64,15 @@ const LIMITED_EDITIONS: Record<string, number> = Object.fromEntries(SITE_ITEMS.f
 
 export class StoreError extends Error {
   constructor(message: string, public status = 400) {
-    super(message);
+    // Messages are written with the autumn words ("leaves"); the season swaps them
+    super(seasonal(message));
   }
 }
 
 // ---------- helpers ----------
+// Items named after the currency ("2x Leaf Booster") follow the season's words; other names stay as they are
+const CURRENCY_ITEMS = new Set(["booster_balance"]);
+const itemText = (itemId: unknown, text: string) => (CURRENCY_ITEMS.has(String(itemId)) ? seasonal(text) : text);
 const idString = (value: unknown) => (value === null || value === undefined ? null : String(value));
 const num = (value: unknown) => (typeof value === "bigint" ? Number(value) : typeof value === "number" ? value : Number(value ?? 0) || 0);
 const toLong = (id: string) => Long.fromString(id);
@@ -241,8 +246,8 @@ export async function getStoreState(discordId: string): Promise<StoreState> {
     const created = item.created_at instanceof Date ? item.created_at.getTime() : 0;
     return {
       itemId: item.item_id,
-      name: item.name,
-      description: item.description ?? "",
+      name: itemText(item.item_id, item.name),
+      description: itemText(item.item_id, item.description ?? ""),
       category: item.category ?? "Misc",
       price: num(item.price),
       stock: stock < 0 ? null : stock,
@@ -501,7 +506,7 @@ export async function checkout(discordId: string, rawLines: unknown) {
   );
   await c.storeSales.insertMany(lines.map((l) => ({ buyerId: discordId, item_id: l.itemId, quantity: l.amount, price_paid: l.cost, timestamp: now, source: "website-cart" })));
   const count = lines.reduce((n, l) => n + l.amount, 0);
-  return { message: `Checked out ${count} item${count === 1 ? "" : "s"} for ${total.toLocaleString()} leaves!`, total };
+  return { message: seasonal(`Checked out ${count} item${count === 1 ? "" : "s"} for ${total.toLocaleString()} leaves!`), total };
 }
 
 // ==========================================
@@ -736,7 +741,7 @@ export async function adminInventory(discordId: string) {
     const roleId = idString(doc.role_id);
     const entry = grouped.get(doc.item_id) ?? {
       itemId: String(doc.item_id),
-      name: String(doc.name ?? doc.item_id),
+      name: itemText(doc.item_id, String(doc.name ?? doc.item_id)),
       type: String(doc.type ?? "role"),
       icon: iconFor(doc),
       count: 0,

@@ -7,6 +7,7 @@ import { emojiUrl, SLOT_SYMBOLS as symbols, TRIPLE_CHANCE, type SlotSymbol } fro
 import type { SpinResult } from "../../lib/games/slots";
 import { LeafEmote } from "../ui-icons";
 import { Confetti, CountUp } from "./games-client";
+import { CurrencyName, useCurrency } from "../season-context";
 
 export type SlotsStatus = { nitro: boolean; jackpot: number; maxSpins: number };
 type Batch = { key: string; bet: number; results: SpinResult[]; payout: number; balance?: number };
@@ -192,6 +193,7 @@ function Summary({ batch }: { batch: Batch }) {
 }
 
 export function Slots({ balance, onBalance, initialStatus, viewers = 0 }: { balance: number; onBalance: (n: number) => void; initialStatus: SlotsStatus; viewers?: number }) {
+  const cur = useCurrency();
   const [status, setStatus] = useState(initialStatus);
   const [bet, setBet] = useState(100);
   const [spins, setSpins] = useState(1);
@@ -209,8 +211,8 @@ export function Slots({ balance, onBalance, initialStatus, viewers = 0 }: { bala
 
   const spin = useCallback(async () => {
     if (busy || playing) return;
-    if (bet < 50) return setError("The minimum bet is 50 leaves a spin.");
-    if (cost > balance) return setError("You don't have enough leaves for that.");
+    if (bet < 50) return setError(cur.text("The minimum bet is 50 leaves a spin."));
+    if (cost > balance) return setError(cur.text("You don't have enough leaves for that."));
     setBusy(true);
     setError(null);
     const res = await fetch("/api/games/slots", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bet, spins }) })
@@ -384,7 +386,7 @@ function Paytable() {
       </ul>
       <p>
         Any <b>two matching</b> symbols give your bet back (26% of spins). Three different symbols lose (62%). Overall the machine pays back about 95% of what's bet. Every losing spin goes into the progressive jackpot, and three gold mice
-        win all of it. Minimum bet 50 leaves a spin. Nitro boosters and Prince / Princess+ supporters can spin up to 25 times at once. Same machine and jackpot as /slots in Discord.
+        win all of it. Minimum bet 50 <CurrencyName lower /> a spin. Nitro boosters and Prince / Princess+ supporters can spin up to 25 times at once. Same machine and jackpot as /slots in Discord.
       </p>
     </div>
   );

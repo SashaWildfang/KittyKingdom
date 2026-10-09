@@ -4,15 +4,15 @@ import type { CSSProperties } from "react";
 import { getCurrentUser } from "../../lib/auth";
 import { getDiscordInviteSummary } from "../../lib/discord";
 import { NITRO, PATREON_URL, TIERS, itemsLabel, pct } from "../../lib/perks";
-import { FallingLeaves } from "../fall-effects";
 import { TierIcon } from "../tier-icon";
 import { SiteNav } from "../site-nav";
 import { LeafEmote } from "../ui-icons";
 import "./patreon.css";
+import { CurrencyName, Seasonal } from "../season-context";
 
 export const metadata: Metadata = {
   title: "Patreon Supporters | Kitty Kingdom",
-  description: "Support Kitty Kingdom on Patreon: monthly Leaves, big XP and Leaf bonuses, bigger Daily Rewards, premium games and your own custom role with gradient colors.",
+  description: "Support Kitty Kingdom on Patreon: monthly currency, big XP and currency bonuses, bigger Daily Rewards, premium games and your own custom role with gradient colors.",
 };
 
 type Row = { label: string; values: (string | boolean)[]; nitro: string | boolean };
@@ -47,7 +47,7 @@ function Cell({ v }: { v: string | boolean }) {
 function tierPoints(t: (typeof TIERS)[number]) {
   const pts = [
     <><b>{t.monthly.toLocaleString()}</b> <LeafEmote size={14} /> + {itemsLabel(t.items)} every month</>,
-    <><b>{pct(t.xp)}</b> XP and <b>{pct(t.leaf)}</b> Leaves on everything you earn</>,
+    <><b>{pct(t.xp)}</b> XP and <b>{pct(t.leaf)}</b> <CurrencyName /> on everything you earn</>,
     <><b>+{t.daily}</b> <LeafEmote size={14} /> on every Daily Reward</>,
   ];
   if (t.customRole) pts.push(<><b>Custom role</b>: your own name, solid or gradient color{t.roleExtras ? ", holographic style and an icon" : ""}</>);
@@ -63,7 +63,6 @@ export default async function PatreonPage() {
   const [user, discord] = await Promise.all([getCurrentUser().catch(() => null), getDiscordInviteSummary()]);
   return (
     <main className="site-shell pt-shell">
-      <FallingLeaves foreground={false} />
       <SiteNav signedIn={Boolean(user)} discordOnline={discord.online} />
       <div className="pt">
         <section className="pt-hero">
@@ -72,7 +71,7 @@ export default async function PatreonPage() {
           </span>
           <h1>Join the Royal Court</h1>
           <p>
-            Patreon keeps the server, the bots and this website running for everyone. In return, every tier comes <b>packed</b> with perks: monthly Leaves, huge XP and Leaf bonuses, bigger Daily Rewards and, from $10, a <b>custom role you design yourself</b>.
+            Patreon keeps the server, the bots and this website running for everyone. In return, every tier comes <b>packed</b> with perks: monthly <CurrencyName />, huge XP and <CurrencyName one /> bonuses, bigger Daily Rewards and, from $10, a <b>custom role you design yourself</b>.
           </p>
           <div className="pt-hero-actions">
             <a className="pt-btn is-primary" href={PATREON_URL} target="_blank" rel="noopener noreferrer">
@@ -158,7 +157,9 @@ export default async function PatreonPage() {
               <tbody>
                 {ROWS.map((r) => (
                   <tr key={r.label}>
-                    <td>{r.label}</td>
+                    <td>
+                      <Seasonal>{r.label}</Seasonal>
+                    </td>
                     {r.values.map((v, i) => (
                       <td key={i} data-label={TIERS[i].name}>
                         <Cell v={v} />
@@ -184,12 +185,12 @@ export default async function PatreonPage() {
             <div>
               <code>/chest</code>
               <b>Weekly Royal Chest</b>
-              <p>Open a chest of Leaves every week, with a lucky bonus of up to 25%. Kings and Queens also find a 2x XP Booster inside.</p>
+              <p>Open a chest of <CurrencyName /> every week, with a lucky bonus of up to 25%. Kings and Queens also find a 2x XP Booster inside.</p>
             </div>
             <div>
               <code>/wheel</code>
               <b>Daily Royal Wheel</b>
-              <p>One free spin every day for prizes up to 3,000 Leaves, Streak Shields and Leaf Boosters. Higher tiers win bigger.</p>
+              <p>One free spin every day for prizes up to 3,000 <CurrencyName />, Streak Shields and <CurrencyName one /> Boosters. Higher tiers win bigger.</p>
             </div>
             <div>
               <code>/myrole</code>
@@ -237,7 +238,7 @@ export default async function PatreonPage() {
             <li>
               <span><Crown size={18} aria-hidden="true" /></span>
               <b>Your perks arrive automatically</b>
-              <p>Your role shows up within a few minutes. Monthly Leaves and items are paid on the last day of every month.</p>
+              <p>Your role shows up within a few minutes. Monthly <CurrencyName /> and items are paid on the last day of every month.</p>
             </li>
             <li>
               <span><Sparkles size={18} aria-hidden="true" /></span>
@@ -250,8 +251,10 @@ export default async function PatreonPage() {
         <section className="pt-block pt-faq">
           <h2>Questions</h2>
           <details>
-            <summary>When do I get my monthly Leaves?</summary>
-            <p>On the last day of every month at 11:59 PM Mountain, along with your monthly items. Your XP, Leaf and Daily Reward bonuses start as soon as your role arrives.</p>
+            <summary>
+              When do I get my monthly <CurrencyName />?
+            </summary>
+            <p>On the last day of every month at 11:59 PM Mountain, along with your monthly items. Your XP, <CurrencyName one /> and Daily Reward bonuses start as soon as your role arrives.</p>
           </details>
           <details>
             <summary>My role didn&apos;t show up. What do I do?</summary>

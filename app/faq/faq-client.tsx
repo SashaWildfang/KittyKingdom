@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { isValidElement, useEffect, useMemo, useState, type ReactNode } from "react";
 import { COMMANDS, TOPICS } from "./content";
+import { useCurrency } from "../season-context";
 
 const ICONS: Record<string, LucideIcon> = { Award, Coins, Crown, Dices, Gem, Globe, Heart, HeartHandshake, Leaf, Link: LinkIcon, Map: MapIcon, Shield, ShoppingBag, Sparkles, TrendingUp };
 
@@ -37,6 +38,7 @@ function textOf(node: ReactNode): string {
 }
 
 export function FaqClient() {
+  const cur = useCurrency();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const q = query.trim().toLowerCase();
@@ -85,8 +87,8 @@ export function FaqClient() {
                 <span className="kb-topic-icon">
                   <Icon size={20} aria-hidden="true" />
                 </span>
-                <b>{t.title}</b>
-                <small>{t.blurb}</small>
+                <b>{cur.text(t.title)}</b>
+                <small>{cur.text(t.blurb)}</small>
               </a>
             );
           })}
@@ -109,8 +111,8 @@ export function FaqClient() {
                 <Icon size={20} aria-hidden="true" />
               </span>
               <div>
-                <h2>{t.title}</h2>
-                <p>{t.blurb}</p>
+                <h2>{cur.text(t.title)}</h2>
+                <p>{cur.text(t.blurb)}</p>
               </div>
             </header>
             {t.guides?.length ? (
@@ -120,7 +122,7 @@ export function FaqClient() {
                   return (
                     <article key={g.title} className="kb-guide">
                       <h3>
-                        <GIcon size={17} aria-hidden="true" /> {g.title}
+                        <GIcon size={17} aria-hidden="true" /> {cur.text(g.title)}
                       </h3>
                       {g.body}
                     </article>
@@ -136,10 +138,10 @@ export function FaqClient() {
                   return (
                     <div key={key} className={`kb-faq${isOpen ? " is-open" : ""}`}>
                       <button type="button" aria-expanded={isOpen} onClick={() => setOpen((o) => ({ ...o, [key]: !o[key] }))}>
-                        <span>{f.q}</span>
+                        <span>{cur.text(f.q)}</span>
                         <ChevronDown size={18} aria-hidden="true" />
                       </button>
-                      {isOpen ? <div className="kb-answer">{f.a}</div> : null}
+                      {isOpen ? <div className="kb-answer">{typeof f.a === "string" ? cur.text(f.a) : f.a}</div> : null}
                     </div>
                   );
                 })}
@@ -172,7 +174,7 @@ export function FaqClient() {
                       <dt>
                         <code className="kb-cmd">{c}</code>
                       </dt>
-                      <dd>{d}</dd>
+                      <dd>{cur.text(d)}</dd>
                     </div>
                   ))}
                 </dl>

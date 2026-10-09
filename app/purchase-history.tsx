@@ -4,6 +4,7 @@ import { ArrowDownLeft, ArrowUpRight, ChevronDown, Globe, MessageCircle, Search,
 import { useEffect, useState } from "react";
 import type { HistoryEntry } from "../lib/purchase-history";
 import { LeafEmote, StoreItemIcon } from "./ui-icons";
+import { useCurrency } from "./season-context";
 
 type Result = { entries: HistoryEntry[]; total: number; page: number; pageSize: number; totals: { spent: number; purchases: number; sent: number; received: number } };
 
@@ -67,6 +68,7 @@ function Details({ e }: { e: HistoryEntry }) {
  * `url` is /api/store/history for yourself or /api/admin/user/<id>/history for a member.
  */
 export function PurchaseHistory({ url, whose = "your", startOpen = false }: { url: string; whose?: string; startOpen?: boolean }) {
+  const cur = useCurrency();
   const [open, setOpen] = useState(startOpen);
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
@@ -121,7 +123,7 @@ export function PurchaseHistory({ url, whose = "your", startOpen = false }: { ur
         <div className="ph-body">
           {data ? (
             <div className="ph-totals">
-              <span title={`${data.totals.spent.toLocaleString()} leaves spent`}>
+              <span title={`${data.totals.spent.toLocaleString()} ${cur.lower} spent`}>
                 <b>
                   <LeafEmote size={15} />
                   {compact(data.totals.spent)}

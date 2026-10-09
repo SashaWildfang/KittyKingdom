@@ -131,7 +131,7 @@
   padding: 0.3rem 0.85rem;
   border-radius: 999px;
   background: var(--tier);
-  color: #1d0b05;
+  color: rgb(var(--night-rgb));
   font-size: 0.75rem;
   font-weight: 900;
   text-transform: uppercase;
@@ -190,7 +190,7 @@
   margin-top: 0.6rem;
   border-color: transparent;
   background: var(--tier);
-  color: #1d0b05;
+  color: rgb(var(--night-rgb));
 }
 
 /* Blocks */
@@ -250,7 +250,7 @@
   width: 2.3rem;
   height: 2.3rem;
   border-radius: 50%;
-  background: linear-gradient(135deg, #f59b2a, #c85f18);
+  background: linear-gradient(135deg, rgb(var(--ember-rgb)), rgb(var(--maple-rgb)));
   color: #fff;
   font-weight: 900;
   font-size: 0.95rem;

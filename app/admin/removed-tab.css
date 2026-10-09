@@ -19,7 +19,7 @@
   padding: 0.75rem 1rem;
   text-align: left;
 }
-.rm-list button:hover { background: rgba(245, 155, 42, 0.08); }
+.rm-list button:hover { background: rgba(var(--ember-rgb), 0.08); }
 .rm-avatar {
   display: grid;
   place-items: center;
@@ -34,8 +34,8 @@
 .rm-main { display: grid; min-width: 0; }
 .rm-main b, .rm-main small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rm-main small, .rm-list time { color: var(--muted); font-size: 0.78rem; }
-.rm-reason { border-radius: 999px; font-size: 0.72rem; font-weight: 800; padding: 0.15rem 0.6rem; white-space: nowrap; background: rgba(255, 242, 215, 0.1); color: var(--muted); }
-.rm-reason.is-left { background: rgba(245, 155, 42, 0.16); color: var(--gold); }
+.rm-reason { border-radius: 999px; font-size: 0.72rem; font-weight: 800; padding: 0.15rem 0.6rem; white-space: nowrap; background: rgba(var(--cream-rgb), 0.1); color: var(--muted); }
+.rm-reason.is-left { background: rgba(var(--ember-rgb), 0.16); color: var(--gold); }
 .rm-reason.is-deleted { background: rgba(255, 107, 107, 0.15); color: #ff8a8a; }
 .rm-reason.is-wipe, .rm-reason.is-manual { background: rgba(88, 101, 242, 0.18); color: #a5adff; }
 .rm-counts { display: flex; gap: 0.7rem; color: var(--muted); font-size: 0.8rem; }
@@ -53,12 +53,12 @@
 .rm-channels { display: flex; flex-wrap: wrap; gap: 0.35rem; }
 .rm-channels button { border: 1px solid var(--line); border-radius: 999px; background: var(--panel); color: var(--text); cursor: pointer; font: inherit; font-size: 0.82rem; padding: 0.25rem 0.7rem; }
 .rm-channels button small { color: var(--muted); }
-.rm-channels button.is-on { border-color: var(--ember); background: rgba(245, 155, 42, 0.14); }
+.rm-channels button.is-on { border-color: var(--ember); background: rgba(var(--ember-rgb), 0.14); }
 .rm-chat { padding: 0.4rem 0; }
 .rm-day { display: flex; justify-content: center; margin: 0.8rem 0 0.3rem; }
 .rm-day span { border: 1px solid var(--line); border-radius: 999px; background: var(--panel-strong); color: var(--muted); font-size: 0.75rem; font-weight: 700; padding: 0.15rem 0.7rem; }
 .rm-msg { padding: 0.25rem 1.1rem; }
-.rm-msg:hover { background: rgba(255, 242, 215, 0.03); }
+.rm-msg:hover { background: rgba(var(--cream-rgb), 0.03); }
 .rm-msg-channel { color: var(--gold); font-size: 0.78rem; font-weight: 800; margin: 0.5rem 0 0.2rem; }
 .rm-msg-row { display: grid; grid-template-columns: 4.5rem minmax(0, 1fr); gap: 0.6rem; }
 .rm-msg-row time { color: var(--muted); font-size: 0.74rem; padding-top: 0.2rem; }

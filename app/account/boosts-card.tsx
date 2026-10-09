@@ -4,6 +4,7 @@ import { Heart, Leaf, Rocket, Sparkles, Star, TriangleAlert, Zap } from "lucide-
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { BoostStatus, Part } from "../../lib/boosts";
+import { CurrencyName } from "../season-context";
 
 const ICON: Record<string, typeof Zap> = { booster_xp: Zap, booster_balance: Leaf, booster_profile: Heart, booster_spotlight: Star };
 
@@ -103,7 +104,7 @@ export function BoostsCard() {
         </div>
         <div className="bst-mult">
           <h3>
-            <Leaf size={16} aria-hidden="true" /> Leaves
+            <Leaf size={16} aria-hidden="true" /> <CurrencyName />
           </h3>
           <strong>{data.leaves.total}×</strong>
           <Parts parts={data.leaves.parts} />

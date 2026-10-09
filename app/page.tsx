@@ -11,7 +11,8 @@ import { memberGrowth } from "../lib/member-directory";
 import { userTimeZone, zoneOffsetMinutes } from "../lib/timezone";
 import { newsExcerpt } from "../lib/news-format";
 import { LEAVE_REVIEW_URL, REVIEWS_URL, getReviews, type Review } from "../lib/reviews";
-import { Embers, FallEffects, FallingLeaves, LeafSvg, TiltCard } from "./fall-effects";
+import { Embers, FallEffects, SeasonGlyph, TiltCard } from "./fall-effects";
+import { SeasonArt, SeasonCopy, SeasonName, SeasonWord } from "./home-season";
 import { HomeShowcase } from "./home-showcase";
 import { HomeNewsNotice } from "./home-news-notice";
 import { SiteNav } from "./site-nav";
@@ -21,7 +22,7 @@ const DISCORD_INVITE = "https://discord.com/invite/M9XKHFdYQV";
 
 const tickerItems: { label: string; icon: LucideIcon | "leaf" }[] = [
   { label: "Social profiles", icon: HeartHandshake },
-  { label: "Leaf economy", icon: "leaf" },
+  { label: "{one} economy", icon: "leaf" },
   { label: "Custom bot", icon: Bot },
   { label: "Leaderboards", icon: Trophy },
   { label: "Store", icon: ShoppingBag },
@@ -221,7 +222,6 @@ export default async function Home({ searchParams }: { searchParams?: { register
 
   return (
     <main className="site-shell home">
-      <FallingLeaves />
       <FallEffects />
 
       <SiteNav signedIn={signedIn} discordOnline={discord.online} />
@@ -238,13 +238,13 @@ export default async function Home({ searchParams }: { searchParams?: { register
         <div className="home-sun" aria-hidden="true" />
         <div className="home-hero-copy">
           <p className="home-kicker">
-            <LeafSvg shape="maple" color="#f39c12" size={18} /> Community · social platform
+            <SeasonGlyph index={1} size={18} /> Community · social platform
           </p>
           <h1 className="home-title">
             Find your place in <span className="home-title-glow">Kitty Kingdom.</span>
           </h1>
           <p className="home-subtitle">
-            A warm, fall-themed community for friends, verified members, Social profiles, events, roles, and a place to call
+            <SeasonCopy part="subtitle" /> for friends, verified members, Social profiles, events, roles, and a place to call
             home.
           </p>
           <div className="home-actions">
@@ -312,11 +312,11 @@ export default async function Home({ searchParams }: { searchParams?: { register
 
         <TiltCard className="home-art">
           <div className="home-art-frame">
-            <img className="home-art-banner" src="/banner.jpg" alt="Kitty Kingdom fall banner" />
+            <SeasonArt kind="banner" className="home-art-banner" />
             <span className="home-art-glare" aria-hidden="true" />
           </div>
-          <img className="home-art-logo" src="/logo.png" alt="Kitty Kingdom logo" />
-          <span className="home-art-chip home-art-chip--top"><LeafEmote size={16} /> Fall all year</span>
+          <SeasonArt kind="logo" className="home-art-logo" />
+          <span className="home-art-chip home-art-chip--top"><LeafEmote size={16} /> <SeasonName /> in the kingdom</span>
           <span className="home-art-chip home-art-chip--bottom">
             <i className="home-dot" aria-hidden="true" /> {discord.online !== null ? `${discord.online.toLocaleString()} online` : "Live now"}
           </span>
@@ -330,7 +330,15 @@ export default async function Home({ searchParams }: { searchParams?: { register
         <div className="home-ticker-track">
           {[...tickerItems, ...tickerItems].map((item, i) => (
             <span key={i}>
-              {item.icon === "leaf" ? <LeafEmote size={17} /> : <item.icon size={16} aria-hidden="true" />} {item.label}
+              {item.icon === "leaf" ? <LeafEmote size={17} /> : <item.icon size={16} aria-hidden="true" />}{" "}
+              {item.label.includes("{one}") ? (
+                <>
+                  <SeasonWord one />
+                  {item.label.replace("{one}", "")}
+                </>
+              ) : (
+                item.label
+              )}
             </span>
           ))}
         </div>
@@ -364,7 +372,7 @@ export default async function Home({ searchParams }: { searchParams?: { register
                 {item.text}
                 {item.cut ? <span className="home-news-more"> Click to see more <span aria-hidden="true">→</span></span> : null}
               </p>
-              <LeafSvg shape={(["maple", "oak", "birch"] as const)[index % 3]} color="rgba(245,155,42,0.16)" size={120} />
+              <SeasonGlyph index={index} color="rgba(var(--ember-rgb), 0.16)" size={120} />
             </a>
           ))}
         </div>
@@ -460,13 +468,15 @@ export default async function Home({ searchParams }: { searchParams?: { register
       <section className="home-section" id="discord" data-reveal>
         <div className="home-cta">
           <div className="home-cta-leaves" aria-hidden="true">
-            <LeafSvg shape="maple" color="#e25822" size={90} />
-            <LeafSvg shape="oak" color="#f39c12" size={70} />
-            <LeafSvg shape="birch" color="#c0392b" size={60} />
+            <SeasonGlyph index={0} size={90} />
+            <SeasonGlyph index={1} size={70} />
+            <SeasonGlyph index={2} size={60} />
           </div>
           <div className="home-cta-copy">
             <p className="home-eyebrow">Discord community</p>
-            <h2>Pull up a chair by the fire.</h2>
+            <h2>
+              <SeasonCopy part="cta" />
+            </h2>
             <p>
               Meet the community, verify your account, join events, browse channels, and start building your place in the
               kingdom.
@@ -494,7 +504,7 @@ export default async function Home({ searchParams }: { searchParams?: { register
                 alternateName: ["Kitty Kingdom Discord", "Kitty Kingdom Furry Community", "kittykingdom.net"],
                 url: "https://www.kittykingdom.net",
                 logo: "https://www.kittykingdom.net/logo.png",
-                description: "A cozy, fall-themed 18+ furry Discord server and community website.",
+                description: "A cozy, seasonal 18+ furry Discord server and community website.",
                 sameAs: [DISCORD_INVITE, "https://www.patreon.com/c/thekittykingdom", "https://disboard.org/server/1358452494128250940"],
               },
               {

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
+import { useSeason } from "./season-context";
+import type { SeasonKey } from "../lib/seasons";
 
 // ==========================================
 // Leaf shapes (100×100 viewBox, stem at the bottom)
@@ -40,74 +42,61 @@ function seeded(seed: number) {
   };
 }
 
-type LeafSpec = { shape: Shape; color: string; left: number; size: number; fall: number; delay: number; sway: number; swayX: number; spin: number; opacity: number };
-
-function makeLeaves(count: number, seed: number, sizeRange: [number, number]): LeafSpec[] {
-  const rand = seeded(seed);
-  const shapes = Object.keys(LEAF_SHAPES) as Shape[];
-  return Array.from({ length: count }, (_, i) => {
-    const fall = 13 + rand() * 13;
-    return {
-      shape: shapes[Math.floor(rand() * shapes.length)],
-      color: LEAF_COLORS[Math.floor(rand() * LEAF_COLORS.length)],
-      left: ((i + rand()) / count) * 100,
-      size: sizeRange[0] + rand() * (sizeRange[1] - sizeRange[0]),
-      fall,
-      delay: -rand() * fall,
-      sway: 2.6 + rand() * 2.4,
-      swayX: 30 + rand() * 70,
-      spin: 3 + rand() * 4,
-      opacity: 0.7 + rand() * 0.3,
-    };
-  });
+/** Kept for older pages: the season's particles now drift behind every page (app/season-backdrop.tsx). */
+export function FallingLeaves(_props: { foreground?: boolean }) {
+  return null;
 }
 
-const BACK_LEAVES = makeLeaves(22, 42, [16, 30]);
-const FRONT_LEAVES = makeLeaves(4, 7, [46, 64]);
+// ==========================================
+// Season glyphs: the season's motif as a small SVG (leaf, snowflake, butterfly, crab/shell)
+// ==========================================
+const SNOWFLAKE =
+  "M50 6 V94 M12 28 L88 72 M12 72 L88 28 M50 6 L42 16 M50 6 L58 16 M50 94 L42 84 M50 94 L58 84 M12 28 L24 28 M12 28 L18 38 M88 72 L76 72 M88 72 L82 62 M12 72 L18 62 M12 72 L24 72 M88 28 L82 38 M88 28 L76 28";
+const BUTTERFLY =
+  "M50 30 C40 8 8 6 10 32 C12 50 34 52 46 48 C30 56 20 76 34 86 C44 92 50 76 50 62 C50 76 56 92 66 86 C80 76 70 56 54 48 C66 52 88 50 90 32 C92 6 60 8 50 30 Z";
+const SHELL =
+  "M50 10 C24 10 8 36 12 62 L30 86 C38 92 62 92 70 86 L88 62 C92 36 76 10 50 10 Z M50 14 L50 88 M50 14 L30 84 M50 14 L70 84 M50 14 L18 64 M50 14 L82 64";
+const CRAB =
+  "M30 30 L22 16 M70 30 L78 16 M22 16 m-9 0 a9 9 0 1 0 18 0 a9 9 0 1 0 -18 0 M78 16 m-9 0 a9 9 0 1 0 18 0 a9 9 0 1 0 -18 0 M24 66 L8 78 M30 72 L18 88 M76 66 L92 78 M70 72 L82 88 M20 56 C20 34 80 34 80 56 C80 74 20 74 20 56 Z";
 
-function Leaf({ leaf }: { leaf: LeafSpec }) {
+const GLYPH_COLORS: Record<SeasonKey, string[]> = {
+  fall: ["#e25822", "#f39c12", "#c0392b"],
+  winter: ["#bfe3ff", "#e6f4ff", "#8fc8ff"],
+  spring: ["#f472b6", "#c4b5fd", "#fbcfe8"],
+  summer: ["#ff7a59", "#ffd166", "#22b8cf"],
+};
+
+/** One season motif. `index` picks the variant/color so a row of them looks varied. */
+export function SeasonGlyph({ index = 0, size = 28, color }: { index?: number; size?: number; color?: string }) {
+  const { key } = useSeason();
+  const fill = color ?? GLYPH_COLORS[key][index % 3];
+  if (key === "fall") return <LeafSvg shape={(["maple", "oak", "birch"] as const)[index % 3]} color={fill} size={size} />;
+  const stroke = key === "winter" || (key === "summer" && index % 2 === 0);
+  const d = key === "winter" ? SNOWFLAKE : key === "spring" ? BUTTERFLY : index % 2 === 0 ? CRAB : SHELL;
   return (
-    <span
-      className="fx-leaf"
-      style={
-        {
-          left: `${leaf.left}%`,
-          "--fall": `${leaf.fall}s`,
-          "--delay": `${leaf.delay}s`,
-          "--sway": `${leaf.sway}s`,
-          "--sway-x": `${leaf.swayX}px`,
-          "--spin": `${leaf.spin}s`,
-          opacity: leaf.opacity,
-        } as CSSProperties
-      }
-    >
-      <span className="fx-leaf-sway">
-        <span className="fx-leaf-spin">
-          <LeafSvg shape={leaf.shape} color={leaf.color} size={Math.round(leaf.size)} />
-        </span>
-      </span>
-    </span>
+    <svg className="fx-leaf-svg" viewBox="0 0 100 100" width={size} height={size} aria-hidden="true" style={{ color: fill }}>
+      {stroke && key === "winter" ? (
+        <path d={d} fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round" />
+      ) : key === "summer" && index % 2 === 0 ? (
+        <path d={d} fill="currentColor" stroke="currentColor" strokeWidth="5" strokeLinecap="round" />
+      ) : (
+        <path d={d} fill="currentColor" stroke={key === "summer" ? "rgba(0,0,0,0.2)" : "none"} strokeWidth="2" />
+      )}
+      {key === "spring" ? <path d="M50 28 V72" stroke="#3b2340" strokeWidth="4" strokeLinecap="round" /> : null}
+    </svg>
   );
 }
 
-/** Real leaf shapes drifting down the page: a layer behind the content and a few big blurred ones in front. */
-export function FallingLeaves({ foreground = true }: { foreground?: boolean }) {
-  return (
-    <>
-      <div className="fx-leaves" aria-hidden="true">
-        {BACK_LEAVES.map((leaf, i) => (
-          <Leaf key={i} leaf={leaf} />
-        ))}
-      </div>
-      {foreground ? (
-        <div className="fx-leaves fx-leaves--front" aria-hidden="true">
-          {FRONT_LEAVES.map((leaf, i) => (
-            <Leaf key={i} leaf={leaf} />
-          ))}
-        </div>
-      ) : null}
-    </>
-  );
+/** The same motif as an SVG string (for click bursts). */
+function glyphMarkup(season: SeasonKey, i: number) {
+  const color = GLYPH_COLORS[season][i % 3];
+  if (season === "fall") {
+    const shapes = Object.keys(LEAF_SHAPES) as Shape[];
+    return `<svg viewBox="0 0 100 100" width="18" height="18"><path d="${LEAF_SHAPES[shapes[i % shapes.length]]}" fill="${LEAF_COLORS[i % LEAF_COLORS.length]}"/></svg>`;
+  }
+  if (season === "winter") return `<svg viewBox="0 0 100 100" width="18" height="18"><path d="${SNOWFLAKE}" fill="none" stroke="${color}" stroke-width="7" stroke-linecap="round"/></svg>`;
+  if (season === "spring") return `<svg viewBox="0 0 100 100" width="18" height="18"><path d="${BUTTERFLY}" fill="${color}"/></svg>`;
+  return `<svg viewBox="0 0 100 100" width="18" height="18"><path d="${i % 2 ? SHELL : CRAB}" fill="${color}" stroke="${color}" stroke-width="4"/></svg>`;
 }
 
 /** Warm embers rising behind the hero. */
@@ -144,6 +133,7 @@ function reducedMotion() {
  * - lights up cards under the pointer ([data-spotlight])
  */
 export function FallEffects() {
+  const season = useSeason();
   useEffect(() => {
     // Scroll reveal
     const targets = Array.from(document.querySelectorAll<HTMLElement>("[data-reveal]"));
@@ -165,11 +155,10 @@ export function FallEffects() {
       targets.forEach((el) => observer?.observe(el));
     }
 
-    // Leaf burst on click
-    const shapes = Object.keys(LEAF_SHAPES) as Shape[];
+    // Season burst on click (leaves, snowflakes, butterflies, shells)
     function burst(event: MouseEvent) {
       const target = (event.target as HTMLElement | null)?.closest("[data-leaf-burst]");
-      if (!target || reducedMotion()) return;
+      if (!target || reducedMotion() || !season.bursts) return;
       const rect = target.getBoundingClientRect();
       const x = event.clientX || rect.left + rect.width / 2;
       const y = event.clientY || rect.top + rect.height / 2;
@@ -178,8 +167,7 @@ export function FallEffects() {
         const distance = 50 + Math.random() * 70;
         const piece = document.createElement("span");
         piece.className = "fx-burst";
-        const shape = shapes[i % shapes.length];
-        piece.innerHTML = `<svg viewBox="0 0 100 100" width="18" height="18"><path d="${LEAF_SHAPES[shape]}" fill="${LEAF_COLORS[i % LEAF_COLORS.length]}"/></svg>`;
+        piece.innerHTML = glyphMarkup(season.key, i);
         piece.style.left = `${x}px`;
         piece.style.top = `${y}px`;
         piece.style.setProperty("--dx", `${Math.cos(angle) * distance}px`);
@@ -206,7 +194,7 @@ export function FallEffects() {
       document.removeEventListener("click", burst);
       document.removeEventListener("pointermove", spotlight);
     };
-  }, []);
+  }, [season.key, season.bursts]);
 
   return null;
 }

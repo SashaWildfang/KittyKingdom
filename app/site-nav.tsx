@@ -9,6 +9,7 @@ import { canSeeDating } from "../lib/dating/access";
 import { NotificationBell } from "./notification-bell";
 import { MobileMenu } from "./mobile-menu";
 import { MessagesButton } from "./messages-nav-badge";
+import { SiteLogo } from "./ui-icons";
 
 
 type SiteNavProps = {
@@ -43,7 +44,7 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
   return (
     <nav className="topbar" aria-label="Main navigation">
       <a className="brand" href="/home" aria-label="Kitty Kingdom home">
-        <img className="brand-logo-img" src="/logo.png" alt="Kitty Kingdom logo" />
+        <SiteLogo className="brand-logo-img" alt="Kitty Kingdom logo" />
         <span className="brand-copy">
           <strong>Kitty Kingdom</strong>
           <OnlineStatus initialOnline={discordOnline} visitorsHref={panel?.level === "admin" ? "/admin?tab=accounts#online" : null} />

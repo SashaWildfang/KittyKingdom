@@ -14,6 +14,7 @@ import { getMemberRoleIds, postChannelMessage, removeMemberRole } from "./discor
 import { getBotCollection, getMongoClient } from "./mongodb";
 import { notify } from "./notifications";
 import { StoreError } from "./store";
+import { seasonal } from "./season-store";
 
 const STAFF_LOG_CHANNEL_ID = "1360344042705256660";
 export const TRADE_FEE = 0.05;
@@ -128,7 +129,7 @@ async function balanceOf(discordId: string) {
 
 const describe = (side: TradeSide) => {
   const parts = side.items.length ? Array.from(new Set(side.items.map((i) => i.name))).map((n) => `${side.items.filter((i) => i.name === n).length > 1 ? `${side.items.filter((i) => i.name === n).length}× ` : ""}${n}`) : [];
-  if (side.leaves) parts.push(`${side.leaves.toLocaleString()} leaves`);
+  if (side.leaves) parts.push(seasonal(`${side.leaves.toLocaleString()} leaves`));
   return parts.join(", ") || "nothing";
 };
 
@@ -257,7 +258,7 @@ export async function acceptTrade(me: { discordId: string; name: string }, id: s
         fields: [
           { name: who[from]?.name ?? "Member", value: `<@${from}> gave\n${describe(give).slice(0, 900)}`, inline: true },
           { name: who[me.discordId]?.name ?? "Member", value: `<@${me.discordId}> gave\n${describe(want).slice(0, 900)}`, inline: true },
-          ...(feeA + feeB ? [{ name: "Fee", value: `${(feeA + feeB).toLocaleString()} leaves`, inline: true }] : []),
+          ...(feeA + feeB ? [{ name: "Fee", value: seasonal(`${(feeA + feeB).toLocaleString()} leaves`), inline: true }] : []),
         ],
         timestamp: now.toISOString(),
       },

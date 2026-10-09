@@ -194,7 +194,7 @@
 }
 .sp-seg button.is-on {
   background: var(--ember);
-  color: #1d0b05;
+  color: rgb(var(--night-rgb));
 }
 .sp-seg button:disabled {
   cursor: not-allowed;
@@ -222,7 +222,7 @@
   border: 0;
   border-radius: 999px;
   background: var(--ember);
-  color: #1d0b05;
+  color: rgb(var(--night-rgb));
   font: inherit;
   font-weight: 900;
   cursor: pointer;
@@ -309,7 +309,7 @@
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 50%;
-  background: linear-gradient(135deg, #f59b2a, #c85f18);
+  background: linear-gradient(135deg, rgb(var(--ember-rgb)), rgb(var(--maple-rgb)));
   color: #fff;
   font-weight: 900;
 }
@@ -414,7 +414,7 @@
   padding: 0.6rem 1.15rem;
   border-radius: 999px;
   background: var(--ember);
-  color: #1d0b05;
+  color: rgb(var(--night-rgb));
   font-weight: 900;
   text-decoration: none;
 }

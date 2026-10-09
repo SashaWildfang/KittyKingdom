@@ -9,7 +9,7 @@ import { FaqClient } from "./faq-client";
 
 export const metadata: Metadata = {
   title: "FAQ & Guide | Kitty Kingdom",
-  description: "Answers and guides for Kitty Kingdom: getting started, Leaves and the economy, levels, casino games, boosting and Patreon perks, dating and the website.",
+  description: "Answers and guides for Kitty Kingdom: getting started, the server currency and economy, levels, casino games, boosting and Patreon perks, dating and the website.",
 };
 
 export default async function FaqPage() {

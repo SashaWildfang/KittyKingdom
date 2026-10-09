@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getDiscordInviteSummary } from "../../lib/discord";
+import { SiteLogo } from "../ui-icons";
 
 export const dynamic = "force-dynamic";
 
@@ -18,9 +19,8 @@ export default async function DiscordPage() {
           href="/home"
           aria-label="Kitty Kingdom home"
         >
-          <img
+          <SiteLogo
             className="auth-logo-img"
-            src="/logo.png"
             alt="Kitty Kingdom logo"
           />
         </Link>

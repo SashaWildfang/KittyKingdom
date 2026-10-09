@@ -108,7 +108,7 @@ const sections: LegalSection[] = [
     body: (
       <>
         <p>
-          Staff may review, edit, hide or remove content, and may warn, mute, kick, ban, restrict, reset or remove any account, role, item, Leaves or
+          Staff may review, edit, hide or remove content, and may warn, mute, kick, ban, restrict, reset or remove any account, role, item, currency or
           feature access, at any time, with or without notice, if we believe the Rules were broken or to protect the community. Automated systems may also
           take these actions.
         </p>
@@ -122,18 +122,18 @@ const sections: LegalSection[] = [
   },
   {
     id: "economy",
-    title: "Leaves, the store and virtual items",
+    title: "Server currency, the store and virtual items",
     body: (
       <>
         <ul>
           <li>
-            Leaves, XP, levels, store items, roles, boosters and other virtual items (&quot;<b>Virtual Items</b>&quot;) are a free, for-fun part of the
+            The server currency (Leaves, Snowflakes, Butterflies or Crabs, depending on the season), XP, levels, store items, roles, boosters and other virtual items (&quot;<b>Virtual Items</b>&quot;) are a free, for-fun part of the
             community. <b>They have no real-world monetary value</b>, are not your property, and cannot be sold, exchanged or redeemed for money or anything
             of value outside the Services.
           </li>
           <li>You receive a limited, revocable licence to use Virtual Items within the Services. Gifting items to other members through the store is allowed; trading them for anything outside the Services is not.</li>
           <li>Prices, rewards, drop rates, stock and multipliers can change at any time. We may adjust, correct, reset or remove Virtual Items, for example to fix a bug or undo an exploit.</li>
-          <li>Games of chance in the Server use Leaves only and involve no real money. All purchases and game results are final.</li>
+          <li>Games of chance in the Server use the server currency only and involve no real money. All purchases and game results are final.</li>
           <li>Virtual Items may be lost if your account is banned or deleted, or if you leave the Server, and they will not be refunded or restored.</li>
         </ul>
       </>
@@ -145,7 +145,7 @@ const sections: LegalSection[] = [
     body: (
       <p>
         Supporting Kitty Kingdom through Patreon or Discord Server Boosts is optional and does not buy an exemption from the Rules. Payments are handled by
-        Patreon or Discord under their own terms, and refunds are governed by those terms. Supporter perks (such as roles and XP or Leaf bonuses) are provided
+        Patreon or Discord under their own terms, and refunds are governed by those terms. Supporter perks (such as roles and XP or currency bonuses) are provided
         while your support is active, may change over time, and may be removed if you break the Rules or reverse a payment.
       </p>
     ),
@@ -305,7 +305,7 @@ export default function TermsPage() {
       parts={[
         { title: "The basics", ids: ["agreement", "eligibility", "accounts"] },
         { title: "Community rules", ids: ["conduct", "content", "moderation"] },
-        { title: "Leaves, perks & features", ids: ["economy", "support", "features"] },
+        { title: "Currency, perks & features", ids: ["economy", "support", "features"] },
         { title: "Legal details", ids: ["ip", "third-party", "availability", "termination", "disclaimers", "liability", "indemnity", "disputes", "general", "changes", "contact"] },
       ]}
       intro={
@@ -320,7 +320,7 @@ export default function TermsPage() {
             <li>You must be <b>18 or older</b> and follow the Server rules and Discord&apos;s terms.</li>
             <li>Be kind. Harassment, illegal content, scams and exploiting bugs get you removed.</li>
             <li>The Server is logged and tickets are recorded so staff can keep everyone safe.</li>
-            <li>Leaves and store items are just for fun: they have no real-money value and can change.</li>
+            <li>The server currency and store items are just for fun: they have no real-money value and can change.</li>
             <li>Staff can moderate content and accounts, and you can appeal through a ticket.</li>
           </ul>
         </>

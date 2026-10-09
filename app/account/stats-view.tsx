@@ -65,6 +65,7 @@ import { TopicMap } from "./stats-topics";
 import { TrendsCard } from "./stats-trends";
 import { EmojiText } from "../games/emoji-text";
 import { PersonalGamesStats } from "../games/stats-ui";
+import { CurrencyName, useCurrency } from "../season-context";
 
 const POLL_MS = 7_000;
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -540,6 +541,7 @@ function PersonDetail({ p, onClose }: { p: CirclePerson; onClose: () => void }) 
 
 // ---------- The page ----------
 export function StatsView({ onBack }: { onBack: () => void }) {
+  const cur = useCurrency();
   const [stats, setStats] = useState<MemberStats | null>(null);
   const [badges, setBadges] = useState<EarnedBadge[]>([]);
   const [showcase, setShowcase] = useState<BadgeShowcase>({ pinned: [], title: null });
@@ -641,7 +643,7 @@ export function StatsView({ onBack }: { onBack: () => void }) {
     ? [
         { label: "Messages", you: m.total, avg: s.compare.messages, format: compact },
         { label: "Level", you: s.level.level, avg: s.compare.level, format: (n: number) => (Math.round(n * 10) / 10).toString() },
-        { label: "Leaves", you: s.economy.balance, avg: s.compare.balance, format: compact },
+        { label: cur.many, you: s.economy.balance, avg: s.compare.balance, format: compact },
         { label: "Voice time", you: s.voice.totalSeconds, avg: s.compare.voiceSeconds, format: duration },
       ]
     : [];
@@ -668,7 +670,7 @@ export function StatsView({ onBack }: { onBack: () => void }) {
         <div className="st-tab" key="overview">
           <div className="st-tiles">
             <Tile icon={<MessageCircle size={18} />} label="Messages" value={<Count value={m.total} format={compact} />} sub={`#${fmt(m.rank)} of ${fmt(m.of)}`} spark={s.trends.spark} onClick={() => go("activity")} />
-            <Tile icon={<LeafEmote size={18} />} label="Leaves" value={<Count value={s.economy.balance} format={compact} />} sub={`#${fmt(s.economy.rank)} richest`} tone="gold" onClick={() => go("economy")} />
+            <Tile icon={<LeafEmote size={18} />} label={cur.many} value={<Count value={s.economy.balance} format={compact} />} sub={`#${fmt(s.economy.rank)} richest`} tone="gold" onClick={() => go("economy")} />
             <Tile icon={<Headphones size={18} />} label="Voice time" value={duration(s.voice.totalSeconds)} sub={`${duration(s.voice.monthSeconds)} this month`} tone="blue" onClick={() => go("voice")} />
             <Tile icon={<Flame size={18} />} label="Chat streak" value={<Count value={m.currentStreak} />} sub={`best ${fmt(m.longestStreak)} days`} tone="ember" onClick={() => go("activity")} />
             <Tile icon={<Users size={18} />} label="People you talk to" value={<Count value={s.records.people} />} sub={bestie ? `bestie: ${bestie.name}` : "—"} tone="rose" onClick={() => go("social")} />
@@ -743,7 +745,7 @@ export function StatsView({ onBack }: { onBack: () => void }) {
             <Card title="Boosts" icon={<Zap size={17} />}>
               <div className="st-mults">
                 <div><span>XP</span><strong>{s.multipliers.xp.toFixed(2)}×</strong></div>
-                <div><span>Leaves</span><strong>{s.multipliers.leaves.toFixed(2)}×</strong></div>
+                <div><span>{cur.many}</span><strong>{s.multipliers.leaves.toFixed(2)}×</strong></div>
               </div>
               <ul className="st-checks">
                 <li className={s.multipliers.booster ? "is-on" : undefined}><Rocket size={14} aria-hidden="true" /> Server booster {s.multipliers.booster ? "(+15%)" : ""}</li>
@@ -1147,7 +1149,7 @@ export function StatsView({ onBack }: { onBack: () => void }) {
             <Tile icon={<MonitorUp size={18} />} label="Streaming" value={duration(s.voice.streamSeconds)} tone="green" />
             <Tile icon={<Camera size={18} />} label="Camera on" value={duration(s.voice.cameraSeconds)} tone="green" />
             <Tile icon={<VolumeX size={18} />} label="Muted" value={s.voice.trackedSeconds && s.voice.mutedSeconds ? pct(Math.min(1, s.voice.mutedSeconds / Math.max(s.voice.trackedSeconds, s.voice.totalSeconds))) : "—"} sub="of your VC time, self-muted" tone="rose" />
-            <Tile icon={<Coins size={18} />} label="Earned in VC" value={s.voice.rewards ? compact(s.voice.rewards.leaves) : "—"} sub={s.voice.rewards ? `leaves · ${compact(s.voice.rewards.xp)} XP` : undefined} tone="gold" />
+            <Tile icon={<Coins size={18} />} label="Earned in VC" value={s.voice.rewards ? compact(s.voice.rewards.leaves) : "—"} sub={s.voice.rewards ? `${cur.lower} · ${compact(s.voice.rewards.xp)} XP` : undefined} tone="gold" />
             <Tile icon={<Users size={18} />} label="Sessions with others" value={s.voice.rewards ? fmt(s.voice.rewards.withOthers) : "—"} sub={s.voice.rewards ? `${fmt(s.voice.rewards.solo)} solo` : undefined} tone="blue" />
           </div>
           <div className="st-grid">
@@ -1202,7 +1204,7 @@ export function StatsView({ onBack }: { onBack: () => void }) {
 
       {tab === "economy" ? (
         <div className="st-grid st-tab" key="economy">
-          <Card title="Leaves" icon={<LeafEmote size={17} />}>
+          <Card title={cur.many} icon={<LeafEmote size={17} />}>
             <div className="st-trends">
               <div>
                 <span>Balance</span>
@@ -1325,7 +1327,7 @@ export function StatsView({ onBack }: { onBack: () => void }) {
       ) : null}
 
       <p className="st-footnote">
-        Levels, leaves, total messages and voice time come straight from the bot. Channels, besties, emojis, reactions and hours are counted
+        Levels, <CurrencyName lower />, total messages and voice time come straight from the bot. Channels, besties, emojis, reactions and hours are counted
         {s.countedSince ? ` since ${dateLabel(s.countedSince)}` : " from now on"}. Times are shown in your time zone.
       </p>
     </div>
