@@ -377,6 +377,48 @@ async function liftBan(discordId: string, actor: PanelUser) {
   return Boolean(res && (res.ok || res.status === 404));
 }
 
+/** Records an accepted appeal's unban like the bot records one, so it shows on the Overview, in Punishments and on the member's record. */
+async function logAppealUnban(appeal: Document, byId: string, at: Date) {
+  const id = String(appeal.discordId);
+  // Claim it first, so two server instances can't both write the record
+  const claimed = await (await appealsCol()).updateOne({ _id: appeal._id, unbanLogged: { $ne: true } }, { $set: { unbanLogged: true } });
+  if (!claimed.modifiedCount) return;
+  try {
+    await insertUnban(appeal, id, byId, at);
+  } catch (error) {
+    await (await appealsCol()).updateOne({ _id: appeal._id }, { $set: { unbanLogged: false } }).catch(() => undefined);
+    throw error;
+  }
+}
+
+async function insertUnban(appeal: Document, id: string, byId: string, at: Date) {
+  await (await getBotCollection("punishments")).insertOne({
+    user_discord_id: /^\d{15,25}$/.test(id) ? Long.fromString(id) : id,
+    issuer_discord_id: /^\d{15,25}$/.test(byId) ? Long.fromString(byId) : byId,
+    action: "unban",
+    reason: `Appeal accepted (${reference(appeal._id as ObjectId)})`,
+    duration_seconds: null,
+    timestamp: at,
+    expires_at: new Date(at.getTime() + 86_400_000),
+    extra_info: "Unbanned via appeal on the website",
+    appealable: false,
+  });
+}
+
+let backfilled = false;
+/** Appeals accepted before unbans were recorded: add their unban records once. */
+export async function backfillAppealUnbans() {
+  if (backfilled) return;
+  backfilled = true;
+  try {
+    const missing = await (await appealsCol()).find({ status: "accepted", lifted: true, unbanLogged: { $ne: true } }).limit(200).toArray();
+    for (const a of missing) await logAppealUnban(a, String(a.decidedById ?? ""), a.decidedAt instanceof Date ? a.decidedAt : new Date());
+  } catch (error) {
+    backfilled = false;
+    console.error("Appeal unban backfill failed", error);
+  }
+}
+
 /** Accept or deny an appeal, with an optional reply (emailed if they left an address). */
 export async function decideAppeal(id: string, actor: PanelUser, input: { decision?: unknown; response?: unknown; liftBan?: unknown }) {
   if (!ObjectId.isValid(id)) throw new AppealError("Unknown appeal.", 404);
@@ -400,6 +442,7 @@ export async function decideAppeal(id: string, actor: PanelUser, input: { decisi
     { $set: { status: decision, decidedAt: now, decidedBy: actor.name, decidedById: actor.discordId, response: response || null, lifted }, $push: { history: { $each: history } } } as Document,
   );
   if (!res.modifiedCount) throw new AppealError("This appeal was already decided.", 409);
+  if (lifted) await logAppealUnban(appeal, actor.discordId, now).catch((e) => console.error("Couldn't record the appeal unban", e));
 
   const ref = reference(appeal._id as ObjectId);
   if (appeal.email) {

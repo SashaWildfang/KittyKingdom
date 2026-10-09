@@ -3,6 +3,7 @@ import { requirePanel } from "../../../../lib/admin";
 import { dateRange, listParam, people } from "../../../../lib/admin-people";
 import { resolveMentions } from "../../../../lib/discord-mentions";
 import { queryPunishments, type PunishmentQuery } from "../../../../lib/moderation";
+import { backfillAppealUnbans } from "../../../../lib/appeals";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 15;
@@ -10,6 +11,7 @@ export const maxDuration = 15;
 export async function GET(request: Request) {
   const panel = await requirePanel(request);
   if (panel instanceof NextResponse) return panel;
+  await backfillAppealUnbans();
   try {
     const params = new URL(request.url).searchParams;
     const { from, to } = dateRange(params);
