@@ -8,6 +8,7 @@
 import { ObjectId, type Document } from "mongodb";
 import { people, type Person } from "./admin-people";
 import { getBotCollection } from "./mongodb";
+import { RETIRED_ITEM_IDS } from "./store";
 
 export class GiveawayError extends Error {
   constructor(message: string, public status = 400) {
@@ -147,7 +148,7 @@ async function cleanPrize(raw: Partial<Prize> | undefined): Promise<Prize> {
   if (type === "leaves") return { type, amount: whole(raw?.amount, "The Leaves prize", 1, 10_000_000) };
   if (type === "item") {
     const itemId = String(raw?.itemId ?? "");
-    const item = itemId ? await (await getBotCollection("store_inventory")).findOne({ item_id: itemId }) : null;
+    const item = itemId && !RETIRED_ITEM_IDS.includes(itemId) ? await (await getBotCollection("store_inventory")).findOne({ item_id: itemId, retired: { $ne: true } }) : null;
     if (!item) throw new GiveawayError("Pick a store item for the prize.");
     return { type, itemId, itemName: String(item.name ?? itemId), quantity: whole(raw?.quantity ?? 1, "The item quantity", 1, 25) };
   }
@@ -269,7 +270,7 @@ export async function getGiveaway(id: string, page = 1) {
 }
 
 export async function storeItems(): Promise<StoreItem[]> {
-  const docs = await (await getBotCollection("store_inventory")).find({}, { projection: { item_id: 1, name: 1, price: 1, image_url: 1, category: 1, is_active: 1, role_id: 1 } }).toArray();
+  const docs = await (await getBotCollection("store_inventory")).find({ item_id: { $nin: RETIRED_ITEM_IDS }, retired: { $ne: true } }, { projection: { item_id: 1, name: 1, price: 1, image_url: 1, category: 1, is_active: 1, role_id: 1 } }).toArray();
   return docs
     .map((d) => ({
       id: String(d.item_id),
