@@ -380,6 +380,18 @@ async function liftBan(discordId: string, actor: PanelUser) {
 /** Records an accepted appeal's unban like the bot records one, so it shows on the Overview, in Punishments and on the member's record. */
 async function logAppealUnban(appeal: Document, byId: string, at: Date) {
   const id = String(appeal.discordId);
+  // Claim it first, so two server instances can't both write the record
+  const claimed = await (await appealsCol()).updateOne({ _id: appeal._id, unbanLogged: { $ne: true } }, { $set: { unbanLogged: true } });
+  if (!claimed.modifiedCount) return;
+  try {
+    await insertUnban(appeal, id, byId, at);
+  } catch (error) {
+    await (await appealsCol()).updateOne({ _id: appeal._id }, { $set: { unbanLogged: false } }).catch(() => undefined);
+    throw error;
+  }
+}
+
+async function insertUnban(appeal: Document, id: string, byId: string, at: Date) {
   await (await getBotCollection("punishments")).insertOne({
     user_discord_id: /^\d{15,25}$/.test(id) ? Long.fromString(id) : id,
     issuer_discord_id: /^\d{15,25}$/.test(byId) ? Long.fromString(byId) : byId,
@@ -391,7 +403,6 @@ async function logAppealUnban(appeal: Document, byId: string, at: Date) {
     extra_info: "Unbanned via appeal on the website",
     appealable: false,
   });
-  await (await appealsCol()).updateOne({ _id: appeal._id }, { $set: { unbanLogged: true } });
 }
 
 let backfilled = false;
