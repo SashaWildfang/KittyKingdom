@@ -28,7 +28,7 @@ const NUMBERS: { key: keyof typeof AD_LIMITS; label: string; unit: string; hint:
 
 /** Admin → Ads: the bot's server tips. Settings reach the bot within a minute. */
 export function AdsTab() {
-  const { data, reload } = useLive<Overview>("/api/admin/ads", 60_000);
+  const { data, error, reload } = useLive<Overview>("/api/admin/ads", 60_000);
   const [form, setForm] = useState<AdSettings | null>(null);
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -38,7 +38,17 @@ export function AdsTab() {
     if (data?.settings && !dirty) setForm(data.settings);
   }, [data, dirty]);
 
-  if (!data) return <div className="adm-skeleton" style={{ height: 420 }} />;
+  // A failed load used to leave an empty box forever: say so, with a retry
+  if (!data && error)
+    return (
+      <div className="adm-error" role="alert">
+        Couldn&apos;t load the ad settings: {error}{" "}
+        <button type="button" className="adm-btn adm-btn--small" onClick={() => void reload()}>
+          Retry
+        </button>
+      </div>
+    );
+  if (!data || (data.ok && !form)) return <div className="adm-skeleton" style={{ height: 420 }} />;
   if (!data.ok || !form) return <p className="adm-error">{data.error ?? "Couldn't load the ad settings."}</p>;
 
   const change = (patch: Partial<AdSettings>) => {

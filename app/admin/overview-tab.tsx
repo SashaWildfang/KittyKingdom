@@ -177,11 +177,10 @@ export function OverviewTab({
             value={p?.bySource.automod ?? (p ? 0 : undefined)}
             hint={p?.total ? `${Math.round(((p.bySource.automod ?? 0) / p.total) * 100)}% of all` : undefined}
           />
+          <Kpi label="Unbans" value={p ? count("unban") : undefined} tone="green" hint="including accepted appeals" onClick={() => onFilterPunishments("unban")} />
           {isAdmin ? (
             <Kpi label="Tickets" value={t?.total} tone="blue" hint={t ? `${t.open ? `${t.open} open now` : "none open now"} · avg ${formatMs(t.avgResolveMs)} to close` : undefined} />
-          ) : (
-            <Kpi label="Unbans" value={p ? count("unban") : undefined} tone="green" onClick={() => onFilterPunishments("unban")} />
-          )}
+          ) : null}
         </div>
       ) : null}
 
