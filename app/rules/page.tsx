@@ -34,6 +34,7 @@ import { DISCORD_INVITE } from "../faq/content";
 import { FallingLeaves } from "../fall-effects";
 import { SiteNav } from "../site-nav";
 import "./rules.css";
+import { seasonal } from "../../lib/season-store";
 
 export const metadata: Metadata = {
   title: "Server Rules | Kitty Kingdom",
@@ -63,7 +64,7 @@ const noEmoji = (text: string) => stripEmojis(text);
 
 /** **bold**, [links](url) and `code`, the only formatting the rules use. */
 function Md({ text: raw }: { text: string }) {
-  const text = noEmoji(raw);
+  const text = seasonal(noEmoji(raw));
   const out: ReactNode[] = [];
   const re = /\*\*(.+?)\*\*|\[([^\]]+)\]\(([^)]+)\)|`([^`]+)`/g;
   let last = 0;

@@ -8,6 +8,7 @@ import { LeafEmote } from "../ui-icons";
 import { TierIcon } from "../tier-icon";
 import { ColorPicker } from "./color-picker";
 import "./supporter-card.css";
+import { CurrencyName, useCurrency } from "../season-context";
 
 const HOLO = ["#A9C9FF", "#FFBBEC", "#FFC3A0"];
 
@@ -72,6 +73,7 @@ function RolePreview({ name, style, color, color2, icon, displayName }: { name: 
 }
 
 export function SupporterCard({ displayName }: { displayName: string }) {
+  const cur = useCurrency();
   const [status, setStatus] = useState<SupporterStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -162,7 +164,7 @@ export function SupporterCard({ displayName }: { displayName: string }) {
           <div>
             <b>Become a supporter and unlock a lot more</b>
             <p>
-              Patreon tiers start at <b>$5/month</b> with {TIERS[0].monthly.toLocaleString()} <LeafEmote size={14} /> every month, bigger XP and Leaf bonuses and a bigger Daily Reward. From <b>$10</b> you get your own <b>custom role</b>, designed right here.
+              Patreon tiers start at <b>$5/month</b> with {TIERS[0].monthly.toLocaleString()} <LeafEmote size={14} /> every month, bigger XP and <CurrencyName one /> bonuses and a bigger Daily Reward. From <b>$10</b> you get your own <b>custom role</b>, designed right here.
             </p>
           </div>
         </div>
@@ -236,13 +238,13 @@ export function SupporterCard({ displayName }: { displayName: string }) {
         {tier ? (
           <div>
             <h4><TierIcon tier={tier.key} size={16} /> {tier.titles[status.variant]} perks</h4>
-            <ul>{tierPerks(tier).map((p) => <li key={p}><Check size={14} aria-hidden="true" /> {p}</li>)}</ul>
+            <ul>{tierPerks(tier).map((p) => <li key={p}><Check size={14} aria-hidden="true" /> {cur.text(p)}</li>)}</ul>
           </div>
         ) : null}
         {status.nitro ? (
           <div>
             <h4><TierIcon tier="nitro" size={16} /> Nitro Booster</h4>
-            <ul>{NITRO_PERKS.map((p) => <li key={p}><Check size={14} aria-hidden="true" /> {p}</li>)}</ul>
+            <ul>{NITRO_PERKS.map((p) => <li key={p}><Check size={14} aria-hidden="true" /> {cur.text(p)}</li>)}</ul>
           </div>
         ) : null}
       </div>

@@ -3,6 +3,7 @@
 import { CalendarDays, CalendarRange, CircleCheck, Crown, Flame, Medal, Megaphone, MessageCircle, Mic, Search, Star, Trophy, type LucideIcon } from "lucide-react";
 import { LeafEmote } from "../ui-icons";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCurrency } from "../season-context";
 
 type SortKey =
   | "balance"
@@ -170,6 +171,10 @@ function timeAgo(ms: number) {
 }
 
 export function LeaderboardsClient() {
+  const cur = useCurrency();
+  // The balance board is named after the season's currency (the list is shared by everything below)
+  stats[0].label = cur.many;
+  stats[0].short = cur.many;
   const [sort, setSort] = useState<SortKey>("balance");
   const [order, setOrder] = useState<SortOrder>("desc");
   const [search, setSearch] = useState("");
@@ -397,7 +402,7 @@ export function LeaderboardsClient() {
               <div className="lb-standing-body">
                 <p className="lb-standing-value">
                   <StatIcon stat={stat} size={20} />
-                  <AnimatedValue value={standing.value} stat={stat} /> <small>{stat.type === "leafs" ? "leafs" : lowerLabel(stat.label)}</small>
+                  <AnimatedValue value={standing.value} stat={stat} /> <small>{stat.type === "leafs" ? cur.lower : lowerLabel(stat.label)}</small>
                 </p>
                 {standing.rank === 1 && order === "desc" ? (
                   <p className="lb-standing-note"><Crown size={15} className="lb-crown-inline" aria-hidden="true" /> You&apos;re in first place. Hold the crown!</p>

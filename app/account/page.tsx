@@ -40,6 +40,7 @@ import { AccountViews, StatsButton } from "./account-views";
 import { ProfileBadges } from "./profile-badges";
 import type { BadgeShowcase } from "../../lib/badges";
 import { accountName } from "../../lib/names";
+import { seasonal } from "../../lib/season-store";
 
 const statusMessages: Record<string, string> = {
   "contact-saved": "Phone number saved.",
@@ -257,7 +258,7 @@ export default async function AccountPage({
         {/* ---------- Main column (swaps to the stats page on #stats) ---------- */}
         <AccountViews>
           {discordLinked ? (
-            <CollapsibleCard id="daily" defaultOpen={!collapsed.has("daily")} title="Daily Reward" description="Claim free leaves once a day. Claim every day to build your streak." summary={dailyReady ? "🎁 Ready to claim!" : undefined}>
+            <CollapsibleCard id="daily" defaultOpen={!collapsed.has("daily")} title="Daily Reward" description={seasonal("Claim free leaves once a day. Claim every day to build your streak.")} summary={dailyReady ? "🎁 Ready to claim!" : undefined}>
               <DailyCard initial={dailyStatus} guildId={serverId} />
             </CollapsibleCard>
           ) : null}

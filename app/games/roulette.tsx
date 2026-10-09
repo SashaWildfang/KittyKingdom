@@ -4,6 +4,7 @@ import { Eye, RotateCcw, Trash2, Users, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { LeafEmote } from "../ui-icons";
 import { Confetti } from "./games-client";
+import { useCurrency } from "../season-context";
 
 // European wheel order, clockwise from zero
 const WHEEL = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26];
@@ -274,12 +275,13 @@ const spotTone = (k: string) => (k.startsWith("n") ? colorOf(Number(k.slice(1)))
 
 /** What someone has on the table: one small tag per spot, biggest first. */
 function BetTags({ bets }: { bets: Record<string, number> }) {
+  const cur = useCurrency();
   const list = Object.entries(bets).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
   if (!list.length) return null;
   return (
     <span className="rl-tags">
       {list.map(([k, v]) => (
-        <span key={k} className={`rl-tag is-${spotTone(k)}`} title={`${spotLabel(k)}: ${v.toLocaleString()} leaves`}>
+        <span key={k} className={`rl-tag is-${spotTone(k)}`} title={`${spotLabel(k)}: ${v.toLocaleString()} ${cur.lower}`}>
           <i>{spotLabel(k)}</i> {short(v)}
         </span>
       ))}
@@ -288,8 +290,9 @@ function BetTags({ bets }: { bets: Record<string, number> }) {
 }
 
 function Spot({ k, label, className, mine, others, win, disabled, onBet, style }: { k: string; label: React.ReactNode; className?: string; mine: number; others: Player[]; win: boolean; disabled: boolean; onBet: (k: string) => void; style?: CSSProperties }) {
+  const cur = useCurrency();
   return (
-    <button type="button" className={`rl-spot ${className ?? ""}${win ? " is-win" : ""}${mine > 0 ? " is-mine" : ""}`} style={style} disabled={disabled} onClick={() => onBet(k)} aria-label={`Bet on ${spotLabel(k)}${mine > 0 ? ` (you have ${mine} on it)` : ""}`} title={mine > 0 ? `Your bet: ${mine.toLocaleString()} leaves` : undefined}>
+    <button type="button" className={`rl-spot ${className ?? ""}${win ? " is-win" : ""}${mine > 0 ? " is-mine" : ""}`} style={style} disabled={disabled} onClick={() => onBet(k)} aria-label={`Bet on ${spotLabel(k)}${mine > 0 ? ` (you have ${mine} on it)` : ""}`} title={mine > 0 ? `Your bet: ${mine.toLocaleString()} ${cur.lower}` : undefined}>
       <span className="rl-spot-label">{label}</span>
       {others.length ? (
         <span className="rl-others" aria-hidden="true">

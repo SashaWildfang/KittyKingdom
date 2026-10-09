@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { findResetUser } from "../../lib/password-reset";
 import { PasswordField } from "../password-field";
+import { SiteLogo } from "../ui-icons";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export default async function ResetPasswordPage({ searchParams }: { searchParams
       <div className="auth-backdrop" />
       <section className="auth-card minehut-card">
         <Link className="auth-logo" href="/" aria-label="Kitty Kingdom home">
-          <img className="auth-logo-img" src="/logo.png" alt="Kitty Kingdom logo" />
+          <SiteLogo className="auth-logo-img" alt="Kitty Kingdom logo" />
         </Link>
         <h1>Choose a new password</h1>
         {valid ? (

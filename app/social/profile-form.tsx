@@ -9,6 +9,7 @@ import { createPortal } from "react-dom";
 import { ACCENTS, FIELDS, MAX_FURSONAS, MAX_PHOTOS, MAX_PROMPTS, PROMPTS } from "../../lib/dating/schema";
 import { SectionIcon } from "./icons";
 import { Chips, Photo, cropStyle, type Crop } from "./ui";
+import { CurrencyName } from "../season-context";
 
 export type Own = {
   values: Record<string, unknown>;
@@ -636,7 +637,7 @@ export function LooksEditor({ web, onChange, name }: { web: Own["web"]; onChange
       <div className="dt-field">
         <label>Banner</label>
         <p className="dt-help">
-          Banners come from the <a href="/store">Store</a>: buy one with leaves and equip it in your Locker. Without one you get the cozy paw pattern in your color.
+          Banners come from the <a href="/store">Store</a>: buy one with <CurrencyName lower /> and equip it in your Locker. Without one you get the cozy paw pattern in your color.
         </p>
         <div className="dt-banner-preview dt-banner-default" style={{ "--acc": accent } as CSSProperties}>
           <span className="dt-banner-name">

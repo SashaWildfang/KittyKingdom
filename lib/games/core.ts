@@ -6,10 +6,12 @@
 import { randomInt } from "node:crypto";
 import { Long, type Document } from "mongodb";
 import { getBotCollection } from "../mongodb";
+import { seasonal } from "../season-store";
 
 export class GameError extends Error {
   constructor(message: string, public status = 400) {
-    super(message);
+    // Messages are written with the autumn words ("leaves"); the season swaps them
+    super(seasonal(message));
   }
 }
 

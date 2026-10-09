@@ -25,6 +25,7 @@ import { canViewStaffPage, getCurrentUser } from "../lib/auth";
 import { canSeeDating } from "../lib/dating/access";
 import { REVIEWS_URL } from "../lib/reviews";
 import { ThemeSwitch } from "./theme-switch";
+import { SiteLogo } from "./ui-icons";
 
 const DISCORD_INVITE = "https://discord.com/invite/M9XKHFdYQV";
 const PATREON_URL = "https://www.patreon.com/c/thekittykingdom/membership";
@@ -49,7 +50,7 @@ export async function SiteFooter() {
         <div className="site-footer-brand">
           <a className="site-footer-logo" href="/home" aria-label="Kitty Kingdom home">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="" width="44" height="44" />
+            <SiteLogo alt="" width="44" height="44" />
             <span>
               <strong>Kitty Kingdom</strong>
               <small>A cozy 18+ furry community</small>

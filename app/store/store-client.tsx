@@ -9,6 +9,7 @@ import { LeafEmote, StoreItemIcon } from "../ui-icons";
 import { Locker } from "./locker";
 import { TradesView } from "./trades";
 import { Celebrate, CountUp, SocialMini, StoreBackdrop, tiltHandlers } from "./store-fx";
+import { CurrencyName } from "../season-context";
 
 const MAX_BUY = 50;
 const POLL_MS = 15000;
@@ -329,7 +330,7 @@ export function StoreClient({ initialState, inventoryOnly = false }: { initialSt
             <h1>
               The <span className="store-hero-shine">Kingdom</span> Store
             </h1>
-            <p className="store-sub">Cosmetics, perks, Social boosts, roles and gifts. Spend your leaves and make your profile yours.</p>
+            <p className="store-sub">Cosmetics, perks, Social boosts, roles and gifts. Spend your <CurrencyName lower /> and make your profile yours.</p>
           </div>
           <div className="store-wallet" aria-live="polite">
             <span className="store-wallet-label">Your balance</span>
@@ -1254,7 +1255,7 @@ function CartDrawer({ lines, balance, total, busy, onClose, onQty, onCheckout }:
             </dl>
             {short > 0 ? (
               <p className="store-cart-warn">
-                <CircleAlert size={15} aria-hidden="true" /> You need {short.toLocaleString()} more leaves. Remove something or come back later.
+                <CircleAlert size={15} aria-hidden="true" /> You need {short.toLocaleString()} more <CurrencyName lower />. Remove something or come back later.
               </p>
             ) : null}
             <button type="button" className="store-primary store-checkout" disabled={busy || short > 0} onClick={onCheckout}>
