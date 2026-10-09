@@ -1,7 +1,7 @@
 "use client";
 
 import { TicketDeletePermissions } from "./delete-ticket-button";
-import { Activity, AtSign, BarChart3, Bot, Coins, History, Megaphone, Server, Shield as ShieldIcon, BookOpen, Crown, Hammer, ClipboardCheck, Dices, Gavel, Globe, HeartHandshake, Mail, MessagesSquare, Newspaper, Scale, ScrollText, ShieldCheck, Ticket, Users, type LucideIcon } from "lucide-react";
+import { Activity, Archive, AtSign, BarChart3, Bot, Coins, History, Megaphone, Server, Shield as ShieldIcon, BookOpen, Crown, Hammer, ClipboardCheck, Dices, Gavel, Globe, HeartHandshake, Mail, MessagesSquare, Newspaper, Scale, ScrollText, ShieldCheck, Ticket, Users, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AccountsTab } from "./accounts-tab";
@@ -22,6 +22,7 @@ import { NewsTab } from "./news-tab";
 import { PatreonTab } from "./patreon-tab";
 import { EmailsTab } from "./emails-tab";
 import { AdsTab } from "./ads-tab";
+import { RemovedTab } from "./removed-tab";
 import { BotSettingsTab } from "./bots/bot-settings-tab";
 import { BotsHistoryTab } from "./bots/change-log";
 import { ServerSettingsTab } from "./bots/server-tab";
@@ -31,14 +32,14 @@ import { DEFAULT_PUNISHMENT_FILTERS, PunishmentsTab, type PunishmentFilters } fr
 import { TicketsTab } from "./tickets-tab";
 import { TranscriptViewer } from "./transcript-viewer";
 
-type Tab = "overview" | "punishments" | "automod" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live" | "join" | "dating" | "appeals" | "messages" | "games" | "guide" | "banrequests" | "patreon" | "emails" | "ads" | "bot-main" | "bot-economy" | "bot-moderation" | "bot-ticketing" | "server" | "bot-history";
+type Tab = "overview" | "punishments" | "automod" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live" | "join" | "dating" | "appeals" | "messages" | "games" | "guide" | "banrequests" | "patreon" | "emails" | "ads" | "bot-main" | "bot-economy" | "bot-moderation" | "bot-ticketing" | "server" | "bot-history" | "removed";
 type Level = "admin" | "staff";
 
 // Tabs are grouped so the bar stays short: pick a group, then one of its tabs
 type Group = "overview" | "moderation" | "members" | "website" | "bots";
 const GROUPS: { key: Group; label: string; icon: LucideIcon; tabs: Tab[] }[] = [
   { key: "overview", label: "Overview", icon: BarChart3, tabs: ["overview", "guide"] },
-  { key: "moderation", label: "Moderation", icon: Gavel, tabs: ["punishments", "banrequests", "appeals", "automod", "logs", "live"] },
+  { key: "moderation", label: "Moderation", icon: Gavel, tabs: ["punishments", "banrequests", "appeals", "automod", "logs", "live", "removed"] },
   { key: "members", label: "Members", icon: Users, tabs: ["join", "tickets", "dating", "messages", "games", "patreon"] },
   { key: "website", label: "Website", icon: Globe, tabs: ["accounts", "emails", "news", "ads", "traffic"] },
   { key: "bots", label: "Bots", icon: Bot, tabs: ["bot-main", "bot-economy", "bot-moderation", "bot-ticketing", "server", "bot-history"] },
@@ -58,6 +59,7 @@ const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean }[] = [
   { key: "games", label: "Games", icon: Dices },
   { key: "patreon", label: "Patreon", icon: Crown, admin: true },
   { key: "live", label: "Live Chat", icon: MessagesSquare },
+  { key: "removed", label: "Removed messages", icon: Archive, admin: true },
   { key: "tickets", label: "Tickets", icon: Ticket, admin: true },
   { key: "accounts", label: "Accounts", icon: Users, admin: true },
   { key: "emails", label: "Emails", icon: AtSign, admin: true },
@@ -301,6 +303,7 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false }: { admin
       {isAdmin && tab === "emails" ? <EmailsTab /> : null}
       {isAdmin && tab === "news" ? <NewsTab /> : null}
       {isAdmin && tab === "ads" ? <AdsTab /> : null}
+      {isAdmin && tab === "removed" ? <RemovedTab /> : null}
       {isAdmin && tab === "bot-main" ? <BotSettingsTab key="main" botKey="main" /> : null}
       {isAdmin && tab === "bot-economy" ? <BotSettingsTab key="economy" botKey="economy" /> : null}
       {isAdmin && tab === "bot-moderation" ? <BotSettingsTab key="moderation" botKey="moderation" /> : null}
