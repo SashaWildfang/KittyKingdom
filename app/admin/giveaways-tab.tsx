@@ -26,7 +26,8 @@ import {
   X,
   XCircle,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import type { Giveaway, GiveawayInput, GiveawayList, Prize, StoreItem } from "../../lib/giveaways";
 import { Pager, formatDate, timeAgo, useLive, type People } from "./admin-shared";
 import { Picker, channelOptions, roleOptions, type Meta } from "./bots/pickers";
@@ -91,6 +92,18 @@ function useMeta() {
       .catch(() => undefined);
   }, []);
   return meta;
+}
+
+/** Overlays go on <body> so the page (and its footer) can't sit on top of them or scroll under them. */
+function Overlay({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+  return createPortal(children, document.body);
 }
 
 function useNow(ms = 1000) {
@@ -236,27 +249,31 @@ export function GiveawaysTab() {
       )}
 
       {editing ? (
-        <Editor
-          initial={editing === "new" ? null : editing}
-          meta={meta}
-          onClose={() => setEditing(null)}
-          onSaved={(id) => {
-            setEditing(null);
-            reload();
-            if (id) setOpen(id);
-          }}
-        />
+        <Overlay>
+          <Editor
+            initial={editing === "new" ? null : editing}
+            meta={meta}
+            onClose={() => setEditing(null)}
+            onSaved={(id) => {
+              setEditing(null);
+              reload();
+              if (id) setOpen(id);
+            }}
+          />
+        </Overlay>
       ) : null}
       {open && !editing ? (
-        <DetailDrawer
-          id={open}
-          meta={meta}
-          now={now}
-          onClose={() => setOpen(null)}
-          onEdit={(g) => setEditing(g)}
-          onChanged={reload}
-          onOpen={(id) => setOpen(id)}
-        />
+        <Overlay>
+          <DetailDrawer
+            id={open}
+            meta={meta}
+            now={now}
+            onClose={() => setOpen(null)}
+            onEdit={(g) => setEditing(g)}
+            onChanged={reload}
+            onOpen={(id) => setOpen(id)}
+          />
+        </Overlay>
       ) : null}
     </section>
   );

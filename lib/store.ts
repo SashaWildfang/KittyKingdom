@@ -31,7 +31,7 @@ const BOOSTER_LOG_CHANNEL_ID = "1358485891361804358"; // same channel the bot po
 const STAFF_LOG_CHANNEL_ID = "1360344042705256660"; // private staff log (gifts)
 
 // Items that no longer exist. Hidden everywhere on the site even if old copies are still in the database.
-const RETIRED_ITEM_IDS = ["booster_crab"];
+export const RETIRED_ITEM_IDS = ["booster_crab"];
 const isRetired = (item: Record<string, unknown>) =>
   RETIRED_ITEM_IDS.includes(String(item.item_id)) || item.retired === true;
 
