@@ -21,7 +21,9 @@ export async function GET(request: Request, { params }: { params: { c: string; m
     }
     if (!headers.get("content-type") && att.content_type) headers.set("content-type", att.content_type);
     const download = new URL(request.url).searchParams.get("download") === "1";
-    headers.set("Content-Disposition", `${download ? "attachment" : "inline"}; filename="${att.filename.replace(/"/g, "")}"`);
+    // ASCII fallback plus a UTF-8 filename* (headers can't hold emoji or non-Latin names directly)
+    const ascii = att.filename.replace(/[^\x20-\x7e]/g, "_").replace(/["\\]/g, "");
+    headers.set("Content-Disposition", `${download ? "attachment" : "inline"}; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(att.filename)}`);
     headers.set("Cache-Control", "private, max-age=900");
     headers.set("X-Content-Type-Options", "nosniff");
     headers.set("Content-Security-Policy", "sandbox; default-src 'none'; img-src 'self'; media-src 'self'; style-src 'unsafe-inline'");
