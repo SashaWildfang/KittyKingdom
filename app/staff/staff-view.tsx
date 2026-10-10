@@ -1,5 +1,5 @@
 import { userTimeZone } from "../../lib/timezone";
-import { BadgeCheck, Crown, LifeBuoy, Scale, ScrollText, Shield, Sparkles, Ticket } from "lucide-react";
+import { BadgeCheck, Crown, LifeBuoy, Megaphone, Scale, ScrollText, Shield, Sparkles, Ticket, Video } from "lucide-react";
 import "./staff.css";
 import { LeafEmote } from "../ui-icons";
 import type { CSSProperties, ReactNode } from "react";
@@ -32,7 +32,7 @@ function memberSince(date: Date) {
 
 function StaffGroupIcon({ name }: { name: string }) {
   if (name === "leaf") return <LeafEmote size={24} />;
-  const Icon = { crown: Crown, shield: Shield, sparkles: Sparkles }[name] ?? Sparkles;
+  const Icon = { crown: Crown, shield: Shield, sparkles: Sparkles, megaphone: Megaphone, video: Video }[name] ?? Sparkles;
   return <Icon size={22} />;
 }
 

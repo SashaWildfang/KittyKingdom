@@ -16466,6 +16466,9 @@ button.live-voice-member {
 
 /* Patreon tab in the top bar */
 .topbar .tabs a.nav-patreon-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: rgb(var(--ember-rgb));
 }
 
