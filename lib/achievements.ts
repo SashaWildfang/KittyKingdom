@@ -55,7 +55,7 @@ export async function achievementFeed(): Promise<AchievementFeed> {
     if (e.to <= e.from) continue; // dropped a tier: not an achievement
     const def = badgeById(e.id);
     if (!def) continue;
-    items.push({ kind: "badge", at: new Date(e.at).toISOString(), userId: String(d._id), badgeId: e.id, name: def.name, icon: def.icon, shape: def.shape, hue: def.hue, tier: e.to, tierName: TIER_NAMES[e.to - 1] ?? "", upgrade: e.from > 0 });
+    items.push({ kind: "badge", at: new Date(e.at).toISOString(), userId: String(d._id), badgeId: e.id, name: def.name, icon: def.icon, shape: def.shape, hue: def.hue, tier: e.to, tierName: def.tiers.length === 1 ? "Special" : TIER_NAMES[Math.min(e.to, 4) - 1] ?? "", upgrade: e.from > 0 });
     trendCount.set(e.id, (trendCount.get(e.id) ?? 0) + 1);
   }
   for (const w of wins) {
