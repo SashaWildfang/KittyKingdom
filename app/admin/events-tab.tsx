@@ -9,7 +9,7 @@ import { EVENT_KINDS, type EventKind, type ServerEvent } from "../../lib/events-
 import { MemberSearch, useLive, type People } from "./admin-shared";
 import { Picker, channelOptions, type Meta } from "./bots/pickers";
 
-type StaffEvent = ServerEvent & { discordEventId: string | null; lastError: string | null };
+type StaffEvent = ServerEvent & { discordEventId: string | null; lastError: string | null; posted: boolean; postError: string | null };
 type Data = { ok: boolean; upcoming: StaffEvent[]; past: StaffEvent[]; people: People };
 
 const KIND = Object.fromEntries(EVENT_KINDS.map((k) => [k.key, k]));
@@ -175,6 +175,19 @@ function EventRow({ e, people, channel, onEdit, onCopy, onChanged, past }: { e: 
               <span className="ev-sync">Adding to Discord…</span>
             )
           ) : null}
+          {e.post ? (
+            e.posted ? (
+              <span className="ev-sync is-ok">
+                <Check size={12} aria-hidden="true" /> Posted in #events
+              </span>
+            ) : e.postError ? (
+              <span className="ev-sync is-bad" title={e.postError}>
+                <AlertTriangle size={12} aria-hidden="true" /> Post: {e.postError}
+              </span>
+            ) : !e.cancelled ? (
+              <span className="ev-sync">Posting…</span>
+            ) : null
+          ) : null}
         </span>
         {guests ? (
           <div className="ev-guests">
@@ -239,6 +252,7 @@ function EventEditor({ initial, isNew, meta, onClose, onSaved }: { initial: Staf
     image: initial?.image ?? "",
     weekly: initial?.weekly ?? false,
     discord: initial?.discord ?? true,
+    post: initial?.post ?? true,
   });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -272,6 +286,7 @@ function EventEditor({ initial, isNew, meta, onClose, onSaved }: { initial: Staf
       image: f.image || null,
       weekly: f.weekly,
       discord: f.discord,
+      post: f.post,
     };
     try {
       if (isNew || !initial) await send("/api/admin/events", "POST", body);
@@ -369,6 +384,13 @@ function EventEditor({ initial, isNew, meta, onClose, onSaved }: { initial: Staf
           <span>
             <b>Show in Discord&apos;s Events tab</b>
             <small>The Main Bot adds it as a Discord event too.</small>
+          </span>
+        </label>
+        <label className="ev-check">
+          <input type="checkbox" checked={f.post} onChange={(e) => set({ post: e.target.checked })} />
+          <span>
+            <b>Post in the events announcement channel</b>
+            <small>The Main Bot posts it as an embed and edits it whenever you change the event here.</small>
           </span>
         </label>
         {err ? <p className="adm-error">{err}</p> : null}

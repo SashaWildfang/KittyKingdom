@@ -47,6 +47,7 @@ function toEvent(d: Document, going = 0): ServerEvent {
     image: d.image ? String(d.image) : null,
     weekly: Boolean(d.weekly),
     discord: d.discord !== false,
+    post: d.post !== false,
     cancelled: Boolean(d.cancelled),
     going,
     createdBy: d.createdBy ? String(d.createdBy) : null,
@@ -159,6 +160,7 @@ function clean(raw: Partial<EventInput>) {
     image,
     weekly: Boolean(raw.weekly),
     discord: raw.discord !== false,
+    post: raw.post !== false,
   };
 }
 
@@ -170,7 +172,7 @@ export async function staffEvents() {
     col.find({ startAt: { $lt: new Date(now.getTime() - 12 * 3600_000) }, deleted: { $ne: true } }).sort({ startAt: -1 }).limit(40).toArray(),
   ]);
   const counts = await goingCounts([...upcoming, ...past].map((d) => String(d._id)));
-  const map = (d: Document) => ({ ...toEvent(d, counts.get(String(d._id)) ?? 0), discordEventId: d.discordEventId ? String(d.discordEventId) : null, lastError: d.lastError ? String(d.lastError) : null });
+  const map = (d: Document) => ({ ...toEvent(d, counts.get(String(d._id)) ?? 0), discordEventId: d.discordEventId ? String(d.discordEventId) : null, posted: Boolean(d.postMessageId), postError: d.postError ? String(d.postError) : null, lastError: d.lastError ? String(d.lastError) : null });
   return { upcoming: upcoming.map(map), past: past.map(map) };
 }
 
@@ -207,8 +209,8 @@ export async function deleteEvent(id: string) {
   const col = await eventsCol();
   const doc = await col.findOne({ _id: new ObjectId(id) });
   if (!doc) return;
-  // The bot removes the Discord copy when it sees `deleted`, then the record goes
-  if (doc.discordEventId) await col.updateOne({ _id: doc._id }, { $set: { deleted: true, cancelled: true }, $inc: { version: 1 } });
+  // The bot removes the Discord event and the posted embed when it sees `deleted`, then the record goes
+  if (doc.discordEventId || doc.postMessageId) await col.updateOne({ _id: doc._id }, { $set: { deleted: true, cancelled: true }, $inc: { version: 1 } });
   else await col.deleteOne({ _id: doc._id });
   await (await rsvpsCol()).deleteMany({ eventId: id });
 }
