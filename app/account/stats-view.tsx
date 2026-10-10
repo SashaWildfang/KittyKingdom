@@ -66,6 +66,7 @@ import { TrendsCard } from "./stats-trends";
 import { EmojiText } from "../games/emoji-text";
 import { PersonalGamesStats } from "../games/stats-ui";
 import { CurrencyName, useCurrency } from "../season-context";
+import "./stats-v2.css";
 
 const POLL_MS = 7_000;
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -272,7 +273,7 @@ function LevelHero({ s }: { s: MemberStats }) {
   }, [progress]);
   const totalNow = level.startXp + level.xp;
   return (
-    <section className="st-hero">
+    <section className="st-hero" style={{ "--lv": level.color?.[0] ?? "rgb(var(--ember-rgb))", "--lv2": level.color?.[1] ?? level.color?.[0] ?? "rgb(var(--maple-rgb))" } as CSSProperties}>
       <LevelOrb s={s} onOpen={() => setJourney((j) => !j)} />
       <div className="st-hero-main">
         <div className="st-hero-top">

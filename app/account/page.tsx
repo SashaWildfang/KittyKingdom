@@ -1,6 +1,7 @@
+import "./account-v2.css";
 import { userTimeZone } from "../../lib/timezone";
 import { accountGreeting } from "../../lib/greeting";
-import { Backpack, ChevronDown, Crown, Gift, ShieldCheck, Check, CircleAlert, ClipboardList, FileText, Gavel, KeyRound, Lock, Mail, MessageCircle, Rocket, Sparkles, TriangleAlert, UserRound } from "lucide-react";
+import { Backpack, ChevronDown, Settings, Crown, Gift, ShieldCheck, Check, CircleAlert, ClipboardList, FileText, Gavel, KeyRound, Lock, Mail, MessageCircle, Rocket, Sparkles, TriangleAlert, UserRound } from "lucide-react";
 import { LeafEmote } from "../ui-icons";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -37,6 +38,7 @@ import { FlairBanner, FlairEffect, FlairName, Framed } from "../cosmetic-flair";
 const shortDate = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Denver" });
 import { RoleManager } from "./role-manager";
 import { AccountViews, StatsButton } from "./account-views";
+import { NavSpy } from "./nav-spy";
 import { ProfileBadges } from "./profile-badges";
 import type { BadgeShowcase } from "../../lib/badges";
 import { accountName } from "../../lib/names";
@@ -160,7 +162,6 @@ export default async function AccountPage({
   const greeting = accountGreeting(shownName, userTimeZone());
   // Sections they folded (saved in a cookie so the page is drawn that way from the start)
   const collapsed = new Set((cookies().get("kk_collapsed")?.value ?? "").split(",").map((v) => decodeURIComponent(v)).filter(Boolean));
-  const heading = displayName || user.discordId ? greeting.title : "My Account";
   const discordLinked = Boolean(user.discordId);
   const twoFactor = twoFactorStatus(user);
   const discordName = discordLinked ? String(user.discord?.username ?? roles.username ?? user.discordId) : null;
@@ -177,10 +178,59 @@ export default async function AccountPage({
       <div className="leaf-field" aria-hidden="true" />
       <SiteNav signedIn discordOnline={discord.online} />
 
-      <section className="account-hero acct-hero" aria-label="My Account">
-        <p className="eyebrow">{displayName || user.discordId ? `${greeting.eyebrow} · Member portal` : "Member portal"}</p>
-        <h1>{heading}</h1>
-        <p>{displayName || user.discordId ? greeting.line : "Manage your Kitty Kingdom profile, Discord link, and account security, all in one place."}</p>
+      {/* ---------- Profile hero: who you are, your flair and quick actions ---------- */}
+      <section className={`acct-top${extras?.flair.banner ? " has-cos-banner" : ""}`} aria-label="My Account">
+        <FlairBanner banner={extras?.flair.banner}>
+          <FlairEffect effect={extras?.flair.effect} count={14} />
+        </FlairBanner>
+        <div className="acct-top-inner">
+          <Framed frame={extras?.flair.frame} className="acct-avatar-frame acct-top-avatar">
+            <div className="acct-avatar">
+              {discordLinked ? (
+                <img src={`/api/discord/avatar/${user.discordId}`} alt="" width="120" height="120" />
+              ) : (
+                <span aria-hidden="true">{shownName.charAt(0).toUpperCase()}</span>
+              )}
+            </div>
+          </Framed>
+          <div className="acct-top-id">
+            <p className="acct-top-greeting">{displayName || user.discordId ? greeting.eyebrow : "Member portal"}</p>
+            <h1>
+              <FlairName nameplate={extras?.flair.nameplate} text={shownName}>
+                {shownName}
+              </FlairName>
+            </h1>
+            <p className="acct-top-meta">
+              {user.username ? <span>@{user.username}</span> : null}
+              {memberSince ? (
+                <span>
+                  <LeafEmote size={15} /> Member since {memberSince}
+                </span>
+              ) : null}
+            </p>
+            {discordLinked ? (
+              <ProfileBadges
+                initial={(user.badgeShowcase as BadgeShowcase | undefined) ?? null}
+                earned={badgeDates?.earned}
+                customTitle={extras?.customTitle}
+                customBadges={extras?.customBadges}
+              />
+            ) : null}
+            <LiveServerStatus initial={roleState} discordLinked={discordLinked} fallbackStaff={roles.isStaff} />
+          </div>
+          <div className="acct-top-actions">
+            {discordLinked ? <StatsButton /> : null}
+            {discordLinked ? (
+              <a className="acct-top-btn" href="/store">
+                <Backpack size={16} aria-hidden="true" /> Store &amp; locker
+              </a>
+            ) : null}
+            <a className="acct-top-btn" href="/settings">
+              <Settings size={16} aria-hidden="true" /> Settings
+            </a>
+          </div>
+        </div>
+        <p className="acct-top-line">{displayName || user.discordId ? greeting.line : "Manage your Kitty Kingdom profile, Discord link, and account security, all in one place."}</p>
       </section>
 
       {user.emailVerified === false ? (
@@ -204,42 +254,9 @@ export default async function AccountPage({
         </div>
       ) : null}
 
-      <div className="acct-layout">
-        {/* ---------- Sidebar: profile summary + section links ---------- */}
-        <aside className="acct-sidebar">
-          <div className={`acct-profile-card${extras?.flair.banner ? " has-cos-banner" : ""}`}>
-            <FlairBanner banner={extras?.flair.banner}>
-              <FlairEffect effect={extras?.flair.effect} count={10} />
-            </FlairBanner>
-            <Framed frame={extras?.flair.frame} className="acct-avatar-frame">
-              <div className="acct-avatar">
-                {discordLinked ? (
-                  <img src={`/api/discord/avatar/${user.discordId}`} alt="" width="88" height="88" />
-                ) : (
-                  <span aria-hidden="true">{shownName.charAt(0).toUpperCase()}</span>
-                )}
-              </div>
-            </Framed>
-            <h2>
-              <FlairName nameplate={extras?.flair.nameplate} text={shownName}>
-                {shownName}
-              </FlairName>
-            </h2>
-            {user.username ? <p className="acct-handle">@{user.username}</p> : null}
-            {discordLinked ? (
-              <ProfileBadges
-                initial={(user.badgeShowcase as BadgeShowcase | undefined) ?? null}
-                earned={badgeDates?.earned}
-                customTitle={extras?.customTitle}
-                customBadges={extras?.customBadges}
-              />
-            ) : null}
-            <LiveServerStatus initial={roleState} discordLinked={discordLinked} fallbackStaff={roles.isStaff} />
-            {memberSince ? <p className="acct-since"><LeafEmote size={16} /> Member since {memberSince}</p> : null}
-            {discordLinked ? <StatsButton /> : null}
-          </div>
-
-          <nav className="acct-nav" aria-label="Account sections">
+      <div className="acct-layout acct-layout--v2">
+          <NavSpy />
+          <nav className="acct-nav acct-nav--bar" aria-label="Account sections">
             {discordLinked ? <a href="#daily"><Gift size={16} aria-hidden="true" /> Daily Reward<DailyReadyDot ready={dailyReady} /></a> : null}
             {discordLinked ? <a href="#supporter"><Crown size={16} aria-hidden="true" /> Supporter perks</a> : null}
             <a href="#discord-account"><MessageCircle size={16} aria-hidden="true" /> Discord</a>
@@ -253,7 +270,6 @@ export default async function AccountPage({
             <a href="#security"><Lock size={16} aria-hidden="true" /> Security{twoFactor.enabled ? null : <span className="acct-nav-dot" title="Two-factor is off" />}</a>
             <a className="acct-nav-danger" href="#delete-account"><TriangleAlert size={16} aria-hidden="true" /> Delete account</a>
           </nav>
-        </aside>
 
         {/* ---------- Main column (swaps to the stats page on #stats) ---------- */}
         <AccountViews>
