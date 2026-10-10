@@ -24,7 +24,14 @@ export async function getMongoClient() {
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 10000,
     });
-    clientPromise = client.connect();
+    // A failed first connection isn't kept: the next request tries again (otherwise one network blip
+    // would break this server instance until it restarts)
+    const connecting = client.connect().catch((error) => {
+      if (clientPromise === connecting) clientPromise = null;
+      void client.close().catch(() => undefined);
+      throw error;
+    });
+    clientPromise = connecting;
   }
 
   return clientPromise;
