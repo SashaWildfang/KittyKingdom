@@ -184,6 +184,7 @@ const MAIN: BotDef = {
       link: { href: "/admin?tab=events", label: "Open Events" },
       fields: [
         { key: "events.postChannel", label: "Event posts channel", help: "Every event is posted here as an embed, and edited or removed when it changes in Admin → Events. Empty: no posts.", type: "channel", channelKind: "text", default: "1558611265994367079" },
+        { key: "events.pollChannel", label: "Event polls channel", help: "Where polls from Admin → Events are posted. Empty: the channel named event-polls.", type: "channel", channelKind: "text", default: null },
         { key: "events.channel", label: "Announcement channel", help: "Where the bot posts when an event starts. Empty: no announcements.", type: "channel", channelKind: "text", default: null },
         { key: "events.pingRole", label: "Ping role", help: "Pinged in that announcement. Empty: no ping.", type: "role", default: null },
         { key: "events.dmReminders", label: "DM reminders", help: "DM members who pressed Remind me before the event starts.", type: "toggle", default: true },
