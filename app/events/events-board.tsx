@@ -3,6 +3,8 @@
 import { Bell, BellRing, CalendarCog, CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, Hash, List, MapPin, Mic, Repeat, UserRound } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { EVENT_KINDS, type PublicEvent } from "../../lib/events-shared";
+import type { PublicPoll } from "../../lib/event-polls";
+import { EventPollsBoard } from "./events-polls";
 
 type Data = { events: PublicEvent[]; mine: string[]; past: PublicEvent[] };
 
@@ -158,7 +160,7 @@ function Month({ events, month, onMonth, onPick }: { events: PublicEvent[]; mont
   );
 }
 
-export function EventsBoard({ initial, signedIn, linked, canManage = false }: { initial: Data | null; signedIn: boolean; linked: boolean; canManage?: boolean }) {
+export function EventsBoard({ initial, signedIn, linked, canManage = false, polls = [] }: { initial: Data | null; signedIn: boolean; linked: boolean; canManage?: boolean; polls?: PublicPoll[] }) {
   const [data, setData] = useState<Data | null>(initial);
   const [mine, setMine] = useState<Set<string>>(new Set(initial?.mine ?? []));
   const [busy, setBusy] = useState<string | null>(null);
@@ -304,6 +306,8 @@ export function EventsBoard({ initial, signedIn, linked, canManage = false }: { 
           ))}
         </div>
       )}
+
+      <EventPollsBoard initial={polls} events={data?.events ?? []} signedIn={signedIn} linked={linked} now={now} />
 
       {data?.past.length ? (
         <section className="evp-past">
