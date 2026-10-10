@@ -3,6 +3,14 @@ import { NextResponse, type NextRequest } from "next/server";
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
+  // status.kittykingdom.net shows the status page; anything else there goes to the main site
+  const host = (request.headers.get("host") ?? "").toLowerCase();
+  if (host.startsWith("status.")) {
+    if (pathname === "/") return NextResponse.rewrite(new URL("/status", request.url));
+    const own = pathname.startsWith("/status") || pathname.startsWith("/api/status") || pathname.startsWith("/_next") || pathname.startsWith("/season/") || /\.[a-z0-9]+$/i.test(pathname);
+    if (!own) return NextResponse.redirect(`https://www.kittykingdom.net${pathname}${search}`, 308);
+  }
+
   if (
     pathname.includes("/api/auth/callback/discord]") ||
     pathname.includes("/api/auth/callback/discord%5D")
