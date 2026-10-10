@@ -6,6 +6,7 @@ import {
   BookOpen,
   ScrollText,
   Dices,
+  Gift,
   Heart,
   HeartHandshake,
   Home,
@@ -82,6 +83,9 @@ export async function SiteFooter() {
             </a>
             <a href="/events">
               <CalendarDays size={14} aria-hidden="true" /> Events
+            </a>
+            <a href="/giveaways">
+              <Gift size={14} aria-hidden="true" /> Giveaways
             </a>
             {social ? (
               <a href="/social">
