@@ -39,7 +39,7 @@ export function EventPolls({ events }: { events: ServerEvent[] }) {
           <h3 className="ev-h">
             <BarChart3 size={16} aria-hidden="true" /> Polls
           </h3>
-          <p className="adm-muted">Posted in #event-polls as a Discord poll. Votes show up here as they come in.</p>
+          <p className="adm-muted">Posted in #event-polls as a Discord poll and shown on /events, where members with Discord linked can vote too. Counts include both.</p>
         </div>
         <button type="button" className="adm-btn adm-btn--small" onClick={() => setCreating(true)}>
           <Plus size={15} aria-hidden="true" /> New poll
@@ -123,6 +123,7 @@ function PollRow({ p, by, event, onChanged }: { p: EventPoll; by?: string; event
         </span>
         <span>
           {p.totalVotes} {p.totalVotes === 1 ? "vote" : "votes"}
+          {p.webVotes ? ` (${p.webVotes} on the website)` : ""}
         </span>
         {p.multiple ? <span>Multiple choice</span> : null}
         {event ? <span>For {event.title}</span> : null}
