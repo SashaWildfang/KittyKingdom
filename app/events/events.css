@@ -78,3 +78,6 @@
   .evp-day { min-height: 3.2rem; }
   .evp-day-event span { display: none; }
 }
+
+.evp-loading { min-height: 60vh; border-radius: 1.2rem; background: linear-gradient(90deg, var(--panel), var(--panel-strong), var(--panel)); background-size: 200% 100%; animation: evp-shimmer 1.4s linear infinite; }
+@keyframes evp-shimmer { to { background-position: -200% 0; } }

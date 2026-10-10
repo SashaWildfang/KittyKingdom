@@ -167,13 +167,21 @@ export function EventsBoard({ initial, signedIn, linked }: { initial: Data | nul
   const [month, setMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [kind, setKind] = useState<string>("all");
   const now = useNow();
+  // Times, countdowns and "Today" depend on the visitor's clock and time zone, so they're drawn in the browser only
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   // Month view loads the whole month (and the one after)
   useEffect(() => {
     if (view !== "month") return;
     fetch(`/api/events?from=${encodeURIComponent(month.toISOString())}&days=62`, { cache: "no-store" })
       .then((r) => r.json())
-      .then((r) => r?.ok && setData((d) => ({ events: r.events, mine: r.mine, past: d?.past ?? [] })))
+      .then((r) => {
+        if (!r?.ok) return;
+        setData((d) => ({ events: r.events, mine: r.mine, past: d?.past ?? [] }));
+        // Reminders for the events this month brought in
+        setMine((m) => new Set([...Array.from(m), ...(r.mine as string[])]));
+      })
       .catch(() => undefined);
   }, [view, month]);
 
@@ -207,6 +215,13 @@ export function EventsBoard({ initial, signedIn, linked }: { initial: Data | nul
   };
 
   const next = (data?.events ?? []).find((e) => !e.cancelled && new Date(e.startAt).getTime() > now);
+
+  if (!mounted)
+    return (
+      <div className="evp">
+        <div className="evp-loading" aria-busy="true" />
+      </div>
+    );
 
   return (
     <div className="evp">
