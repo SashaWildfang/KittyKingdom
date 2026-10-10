@@ -7,6 +7,7 @@ import {
   ScrollText,
   Dices,
   Gift,
+  Medal,
   Heart,
   HeartHandshake,
   Home,
@@ -94,6 +95,9 @@ export async function SiteFooter() {
             ) : null}
             <a href="/leaderboards">
               <Trophy size={14} aria-hidden="true" /> Leaderboards
+            </a>
+            <a href="/achievements">
+              <Medal size={14} aria-hidden="true" /> Achievements
             </a>
             <a href="/store">
               <ShoppingBag size={14} aria-hidden="true" /> Store

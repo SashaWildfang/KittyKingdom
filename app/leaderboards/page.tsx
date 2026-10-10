@@ -26,6 +26,11 @@ export default async function LeaderboardsPage() {
         <p>
           See who&apos;s on top in Kitty Kingdom. Rankings update live, so watch the <CurrencyName lower /> roll in.
         </p>
+        <p>
+          <a className="lb-wall-link" href="/achievements">
+            See the achievement wall →
+          </a>
+        </p>
       </section>
 
       <LeaderboardsClient />
