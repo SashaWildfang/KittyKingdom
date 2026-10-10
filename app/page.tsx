@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
+import "./landing.css";
 import { HomePatrons } from "./home-patrons";
 import { patronWall } from "../lib/patrons";
 import type { CSSProperties } from "react";
-import { Bot, Coffee, Heart, HeartHandshake, Mic, Palette, Shield, ShoppingBag, Star, Trophy, type LucideIcon } from "lucide-react";
-import { LeafEmote } from "./ui-icons";
+import { ArrowRight, BadgeCheck, CalendarHeart, Dices, Gift, HeartHandshake, MessageCircleQuestion, ShieldCheck, Sparkles, Star, Trophy, UserRound } from "lucide-react";
 import { getCurrentUser } from "../lib/auth";
 import { getDiscordInviteSummary } from "../lib/discord";
 import { publishedNews } from "../lib/news";
@@ -11,90 +11,26 @@ import { memberGrowth } from "../lib/member-directory";
 import { userTimeZone, zoneOffsetMinutes } from "../lib/timezone";
 import { newsExcerpt } from "../lib/news-format";
 import { LEAVE_REVIEW_URL, REVIEWS_URL, getReviews, type Review } from "../lib/reviews";
-import { Embers, FallEffects, SeasonGlyph, TiltCard } from "./fall-effects";
-import { SeasonArt, SeasonCopy, SeasonName, SeasonWord } from "./home-season";
-import { HomeShowcase } from "./home-showcase";
+import { FallEffects, SeasonGlyph, TiltCard } from "./fall-effects";
+import { SeasonArt, SeasonCopy } from "./home-season";
 import { HomeNewsNotice } from "./home-news-notice";
+import { CountUp, LevelLadder, RotatingWord, SeasonBadge, SeasonFeature, StorePreview } from "./landing-client";
 import { SiteNav } from "./site-nav";
 
 const DISCORD_INVITE = "https://discord.com/invite/M9XKHFdYQV";
 
 
-const tickerItems: { label: string; icon: LucideIcon | "leaf" }[] = [
-  { label: "Social profiles", icon: HeartHandshake },
-  { label: "{one} economy", icon: "leaf" },
-  { label: "Custom bot", icon: Bot },
-  { label: "Leaderboards", icon: Trophy },
-  { label: "Store", icon: ShoppingBag },
-  { label: "Voice chats", icon: Mic },
-  { label: "AutoMod protection", icon: Shield },
-  { label: "Games & events", icon: Heart },
-  { label: "Art & media", icon: Palette },
-  { label: "Cozy vibes", icon: Coffee },
+const JOIN_STEPS = [
+  { title: "Join the Discord", text: "Hop in with the invite. You'll land in a welcome area while you get set up.", icon: "discord" },
+  { title: "Fill in the join form", text: "A short form and the password from the rules. Staff check new members quickly to keep raids out.", icon: "form" },
+  { title: "Make it yours", text: "Pick roles, set up a Social profile, link your website account and start earning.", icon: "spark" },
 ];
 
-const iconPaths: Record<string, string> = {
-  bot: "M7 8h10a3 3 0 0 1 3 3v5a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4v-5a3 3 0 0 1 3-3Zm2 4.5A1.5 1.5 0 1 0 9 15.5 1.5 1.5 0 0 0 9 12.5Zm6 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3ZM12 3l2 3h-4l2-3Z",
-  chat: "M4 5h16v11H8l-4 4V5Zm4 4v2h8V9H8Zm0 4v2h5v-2H8Z",
-  gem: "M12 3 4 8l8 13 8-13-8-5Zm-5 6 3-3h4l3 3-5 8-5-8Z",
-  heart: "M12 21s-8-4.7-8-11a4.7 4.7 0 0 1 8-3.3A4.7 4.7 0 0 1 20 10c0 6.3-8 11-8 11Z",
-  home: "M3 11 12 3l9 8v10h-6v-6H9v6H3V11Z",
-  id: "M4 5h16v14H4V5Zm3 4v3h4V9H7Zm0 5v2h10v-2H7Zm6-5v2h4V9h-4Z",
-  leaf: "M20 4C10 4 5 9 5 18c5 0 11-2 15-14ZM5 18c3-5 7-8 12-10",
-  lock: "M7 10V8a5 5 0 0 1 10 0v2h2v11H5V10h2Zm2 0h6V8a3 3 0 0 0-6 0v2Z",
-  media: "M4 5h16v14H4V5Zm3 3v8l6-4-6-4Zm8 1h3v2h-3V9Zm0 4h3v2h-3v-2Z",
-  rank: "M12 3 9 9l-6 1 4.5 4.3L6.5 21 12 17.8 17.5 21l-1-6.7L21 10l-6-1-3-6Z",
-  shield: "M12 3 20 6v6c0 5-3.4 8.1-8 9-4.6-.9-8-4-8-9V6l8-3Z",
-  site: "M4 5h16v14H4V5Zm2 4h12V7H6v2Zm0 2v6h5v-6H6Zm7 0v6h5v-6h-5Z",
-  spark: "M12 2 14 9l7 3-7 3-2 7-2-7-7-3 7-3 2-7Z",
-  store: "M5 9h14l-1 12H6L5 9Zm2-5h10l2 4H5l2-4Zm3 8v5h4v-5h-4Z",
-  users:
-    "M8 12a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm8 0a3 3 0 1 1 0-6 3 3 0 0 1 0 6ZM2 21c.4-4 2.8-6 6-6s5.6 2 6 6H2Zm11.5-6c2.8.2 4.8 2.1 5.2 6H22c-.3-3.5-2.4-5.5-5.5-6Z",
-};
-
-const reasons = [
-  { label: "Updates", detail: "Consistent server updates keep the community fresh.", icon: "spark" },
-  { label: "Owner Care", detail: "Dedicated owner who cares about the community.", icon: "heart" },
-  { label: "Feedback", detail: "Listens to community feedback and criticism.", icon: "chat" },
-  { label: "Community", detail: "Friendly and active community.", icon: "users" },
-  { label: "Verification", detail: "Secure anti-raid gate and fast manual verification.", icon: "lock" },
-  { label: "Protection", detail: "Built-in AutoMod system for protection.", icon: "shield" },
-  { label: "Custom Bot", detail: "Fully custom coded Discord bot.", icon: "bot" },
-  { label: "Home", detail: "A place you can call home.", icon: "home" },
-];
-
-const features = [
-  { label: "18+ Areas", detail: "18+ NSFW and social channels for ID-verified users.", icon: "id" },
-  { label: "Ranks", detail: "Leveling, ranks, and role rewards.", icon: "rank" },
-  { label: "Perks", detail: "Nitro Booster and Patreon perks.", icon: "gem" },
-  { label: "Media", detail: "Role selection, media channels, and voice chats.", icon: "media" },
-  { label: "Social", detail: "Introduction profiles to meet new friends.", icon: "heart" },
-  { label: "Store", detail: "Server store to purchase roles and boosters.", icon: "store" },
-  { label: "Currency", detail: "Custom server currency and chat-triggered events.", icon: "leaf" },
-  { label: "Website", detail: "Fully functioning server website with accounts and member features.", icon: "site" },
-];
-
-const showcaseTabs = [
-  {
-    key: "why",
-    label: "Why join",
-    title: "Why you should join Kitty Kingdom",
-    items: reasons.map((r) => ({ label: r.label, detail: r.detail, iconPath: iconPaths[r.icon] })),
-  },
-  {
-    key: "features",
-    label: "Features",
-    title: "More ways to make the kingdom yours",
-    items: features.map((f) => ({ label: f.label, detail: f.detail, iconPath: iconPaths[f.icon] })),
-  },
-];
-
-const memberSections = [
-  { title: "Leaderboards", text: "Track top members, activity and seasonal achievements, live.", href: "/leaderboards", icon: "rank", ready: true },
-  { title: "Store", text: "Buy roles, boosters and gifts, and manage your inventory.", href: "/store", icon: "store", ready: true },
-  { title: "Social Profiles", text: "Create an introduction and connect with verified members.", href: DISCORD_INVITE, icon: "heart", ready: true },
-  { title: "Role Customization", text: "Manage role selection, profile identity and personalization.", href: DISCORD_INVITE, icon: "users", ready: true },
-  { title: "Much More", text: "More member tools arrive as the website grows with the server.", href: "/news", icon: "spark", ready: false },
+const FAQ = [
+  { q: "Is Kitty Kingdom 18+ only?", a: "Yes. Everyone has to be 18 or older, and the NSFW areas need an extra ID check by staff." },
+  { q: "Do I need to be a furry to join?", a: "Nope. Furries, friends of furries and the furry-curious are all welcome. Just be kind." },
+  { q: "Is it free?", a: "Completely. Patreon and server boosts are optional and only add cosmetic perks and bonuses." },
+  { q: "What's the website for?", a: "Your account links to Discord: the store, casino games, Social profiles, stats, leaderboards and more." },
 ];
 
 const homeMessages: Record<string, string> = {
@@ -113,14 +49,6 @@ function bannerClass(status: string) {
   return errorMessages.has(status) ? "home-status-banner home-status-banner--error" : "home-status-banner";
 }
 
-function Icon({ name }: { name: string }) {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d={iconPaths[name]} />
-    </svg>
-  );
-}
-
 function timeAgo(iso: string) {
   const days = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000));
   if (days === 0) return "today";
@@ -134,9 +62,9 @@ function timeAgo(iso: string) {
 
 function Stars({ value }: { value: number }) {
   return (
-    <span className="home-stars" aria-label={`${value} out of 5 stars`}>
+    <span className="lp-stars" aria-label={`${value} out of 5 stars`}>
       {[1, 2, 3, 4, 5].map((n) => (
-        <Star key={n} size={15} className={n <= Math.round(value) ? "home-star-on" : "home-stars-empty"} fill="currentColor" strokeWidth={0} aria-hidden="true" />
+        <Star key={n} size={15} className={n <= Math.round(value) ? "is-on" : undefined} fill="currentColor" strokeWidth={0} aria-hidden="true" />
       ))}
     </span>
   );
@@ -144,12 +72,12 @@ function Stars({ value }: { value: number }) {
 
 function ReviewCard({ review }: { review: Review }) {
   return (
-    <article className="home-review">
+    <article className="lp-review">
       <Stars value={review.rating} />
       {review.title ? <h3>{review.title}</h3> : null}
       <p>“{review.text}”</p>
       <footer>
-        <span className="home-review-avatar" aria-hidden="true">
+        <span className="lp-review-avatar" aria-hidden="true">
           {review.author.charAt(0).toUpperCase()}
         </span>
         <span>
@@ -165,22 +93,6 @@ function DiscordLogo({ size }: { size: number }) {
   return (
     <svg viewBox="0 0 127.14 96.36" width={size} height={size} aria-hidden="true" fill="currentColor">
       <path d="M107.7 8.07A105.15 105.15 0 0 0 81.47 0a72.06 72.06 0 0 0-3.36 6.83 97.68 97.68 0 0 0-29.11 0A72.37 72.37 0 0 0 45.64 0 105.89 105.89 0 0 0 19.39 8.09C2.79 32.65-1.71 56.6.54 80.21a105.73 105.73 0 0 0 32.17 16.15 77.7 77.7 0 0 0 6.89-11.11 68.42 68.42 0 0 1-10.85-5.18c.91-.66 1.8-1.34 2.66-2.03a75.57 75.57 0 0 0 64.32 0c.87.71 1.76 1.39 2.66 2.03a68.68 68.68 0 0 1-10.87 5.19 77 77 0 0 0 6.89 11.1 105.25 105.25 0 0 0 32.19-16.14c2.64-27.38-4.51-51.11-18.9-72.15ZM42.45 65.69C36.18 65.69 31 60 31 53s5-12.74 11.43-12.74S54 46 53.89 53s-5.05 12.69-11.44 12.69Zm42.24 0C78.41 65.69 73.25 60 73.25 53s5-12.74 11.44-12.74S96.23 46 96.12 53s-5.04 12.69-11.43 12.69Z" />
-    </svg>
-  );
-}
-
-/** Autumn hills along the bottom of the hero. */
-function Hills() {
-  return (
-    <svg className="home-hills" viewBox="0 0 1440 180" preserveAspectRatio="none" aria-hidden="true">
-      <path
-        className="home-hills-back"
-        d="M0 120 C160 70 280 60 420 96 C560 132 660 70 820 64 C980 58 1080 118 1220 104 C1320 94 1390 70 1440 72 V180 H0 Z"
-      />
-      <path
-        className="home-hills-front"
-        d="M0 150 C140 116 260 118 380 138 C520 162 640 118 800 112 C960 106 1080 150 1240 142 C1340 138 1400 120 1440 118 V180 H0 Z"
-      />
     </svg>
   );
 }
@@ -220,8 +132,10 @@ export default async function Home({ searchParams }: { searchParams?: { register
   const rowA = reviews.reviews.filter((_, i) => i % 2 === 0);
   const rowB = reviews.reviews.filter((_, i) => i % 2 === 1);
 
+  const firstReview = reviews.reviews.find((r) => r.rating >= 5 && r.text.length < 140) ?? reviews.reviews[0];
+
   return (
-    <main className="site-shell home">
+    <main className="site-shell home lp">
       <FallEffects />
 
       <SiteNav signedIn={signedIn} discordOnline={discord.online} />
@@ -232,218 +146,312 @@ export default async function Home({ searchParams }: { searchParams?: { register
         </div>
       ) : null}
 
-      {/* Hero */}
-      <section className="home-hero" id="home">
-        <Embers />
-        <div className="home-sun" aria-hidden="true" />
-        <div className="home-hero-copy">
-          <p className="home-kicker">
-            <SeasonGlyph index={1} size={18} /> Community · social platform
-          </p>
-          <h1 className="home-title">
-            Find your place in <span className="home-title-glow">Kitty Kingdom.</span>
+      {/* ============ Hero ============ */}
+      <section className="lp-hero" id="home">
+        <div className="lp-hero-copy">
+          <a className="lp-live" href="/join?via=website-live">
+            <i aria-hidden="true" /> {discord.online !== null ? `${discord.online.toLocaleString()} online now` : "Live now"}
+            {discord.members ? <span>· {discord.members.toLocaleString()} members</span> : null}
+          </a>
+          <h1 className="lp-title">
+            Find your <RotatingWord words={["place", "people", "pack", "home"]} />
+            <br />
+            in <span className="lp-title-glow">Kitty Kingdom.</span>
           </h1>
-          <p className="home-subtitle">
-            <SeasonCopy part="subtitle" /> for friends, verified members, Social profiles, events, roles, and a place to call
-            home.
+          <p className="lp-lead">
+            <SeasonCopy part="subtitle" /> for adults: friends, verified members, Social profiles, games, events and a custom-built bot, with a website that grows with you.
           </p>
-          <div className="home-actions">
+          <div className="lp-actions">
+            <a className="lp-btn lp-btn--discord" href="/join?via=website" data-leaf-burst>
+              <DiscordLogo size={20} /> Join the Discord
+            </a>
             {signedIn ? (
-              <>
-                <a className="home-btn home-btn--primary" href="/store" data-leaf-burst>
-                  Visit the Store
-                </a>
-                <a className="home-btn home-btn--ghost" href="/account">
-                  My Account
-                </a>
-              </>
+              <a className="lp-btn lp-btn--ghost" href="/account">
+                My account <ArrowRight size={16} aria-hidden="true" />
+              </a>
             ) : (
-              <>
-                <a className="home-btn home-btn--primary" href="/register" data-leaf-burst>
-                  Create your account
-                </a>
-                <a className="home-btn home-btn--ghost" href="/join?via=website" data-leaf-burst>
-                  Join the Discord
-                </a>
-              </>
+              <a className="lp-btn lp-btn--ghost" href="/register" data-leaf-burst>
+                Create an account <ArrowRight size={16} aria-hidden="true" />
+              </a>
             )}
           </div>
-          <ul className="home-stats" aria-label="Community stats">
+          <ul className="lp-trust" aria-label="Highlights">
             <li>
-              <strong>
-                <i className="home-dot" aria-hidden="true" />
-                {discord.online !== null ? discord.online.toLocaleString() : "Live"}
-              </strong>
-              <span>online now</span>
+              <Stars value={reviews.average} /> <b>{reviews.average.toFixed(1)}</b> on DISBOARD
             </li>
-            {discord.members ? (
-              <li>
-                <strong>{discord.members.toLocaleString()}</strong>
-                <span>members</span>
-              </li>
-            ) : null}
             <li>
-              <strong>
-                {reviews.average.toFixed(1)} <Star className="home-star" size={18} fill="currentColor" strokeWidth={0} aria-hidden="true" />
-              </strong>
-              <span>on DISBOARD</span>
+              <BadgeCheck size={15} aria-hidden="true" /> 18+ &amp; verified
+            </li>
+            <li>
+              <ShieldCheck size={15} aria-hidden="true" /> AutoMod &amp; active staff
             </li>
           </ul>
-          {growth ? (
-            <ul className="home-stats home-stats--growth" aria-label="Discord server growth" title="From the Discord server's member list (not website accounts)">
+        </div>
+
+        <div className="lp-hero-art">
+          <TiltCard className="lp-hero-frame">
+            <SeasonArt kind="banner" className="lp-hero-banner" />
+            <span className="lp-hero-glare" aria-hidden="true" />
+          </TiltCard>
+          <SeasonArt kind="logo" className="lp-hero-logo" />
+          <SeasonBadge />
+          <div className="lp-float lp-float--live">
+            <i aria-hidden="true" />
+            <span>
+              <b>{discord.online !== null ? discord.online.toLocaleString() : "Lots"} online</b>
+              <small>{growth ? `${growth.today.toLocaleString()} joined today` : "Come say hi"}</small>
+            </span>
+          </div>
+          {firstReview ? (
+            <figure className="lp-float lp-float--review">
+              <Stars value={firstReview.rating} />
+              <blockquote>“{firstReview.text}”</blockquote>
+              <figcaption>{firstReview.author}</figcaption>
+            </figure>
+          ) : null}
+        </div>
+      </section>
+
+      {/* ============ Numbers ============ */}
+      <section className="lp-stats" aria-label="Community in numbers" data-reveal>
+        <div>
+          <strong>{discord.members ? <CountUp value={discord.members} /> : "—"}</strong>
+          <span>members</span>
+        </div>
+        <div>
+          <strong>{discord.online !== null ? <CountUp value={discord.online} /> : "—"}</strong>
+          <span>online right now</span>
+        </div>
+        <div>
+          <strong>{growth ? <CountUp value={growth.perDay} decimals={growth.perDay >= 10 ? 0 : 1} /> : "—"}</strong>
+          <span>new members a day</span>
+        </div>
+        <div>
+          <strong>
+            <CountUp value={reviews.average} decimals={1} />
+            <Star size={22} fill="currentColor" strokeWidth={0} aria-hidden="true" />
+          </strong>
+          <span>{reviews.count} reviews</span>
+        </div>
+      </section>
+
+      {/* ============ Inside the kingdom ============ */}
+      <section className="lp-section" id="features" data-reveal>
+        <div className="lp-head">
+          <p className="lp-eyebrow">Inside the kingdom</p>
+          <h2>More than a chat server</h2>
+          <p className="lp-lead">A custom bot, a real website and a community that actually talks. Here&apos;s a peek at what&apos;s waiting.</p>
+        </div>
+        <div className="lp-bento">
+          <a className="lp-tile lp-tile--social" href="/social" data-spotlight>
+            <div className="lp-tile-copy">
+              <span className="lp-tile-icon">
+                <HeartHandshake size={20} aria-hidden="true" />
+              </span>
+              <h3>Social profiles</h3>
+              <p>Make a profile, find people who share your interests and get matched with friends (or more).</p>
+            </div>
+            <div className="lp-mini-toast" aria-hidden="true">
+              <span>💞</span>
+              <span>
+                <b>It&apos;s a match!</b>
+                <small>You and Mochi liked each other</small>
+              </span>
+            </div>
+            <div className="lp-mini-profile" aria-hidden="true">
+              <div className="lp-mini-profile-top">
+                <span className="lp-mini-avatar">🦊</span>
+                <span>
+                  <b>Mochi</b>
+                  <small>Fox · 24 · they/them</small>
+                </span>
+                <span className="lp-mini-match">92% match</span>
+              </div>
+              <p>Gamer, night owl and professional cocoa enjoyer. Looking for VC buddies!</p>
+              <div className="lp-mini-tags">
+                <span>🎮 Gaming</span>
+                <span>🎨 Art</span>
+                <span>🎧 Music</span>
+              </div>
+              <div className="lp-mini-buttons">
+                <span>Pass</span>
+                <span className="is-like">Like</span>
+              </div>
+            </div>
+          </a>
+
+          <a className="lp-tile lp-tile--store" href={signedIn ? "/store" : "/register"} data-spotlight>
+            <div className="lp-tile-copy">
+              <span className="lp-tile-icon">
+                <Gift size={20} aria-hidden="true" />
+              </span>
+              <h3>Economy &amp; store</h3>
+              <p>Earn currency by chatting, then spend it on color roles, boosters and gifts.</p>
+            </div>
+            <StorePreview />
+          </a>
+
+          <a className="lp-tile lp-tile--games" href={signedIn ? "/games" : "/register"} data-spotlight>
+            <div className="lp-tile-copy">
+              <span className="lp-tile-icon">
+                <Dices size={20} aria-hidden="true" />
+              </span>
+              <h3>Casino games</h3>
+              <p>Slots, blackjack, roulette, mines and scratch-offs, on the website and in Discord.</p>
+            </div>
+            <div className="lp-mini-slots" aria-hidden="true">
+              <span>🍒</span>
+              <span>🐾</span>
+              <span>🍒</span>
+            </div>
+          </a>
+
+          <a className="lp-tile lp-tile--levels" href="/leaderboards" data-spotlight>
+            <div className="lp-tile-copy">
+              <span className="lp-tile-icon">
+                <Trophy size={20} aria-hidden="true" />
+              </span>
+              <h3>Levels &amp; leaderboards</h3>
+              <p>Level up as you chat and hang out in voice. Roles change with the seasons.</p>
+            </div>
+            <LevelLadder compact />
+          </a>
+
+          <div className="lp-tile lp-tile--events" data-spotlight>
+            <div className="lp-tile-copy">
+              <span className="lp-tile-icon">
+                <CalendarHeart size={20} aria-hidden="true" />
+              </span>
+              <h3>Always something going on</h3>
+              <p>Daily games, events and surprises in chat, run by the bot and the staff team.</p>
+            </div>
+            <ul className="lp-mini-list">
               <li>
-                <strong>{growth.today.toLocaleString()}</strong>
-                <span>joined today</span>
+                <MessageCircleQuestion size={15} aria-hidden="true" /> Question of the Day
               </li>
               <li>
-                <strong>{growth.perDay >= 10 ? Math.round(growth.perDay) : growth.perDay.toFixed(1)}</strong>
-                <span>avg joins / day</span>
+                <Sparkles size={15} aria-hidden="true" /> Daily Wordle &amp; chat games
               </li>
               <li>
-                <strong className={growth.growth >= 0 ? "is-up" : "is-down"}>
-                  {growth.growth >= 0 ? "+" : ""}
-                  {(growth.growth * 100).toFixed(1)}%
-                </strong>
-                <span>server growth (30d)</span>
+                <Gift size={15} aria-hidden="true" /> Giveaways
+              </li>
+              <li>
+                <Trophy size={15} aria-hidden="true" /> Monthly top members
               </li>
             </ul>
-          ) : null}
-        </div>
-
-        <TiltCard className="home-art">
-          <div className="home-art-frame">
-            <SeasonArt kind="banner" className="home-art-banner" />
-            <span className="home-art-glare" aria-hidden="true" />
           </div>
-          <SeasonArt kind="logo" className="home-art-logo" />
-          <span className="home-art-chip home-art-chip--top"><LeafEmote size={16} /> <SeasonName /> in the kingdom</span>
-          <span className="home-art-chip home-art-chip--bottom">
-            <i className="home-dot" aria-hidden="true" /> {discord.online !== null ? `${discord.online.toLocaleString()} online` : "Live now"}
-          </span>
-        </TiltCard>
 
-        <Hills />
-      </section>
-
-      {/* Ticker */}
-      <div className="home-ticker" aria-hidden="true">
-        <div className="home-ticker-track">
-          {[...tickerItems, ...tickerItems].map((item, i) => (
-            <span key={i}>
-              {item.icon === "leaf" ? <LeafEmote size={17} /> : <item.icon size={16} aria-hidden="true" />}{" "}
-              {item.label.includes("{one}") ? (
-                <>
-                  <SeasonWord one />
-                  {item.label.replace("{one}", "")}
-                </>
-              ) : (
-                item.label
-              )}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* News */}
-      {news.length ? (
-      <section className="home-section" id="news" data-reveal>
-        <div className="home-section-head">
-          <div>
-            <p className="home-eyebrow">News</p>
-            <h2>What&apos;s happening in the kingdom</h2>
-          </div>
-          {moreNews ? (
-            <a className="home-link" href="/news">
-              All news →
-            </a>
-          ) : null}
-        </div>
-        <HomeNewsNotice posts={latestNews.map((p) => ({ id: p.id, title: p.title, publishedAt: p.publishedAt })).sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))} />
-        <div className={`home-news home-news--${news.length}`}>
-          {news.map((item, index) => (
-            <a className="home-news-card" data-spotlight key={item.id} href={`/news/${item.id}`}>
-              <span className="home-news-num">0{index + 1}</span>
-              {item.isNew ? <span className="home-news-new">New</span> : null}
-              <span className="home-news-tag" style={{ "--tag": item.tagColor } as CSSProperties}>
-                {item.tag}
+          <div className="lp-tile lp-tile--safety" data-spotlight>
+            <div className="lp-tile-copy">
+              <span className="lp-tile-icon">
+                <ShieldCheck size={20} aria-hidden="true" />
               </span>
-              <h3>{item.title}</h3>
-              <p>
-                {item.text}
-                {item.cut ? <span className="home-news-more"> Click to see more <span aria-hidden="true">→</span></span> : null}
-              </p>
-              <SeasonGlyph index={index} color="rgba(var(--ember-rgb), 0.16)" size={120} />
-            </a>
-          ))}
+              <h3>Safe and looked after</h3>
+              <p>A friendly space starts with keeping the trolls out.</p>
+            </div>
+            <ul className="lp-mini-list lp-mini-list--check">
+              <li>Join forms and an anti-raid gate</li>
+              <li>AutoMod that catches the bad stuff</li>
+              <li>Real staff, fair appeals</li>
+            </ul>
+          </div>
+
+          <a className="lp-tile lp-tile--account" href={signedIn ? "/account" : "/register"} data-spotlight>
+            <div className="lp-tile-copy">
+              <span className="lp-tile-icon">
+                <UserRound size={20} aria-hidden="true" />
+              </span>
+              <h3>Your own account</h3>
+              <p>Stats, badges, daily rewards and your inventory, all synced with Discord.</p>
+            </div>
+            <span className="lp-tile-cta">
+              {signedIn ? "Open my account" : "Create one free"} <ArrowRight size={15} aria-hidden="true" />
+            </span>
+          </a>
         </div>
       </section>
+
+      {/* ============ This season ============ */}
+      <section className="lp-section" data-reveal>
+        <SeasonFeature />
+      </section>
+
+      {/* ============ How to join ============ */}
+      <section className="lp-section" id="join" data-reveal>
+        <div className="lp-head">
+          <p className="lp-eyebrow">Getting in</p>
+          <h2>Three steps to the kingdom</h2>
+        </div>
+        <ol className="lp-steps">
+          {JOIN_STEPS.map((step, i) => (
+            <li key={step.title} style={{ "--i": i } as CSSProperties}>
+              <span className="lp-step-num">{i + 1}</span>
+              <h3>{step.title}</h3>
+              <p>{step.text}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* ============ News ============ */}
+      {news.length ? (
+        <section className="lp-section" id="news" data-reveal>
+          <div className="lp-head lp-head--row">
+            <div>
+              <p className="lp-eyebrow">News</p>
+              <h2>What&apos;s new</h2>
+            </div>
+            {moreNews ? (
+              <a className="lp-link" href="/news">
+                All news <ArrowRight size={15} aria-hidden="true" />
+              </a>
+            ) : null}
+          </div>
+          <HomeNewsNotice posts={latestNews.map((p) => ({ id: p.id, title: p.title, publishedAt: p.publishedAt })).sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))} />
+          <div className={`lp-news lp-news--${news.length}`}>
+            {news.map((item, index) => (
+              <a className="lp-news-card" data-spotlight key={item.id} href={`/news/${item.id}`}>
+                <span className="lp-news-tag" style={{ "--tag": item.tagColor } as CSSProperties}>
+                  {item.tag}
+                </span>
+                {item.isNew ? <span className="lp-news-new">New</span> : null}
+                <h3>{item.title}</h3>
+                <p>
+                  {item.text}
+                  {item.cut ? "…" : ""}
+                </p>
+                <span className="lp-news-more">
+                  Read more <ArrowRight size={14} aria-hidden="true" />
+                </span>
+                <span className="lp-news-glyph" aria-hidden="true">
+                  <SeasonGlyph index={index} color="rgba(var(--ember-rgb), 0.14)" size={110} />
+                </span>
+              </a>
+            ))}
+          </div>
+        </section>
       ) : null}
 
-      {/* Why join / features */}
-      <section className="home-section" data-reveal>
-        <p className="home-eyebrow">Why join?</p>
-        <HomeShowcase tabs={showcaseTabs} />
-      </section>
-
-      {/* Member features */}
-      <section className="home-section" aria-label="Member features" data-reveal>
-        <div className="home-section-head">
+      {/* ============ Reviews ============ */}
+      <section className="lp-section lp-reviews" aria-label="Kitty Kingdom reviews" data-reveal>
+        <div className="lp-head lp-head--row">
           <div>
-            <p className="home-eyebrow">Member features</p>
-            <h2>Everything your account unlocks</h2>
+            <p className="lp-eyebrow">Reviews</p>
+            <h2>What members say</h2>
           </div>
-          {!signedIn ? (
-            <a className="home-link" href="/register">
-              Create an account →
-            </a>
-          ) : null}
-        </div>
-        <div className="home-members">
-          {memberSections.map((section) => (
-            <a
-              className="home-member-card"
-              data-spotlight
-              key={section.title}
-              href={signedIn || !section.href.startsWith("/") || section.href === "/news" ? section.href : "/register"}
-            >
-              <span className="home-member-icon">
-                <Icon name={section.icon} />
-              </span>
-              <span className={section.ready ? "home-badge" : "home-badge home-badge--soon"}>
-                {!section.ready ? "Coming soon" : signedIn ? "Open" : "Members"}
-              </span>
-              <h3>{section.title}</h3>
-              <p>{section.text}</p>
-              <span className="home-member-arrow" aria-hidden="true">
-                →
-              </span>
-            </a>
-          ))}
-        </div>
-      </section>
-
-      {/* Reviews */}
-      <section className="home-section home-reviews-section" aria-label="Kitty Kingdom reviews" data-reveal>
-        <div className="home-reviews-head">
-          <div>
-            <p className="home-eyebrow">Reviews</p>
-            <h2>What people are saying</h2>
-          </div>
-          <div className="home-rating">
+          <div className="lp-rating">
             <strong>{reviews.average.toFixed(1)}</strong>
             <div>
               <Stars value={reviews.average} />
-              <small>
-                {reviews.count} reviews on DISBOARD
-              </small>
+              <small>{reviews.count} reviews on DISBOARD</small>
             </div>
           </div>
         </div>
-        <div className="home-review-rows">
+        <div className="lp-review-rows">
           {[rowA, rowB].map((row, r) =>
             row.length ? (
-              <div className={`home-review-row${r === 1 ? " home-review-row--reverse" : ""}`} key={r}>
-                <div className="home-review-track" style={{ animationDuration: `${Math.max(40, row.length * 11)}s` }}>
+              <div className={`lp-review-row${r === 1 ? " is-reverse" : ""}`} key={r}>
+                <div className="lp-review-track" style={{ animationDuration: `${Math.max(40, row.length * 11)}s` }}>
                   {[...row, ...row].map((review, i) => (
                     <ReviewCard review={review} key={`${review.author}-${i}`} />
                   ))}
@@ -452,41 +460,56 @@ export default async function Home({ searchParams }: { searchParams?: { register
             ) : null,
           )}
         </div>
-        <div className="home-actions home-actions--center">
-          <a className="home-btn home-btn--primary" href={REVIEWS_URL}>
-            View all reviews
+        <div className="lp-actions lp-actions--center">
+          <a className="lp-btn lp-btn--ghost" href={REVIEWS_URL}>
+            Read all reviews
           </a>
-          <a className="home-btn home-btn--ghost" href={LEAVE_REVIEW_URL} data-leaf-burst>
+          <a className="lp-btn lp-btn--primary" href={LEAVE_REVIEW_URL} data-leaf-burst>
             Leave a review
           </a>
         </div>
       </section>
 
-      {/* Discord call to action */}
+      {/* ============ Supporters ============ */}
       <HomePatrons groups={patrons} />
 
-      <section className="home-section" id="discord" data-reveal>
-        <div className="home-cta">
-          <div className="home-cta-leaves" aria-hidden="true">
+      {/* ============ FAQ ============ */}
+      <section className="lp-section lp-faq" data-reveal>
+        <div className="lp-head">
+          <p className="lp-eyebrow">Questions</p>
+          <h2>Good to know</h2>
+        </div>
+        <div className="lp-faq-list">
+          {FAQ.map((f) => (
+            <details key={f.q}>
+              <summary>{f.q}</summary>
+              <p>{f.a}</p>
+            </details>
+          ))}
+        </div>
+        <a className="lp-link lp-link--center" href="/faq">
+          More answers in the FAQ &amp; Guide <ArrowRight size={15} aria-hidden="true" />
+        </a>
+      </section>
+
+      {/* ============ Final call ============ */}
+      <section className="lp-section" id="discord" data-reveal>
+        <div className="lp-cta">
+          <div className="lp-cta-glyphs" aria-hidden="true">
             <SeasonGlyph index={0} size={90} />
-            <SeasonGlyph index={1} size={70} />
-            <SeasonGlyph index={2} size={60} />
+            <SeasonGlyph index={1} size={64} />
+            <SeasonGlyph index={2} size={52} />
           </div>
-          <div className="home-cta-copy">
-            <p className="home-eyebrow">Discord community</p>
-            <h2>
-              <SeasonCopy part="cta" />
-            </h2>
-            <p>
-              Meet the community, verify your account, join events, browse channels, and start building your place in the
-              kingdom.
-            </p>
+          <h2>
+            <SeasonCopy part="cta" />
+          </h2>
+          <p>Meet the community, join events and find your place in the kingdom. It only takes a minute.</p>
+          <div className="lp-actions lp-actions--center">
+            <a className="lp-btn lp-btn--discord" href="/join?via=website" data-leaf-burst>
+              <DiscordLogo size={20} /> Join the Discord
+              {discord.online !== null ? <small>{discord.online.toLocaleString()} online</small> : null}
+            </a>
           </div>
-          <a className="home-btn home-btn--discord" href="/join?via=website" data-leaf-burst>
-            <DiscordLogo size={22} />
-            Join the Discord
-            {discord.online !== null ? <small>{discord.online.toLocaleString()} online</small> : null}
-          </a>
         </div>
       </section>
 
