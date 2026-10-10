@@ -186,7 +186,7 @@ const MAIN: BotDef = {
         { key: "events.postChannel", label: "Event posts channel", help: "Every event is posted here as an embed, and edited or removed when it changes in Admin → Events. Empty: no posts.", type: "channel", channelKind: "text", default: "1558611265994367079" },
         { key: "events.pollChannel", label: "Event polls channel", help: "Where polls from Admin → Events are posted. Empty: the channel named event-polls.", type: "channel", channelKind: "text", default: null },
         { key: "events.channel", label: "Announcement channel", help: "Where the bot posts when an event starts. Empty: no announcements.", type: "channel", channelKind: "text", default: null },
-        { key: "events.pingRole", label: "Ping role", help: "Pinged in that announcement. Empty: no ping.", type: "role", default: null },
+        { key: "events.pingRole", label: "Ping role", help: "Pinged when an event starts and on polls posted with “Ping the events role”. Empty: no ping.", type: "role", default: "1558626192037511228" },
         { key: "events.dmReminders", label: "DM reminders", help: "DM members who pressed Remind me before the event starts.", type: "toggle", default: true },
         { key: "events.reminderMinutes", label: "Remind this early", help: "How long before the start the reminder DM goes out.", type: "number", default: 15, min: 1, max: 1440, unit: "minutes" },
         { key: "events.color", label: "Embed color", help: "The color of event reminders and announcements.", type: "color", default: "#f59b2a" },
