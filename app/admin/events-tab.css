@@ -50,3 +50,27 @@
   .ev-actions { grid-column: 1 / -1; justify-content: flex-start; }
   .ev-row2 { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Polls */
+.evpoll { display: grid; gap: 0.7rem; margin-top: 0.6rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+.evpoll .ev-h { display: inline-flex; align-items: center; gap: 0.4rem; margin: 0; }
+.evpoll-list { display: grid; gap: 0.6rem; margin: 0; padding: 0; list-style: none; }
+.evpoll-row { display: grid; gap: 0.45rem; border: 1px solid var(--line); border-radius: 1rem; background: var(--panel); padding: 0.85rem 1rem; }
+.evpoll-row.is-ended { opacity: 0.85; }
+.evpoll-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.8rem; }
+.evpoll-head b { overflow-wrap: anywhere; }
+.evpoll-actions { display: flex; flex: none; flex-wrap: wrap; justify-content: flex-end; gap: 0.35rem; }
+.evpoll-meta { display: flex; flex-wrap: wrap; gap: 0.25rem 0.8rem; color: var(--muted); font-size: 0.78rem; }
+.evpoll-answers { display: grid; gap: 0.3rem; margin: 0; padding: 0; list-style: none; }
+.evpoll-answers li { position: relative; display: flex; align-items: center; gap: 0.5rem; overflow: hidden; border: 1px solid var(--line); border-radius: 0.6rem; font-size: 0.86rem; padding: 0.35rem 0.6rem; }
+.evpoll-answers li.is-win { border-color: rgba(var(--gold-rgb), 0.6); }
+.evpoll-bar { position: absolute; inset: 0 auto 0 0; background: rgba(var(--ember-rgb), 0.18); transition: width 0.4s ease; }
+.evpoll-answers li.is-win .evpoll-bar { background: rgba(var(--gold-rgb), 0.25); }
+.evpoll-text { position: relative; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.evpoll-answers b { position: relative; }
+.evpoll-edit-answers { display: grid; gap: 0.4rem; }
+.evpoll-edit-answer { display: flex; align-items: center; gap: 0.4rem; }
+.evpoll-edit-answer input:not(.evpoll-emoji) { flex: 1; min-width: 0; }
+.ev-field .evpoll-emoji { width: 3.4rem; flex: none; text-align: center; }
+.evpoll-note { margin: 0; font-size: 0.8rem; }
+.ev-field select { width: 100%; border: 1px solid var(--line); border-radius: 0.6rem; background: var(--panel-strong); color: var(--text); font: inherit; padding: 0.55rem 0.7rem; }
