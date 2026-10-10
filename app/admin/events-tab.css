@@ -1,0 +1,52 @@
+/* Admin → Members → Events */
+.ev { display: grid; gap: 1rem; }
+.ev-top { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.ev-top h2 { margin: 0; }
+.ev-top p { margin: 0.2rem 0 0; }
+.ev-h { margin: 0.4rem 0 0; font-size: 1rem; }
+.ev-list { display: grid; gap: 0.6rem; margin: 0; padding: 0; list-style: none; }
+.ev-list.is-past { opacity: 0.8; }
+.ev-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 1rem; border: 1px solid var(--line); border-radius: 1rem; background: var(--panel); padding: 0.85rem 1rem; }
+.ev-row.is-cancelled { opacity: 0.6; }
+.ev-date { display: grid; justify-items: center; width: 3.6rem; border-radius: 0.9rem; background: linear-gradient(160deg, rgba(var(--ember-rgb), 0.3), rgba(var(--maple-rgb), 0.18)); padding: 0.35rem 0; line-height: 1.1; }
+.ev-date small { color: var(--muted); font-size: 0.68rem; font-weight: 800; text-transform: uppercase; }
+.ev-date b { font-size: 1.45rem; }
+.ev-main { display: grid; gap: 0.25rem; min-width: 0; }
+.ev-main > b { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+.ev-main > small { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.2rem; color: var(--muted); font-size: 0.82rem; }
+.ev-tag { display: inline-flex; align-items: center; gap: 0.2rem; border-radius: 999px; background: rgba(var(--cream-rgb), 0.08); color: var(--muted); font-size: 0.7rem; font-weight: 700; padding: 0.1rem 0.5rem; }
+.ev-tag.is-bad { background: rgba(224, 86, 77, 0.18); color: #ff8a8a; }
+.ev-meta { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.15rem; font-size: 0.78rem; }
+.ev-going { display: inline-flex; align-items: center; gap: 0.3rem; border: 0; background: none; color: rgb(var(--gold-rgb)); cursor: pointer; font: inherit; padding: 0; }
+.ev-sync { display: inline-flex; align-items: center; gap: 0.25rem; color: var(--muted); }
+.ev-sync.is-ok { color: #7ed99a; }
+.ev-sync.is-bad { color: #ffcf6b; }
+.ev-guests { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.3rem; }
+.ev-guests span { border: 1px solid var(--line); border-radius: 999px; font-size: 0.76rem; padding: 0.1rem 0.55rem; }
+.ev-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.35rem; }
+.ev-past-toggle { justify-self: start; }
+
+.ev-editor { width: min(36rem, 100%); }
+.ev-editor h2 { margin: 0; }
+.ev-field { display: grid; gap: 0.35rem; min-width: 0; }
+.ev-field > span { display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 700; }
+.ev-field small { color: var(--muted); font-weight: 400; }
+.ev-field input, .ev-field textarea { width: 100%; border: 1px solid var(--line); border-radius: 0.6rem; background: var(--panel-strong); color: var(--text); font: inherit; padding: 0.55rem 0.7rem; }
+.ev-field input:focus, .ev-field textarea:focus { border-color: var(--ember); outline: none; }
+.ev-row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem; }
+.ev-kinds { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.ev-kinds button { border: 1px solid var(--line); border-radius: 999px; background: var(--panel-strong); color: var(--text); cursor: pointer; font: inherit; font-size: 0.82rem; padding: 0.3rem 0.7rem; }
+.ev-kinds button.is-on { border-color: var(--ember); background: rgba(var(--ember-rgb), 0.16); }
+.ev-host { display: inline-flex; align-items: center; gap: 0.4rem; justify-self: start; border: 1px solid var(--line); border-radius: 999px; background: var(--panel-strong); padding: 0.3rem 0.4rem 0.3rem 0.8rem; }
+.ev-host button { display: grid; place-items: center; border: 0; background: none; color: var(--muted); cursor: pointer; }
+.ev-check { display: flex; align-items: flex-start; gap: 0.6rem; border: 1px solid var(--line); border-radius: 0.8rem; background: var(--panel); cursor: pointer; padding: 0.6rem 0.75rem; }
+.ev-check input { margin-top: 0.2rem; accent-color: var(--ember); }
+.ev-check span { display: grid; }
+.ev-check small { color: var(--muted); font-size: 0.78rem; }
+.ev-editor-foot { display: flex; justify-content: flex-end; gap: 0.5rem; }
+.ev-note { margin: 0; font-size: 0.78rem; }
+@media (max-width: 640px) {
+  .ev-row { grid-template-columns: auto minmax(0, 1fr); }
+  .ev-actions { grid-column: 1 / -1; justify-content: flex-start; }
+  .ev-row2 { grid-template-columns: minmax(0, 1fr); }
+}

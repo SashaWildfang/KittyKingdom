@@ -172,3 +172,24 @@ export function SeasonFeature() {
     </div>
   );
 }
+
+/** A date and time in the visitor's own time zone (rendered after load to avoid a server/browser mismatch). */
+export function LocalTime({ iso }: { iso: string }) {
+  const [text, setText] = useState<string | null>(null);
+  useEffect(() => {
+    setText(new Date(iso).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" }));
+  }, [iso]);
+  return <time dateTime={iso}>{text ?? "\u00a0"}</time>;
+}
+
+/** The month/day box for an event, in the visitor's time zone. */
+export function LocalDateBlock({ iso }: { iso: string }) {
+  const [d, setD] = useState<Date | null>(null);
+  useEffect(() => setD(new Date(iso)), [iso]);
+  return (
+    <span className="lp-event-date" aria-hidden="true">
+      <small>{d ? d.toLocaleDateString([], { month: "short" }) : "\u00a0"}</small>
+      <b>{d ? d.getDate() : "\u00a0"}</b>
+    </span>
+  );
+}
