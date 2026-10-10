@@ -68,7 +68,7 @@ function StaffCard({ member }: { member: StaffMember }) {
 export function StaffView({ directory, nav }: { directory: StaffDirectory; nav: ReactNode }) {
   const everyone = directory.groups.flatMap((g) => g.members);
   const online = everyone.filter((m) => m.status && m.status !== "offline");
-  const ranks = Array.from(new Map(everyone.map((m) => [m.role, { role: m.role, color: m.roleColor, rank: m.rank, count: everyone.filter((x) => x.role === m.role).length }])).values()).sort((a, b) => b.rank - a.rank);
+  const ranks = Array.from(new Map(everyone.map((m) => [m.role, { role: m.role, color: m.roleColor, rank: m.rank, count: everyone.filter((x) => x.role === m.role).length }])).values()).sort((a, b) => a.rank - b.rank);
 
   return (
     <main className="site-shell sf-shell">
