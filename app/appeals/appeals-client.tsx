@@ -3,7 +3,7 @@
 import { AlertTriangle, ArrowLeft, Check, CheckCircle2, Clock, Gavel, Loader2, LogOut, Mail, Search, ShieldCheck, UserRound, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 
-type Account = { id: string; username: string; name: string; avatar: string | null; banned: boolean };
+type Account = { id: string; username: string; name: string; avatar: string | null };
 type Me = { discordId: string; username: string; name: string; avatar: string | null; via?: "account" | "discord" };
 type Punishment = {
   id: string;

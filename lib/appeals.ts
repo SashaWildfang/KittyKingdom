@@ -71,14 +71,15 @@ export async function searchAppealAccounts(query: string) {
   const q = query.trim().replace(/^@/, "").toLowerCase();
   if (q.length < 2) return [];
   const [members, banned] = await Promise.all([searchMembers(q, 6).catch(() => []), bannedUsers().catch(() => [] as BanUser[])]);
-  const out = new Map<string, { id: string; username: string; name: string; avatar: string | null; banned: boolean }>();
+  // Public search: names and avatars only (whether someone is banned isn't shown to strangers)
+  const out = new Map<string, { id: string; username: string; name: string; avatar: string | null }>();
   for (const b of banned) {
     if (out.size >= 8) break;
     if (b.username.toLowerCase().includes(q) || (b.global_name ?? "").toLowerCase().includes(q)) {
-      out.set(b.id, { id: b.id, username: b.username, name: b.global_name || b.username, avatar: avatarUrl(b.id, b.avatar), banned: true });
+      out.set(b.id, { id: b.id, username: b.username, name: b.global_name || b.username, avatar: avatarUrl(b.id, b.avatar) });
     }
   }
-  for (const m of members) if (!m.bot && !out.has(m.id)) out.set(m.id, { id: m.id, username: m.username, name: m.displayName, avatar: m.avatar, banned: false });
+  for (const m of members) if (!m.bot && !out.has(m.id)) out.set(m.id, { id: m.id, username: m.username, name: m.displayName, avatar: m.avatar });
   return Array.from(out.values()).slice(0, 8);
 }
 
