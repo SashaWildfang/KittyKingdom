@@ -209,6 +209,14 @@ export async function getMemberRoleIds(discordId: string): Promise<string[] | nu
   return res.ok && res.data?.roles ? res.data.roles : null;
 }
 
+/** A member's role ids and when they joined the server (null when they're not in it). */
+export async function getMemberBasics(discordId: string): Promise<{ roles: string[]; joinedAt: string | null } | null> {
+  const guild = await guildId();
+  if (!guild || !/^\d{15,21}$/.test(discordId)) return null;
+  const res = await discordRequest<{ roles?: string[]; joined_at?: string | null }>("GET", `/guilds/${guild}/members/${discordId}`);
+  return res.ok && res.data ? { roles: res.data.roles ?? [], joinedAt: res.data.joined_at ?? null } : null;
+}
+
 /** All server roles with their display colors (cached a few minutes). */
 export async function getGuildRoles(): Promise<Map<string, GuildRole>> {
   const guild = await guildId();

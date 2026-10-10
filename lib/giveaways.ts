@@ -5,9 +5,10 @@
 // changes, and handles `requests` (end now, cancel, reroll). How giveaways run in general (default channel,
 // ping, DMs, button) is in Admin → Bots → Main Bot → Giveaways.
 
-import { ObjectId, type Document } from "mongodb";
+import { Long, ObjectId, type Document } from "mongodb";
 import { people, type Person } from "./admin-people";
 import { getBotCollection } from "./mongodb";
+import { getGuildRoles, getMemberBasics } from "./discord-member";
 import { RETIRED_ITEM_IDS } from "./store";
 import { seasonal } from "./season-store";
 
@@ -397,4 +398,110 @@ export async function giveawayAction(id: string, action: GiveawayAction, by: str
     }
   }
   throw new GiveawayError("Unknown action.");
+}
+
+// ---------------------------------------------------------------- members: giveaways on the website
+export type PublicGiveaway = {
+  id: string;
+  title: string;
+  description: string;
+  prize: Prize;
+  winners: number;
+  status: "scheduled" | "running" | "ended";
+  startAt: string | null;
+  endAt: string;
+  entries: number;
+  color: string | null;
+  image: string | null;
+  needs: string[];
+  winnerNames: string[];
+};
+
+const STAFF_TEAM_ROLE = "1358470109965979859";
+
+async function roleNames(ids: string[]) {
+  if (!ids.length) return new Map<string, string>();
+  const roles = await getGuildRoles().catch(() => new Map());
+  return new Map(ids.map((id) => [id, (roles.get(id) as { name?: string } | undefined)?.name ?? "a role"]));
+}
+
+/** Running and upcoming giveaways, and the last few winners (for /giveaways). */
+export async function publicGiveaways(discordId: string | null) {
+  const col = await giveaways();
+  const now = new Date();
+  const [running, upcoming, ended] = await Promise.all([
+    col.find({ status: { $in: ["running", "ending"] } }).sort({ endAt: 1 }).limit(20).toArray(),
+    col.find({ status: "scheduled", startAt: { $lte: new Date(now.getTime() + 14 * 86_400_000) } }).sort({ startAt: 1 }).limit(10).toArray(),
+    col.find({ status: "ended" }).sort({ endedAt: -1 }).limit(8).toArray(),
+  ]);
+  const ent = await entries();
+  const runningIds = running.map((d) => String(d._id));
+  const counts = runningIds.length ? new Map((await ent.aggregate([{ $match: { giveawayId: { $in: runningIds } } }, { $group: { _id: "$giveawayId", n: { $sum: 1 } } }]).toArray()).map((r) => [String(r._id), Number(r.n)])) : new Map();
+  const mine = discordId && runningIds.length ? new Set((await ent.find({ giveawayId: { $in: runningIds }, userId: discordId }).toArray()).map((e) => String(e.giveawayId))) : new Set<string>();
+  const roleIds = Array.from(new Set([...running, ...upcoming].flatMap((d) => [...(d.requirements?.requiredRoles ?? []), ...(d.requirements?.blockedRoles ?? [])].map(String))));
+  const names = await roleNames(roleIds);
+  const winnerIds = ended.flatMap((d) => ((d.results ?? []) as Result[]).map((r) => r.userId));
+  const who = await people(winnerIds).catch(() => ({}) as Record<string, Person>);
+  const view = (d: Document, status: PublicGiveaway["status"]): PublicGiveaway => {
+    const g = toGiveaway(d, counts.get(String(d._id)));
+    const needs: string[] = [];
+    if (g.requirements.minLevel) needs.push(`Level ${g.requirements.minLevel}+`);
+    if (g.requirements.minDaysInServer) needs.push(`In the server ${g.requirements.minDaysInServer}+ days`);
+    if (g.requirements.requiredRoles.length) needs.push(`Has ${g.requirements.requiredRoles.map((r) => names.get(r)).join(" or ")}`);
+    if (g.requirements.blockedRoles.length) needs.push(`Not ${g.requirements.blockedRoles.map((r) => names.get(r)).join(", ")}`);
+    return {
+      id: g.id,
+      title: g.title,
+      description: g.description,
+      prize: g.prize,
+      winners: g.winners,
+      status,
+      startAt: g.startAt,
+      endAt: g.endAt,
+      entries: g.entries,
+      color: g.color,
+      image: g.image,
+      needs,
+      winnerNames: status === "ended" ? g.results.map((r) => who[r.userId]?.name ?? "A member") : [],
+    };
+  };
+  return { running: running.map((d) => view(d, "running")), upcoming: upcoming.map((d) => view(d, "scheduled")), ended: ended.map((d) => view(d, "ended")), entered: Array.from(mine) };
+}
+
+/** Why a member can't enter (null if they can). Same checks as the bot (Main_Bot events/giveaways.py). */
+async function entryProblem(doc: Document, discordId: string) {
+  const member = await getMemberBasics(discordId);
+  if (!member) return "You need to be in the Discord server to enter.";
+  const req = (doc.requirements ?? {}) as Partial<Requirements>;
+  const roles = new Set(member.roles);
+  const allowStaff = await (await getBotCollection("bot_settings")).findOne({ _id: "main" as never }, { projection: { "values.giveaways": 1 } }).then((s) => s?.values?.giveaways?.allowStaff !== false).catch(() => true);
+  if (!allowStaff && roles.has(STAFF_TEAM_ROLE)) return "Staff can't enter giveaways.";
+  if ((req.blockedRoles ?? []).some((r) => roles.has(String(r)))) return "One of your roles can't enter this giveaway.";
+  const needed = (req.requiredRoles ?? []).map(String);
+  if (needed.length && !needed.some((r) => roles.has(r))) return "You don't have a role this giveaway needs.";
+  const days = Number(req.minDaysInServer ?? 0);
+  if (days && member.joinedAt && (Date.now() - new Date(member.joinedAt).getTime()) / 86_400_000 < days) return `You need to have been in the server for ${days} days.`;
+  const lvl = Number(req.minLevel ?? 0);
+  if (lvl) {
+    const users = await getBotCollection("users");
+    const u = (await users.findOne({ discordId: Long.fromString(discordId) } as never, { projection: { level: 1 } })) ?? (await users.findOne({ discordId } as never, { projection: { level: 1 } }));
+    const have = Number(u?.level ?? 1);
+    if (have < lvl) return `You need to be Level ${lvl}+ (you're Level ${have}).`;
+  }
+  return null;
+}
+
+/** Enter (or leave) a running giveaway from the website. */
+export async function toggleEntry(id: string, discordId: string, enter: boolean) {
+  const doc = await (await giveaways()).findOne({ _id: oid(id) });
+  if (!doc || doc.status !== "running") throw new GiveawayError("This giveaway isn't open right now.", 409);
+  const ent = await entries();
+  if (!enter) {
+    await ent.deleteOne({ giveawayId: id, userId: discordId });
+  } else {
+    const problem = await entryProblem(doc, discordId);
+    if (problem) throw new GiveawayError(problem, 403);
+    await ent.updateOne({ giveawayId: id, userId: discordId }, { $setOnInsert: { giveawayId: id, userId: discordId, at: new Date(), via: "website" } }, { upsert: true });
+  }
+  return { entries: await ent.countDocuments({ giveawayId: id }) };
 }

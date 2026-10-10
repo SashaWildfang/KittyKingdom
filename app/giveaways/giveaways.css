@@ -1,0 +1,38 @@
+/* /giveaways */
+.gwp { display: grid; gap: 1.6rem; width: min(68rem, calc(100% - 2rem)); margin: 0 auto; padding: 2.5rem 0 1rem; }
+.gwp-eyebrow { display: inline-flex; align-items: center; gap: 0.35rem; margin: 0 0 0.5rem; color: rgb(var(--gold-rgb)); font-size: 0.78rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; }
+:root[data-theme="light"] .gwp-eyebrow { color: var(--maple); }
+.gwp-hero h1 { max-width: none; margin: 0; font-size: clamp(2.1rem, 5vw, 3.4rem); letter-spacing: -0.035em; }
+.gwp-lead { max-width: 40rem; margin: 0.6rem 0 0; color: var(--muted); font-size: 1.05rem; line-height: 1.55; }
+.gwp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr)); gap: 1rem; }
+.gwp-card { --gw: rgb(var(--ember-rgb)); position: relative; display: grid; overflow: hidden; border: 1px solid var(--line); border-top: 4px solid var(--gw); border-radius: 1.3rem; background: radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--gw) 22%, transparent), transparent 55%), var(--panel); }
+.gwp-card.is-in { border-color: rgba(61, 220, 132, 0.5); border-top-color: #3ddc84; }
+.gwp-img { width: 100%; max-height: 10rem; object-fit: cover; }
+.gwp-card-body { display: grid; gap: 0.6rem; padding: 1.2rem; }
+.gwp-timer { display: inline-flex; align-items: center; gap: 0.35rem; justify-self: start; border-radius: 999px; background: rgba(var(--cream-rgb), 0.08); color: var(--muted); font-size: 0.8rem; font-variant-numeric: tabular-nums; padding: 0.2rem 0.7rem; }
+.gwp-card h2 { margin: 0; font-size: 1.3rem; }
+.gwp-prize { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text); font-size: 1.05rem; }
+.gwp-prize b { font-size: 1.35rem; }
+.gwp-desc { margin: 0; color: var(--muted); font-size: 0.92rem; line-height: 1.5; }
+.gwp-facts { display: flex; flex-wrap: wrap; gap: 0.9rem; margin: 0; padding: 0; color: var(--muted); font-size: 0.86rem; list-style: none; }
+.gwp-facts li { display: inline-flex; align-items: center; gap: 0.3rem; }
+.gwp-needs { margin: 0; border-radius: 0.7rem; background: var(--panel-strong); color: var(--muted); font-size: 0.82rem; padding: 0.45rem 0.65rem; }
+.gwp-enter { display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; min-height: 2.8rem; border: 0; border-radius: 999px; background: linear-gradient(135deg, rgb(var(--ember-rgb)), rgb(var(--maple-rgb))); color: #fff; cursor: pointer; font: inherit; font-weight: 800; padding: 0 1.2rem; box-shadow: 0 10px 24px rgba(var(--ember-rgb), 0.3); transition: transform 0.15s ease; }
+.gwp-enter:hover { transform: translateY(-1px); }
+.gwp-enter.is-in { background: rgba(61, 220, 132, 0.16); box-shadow: none; color: #4fd88f; border: 1px solid rgba(61, 220, 132, 0.5); }
+.gwp-enter:disabled { opacity: 0.6; cursor: default; }
+.gwp-ok { margin: 0; color: #4fd88f; font-size: 0.86rem; }
+.gwp-err { margin: 0; color: #ff8a8a; font-size: 0.86rem; }
+.gwp-empty { display: grid; justify-items: center; gap: 0.6rem; border: 1px dashed var(--line); border-radius: 1.2rem; color: var(--muted); padding: 3rem 1rem; text-align: center; }
+.gwp-empty p { margin: 0; }
+.gwp-section h2 { margin: 0 0 0.7rem; font-size: 1.1rem; }
+.gwp-list { display: grid; gap: 0.5rem; margin: 0; padding: 0; list-style: none; }
+.gwp-list li { display: flex; align-items: center; gap: 0.8rem; border: 1px solid var(--line); border-radius: 1rem; background: var(--panel); padding: 0.7rem 0.9rem; }
+.gwp-list li > span:last-child { display: grid; min-width: 0; }
+.gwp-list small { color: var(--muted); font-size: 0.8rem; }
+.gwp-list .gwp-prize { flex: none; font-size: 0.9rem; }
+.gwp-list .gwp-prize b { font-size: 1rem; }
+.gwp-list svg { color: rgb(var(--gold-rgb)); flex: none; }
+
+.gwp-loading { min-height: 60vh; border-radius: 1.2rem; background: linear-gradient(90deg, var(--panel), var(--panel-strong), var(--panel)); background-size: 200% 100%; animation: gwp-shimmer 1.4s linear infinite; }
+@keyframes gwp-shimmer { to { background-position: -200% 0; } }
