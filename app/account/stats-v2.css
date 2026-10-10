@@ -1,0 +1,66 @@
+/* My stats, refreshed (app/account/stats-view.tsx): level-tinted hero, pill tabs, gradient tiles, softer cards */
+
+.st-page { display: grid; gap: 1.1rem; }
+
+/* Hero: tinted with your level role's colors */
+.st-hero {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--lv) 40%, var(--line));
+  border-radius: 1.6rem;
+  background:
+    radial-gradient(circle at 0% 0%, color-mix(in srgb, var(--lv) 32%, transparent), transparent 55%),
+    radial-gradient(circle at 100% 100%, color-mix(in srgb, var(--lv2) 22%, transparent), transparent 60%),
+    var(--panel);
+  box-shadow: 0 22px 50px var(--shadow);
+}
+.st-hero h2 { letter-spacing: -0.03em; }
+.st-hero-rank { border-radius: 999px; background: color-mix(in srgb, var(--lv) 18%, var(--panel-strong)); }
+.st-xp { border-radius: 999px; }
+.st-xp > i { background: linear-gradient(90deg, var(--lv), var(--lv2)); box-shadow: 0 0 18px color-mix(in srgb, var(--lv) 55%, transparent); }
+
+/* Tabs: a sticky pill bar under the site header */
+.st-tabs { top: 4.4rem; padding: 0.35rem; }
+.st-tabs button { border-radius: 999px; font-weight: 700; transition: background 0.15s ease, color 0.15s ease; }
+.st-tabs button.is-on {
+  background: linear-gradient(135deg, rgb(var(--ember-rgb)), rgb(var(--maple-rgb)));
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(var(--ember-rgb), 0.35);
+}
+
+/* Tiles: gradient wash per tone, bigger numbers, a lift on hover */
+.st-tiles { gap: 0.8rem; }
+.st-tile {
+  --tone: rgb(var(--ember-rgb));
+  border-radius: 1.3rem;
+  background:
+    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--tone) 22%, transparent), transparent 60%),
+    var(--panel);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.st-tile[data-tone="gold"] { --tone: rgb(var(--gold-rgb)); }
+.st-tile[data-tone="blue"] { --tone: #5b8def; }
+.st-tile[data-tone="green"] { --tone: #3ba55d; }
+.st-tile[data-tone="rose"] { --tone: #ec4899; }
+.st-tile[data-tone="ember"] { --tone: #f0642a; }
+.st-tile.is-link:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--tone) 55%, transparent); box-shadow: 0 16px 34px var(--shadow); }
+.st-tile-value { font-size: clamp(1.6rem, 3vw, 2.1rem); letter-spacing: -0.03em; }
+.st-tile-icon { border-radius: 0.8rem; }
+
+/* Cards */
+.st-card {
+  border-radius: 1.4rem;
+  background: radial-gradient(30rem circle at 50% -20%, rgba(var(--ember-rgb), 0.07), transparent 55%), var(--panel);
+}
+.st-card-head h3 { display: flex; align-items: center; gap: 0.45rem; letter-spacing: -0.01em; }
+.st-card-head h3 > svg {
+  box-sizing: content-box;
+  padding: 0.35rem;
+  border-radius: 0.6rem;
+  background: linear-gradient(135deg, rgba(var(--ember-rgb), 0.25), rgba(var(--maple-rgb), 0.18));
+  color: rgb(var(--gold-rgb));
+}
+:root[data-theme="light"] .st-card-head h3 > svg { color: var(--maple); }
+.st-highlights button { border-radius: 0.9rem; transition: background 0.15s ease, transform 0.15s ease; }
+.st-highlights button:hover { background: rgba(var(--ember-rgb), 0.1); transform: translateX(3px); }
+.st-topbar .acct-button { border-radius: 999px; }
