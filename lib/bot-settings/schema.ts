@@ -177,6 +177,20 @@ const MAIN: BotDef = {
       ],
     },
     {
+      key: "events",
+      title: "Events",
+      icon: "calendar",
+      about: "Reminders and announcements for events. The events themselves are planned in Admin → Members → Events.",
+      link: { href: "/admin?tab=events", label: "Open Events" },
+      fields: [
+        { key: "events.channel", label: "Announcement channel", help: "Where the bot posts when an event starts. Empty: no announcements.", type: "channel", channelKind: "text", default: null },
+        { key: "events.pingRole", label: "Ping role", help: "Pinged in that announcement. Empty: no ping.", type: "role", default: null },
+        { key: "events.dmReminders", label: "DM reminders", help: "DM members who pressed Remind me before the event starts.", type: "toggle", default: true },
+        { key: "events.reminderMinutes", label: "Remind this early", help: "How long before the start the reminder DM goes out.", type: "number", default: 15, min: 1, max: 1440, unit: "minutes" },
+        { key: "events.color", label: "Embed color", help: "The color of event reminders and announcements.", type: "color", default: "#f59b2a" },
+      ],
+    },
+    {
       key: "giveaways",
       title: "Giveaways",
       icon: "gift",

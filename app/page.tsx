@@ -7,6 +7,8 @@ import { ArrowRight, BadgeCheck, CalendarHeart, Dices, Gift, HeartHandshake, Mes
 import { getCurrentUser } from "../lib/auth";
 import { getDiscordInviteSummary } from "../lib/discord";
 import { publishedNews } from "../lib/news";
+import { nextEvents } from "../lib/events";
+import { EVENT_KINDS } from "../lib/events-shared";
 import { memberGrowth } from "../lib/member-directory";
 import { userTimeZone, zoneOffsetMinutes } from "../lib/timezone";
 import { newsExcerpt } from "../lib/news-format";
@@ -14,7 +16,7 @@ import { LEAVE_REVIEW_URL, REVIEWS_URL, getReviews, type Review } from "../lib/r
 import { FallEffects, SeasonGlyph, TiltCard } from "./fall-effects";
 import { SeasonArt, SeasonCopy } from "./home-season";
 import { HomeNewsNotice } from "./home-news-notice";
-import { CountUp, LevelLadder, RotatingWord, SeasonBadge, SeasonFeature, StorePreview } from "./landing-client";
+import { CountUp, LevelLadder, LocalDateBlock, LocalTime, RotatingWord, SeasonBadge, SeasonFeature, StorePreview } from "./landing-client";
 import { SiteNav } from "./site-nav";
 
 const DISCORD_INVITE = "https://discord.com/invite/M9XKHFdYQV";
@@ -108,13 +110,14 @@ export default async function Home({ searchParams }: { searchParams?: { register
   const offsetMs = zoneOffsetMinutes(tz) * 60_000;
   const local = new Date(Date.now() + offsetMs);
   const startOfToday = new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate()) - offsetMs);
-  const [reviews, discord, user, latestNews, growth, patrons] = await Promise.all([
+  const [reviews, discord, user, latestNews, growth, patrons, upcoming] = await Promise.all([
     getReviews(),
     getDiscordInviteSummary(),
     getCurrentUser(),
     publishedNews({ limit: 6 }),
     memberGrowth(startOfToday).catch(() => null),
     patronWall().catch(() => []),
+    nextEvents(3).catch(() => []),
   ]);
   // Newest three posts written by admins in the Admin tab
   // Show up to three; "All news" only when there's more than that to see
@@ -370,6 +373,41 @@ export default async function Home({ searchParams }: { searchParams?: { register
           </a>
         </div>
       </section>
+
+      {/* ============ Upcoming events ============ */}
+      {upcoming.length ? (
+        <section className="lp-section" id="events" data-reveal>
+          <div className="lp-head lp-head--row">
+            <div>
+              <p className="lp-eyebrow">Coming up</p>
+              <h2>Join an event</h2>
+            </div>
+            <a className="lp-link" href="/events">
+              All events <ArrowRight size={15} aria-hidden="true" />
+            </a>
+          </div>
+          <div className="lp-events">
+            {upcoming.map((e) => {
+              const kind = EVENT_KINDS.find((k) => k.key === e.kind);
+              return (
+                <a key={e.id} className="lp-event" href={`/events#event-${e.id}`} data-spotlight>
+                  <LocalDateBlock iso={e.startAt} />
+                  <span className="lp-event-main">
+                    <small>
+                      {kind?.emoji} {kind?.label}
+                    </small>
+                    <b>{e.title}</b>
+                    <span>
+                      <LocalTime iso={e.startAt} /> · {e.channelName ? `#${e.channelName}` : e.place}
+                    </span>
+                  </span>
+                  {e.going ? <span className="lp-event-going">{e.going} going</span> : null}
+                </a>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
 
       {/* ============ This season ============ */}
       <section className="lp-section" data-reveal>

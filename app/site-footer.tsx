@@ -1,9 +1,11 @@
+import "./footer.css";
 import {
+  Activity,
   ArrowUp,
+  CalendarDays,
   BookOpen,
   ScrollText,
   Dices,
-  FileText,
   Heart,
   HeartHandshake,
   Home,
@@ -13,7 +15,6 @@ import {
   Newspaper,
   Scale,
   Settings,
-  Shield,
   ShoppingBag,
   Star,
   Trophy,
@@ -26,6 +27,7 @@ import { canSeeDating } from "../lib/dating/access";
 import { REVIEWS_URL } from "../lib/reviews";
 import { ThemeSwitch } from "./theme-switch";
 import { SiteLogo } from "./ui-icons";
+import { FooterStatus } from "./footer-status";
 
 const DISCORD_INVITE = "https://discord.com/invite/M9XKHFdYQV";
 const PATREON_URL = "https://www.patreon.com/c/thekittykingdom/membership";
@@ -45,73 +47,72 @@ export async function SiteFooter() {
   const social = linked ? await canSeeDating(user?.discordId).catch(() => false) : false;
   const year = new Date().getFullYear();
   return (
-    <footer className="site-footer" aria-label="Footer">
-      <div className="site-footer-inner">
-        <div className="site-footer-brand">
-          <a className="site-footer-logo" href="/home" aria-label="Kitty Kingdom home">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <SiteLogo alt="" width="44" height="44" />
+    <footer className="site-footer ft" aria-label="Footer">
+      <div className="ft-inner">
+        <div className="ft-brand">
+          <a className="ft-logo" href="/home" aria-label="Kitty Kingdom home">
+            <SiteLogo alt="" width="48" height="48" />
             <span>
               <strong>Kitty Kingdom</strong>
               <small>A cozy 18+ furry community</small>
             </span>
           </a>
-          <div className="site-footer-actions">
-            <a className="site-footer-icon" href={PATREON_URL} target="_blank" rel="noopener noreferrer" aria-label="Support us on Patreon" title="Patreon">
-              <Heart size={17} aria-hidden="true" />
+          <p className="ft-blurb">Friends, events, games and a place to call home, on Discord and right here on the website.</p>
+          <div className="ft-social">
+            <a className="ft-join" href="/join">
+              <DiscordLogo size={15} /> Join the server
             </a>
-            <a className="site-footer-icon" href={REVIEWS_URL} target="_blank" rel="noopener noreferrer" aria-label="Read our reviews" title="Reviews">
-              <Star size={17} aria-hidden="true" />
+            <a className="ft-icon" href={PATREON_URL} target="_blank" rel="noopener noreferrer" aria-label="Support us on Patreon" title="Patreon">
+              <Heart size={16} aria-hidden="true" />
             </a>
-            <a className="site-footer-join" href="/join">
-              <DiscordLogo size={16} /> Join the server
+            <a className="ft-icon" href={REVIEWS_URL} target="_blank" rel="noopener noreferrer" aria-label="Read our reviews" title="Reviews">
+              <Star size={16} aria-hidden="true" />
             </a>
-          </div>
-          <div className="site-footer-theme">
-            <span>Theme</span>
-            <ThemeSwitch />
           </div>
         </div>
 
-        <nav className="site-footer-cols" aria-label="Footer links">
+        <nav className="ft-cols" aria-label="Footer links">
           <div>
             <h3>Explore</h3>
             <a href="/home">
-              <Home size={13} aria-hidden="true" /> Home
+              <Home size={14} aria-hidden="true" /> Home
             </a>
             <a href="/news">
-              <Newspaper size={13} aria-hidden="true" /> News
+              <Newspaper size={14} aria-hidden="true" /> News
+            </a>
+            <a href="/events">
+              <CalendarDays size={14} aria-hidden="true" /> Events
             </a>
             {social ? (
               <a href="/social">
-                <HeartHandshake size={13} aria-hidden="true" /> Social
+                <HeartHandshake size={14} aria-hidden="true" /> Social
               </a>
             ) : null}
             <a href="/leaderboards">
-              <Trophy size={13} aria-hidden="true" /> Leaderboards
+              <Trophy size={14} aria-hidden="true" /> Leaderboards
             </a>
             <a href="/store">
-              <ShoppingBag size={13} aria-hidden="true" /> Store
+              <ShoppingBag size={14} aria-hidden="true" /> Store
             </a>
             <a href="/games">
-              <Dices size={13} aria-hidden="true" /> Games
+              <Dices size={14} aria-hidden="true" /> Games
             </a>
           </div>
           <div>
             <h3>Community</h3>
             <a href={DISCORD_INVITE} target="_blank" rel="noopener noreferrer">
-              <MessageCircle size={13} aria-hidden="true" /> Discord
+              <MessageCircle size={14} aria-hidden="true" /> Discord
             </a>
             <a href="/patreon">
-              <Heart size={13} aria-hidden="true" /> Patreon
+              <Heart size={14} aria-hidden="true" /> Patreon
             </a>
             {canViewStaffPage(user) ? (
               <a href="/staff">
-                <Users size={13} aria-hidden="true" /> Staff
+                <Users size={14} aria-hidden="true" /> Staff
               </a>
             ) : null}
             <a href={REVIEWS_URL} target="_blank" rel="noopener noreferrer">
-              <Star size={13} aria-hidden="true" /> Reviews
+              <Star size={14} aria-hidden="true" /> Reviews
             </a>
           </div>
           <div>
@@ -119,24 +120,24 @@ export async function SiteFooter() {
             {user ? (
               <>
                 <a href="/account">
-                  <UserRound size={13} aria-hidden="true" /> My Account
+                  <UserRound size={14} aria-hidden="true" /> My Account
                 </a>
                 {social ? (
                   <a href="/social/profile">
-                    <HeartHandshake size={13} aria-hidden="true" /> My Social Profile
+                    <HeartHandshake size={14} aria-hidden="true" /> My Social Profile
                   </a>
                 ) : null}
                 <a href="/settings">
-                  <Settings size={13} aria-hidden="true" /> Settings
+                  <Settings size={14} aria-hidden="true" /> Settings
                 </a>
               </>
             ) : (
               <>
                 <a href="/login">
-                  <LogIn size={13} aria-hidden="true" /> Log in
+                  <LogIn size={14} aria-hidden="true" /> Log in
                 </a>
                 <a href="/register">
-                  <UserPlus size={13} aria-hidden="true" /> Create an account
+                  <UserPlus size={14} aria-hidden="true" /> Create an account
                 </a>
               </>
             )}
@@ -144,30 +145,36 @@ export async function SiteFooter() {
           <div>
             <h3>Help</h3>
             <a href="/faq">
-              <BookOpen size={13} aria-hidden="true" /> FAQ &amp; Guide
+              <BookOpen size={14} aria-hidden="true" /> FAQ &amp; Guide
             </a>
             <a href="/rules">
-              <ScrollText size={13} aria-hidden="true" /> Server Rules
+              <ScrollText size={14} aria-hidden="true" /> Server Rules
             </a>
             <a href="/support">
-              <LifeBuoy size={13} aria-hidden="true" /> Support
+              <LifeBuoy size={14} aria-hidden="true" /> Support
             </a>
             <a href="/appeals">
-              <Scale size={13} aria-hidden="true" /> Appeal a punishment
+              <Scale size={14} aria-hidden="true" /> Appeal a punishment
             </a>
-            <a href="/privacy">
-              <Shield size={13} aria-hidden="true" /> Privacy Policy
-            </a>
-            <a href="/terms">
-              <FileText size={13} aria-hidden="true" /> Terms of Service
+            <a href="https://status.kittykingdom.net" target="_blank" rel="noopener noreferrer">
+              <Activity size={14} aria-hidden="true" /> Server status
             </a>
           </div>
         </nav>
       </div>
-      <div className="site-footer-bottom">
-        <p>© {year} Kitty Kingdom. All rights reserved.</p>
-        <a href="#" className="site-footer-top">
-          <ArrowUp size={14} aria-hidden="true" /> Back to top
+
+      <div className="ft-bottom">
+        <p>© {year} Kitty Kingdom</p>
+        <span className="ft-legal">
+          <a href="/privacy">Privacy</a>
+          <a href="/terms">Terms</a>
+        </span>
+        <FooterStatus />
+        <span className="ft-theme">
+          <ThemeSwitch />
+        </span>
+        <a href="#" className="ft-top">
+          <ArrowUp size={14} aria-hidden="true" /> Top
         </a>
       </div>
     </footer>

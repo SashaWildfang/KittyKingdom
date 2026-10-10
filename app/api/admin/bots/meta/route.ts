@@ -4,9 +4,9 @@ import { guildPickers } from "../../../../../lib/bot-settings/guild";
 
 export const dynamic = "force-dynamic";
 
-/** Admins: channels, categories and roles for the bot settings pickers. */
+/** Staff: channels, categories and roles for the pickers (bot settings, events). */
 export async function GET(request: Request) {
-  const panel = await requirePanel(request, "admin");
+  const panel = await requirePanel(request, "staff");
   if (panel instanceof NextResponse) return panel;
   try {
     return NextResponse.json({ ok: true, ...(await guildPickers()) }, { headers: { "Cache-Control": "no-store" } });
