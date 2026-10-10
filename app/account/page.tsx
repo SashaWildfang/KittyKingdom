@@ -208,15 +208,6 @@ export default async function AccountPage({
                 </span>
               ) : null}
             </p>
-            {discordLinked ? (
-              <ProfileBadges
-                initial={(user.badgeShowcase as BadgeShowcase | undefined) ?? null}
-                earned={badgeDates?.earned}
-                customTitle={extras?.customTitle}
-                customBadges={extras?.customBadges}
-              />
-            ) : null}
-            <LiveServerStatus initial={roleState} discordLinked={discordLinked} fallbackStaff={roles.isStaff} />
           </div>
           <div className="acct-top-actions">
             {discordLinked ? <StatsButton /> : null}
@@ -228,6 +219,24 @@ export default async function AccountPage({
             <a className="acct-top-btn" href="/settings">
               <Settings size={16} aria-hidden="true" /> Settings
             </a>
+          </div>
+        </div>
+        {/* Badges on the left, server roles as a row of chips on the right */}
+        <div className="acct-top-strip">
+          {discordLinked ? (
+            <div className="acct-top-block acct-top-block--badges">
+              <h2>Showcase</h2>
+              <ProfileBadges
+                initial={(user.badgeShowcase as BadgeShowcase | undefined) ?? null}
+                earned={badgeDates?.earned}
+                customTitle={extras?.customTitle}
+                customBadges={extras?.customBadges}
+              />
+            </div>
+          ) : null}
+          <div className="acct-top-block acct-top-block--server">
+            <h2>In the server</h2>
+            <LiveServerStatus initial={roleState} discordLinked={discordLinked} fallbackStaff={roles.isStaff} />
           </div>
         </div>
         <p className="acct-top-line">{displayName || user.discordId ? greeting.line : "Manage your Kitty Kingdom profile, Discord link, and account security, all in one place."}</p>

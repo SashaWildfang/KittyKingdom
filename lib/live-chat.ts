@@ -315,7 +315,7 @@ async function fillReplies(docs: Document[]) {
 /** Staff rank labels (and colors) for the people in view, from the bot-synced staff list. */
 async function staffRanks(ids: string[]) {
   if (!ids.length) return {};
-  const docs = await (await getStaffCollection()).find({ _id: { $in: ids as never[] } }, { projection: { role: 1, role_color: 1 } }).toArray();
+  const docs = await (await getStaffCollection()).find({ _id: { $in: ids as never[] }, role: { $ne: "Content Creator" } }, { projection: { role: 1, role_color: 1 } }).toArray();
   return Object.fromEntries(docs.map((d) => [String(d._id), { rank: String(d.role ?? "Staff"), color: str(d.role_color) }]));
 }
 

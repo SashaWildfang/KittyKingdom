@@ -10,6 +10,7 @@ import { NotificationBell } from "./notification-bell";
 import { MobileMenu } from "./mobile-menu";
 import { MessagesButton } from "./messages-nav-badge";
 import { SiteLogo } from "./ui-icons";
+import { SiteSocialIcon } from "./site-social-icon";
 
 
 type SiteNavProps = {
@@ -59,13 +60,14 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
           <NewsNavBadge items={newsStamps} />
         </a>
         <a href="/events">Events</a>
-        <a href="/rules">Rules</a>
-        <a href="https://discord.com/invite/M9XKHFdYQV" target="_blank" rel="noopener noreferrer">
-          Discord
-        </a>
-        <a className="nav-patreon-tab" href="/patreon">
-          Patreon
-        </a>
+        <a href="/giveaways">Giveaways</a>
+        {/* Signed-in members already know the rules and the server, so the bar stays short */}
+        {signedIn ? null : <a href="/rules">Rules</a>}
+        {signedIn ? null : (
+          <a href="https://discord.com/invite/M9XKHFdYQV" target="_blank" rel="noopener noreferrer">
+            Discord
+          </a>
+        )}
         {dating ? (
           <a href="/social" className="nav-dating-tab">
             Social
@@ -74,6 +76,9 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
         {linked ? <a href="/store">Store</a> : null}
         {linked ? <a href="/games">Games</a> : null}
         {linked ? <a href="/leaderboards">Leaderboards</a> : null}
+        <a className="nav-patreon-tab" href="/patreon" title="Patreon" aria-label="Patreon">
+          <SiteSocialIcon name="patreon" size={15} />
+        </a>
       </div>
       <div className="nav-actions">
         {panel ? (

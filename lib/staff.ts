@@ -28,8 +28,10 @@ export type StaffGroup = {
 const GROUPS: { title: string; description: string; icon: string; roles: string[] }[] = [
   { title: "Administration", description: "Leads the kingdom and keeps everything running.", icon: "crown", roles: ["Owner", "Sr Admin", "Admin"] },
   { title: "Moderation", description: "Keeps channels safe, friendly, and fun.", icon: "shield", roles: ["Sr Mod", "Mod", "Jr Mod"] },
+  { title: "Community", description: "Runs events and announcements and keeps the kingdom buzzing.", icon: "megaphone", roles: ["Community Manager"] },
   { title: "Helper Team", description: "Your first stop for questions and verification.", icon: "leaf", roles: ["Helper"] },
   { title: "Staff", description: "Members of the Kitty Kingdom staff team.", icon: "sparkles", roles: ["Staff"] },
+  { title: "Content Creators", description: "Make videos, art and posts about Kitty Kingdom. Go show them some love!", icon: "video", roles: ["Content Creator"] },
 ];
 
 const ROLE_BIOS: Record<string, string> = {
@@ -38,6 +40,8 @@ const ROLE_BIOS: Record<string, string> = {
   Admin: "Helps manage the community and keeps things running smoothly.",
   "Sr Mod": "Guides the moderation team and keeps the community safe.",
   Mod: "Moderates channels and supports members day to day.",
+  "Community Manager": "Plans events, posts announcements and keeps the community buzzing.",
+  "Content Creator": "Creates videos, art and posts for Kitty Kingdom and its socials.",
   "Jr Mod": "Helps welcome members and keep the community safe.",
   Helper: "Helps members, answers questions, and keeps the kingdom welcoming.",
   Staff: "Part of the team keeping the kingdom safe and welcoming.",
@@ -68,7 +72,7 @@ const FALLBACK: { name: string; role: string; id: string }[] = [
   { name: "Spindle", role: "Jr Mod", id: "468613389401194506" },
   { name: "YeetACookie", role: "Helper", id: "553778537459613709" },
 ];
-const FALLBACK_RANK = ["Owner", "Sr Admin", "Admin", "Sr Mod", "Mod", "Jr Mod", "Helper", "Staff"];
+const FALLBACK_RANK = ["Owner", "Sr Admin", "Admin", "Sr Mod", "Mod", "Community Manager", "Jr Mod", "Helper", "Staff", "Content Creator"];
 
 function bioFor(id: string, role: string, custom: unknown) {
   if (typeof custom === "string" && custom.trim()) return custom.trim();

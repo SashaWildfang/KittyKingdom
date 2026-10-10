@@ -12,6 +12,10 @@ export const ADMIN_ROLE_IDS = [
 ];
 // The rest of the staff team see the overview and punishments (no tickets, transcripts or accounts)
 export const STAFF_TEAM_ROLE_ID = "1358470109965979859";
+// Community Managers count as staff (Mod level) even without the Staff Team role
+export const COMMUNITY_MANAGER_ROLE_ID = "1558568175191203931";
+// The team page also lists Content Creators, who aren't staff
+const NOT_CREATOR = { role: { $ne: "Content Creator" } };
 
 export type PanelLevel = "admin" | "staff";
 
@@ -20,7 +24,7 @@ const STALE_OK_MS = 7 * 24 * 3_600_000; // if Discord is unreachable, trust a co
 const roleCache = new Map<string, { level: PanelLevel | null; at: number }>();
 
 const levelFromRoles = (roles: string[]): PanelLevel | null =>
-  roles.some((id) => ADMIN_ROLE_IDS.includes(id)) ? "admin" : roles.includes(STAFF_TEAM_ROLE_ID) ? "staff" : null;
+  roles.some((id) => ADMIN_ROLE_IDS.includes(id)) ? "admin" : roles.includes(STAFF_TEAM_ROLE_ID) || roles.includes(COMMUNITY_MANAGER_ROLE_ID) ? "staff" : null;
 
 async function accessCollection() {
   const client = await getMongoClient();
@@ -39,7 +43,7 @@ async function fallbackLevel(discordId: string): Promise<PanelLevel | null> {
     .catch(() => null);
   if (saved?.at instanceof Date && Date.now() - saved.at.getTime() < STALE_OK_MS) return (saved.level as PanelLevel | null) ?? null;
   const staff = await getStaffCollection()
-    .then((c) => c.findOne({ _id: discordId as never }, { projection: { role: 1 } }))
+    .then((c) => c.findOne({ _id: discordId as never, ...NOT_CREATOR }, { projection: { role: 1 } }))
     .catch(() => null);
   if (!staff) return null;
   return /^(owner|admin)$/i.test(String(staff.role ?? "")) ? "admin" : "staff";
@@ -144,8 +148,8 @@ export async function isStaffDiscordId(discordId: unknown) {
   const [roles, listed] = await Promise.all([
     getMemberRoleIds(id).catch(() => null),
     getStaffCollection()
-      .then((col) => col.findOne({ $or: [{ _id: id as never }, { discord_id: id }] }, { projection: { _id: 1 } }))
+      .then((col) => col.findOne({ $or: [{ _id: id as never }, { discord_id: id }], ...NOT_CREATOR }, { projection: { _id: 1 } }))
       .catch(() => null),
   ]);
-  return Boolean(listed) || Boolean(roles?.some((r) => r === STAFF_TEAM_ROLE_ID || ADMIN_ROLE_IDS.includes(r)));
+  return Boolean(listed) || Boolean(roles?.some((r) => r === STAFF_TEAM_ROLE_ID || r === COMMUNITY_MANAGER_ROLE_ID || ADMIN_ROLE_IDS.includes(r)));
 }

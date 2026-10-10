@@ -30,6 +30,8 @@ import { REVIEWS_URL } from "../lib/reviews";
 import { ThemeSwitch } from "./theme-switch";
 import { SiteLogo } from "./ui-icons";
 import { FooterStatus } from "./footer-status";
+import { SiteSocialIcon } from "./site-social-icon";
+import { SITE_SOCIALS } from "../lib/site-socials";
 
 const DISCORD_INVITE = "https://discord.com/invite/M9XKHFdYQV";
 const PATREON_URL = "https://www.patreon.com/c/thekittykingdom/membership";
@@ -65,8 +67,13 @@ export async function SiteFooter() {
               <DiscordLogo size={15} /> Join the server
             </a>
             <a className="ft-icon" href={PATREON_URL} target="_blank" rel="noopener noreferrer" aria-label="Support us on Patreon" title="Patreon">
-              <Heart size={16} aria-hidden="true" />
+              <SiteSocialIcon name="patreon" size={15} />
             </a>
+            {SITE_SOCIALS.map((s) => (
+              <a key={s.key} className={`ft-icon ft-icon--${s.key}`} href={s.href} target="_blank" rel="noopener noreferrer" aria-label={`Kitty Kingdom on ${s.label}`} title={s.label}>
+                <SiteSocialIcon name={s.key} size={15} />
+              </a>
+            ))}
             <a className="ft-icon" href={REVIEWS_URL} target="_blank" rel="noopener noreferrer" aria-label="Read our reviews" title="Reviews">
               <Star size={16} aria-hidden="true" />
             </a>

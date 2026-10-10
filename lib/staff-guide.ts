@@ -3,7 +3,10 @@
 
 import { memberRoleIdsCached } from "./discord-member";
 import { getMongoClient, getStaffCollection } from "./mongodb";
-import { RANKS, SR_ADMIN_EXTRA, STAFF_TEAM, type RankName } from "./staff-guide-data";
+import { RANKS, SR_ADMIN_EXTRA, STAFF_TEAM, rankIndex, type RankName } from "./staff-guide-data";
+
+// Community Managers have Mod's permissions
+const COMMUNITY_MANAGER = "1558568175191203931";
 
 export * from "./staff-guide-data";
 
@@ -13,11 +16,12 @@ export async function staffRank(discordId: string): Promise<RankName | null> {
   if (roles) {
     if (roles.includes(SR_ADMIN_EXTRA) && !roles.includes(RANKS[6].id)) return "Sr Admin";
     const found = [...RANKS].reverse().find((r) => roles.includes(r.id));
+    if (roles.includes(COMMUNITY_MANAGER) && (!found || rankIndex(found.name) < rankIndex("Mod"))) return "Mod";
     if (found) return found.name;
     if (roles.includes(STAFF_TEAM)) return "Helper";
   }
   const staff = await getStaffCollection().then((c) => c.findOne({ discord_id: discordId })).catch(() => null);
-  const name = String(staff?.role ?? "");
+  const name = String(staff?.role ?? "") === "Community Manager" ? "Mod" : String(staff?.role ?? "");
   return (RANKS.find((r) => r.name.toLowerCase() === name.toLowerCase())?.name as RankName | undefined) ?? null;
 }
 

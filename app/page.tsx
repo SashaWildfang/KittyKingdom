@@ -18,6 +18,7 @@ import { SeasonArt, SeasonCopy } from "./home-season";
 import { HomeNewsNotice } from "./home-news-notice";
 import { CountUp, LevelLadder, LocalDateBlock, LocalTime, RotatingWord, SeasonBadge, SeasonFeature, StorePreview } from "./landing-client";
 import { SiteNav } from "./site-nav";
+import { SITE_SOCIALS } from "../lib/site-socials";
 
 const DISCORD_INVITE = "https://discord.com/invite/M9XKHFdYQV";
 
@@ -566,7 +567,7 @@ export default async function Home({ searchParams }: { searchParams?: { register
                 url: "https://www.kittykingdom.net",
                 logo: "https://www.kittykingdom.net/logo.png",
                 description: "A cozy, seasonal 18+ furry Discord server and community website.",
-                sameAs: [DISCORD_INVITE, "https://www.patreon.com/c/thekittykingdom", "https://disboard.org/server/1358452494128250940"],
+                sameAs: [DISCORD_INVITE, "https://www.patreon.com/c/thekittykingdom", "https://disboard.org/server/1358452494128250940", ...SITE_SOCIALS.map((s) => s.href)],
               },
               {
                 "@type": "WebSite",
