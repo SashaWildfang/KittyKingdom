@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, BellRing, CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, Hash, List, MapPin, Mic, Repeat, UserRound } from "lucide-react";
+import { Bell, BellRing, CalendarCog, CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, Hash, List, MapPin, Mic, Repeat, UserRound } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { EVENT_KINDS, type PublicEvent } from "../../lib/events-shared";
 
@@ -158,7 +158,7 @@ function Month({ events, month, onMonth, onPick }: { events: PublicEvent[]; mont
   );
 }
 
-export function EventsBoard({ initial, signedIn, linked }: { initial: Data | null; signedIn: boolean; linked: boolean }) {
+export function EventsBoard({ initial, signedIn, linked, canManage = false }: { initial: Data | null; signedIn: boolean; linked: boolean; canManage?: boolean }) {
   const [data, setData] = useState<Data | null>(initial);
   const [mine, setMine] = useState<Set<string>>(new Set(initial?.mine ?? []));
   const [busy, setBusy] = useState<string | null>(null);
@@ -232,6 +232,11 @@ export function EventsBoard({ initial, signedIn, linked }: { initial: Data | nul
           </p>
           <h1>What&apos;s happening in the kingdom</h1>
           <p className="evp-lead">Game nights, movie nights, voice hangouts and contests. Tap Remind me and the bot will DM you before it starts.</p>
+          {canManage ? (
+            <a className="evp-manage" href="/admin?tab=events">
+              <CalendarCog size={15} aria-hidden="true" /> Manage events
+            </a>
+          ) : null}
         </div>
         {next ? (
           <a className="evp-next" href={`#event-${next.id}`}>

@@ -27,6 +27,8 @@ export type ServerEvent = {
   image: string | null;
   weekly: boolean;
   discord: boolean;
+  /** Posted (and kept up to date) as an embed in the events announcement channel */
+  post: boolean;
   cancelled: boolean;
   going: number;
   createdBy: string | null;
