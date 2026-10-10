@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
+import "./polish.css";
 import { PageTracker } from "./page-tracker";
 import { TimeZoneSync } from "./time-zone-sync";
 import { ViewAsBar } from "./view-as-bar";

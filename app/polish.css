@@ -1,0 +1,76 @@
+/* Shared polish for the content pages (news, FAQ, rules, support): headings, eyebrows and cards in the
+   same style as the homepage (app/landing.css). */
+
+/* Page headings: the base h1 is capped at 11 characters wide for the old hero; these headings use the room */
+.kb-hero h1,
+.nw-head h1 {
+  max-width: none;
+  margin: 0;
+  font-size: clamp(2.3rem, 5.5vw, 3.8rem);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+.kb-hero .eyebrow,
+.nw-head .home-eyebrow {
+  margin: 0;
+  color: rgb(var(--gold-rgb));
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+:root[data-theme="light"] .kb-hero .eyebrow,
+:root[data-theme="light"] .nw-head .home-eyebrow { color: var(--maple); }
+.kb-hero { padding-top: 2rem; }
+.nw-head { padding-top: 1.5rem; }
+.nw-head h1 { margin: 0.3rem 0 0.4rem; }
+.nw-head > p:not(.home-eyebrow) { max-width: 40rem; color: var(--muted); font-size: 1.05rem; line-height: 1.55; }
+
+/* Cards: rounder, a soft glow under the pointer, a lift on hover */
+.kb-topic,
+.kb-guide,
+.kb-contact-card,
+.rl-tldr > *,
+.nw2-list > a,
+.nw2-list > article,
+.nw-latest {
+  border-radius: 1.2rem;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+.kb-topic:hover,
+.kb-contact-card:hover,
+.nw2-list > a:hover,
+.nw-latest:hover {
+  border-color: rgba(var(--ember-rgb), 0.5);
+  background: radial-gradient(22rem circle at 50% 0%, rgba(var(--ember-rgb), 0.12), transparent 60%), var(--panel);
+  box-shadow: 0 16px 34px var(--shadow);
+  transform: translateY(-3px);
+}
+.kb-topic-icon,
+.rl-tldr-icon,
+.rl-part-icon {
+  border-radius: 0.9rem;
+  background: linear-gradient(135deg, rgba(var(--ember-rgb), 0.28), rgba(var(--maple-rgb), 0.2));
+  color: rgb(var(--gold-rgb));
+}
+:root[data-theme="light"] .kb-topic-icon,
+:root[data-theme="light"] .rl-tldr-icon,
+:root[data-theme="light"] .rl-part-icon { color: var(--maple); }
+
+/* Buttons and pills share the homepage's look */
+.kb-btn--primary {
+  border-color: transparent;
+  background: linear-gradient(135deg, rgb(var(--ember-rgb)), rgb(var(--maple-rgb)));
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(var(--ember-rgb), 0.3);
+}
+.kb-cta {
+  border-color: rgba(var(--ember-rgb), 0.35);
+  border-radius: 1.4rem;
+  background: linear-gradient(120deg, rgba(var(--ember-rgb), 0.18), rgba(var(--maple-rgb), 0.08) 60%, transparent), var(--panel);
+}
+.nw2-tags button,
+.nw2-seg button {
+  border-radius: 999px;
+}
