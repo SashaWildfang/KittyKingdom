@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import { AuthCard, type AuthStatus } from "../auth-card";
 import { pendingRegistration } from "../../lib/registration";
 import { RegisterLink } from "./register-link";
 import { BLOCKED_EMAIL_MESSAGE } from "../../lib/validate";
+
+export const metadata: Metadata = {
+  title: "Create an account | Kitty Kingdom",
+  description: "Create a free Kitty Kingdom account and link it to Discord for the store, games, Social profiles and more.",
+};
 
 export const dynamic = "force-dynamic";
 

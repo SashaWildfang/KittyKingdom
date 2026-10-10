@@ -1,6 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getDiscordInviteSummary } from "../../lib/discord";
 import { SiteLogo } from "../ui-icons";
+
+export const metadata: Metadata = {
+  title: "Join the Discord | Kitty Kingdom",
+  description: "Join Kitty Kingdom, a cozy 18+ furry Discord server with events, games, Social profiles and a friendly community.",
+};
 
 export const dynamic = "force-dynamic";
 

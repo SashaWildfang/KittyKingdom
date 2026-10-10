@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import { AuthCard, type AuthStatus } from "../auth-card";
 import { safeNext } from "../../lib/validate";
+
+export const metadata: Metadata = {
+  title: "Log in | Kitty Kingdom",
+  description: "Log in to your Kitty Kingdom account to use the store, games, Social and your stats.",
+};
 
 const statusMessages: Record<string, string> = {
   invalid:

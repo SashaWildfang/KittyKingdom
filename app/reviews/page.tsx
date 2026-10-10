@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import { Star } from "lucide-react";
 import Link from "next/link";
 import { LEAVE_REVIEW_URL, REVIEWS_URL, getReviews } from "../../lib/reviews";
 import { SiteLogo } from "../ui-icons";
+
+export const metadata: Metadata = {
+  title: "Reviews | Kitty Kingdom",
+  description: "What members say about Kitty Kingdom, the 18+ furry Discord community, with reviews from DISBOARD.",
+};
 
 export const dynamic = "force-dynamic";
 
