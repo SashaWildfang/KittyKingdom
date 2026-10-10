@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 import { EVENT_KINDS, type EventKind, type ServerEvent } from "../../lib/events-shared";
 import { MemberSearch, useLive, type People } from "./admin-shared";
 import { Picker, channelOptions, type Meta } from "./bots/pickers";
+import { EventPolls } from "./event-polls";
 
 type StaffEvent = ServerEvent & { discordEventId: string | null; lastError: string | null; posted: boolean; postError: string | null };
 type Data = { ok: boolean; upcoming: StaffEvent[]; past: StaffEvent[]; people: People };
@@ -85,6 +86,7 @@ export function EventsTab() {
               ))}
             </ul>
           ) : null}
+          <EventPolls events={data.upcoming.filter((e) => !e.cancelled)} />
         </>
       )}
       {editing ? (
