@@ -33,6 +33,14 @@ export const POLL_LENGTHS = [1, 4, 8, 24, 72, 168, 336] as const;
 const GUILD_ID = "1358452494128250940";
 const iso = (v: unknown) => (v instanceof Date ? v.toISOString() : typeof v === "string" ? v : null);
 
+const EMOJI = new RegExp("\\p{Extended_Pictographic}|\\u20E3|\\p{Regional_Indicator}", "u");
+
+/** Exactly one emoji (incl. keycaps like 1️⃣, flags and skin-tone / joined emoji). */
+function isSingleEmoji(value: string) {
+  const parts = Array.from(new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(value));
+  return parts.length === 1 && EMOJI.test(value);
+}
+
 async function pollsCol() {
   return getBotCollection("event_polls");
 }
@@ -79,7 +87,7 @@ export async function createPoll(raw: Record<string, unknown>, by: string) {
   if (answers.length < 2) throw new EventError("Add at least two answers.");
   if (answers.length > 10) throw new EventError("Discord polls can have up to 10 answers.");
   if (answers.some((a) => a.text.length > 55)) throw new EventError("Each answer has to be 55 characters or less.");
-  if (answers.some((a) => a.emoji && (a.emoji.length > 16 || /[\w\s]/.test(a.emoji)))) throw new EventError("Answer emoji must be a single emoji (or left empty).");
+  if (answers.some((a) => a.emoji && !isSingleEmoji(a.emoji))) throw new EventError("Answer emoji must be a single emoji (or left empty).");
   const hours = Number(raw.hours);
   if (!POLL_LENGTHS.includes(hours as (typeof POLL_LENGTHS)[number])) throw new EventError("Pick how long the poll runs.");
   const eventId = raw.eventId && ObjectId.isValid(String(raw.eventId)) ? String(raw.eventId) : null;
