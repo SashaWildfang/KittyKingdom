@@ -4642,3 +4642,11 @@ a.dt-partner-chip:hover {
 /* Your own profile has no compatibility card: the details take the full width */
 .dt-profile-left:empty { display: none; }
 .dt-profile-grid:has(> .dt-profile-left:empty) { grid-template-columns: minmax(0, 1fr); }
+
+/* Phones: the profile buttons wrap two per row instead of being cut off */
+@media (max-width: 640px) {
+  .dt-profile--v2 .dt-hero-actions { grid-template-columns: repeat(2, minmax(0, 1fr)) 2.5rem; }
+  .dt-profile--v2 .dt-hero-actions > .dt-more { grid-column: 3; grid-row: 1 / span 2; }
+  .dt-profile--v2 .dt-hero-actions > .dt-more .dt-btn--icon { height: 100%; }
+  .dt-profile--v2 .dt-hero-actions .dt-btn { justify-content: center; font-size: 0.82rem; }
+}

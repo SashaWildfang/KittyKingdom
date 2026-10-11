@@ -10,11 +10,14 @@ export function StackedBars({
   series,
   unit,
   height = 220,
+  onPick,
 }: {
   points: { bucket: string; action: string; count: number }[];
   series: Series[];
   unit: "hour" | "day" | "week" | "month";
   height?: number;
+  /** Click a bar to open that period's details */
+  onPick?: (bucket: string) => void;
 }) {
   const [hover, setHover] = useState<number | null>(null);
   const buckets = Array.from(new Set(points.map((p) => p.bucket))).sort();
@@ -46,9 +49,14 @@ export function StackedBars({
         {rows.map((row, i) => (
           <div
             key={row.bucket}
-            className={`adm-bar-col${hover === i ? " is-hover" : ""}`}
+            className={`adm-bar-col${hover === i ? " is-hover" : ""}${onPick ? " is-pickable" : ""}`}
             style={{ width: `${width}%` }}
             onMouseEnter={() => setHover(i)}
+            onClick={onPick ? () => onPick(row.bucket) : undefined}
+            role={onPick ? "button" : undefined}
+            tabIndex={onPick ? 0 : undefined}
+            onKeyDown={onPick ? (e) => (e.key === "Enter" || e.key === " ") && onPick(row.bucket) : undefined}
+            aria-label={onPick ? `${label(row.bucket)}: ${row.total}. Open details` : undefined}
           >
             <div className="adm-bar-stack" style={{ height: `${(row.total / max) * 100}%` }}>
               {series
@@ -71,6 +79,7 @@ export function StackedBars({
                   <i style={{ background: s.color }} /> {s.label}: {hovered.values[s.key]}
                 </span>
               ))}
+            {onPick ? <small className="adm-tooltip-hint">Click for the full breakdown</small> : null}
           </div>
         ) : null}
       </div>

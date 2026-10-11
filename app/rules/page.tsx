@@ -29,12 +29,15 @@ import { Fragment, type CSSProperties, type ReactNode } from "react";
 import { getCurrentUser } from "../../lib/auth";
 import { getDiscordInviteSummary } from "../../lib/discord";
 import { stripEmojis } from "../../lib/names";
-import { RULES } from "../../lib/rules-data";
+import { getWebRules } from "../../lib/rules-store";
 import { DISCORD_INVITE } from "../faq/content";
 import { FallingLeaves } from "../fall-effects";
 import { SiteNav } from "../site-nav";
 import "./rules.css";
 import { seasonal } from "../../lib/season-store";
+
+// Rules can be edited in Admin → Rules, so the page is built per request (it's one small database read)
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Server Rules | Kitty Kingdom",
@@ -78,6 +81,7 @@ function Md({ text: raw }: { text: string }) {
         </b>,
       );
     else if (m[4] !== undefined) out.push(<code key={m.index}>{m[4]}</code>);
+    else if (!/^(https?:\/\/|\/)/.test(m[3])) out.push(m[2]);
     else {
       const external = /^https?:/.test(m[3]) && !m[3].includes("kittykingdom.net");
       const href = m[3].replace(/^https:\/\/www\.kittykingdom\.net/, "") || "/";
@@ -94,7 +98,7 @@ function Md({ text: raw }: { text: string }) {
 }
 
 export default async function RulesPage() {
-  const [user, discord] = await Promise.all([getCurrentUser().catch(() => null), getDiscordInviteSummary()]);
+  const [user, discord, RULES] = await Promise.all([getCurrentUser().catch(() => null), getDiscordInviteSummary(), getWebRules()]);
   const total = RULES.parts.reduce((n, p) => n + p.rules.length, 0);
   return (
     <main className="site-shell kb-shell">
@@ -117,7 +121,7 @@ export default async function RulesPage() {
             {RULES.tldr.map((t, i) => {
               const Icon = TLDR_ICONS[i] ?? Check;
               return (
-                <li key={t}>
+                <li key={`${i}-${t}`}>
                   <span className="rl-tldr-icon" aria-hidden="true">
                     <Icon size={17} />
                   </span>

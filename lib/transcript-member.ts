@@ -7,10 +7,11 @@
 // Redaction doesn't rely on this file alone: the member file route only ever serves avatars/ and
 // emojis/ out of the zip, and the page's Content-Security-Policy blocks outside media.
 
+import { TRANSCRIPT_CSS } from "./transcript-member-css";
 import { parse, type HTMLElement, type Node } from "node-html-parser";
 import { openTranscriptFile } from "./transcript-store";
 
-const RENDER_VERSION = 4;
+const RENDER_VERSION = 5;
 /** The current transcript stylesheet, served by both viewers (old zips carry an old style.css) */
 export const TRANSCRIPT_CSS_FILE = "kk-transcript.css";
 
@@ -437,7 +438,7 @@ function renderPage(meta: MemberTicketMeta, messages: Message[], people: { opene
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ticket #${meta.ticketId} · ${escapeHtml(look.title)}</title>
-<link rel="stylesheet" href="${TRANSCRIPT_CSS_FILE}">
+<style>${TRANSCRIPT_CSS}</style>
 <style>:root { --accent: ${accent}; }</style>
 </head>
 <body>

@@ -14,19 +14,22 @@ const IMAGE_TYPES: Record<string, string> = { png: "image/png", jpg: "image/jpeg
 
 // The member copy runs sandboxed with no way to load media: only its own avatars/emojis and
 // Discord's emoji CDN. Even a missed <img>/<video> for an upload could not load.
-const PAGE_CSP = [
-  "sandbox allow-scripts allow-popups allow-popups-to-escape-sandbox",
-  "default-src 'none'",
-  "img-src 'self' data: https://cdn.discordapp.com/emojis/",
-  "media-src 'none'",
-  "style-src 'self' 'unsafe-inline'",
-  "script-src 'unsafe-inline'",
-  "connect-src 'none'",
-  "frame-src 'none'",
-  "form-action 'none'",
-  "base-uri 'none'",
-  "frame-ancestors 'self'",
-].join("; ");
+// A sandboxed page has no origin of its own, so browsers don't count our files as 'self' any more:
+// the site's own address is listed instead (the stylesheet is inlined in the page as well).
+const pageCsp = (site: string) =>
+  [
+    "sandbox allow-scripts allow-popups allow-popups-to-escape-sandbox",
+    "default-src 'none'",
+    `img-src 'self' ${site} data: https://cdn.discordapp.com/emojis/`,
+    "media-src 'none'",
+    `style-src 'self' ${site} 'unsafe-inline'`,
+    "script-src 'unsafe-inline'",
+    "connect-src 'none'",
+    "frame-src 'none'",
+    "form-action 'none'",
+    "base-uri 'none'",
+    "frame-ancestors 'self'",
+  ].join("; ");
 
 const base = { "Cache-Control": "private, max-age=3600", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer" };
 
@@ -47,7 +50,7 @@ export async function GET(request: Request, { params }: { params: { messageId: s
     });
     if (!page) return new Response("This transcript couldn't be loaded from Discord right now. Please try again in a minute.", { status: 502 });
     // Times in the viewer's own time zone (the site's kk_tz cookie, same as everywhere else)
-    return new Response(localizeTranscriptTimes(page, requestTimeZone(request)), { headers: { ...base, "Cache-Control": "private, no-store", "Content-Type": "text/html; charset=utf-8", "Content-Security-Policy": PAGE_CSP } });
+    return new Response(localizeTranscriptTimes(page, requestTimeZone(request)), { headers: { ...base, "Cache-Control": "private, no-store", "Content-Type": "text/html; charset=utf-8", "Content-Security-Policy": pageCsp(new URL(request.url).origin) } });
   }
 
   if (name === TRANSCRIPT_CSS_FILE || name === "style.css") {

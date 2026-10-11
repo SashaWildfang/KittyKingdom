@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, FileText, PieChart, Shield, User, X } from "lucide-react";
+import { Bot, CalendarDays, FileText, PieChart, Shield, User, X } from "lucide-react";
 import { BarList } from "./admin-charts";
 import { TicketTypeDrill } from "./ticket-drill";
 import { useEffect } from "react";
@@ -24,6 +24,7 @@ export type Drill = (
   | { kind: "staff"; id: string; automod?: boolean }
   | { kind: "member"; id: string }
   | { kind: "action"; action: string }
+  | { kind: "period"; start: string; unit: "hour" | "day" | "week" | "month" }
   | { kind: "ticketType"; type: string }
   | { kind: "ticketStaff"; id: string }
   | { kind: "ticketOpener"; id: string }
@@ -35,6 +36,25 @@ type Summary = {
   sources: Record<string, number>;
 };
 type Result = { rows: Punishment[]; total: number; people: People; mentions: Mentions; summary: Summary | null };
+
+/** The start and end of one bar on the "over time" charts. */
+export function periodBounds(start: string, unit: "hour" | "day" | "week" | "month") {
+  const from = new Date(start);
+  const to = new Date(from);
+  if (unit === "hour") to.setHours(to.getHours() + 1);
+  else if (unit === "day") to.setDate(to.getDate() + 1);
+  else if (unit === "week") to.setDate(to.getDate() + 7);
+  else to.setMonth(to.getMonth() + 1);
+  return { from, to };
+}
+
+function periodLabel(start: string, unit: "hour" | "day" | "week" | "month") {
+  const d = new Date(start);
+  if (unit === "hour") return d.toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric" });
+  if (unit === "month") return d.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  if (unit === "week") return `Week of ${d.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}`;
+  return d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+}
 
 /**
  * The story behind an overview number: everyone who got a reason, everything a staff member
@@ -57,7 +77,13 @@ export function DrillPanel(props: DrillProps) {
 function PunishmentDrill({ drill, onClose, onOpenMember, onDrill }: DrillProps) {
   const range = drill.range ?? "all";
   const source = drill.source ?? "all";
-  const params = new URLSearchParams({ pageSize: "100", source, ...(range !== "all" ? { range } : {}) });
+  const params = new URLSearchParams({ pageSize: "100", source, ...(range !== "all" && drill.kind !== "period" ? { range } : {}) });
+  if (drill.kind === "period") {
+    const { from, to } = periodBounds(drill.start, drill.unit);
+    params.set("from", from.toISOString());
+    params.set("to", to.toISOString());
+    params.set("summary", "1");
+  }
   if (drill.kind === "reason") params.set("reason", drill.reason);
   if (drill.kind === "staff") params.set("issuerId", drill.id);
   if (drill.kind === "member") params.set("userId", drill.id);
@@ -87,7 +113,9 @@ function PunishmentDrill({ drill, onClose, onOpenMember, onDrill }: DrillProps) 
   const summary = data?.summary ?? null;
   const drillTo = (d: Drill) => onDrill?.({ ...d, range: drill.range, source: drill.source } as Drill);
   const title =
-    drill.kind === "action" ? (
+    drill.kind === "period" ? (
+      periodLabel(drill.start, drill.unit)
+    ) : drill.kind === "action" ? (
       prettyAction(drill.action)
     ) : drill.kind === "reason" ? (
       <RichText text={drill.reason} mentions={data?.mentions} people={people} onOpenMember={onOpenMember} />
@@ -96,7 +124,7 @@ function PunishmentDrill({ drill, onClose, onOpenMember, onDrill }: DrillProps) 
     ) : (
       person?.name ?? "Loading…"
     );
-  const kicker = drill.kind === "action" ? "Breakdown" : drill.kind === "reason" ? "Reason" : drill.kind === "staff" ? "Staff activity" : "Member record";
+  const kicker = drill.kind === "period" ? `${drill.unit === "hour" ? "Hour" : drill.unit === "week" ? "Week" : drill.unit === "month" ? "Month" : "Day"} overview` : drill.kind === "action" ? "Breakdown" : drill.kind === "reason" ? "Reason" : drill.kind === "staff" ? "Staff activity" : "Member record";
 
   return (
     <div className="adm-drawer-backdrop" onClick={onClose}>
@@ -108,14 +136,14 @@ function PunishmentDrill({ drill, onClose, onOpenMember, onDrill }: DrillProps) 
           {drill.kind === "staff" || drill.kind === "member" ? (
             <Avatar person={person} id={drill.id} size={56} />
           ) : (
-            <span className="adm-drill-icon">{drill.kind === "action" ? <PieChart size={26} /> : <FileText size={26} />}</span>
+            <span className="adm-drill-icon">{drill.kind === "period" ? <CalendarDays size={26} /> : drill.kind === "action" ? <PieChart size={26} /> : <FileText size={26} />}</span>
           )}
           <div>
             <p className="adm-drill-kicker">{kicker}</p>
             <h2>{title}</h2>
             <p>
               {data ? `${data.total.toLocaleString()} punishment${data.total === 1 ? "" : "s"}` : "…"}
-              {range !== "all" ? " in this range" : " all time"}
+              {drill.kind === "period" ? "" : range !== "all" ? " in this range" : " all time"}
               {drill.kind === "reason" && members.length ? ` · ${members.length} member${members.length === 1 ? "" : "s"}` : ""}
             </p>
           </div>
@@ -129,7 +157,7 @@ function PunishmentDrill({ drill, onClose, onOpenMember, onDrill }: DrillProps) 
 
         {error ? <p className="adm-error">{error}</p> : null}
 
-        {drill.kind === "action" && summary ? (
+        {(drill.kind === "action" || drill.kind === "period") && summary ? (
           <>
             <div className="adm-drill-split">
               <span>
@@ -193,7 +221,7 @@ function PunishmentDrill({ drill, onClose, onOpenMember, onDrill }: DrillProps) 
         {members.length ? (
           <section className="adm-drawer-section">
             <h3>
-              {drill.kind === "reason" ? "Members with this reason" : drill.kind === "action" ? "Members who got this" : "Members they punished"} <small>{members.length}</small>
+              {drill.kind === "reason" ? "Members with this reason" : drill.kind === "action" ? "Members who got this" : drill.kind === "period" ? "Members punished" : "Members they punished"} <small>{members.length}</small>
             </h3>
             <ul className="adm-drill-people">
               {members.map(([id, n]) => (

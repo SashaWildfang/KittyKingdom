@@ -167,3 +167,25 @@ html body .adm-kpis > * { flex: 1 1 15rem; min-width: 0; }
   html body .store-tabs button { justify-content: center; gap: 0.3rem; min-width: 0; padding: 0.55rem 0.3rem; font-size: 0.8rem; }
   html body .store-tabs button svg { flex: none; width: 14px; height: 14px; }
 }
+
+/* ---------- Transcript pages: glass header, frame matches ---------- */
+html body .tx-head {
+  width: min(96rem, calc(100% - 2.5rem));
+  border: 1px solid var(--glass-border);
+  border-radius: 1.6rem;
+  background: radial-gradient(circle at 0% 0%, rgba(var(--ember-rgb), 0.2), transparent 55%), var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  padding: 1.2rem 1.5rem;
+}
+html body .tx-frame { width: min(96rem, calc(100% - 2.5rem)); border-radius: 1.4rem; box-shadow: var(--glass-shadow); }
+
+/* ---------- Admin charts: bars you can click ---------- */
+html body .adm-bar-col.is-pickable { cursor: pointer; }
+html body .adm-bar-col.is-pickable:focus-visible { outline: 2px solid rgb(var(--ember-rgb)); outline-offset: 2px; border-radius: 4px; }
+html body .adm-tooltip-hint { display: block; margin-top: 0.25rem; color: var(--muted); font-size: 0.72rem; }
+html body .adm-date-range { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+html body .adm-date-range label { display: inline-flex; align-items: center; gap: 0.35rem; color: var(--muted); font-size: 0.82rem; font-weight: 700; }
+html body .adm-date-range input { color-scheme: dark; }
+:root[data-theme="light"] body .adm-date-range input { color-scheme: light; }

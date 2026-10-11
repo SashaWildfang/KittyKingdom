@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Settings as SettingsIcon,
   Ban,
   Bell,
   Check,
@@ -510,19 +511,31 @@ export function SettingsPanel({ social }: { social: boolean }) {
 
   return (
     <div className="set-layout">
-      <nav className="set-nav" aria-label="Settings categories">
-        {categories.map((c) => (
-          <button key={c.key} type="button" className={c.key === current.key ? "is-on" : undefined} aria-current={c.key === current.key ? "page" : undefined} onClick={() => open(c.key)}>
-            <span className="set-nav-icon" aria-hidden="true">
-              <c.icon size={17} />
-            </span>
-            <span className="set-nav-text">
-              <b>{c.label}</b>
-              <small>{c.blurb}</small>
-            </span>
-          </button>
-        ))}
-      </nav>
+      {/* Sidebar: what this page is, then every category (it never moves when you switch) */}
+      <aside className="set-side">
+        <header className="set-side-head">
+          <span className="set-side-icon" aria-hidden="true">
+            <SettingsIcon size={20} />
+          </span>
+          <div>
+            <h1>Settings</h1>
+            <p>Changes save automatically.</p>
+          </div>
+        </header>
+        <nav className="set-nav" aria-label="Settings categories">
+          {categories.map((c) => (
+            <button key={c.key} type="button" className={c.key === current.key ? "is-on" : undefined} aria-current={c.key === current.key ? "page" : undefined} onClick={() => open(c.key)}>
+              <span className="set-nav-icon" aria-hidden="true">
+                <c.icon size={17} />
+              </span>
+              <span className="set-nav-text">
+                <b>{c.label}</b>
+                <small>{c.blurb}</small>
+              </span>
+            </button>
+          ))}
+        </nav>
+      </aside>
       <div className="set-main">
         <header className="set-main-head">
           <div>
