@@ -38,7 +38,7 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
     { href: "/home", label: "Home", icon: "home" as const },
     { href: "/news", label: "News", icon: "news" as const },
     { href: "/events", label: "Events", icon: "events" as const },
-    { href: "/giveaways", label: "Giveaways", icon: "giveaways" as const },
+    ...(signedIn ? [{ href: "/giveaways", label: "Giveaways", icon: "giveaways" as const }] : []),
     { href: "/rules", label: "Rules", icon: "rules" as const },
     { href: "https://discord.com/invite/M9XKHFdYQV", label: "Discord", icon: "discord" as const, external: true },
     { href: "/patreon", label: "Patreon", icon: "patreon" as const },
@@ -67,7 +67,7 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
           Events
           <EventsNavBadge ids={eventStamps.ids} live={eventStamps.live} />
         </a>
-        <a href="/giveaways">Giveaways</a>
+        {signedIn ? <a href="/giveaways">Giveaways</a> : null}
         {/* Signed-in members already know the rules and the server, so the bar stays short */}
         {signedIn ? null : <a href="/rules">Rules</a>}
         {signedIn ? null : (

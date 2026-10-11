@@ -1,5 +1,6 @@
 // Patreon supporters for the homepage thank-you section ("The Royal Court"). Who's active comes from the main
-// bot's Patreon sync (zeo_bot.patreon_members) plus tiers granted by hand (patreon_overrides); titles come from
+// bot's Patreon sync (zeo_bot.patreon_members) only: perks granted by hand (patreon_overrides) don't put anyone
+// on the wall, since they aren't actual Patreon supporters. Titles come from
 // supporter_prefs (King or Queen and so on). Names and avatars come from the member directory.
 
 import { getBotCollection } from "./mongodb";
@@ -13,14 +14,11 @@ let cache: { at: number; groups: PatronGroup[] } | null = null;
 
 export async function patronWall(): Promise<PatronGroup[]> {
   if (cache && Date.now() - cache.at < 10 * 60_000) return cache.groups;
-  const [members, overrides] = await Promise.all([
-    getBotCollection("patreon_members").then((c) => c.find({ tier: { $ne: null }, discordId: { $ne: null } }, { projection: { discordId: 1, tier: 1 } }).toArray()),
-    getBotCollection("patreon_overrides").then((c) => c.find({}, { projection: { discordId: 1, tier: 1 } }).toArray()),
-  ]);
+  const members = await getBotCollection("patreon_members").then((c) => c.find({ tier: { $ne: null }, discordId: { $ne: null } }, { projection: { discordId: 1, tier: 1 } }).toArray());
   // Highest tier per person
   const rank = (k: string) => TIERS.findIndex((t) => t.key === k);
   const tierOf = new Map<string, TierKey>();
-  for (const d of [...members, ...overrides]) {
+  for (const d of members) {
     const id = String(d.discordId ?? "");
     const key = String(d.tier ?? "") as TierKey;
     if (!id || rank(key) < 0) continue;
