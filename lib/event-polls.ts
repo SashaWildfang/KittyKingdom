@@ -5,6 +5,7 @@
 //   zeo_bot.event_polls       {question, answers[{text, emoji}], hours, multiple, eventId, ping, createdBy, createdAt,
 //                              status pending|posted|ended|failed, messageId, channelId, postedAt, expiresAt,
 //                              results[{text, votes, voters[]}], totalVotes, endRequested, deleted, error}
+//   Member polls from #polls (Maple Grove) are copied in by the bot too: source "community", authorId, authorName.
 //   zeo_bot.event_poll_votes  {pollId, discordId, answers[index], at}, one per member voting on the website
 
 import { ObjectId, type Document } from "mongodb";
@@ -16,9 +17,12 @@ export type EventPoll = {
   id: string;
   question: string;
   /** votes = Discord + website (each member once) */
-  answers: { text: string; emoji: string | null; votes: number }[];
+  answers: { text: string; emoji: string | null; emojiUrl: string | null; votes: number }[];
   hours: number;
   multiple: boolean;
+  /** "event": written in Admin → Events. "community": a member's poll from #polls */
+  source: "event" | "community";
+  authorName: string | null;
   eventId: string | null;
   ping: boolean;
   status: PollStatus;
@@ -100,6 +104,7 @@ function toPoll(d: Document, web: WebVote[] = []): EventPoll {
   const answers = (Array.isArray(d.answers) ? d.answers : []).map((a: Document, i: number) => ({
     text: String(a.text ?? ""),
     emoji: a.emoji ? String(a.emoji) : null,
+    emojiUrl: a.emojiUrl ? String(a.emojiUrl) : null,
     votes: t.votes[i] ?? 0,
   }));
   return {
@@ -108,6 +113,8 @@ function toPoll(d: Document, web: WebVote[] = []): EventPoll {
     answers,
     hours: Number(d.hours ?? 24),
     multiple: Boolean(d.multiple),
+    source: d.source === "community" ? "community" : "event",
+    authorName: d.authorName ? String(d.authorName) : null,
     eventId: d.eventId ? String(d.eventId) : null,
     ping: Boolean(d.ping),
     status: (["pending", "posted", "ended", "failed"].includes(d.status) ? d.status : "pending") as PollStatus,
@@ -124,7 +131,7 @@ function toPoll(d: Document, web: WebVote[] = []): EventPoll {
 }
 
 export async function staffPolls() {
-  const docs = await (await pollsCol()).find({ deleted: { $ne: true } }).sort({ createdAt: -1 }).limit(40).toArray();
+  const docs = await (await pollsCol()).find({ deleted: { $ne: true }, hidden: { $ne: true } }).sort({ postedAt: -1, createdAt: -1 }).limit(40).toArray();
   const web = await webVotes(docs.map((d) => String(d._id)));
   return docs.map((d) => toPoll(d, web.get(String(d._id))));
 }
@@ -135,7 +142,7 @@ const isOpen = (d: Document) => d.status === "posted" && !d.endRequested && !d.d
 export async function publicPolls(discordId: string | null): Promise<PublicPoll[]> {
   const since = new Date(Date.now() - 3 * 86400_000);
   const docs = await (await pollsCol())
-    .find({ deleted: { $ne: true }, $or: [{ status: "posted" }, { status: "ended", expiresAt: { $gte: since } }] })
+    .find({ deleted: { $ne: true }, hidden: { $ne: true }, $or: [{ status: "posted" }, { status: "ended", expiresAt: { $gte: since } }] })
     .sort({ postedAt: -1 })
     .limit(12)
     .toArray();
@@ -151,6 +158,8 @@ export async function publicPolls(discordId: string | null): Promise<PublicPoll[
       question: p.question,
       answers: p.answers,
       multiple: p.multiple,
+      source: p.source,
+      authorName: p.authorName,
       eventId: p.eventId,
       totalVotes: p.totalVotes,
       webVotes: p.webVotes,
@@ -168,7 +177,7 @@ export async function publicPolls(discordId: string | null): Promise<PublicPoll[
 export async function castVote(pollId: string, discordId: string, raw: unknown) {
   if (!ObjectId.isValid(pollId)) throw new EventError("Unknown poll.", 404);
   const doc = await (await pollsCol()).findOne({ _id: new ObjectId(pollId) });
-  if (!doc || doc.deleted) throw new EventError("Unknown poll.", 404);
+  if (!doc || doc.deleted || doc.hidden) throw new EventError("Unknown poll.", 404);
   if (!isOpen(doc)) throw new EventError("This poll has closed.");
   if (discordVoters(doc).some((v) => v.has(discordId))) throw new EventError("You already voted in Discord. Change your vote there.");
   const count = Array.isArray(doc.answers) ? doc.answers.length : 0;
@@ -211,8 +220,8 @@ export async function createPoll(raw: Record<string, unknown>, by: string) {
 
 export async function endPoll(id: string) {
   if (!ObjectId.isValid(id)) throw new EventError("Unknown poll.", 404);
-  const res = await (await pollsCol()).updateOne({ _id: new ObjectId(id), status: "posted" }, { $set: { endRequested: true } });
-  if (!res.matchedCount) throw new EventError("That poll isn't running.");
+  const res = await (await pollsCol()).updateOne({ _id: new ObjectId(id), status: "posted", source: { $ne: "community" } }, { $set: { endRequested: true } });
+  if (!res.matchedCount) throw new EventError("That poll isn't running (member polls can only be ended by whoever made them).");
 }
 
 export async function deletePoll(id: string) {
@@ -220,6 +229,11 @@ export async function deletePoll(id: string) {
   const col = await pollsCol();
   const doc = await col.findOne({ _id: new ObjectId(id) });
   if (!doc) return;
+  // A member's poll stays in Discord; it's just taken off the website
+  if (doc.source === "community") {
+    await col.updateOne({ _id: doc._id }, { $set: { hidden: true } });
+    return;
+  }
   // Posted: the bot deletes the Discord message first, then the record
   if (doc.messageId) await col.updateOne({ _id: doc._id }, { $set: { deleted: true } });
   else await col.deleteOne({ _id: doc._id });

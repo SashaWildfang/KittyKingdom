@@ -64,6 +64,7 @@ export function EventPollsBoard({ initial, events, signedIn, linked, now }: { in
                   <span>
                     {p.totalVotes} {p.totalVotes === 1 ? "vote" : "votes"}
                   </span>
+                  {p.source === "community" ? <span>Member poll{p.authorName ? ` by ${p.authorName}` : ""} · #polls</span> : null}
                   {p.multiple ? <span>Pick as many as you like</span> : null}
                   {event ? (
                     <a href={`#event-${event.id}`} className="evp-poll-event">
@@ -84,7 +85,7 @@ export function EventPollsBoard({ initial, events, signedIn, linked, now }: { in
                         {picked ? <Check size={13} strokeWidth={3} /> : null}
                       </span>
                       <span className="evp-poll-answer">
-                        {a.emoji ? <span aria-hidden="true">{a.emoji}</span> : null} {a.text}
+                        {a.emojiUrl ? <img className="evp-poll-emoji" src={a.emojiUrl} alt="" width={18} height={18} /> : a.emoji ? <span aria-hidden="true">{a.emoji}</span> : null} {a.text}
                       </span>
                       <span className="evp-poll-pct">{pct}%</span>
                     </>

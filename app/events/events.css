@@ -92,6 +92,7 @@ button.evp-poll-opt:disabled { cursor: progress; }
 .evp-poll-pick { position: relative; display: grid; place-items: center; flex: none; width: 1.15rem; height: 1.15rem; border: 1.5px solid var(--line); border-radius: 50%; color: #fff; }
 .evp-poll-opt.is-picked .evp-poll-pick { border-color: transparent; background: rgb(var(--ember-rgb)); }
 .evp-poll-answer { position: relative; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.evp-poll-emoji { display: inline-block; width: 1.1rem; height: 1.1rem; vertical-align: -0.2rem; object-fit: contain; }
 .evp-poll-pct { position: relative; color: var(--muted); font-size: 0.82rem; font-weight: 800; }
 .evp-poll footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; color: var(--muted); font-size: 0.8rem; }
 .evp-poll footer a { color: rgb(var(--gold-rgb)); font-weight: 700; }
