@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { EVENT_KINDS, type PublicEvent } from "../../lib/events-shared";
 import type { PublicPoll } from "../../lib/event-polls";
 import { EventPollsBoard } from "./events-polls";
+import { markEventsSeen } from "../events-nav-badge";
 
 type Data = { events: PublicEvent[]; mine: string[]; past: PublicEvent[] };
 
@@ -160,7 +161,7 @@ function Month({ events, month, onMonth, onPick }: { events: PublicEvent[]; mont
   );
 }
 
-export function EventsBoard({ initial, signedIn, linked, canManage = false, polls = [] }: { initial: Data | null; signedIn: boolean; linked: boolean; canManage?: boolean; polls?: PublicPoll[] }) {
+export function EventsBoard({ initial, signedIn, linked, canManage = false, polls = [], seenIds = [] }: { initial: Data | null; signedIn: boolean; linked: boolean; canManage?: boolean; polls?: PublicPoll[]; seenIds?: string[] }) {
   const [data, setData] = useState<Data | null>(initial);
   const [mine, setMine] = useState<Set<string>>(new Set(initial?.mine ?? []));
   const [busy, setBusy] = useState<string | null>(null);
@@ -172,6 +173,8 @@ export function EventsBoard({ initial, signedIn, linked, canManage = false, poll
   // Times, countdowns and "Today" depend on the visitor's clock and time zone, so they're drawn in the browser only
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+  // Opening /events clears the bubble on the Events tab
+  useEffect(() => markEventsSeen(seenIds), [seenIds]);
 
   // Month view loads the whole month (and the one after)
   useEffect(() => {
