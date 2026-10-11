@@ -15,6 +15,8 @@
   --panel: var(--glass);
   --panel-strong: rgba(var(--night-rgb), 0.5);
   --line: rgba(var(--cream-rgb), 0.12);
+  /* Secondary text stays easy to read on the dark glass */
+  --muted: rgba(var(--cream-rgb), 0.8);
   --radius: 1.25rem;
   --radius-lg: 1.6rem;
 }
