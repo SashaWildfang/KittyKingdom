@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import "./landing.css";
+import "./home.css";
 import { HomePatrons } from "./home-patrons";
 import { patronWall } from "../lib/patrons";
 import type { CSSProperties } from "react";
-import { ArrowRight, BadgeCheck, CalendarHeart, Dices, Gift, HeartHandshake, MessageCircleQuestion, ShieldCheck, Sparkles, Star, Trophy, UserRound } from "lucide-react";
+import { ArrowRight, BadgeCheck, CalendarDays, CalendarHeart, ChevronDown, Dices, HeartHandshake, MapPin, Newspaper, ShieldCheck, ShoppingBag, Star, Trophy, Users } from "lucide-react";
 import { getCurrentUser } from "../lib/auth";
 import { getDiscordInviteSummary } from "../lib/discord";
 import { publishedNews } from "../lib/news";
@@ -13,10 +13,10 @@ import { memberGrowth } from "../lib/member-directory";
 import { userTimeZone, zoneOffsetMinutes } from "../lib/timezone";
 import { newsExcerpt } from "../lib/news-format";
 import { LEAVE_REVIEW_URL, REVIEWS_URL, getReviews, type Review } from "../lib/reviews";
-import { FallEffects, SeasonGlyph, TiltCard } from "./fall-effects";
+import { FallEffects, TiltCard } from "./fall-effects";
 import { SeasonArt, SeasonCopy } from "./home-season";
-import { HomeNewsNotice } from "./home-news-notice";
-import { CountUp, LevelLadder, LocalDateBlock, LocalTime, RotatingWord, SeasonBadge, SeasonFeature, StorePreview } from "./landing-client";
+import { CountUp, LocalDateBlock, LocalTime, RotatingWord } from "./landing-client";
+import { seasonal } from "../lib/season-store";
 import { SiteNav } from "./site-nav";
 import { SITE_SOCIALS } from "../lib/site-socials";
 
@@ -75,20 +75,19 @@ function Stars({ value }: { value: number }) {
 
 function ReviewCard({ review }: { review: Review }) {
   return (
-    <article className="lp-review">
+    <figure className="hm-review">
       <Stars value={review.rating} />
-      {review.title ? <h3>{review.title}</h3> : null}
-      <p>“{review.text}”</p>
-      <footer>
-        <span className="lp-review-avatar" aria-hidden="true">
+      <blockquote>“{review.text}”</blockquote>
+      <figcaption>
+        <span className="hm-review-avatar" aria-hidden="true">
           {review.author.charAt(0).toUpperCase()}
         </span>
         <span>
           <strong>{review.author}</strong>
-          <small>{timeAgo(review.postedAt)} · DISBOARD</small>
+          <small>{timeAgo(review.postedAt)} on DISBOARD</small>
         </span>
-      </footer>
-    </article>
+      </figcaption>
+    </figure>
   );
 }
 
@@ -105,6 +104,15 @@ export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 export const dynamic = "force-dynamic";
 
+const FEATURES = [
+  { icon: HeartHandshake, title: "Social profiles", text: "Make a profile and get matched with people who share your interests, for friends or something more.", href: "/social" },
+  { icon: CalendarHeart, title: "Events every week", text: "Game nights, movie nights, contests and voice hangouts. The bot reminds you before they start.", href: "/events" },
+  { icon: ShoppingBag, title: "Earn and spend Leaves", text: "Chat and play to earn Leaves, then grab color roles, boosters and gifts in the store.", href: "/store" },
+  { icon: Dices, title: "Casino and mini-games", text: "Slots, blackjack, roulette, mines and scratch-offs, in Discord and right here on the website.", href: "/games" },
+  { icon: Trophy, title: "Levels and leaderboards", text: "Level up as you chat and hang out in voice. Climb the boards and collect badges.", href: "/leaderboards" },
+  { icon: ShieldCheck, title: "Safe and looked after", text: "Verified 18+ members, AutoMod and an active staff team keep the trolls out.", href: "/rules" },
+];
+
 export default async function Home({ searchParams }: { searchParams?: { register?: string; account?: string } }) {
   // Midnight today in the visitor's time zone, for "joined today"
   const tz = userTimeZone();
@@ -115,33 +123,21 @@ export default async function Home({ searchParams }: { searchParams?: { register
     getReviews(),
     getDiscordInviteSummary(),
     getCurrentUser(),
-    publishedNews({ limit: 6 }),
+    publishedNews({ limit: 3 }),
     memberGrowth(startOfToday).catch(() => null),
     patronWall().catch(() => []),
     nextEvents(3).catch(() => []),
   ]);
-  // Newest three posts written by admins in the Admin tab
-  // Show up to three; "All news" only when there's more than that to see
-  const moreNews = latestNews.length > 0;
-  const shownNews = latestNews.slice(0, 3);
-  const news = shownNews.map((p) => {
-    // A lone post gets the whole row, so it can show more of its text
-    const { text, cut } = newsExcerpt(p.body, shownNews.length === 1 ? 420 : shownNews.length === 2 ? 240 : 150);
-    return { id: p.id, tag: p.tag, tagColor: p.tagColor, title: p.title, text, cut, isNew: Date.now() - new Date(p.publishedAt).getTime() < 7 * 86_400_000 };
-  });
+  const news = latestNews.slice(0, 3).map((p) => ({ id: p.id, tag: p.tag, tagColor: p.tagColor, title: p.title, text: newsExcerpt(p.body, 140).text, publishedAt: p.publishedAt }));
   const status = searchParams?.register ?? searchParams?.account;
   const signedIn = Boolean(user);
-
-  // Split reviews into two rows that scroll in opposite directions
-  const rowA = reviews.reviews.filter((_, i) => i % 2 === 0);
-  const rowB = reviews.reviews.filter((_, i) => i % 2 === 1);
-
-  const firstReview = reviews.reviews.find((r) => r.rating >= 5 && r.text.length < 140) ?? reviews.reviews[0];
+  // Three reviews that read well side by side: best rated first, not too long
+  const shownReviews = [...reviews.reviews].sort((a, b) => b.rating - a.rating || Math.abs(a.text.length - 180) - Math.abs(b.text.length - 180)).slice(0, 3);
+  const kind = (k: string) => EVENT_KINDS.find((e) => e.key === k);
 
   return (
-    <main className="site-shell home lp">
+    <main className="site-shell home hm">
       <FallEffects />
-
       <SiteNav signedIn={signedIn} discordOnline={discord.online} />
 
       {status && homeMessages[status] ? (
@@ -150,74 +146,69 @@ export default async function Home({ searchParams }: { searchParams?: { register
         </div>
       ) : null}
 
-      {/* ============ Hero ============ */}
-      <section className="lp-hero" id="home">
-        <div className="lp-hero-copy">
-          <a className="lp-live" href="/join?via=website-live">
-            <i aria-hidden="true" /> {discord.online !== null ? `${discord.online.toLocaleString()} online now` : "Live now"}
-            {discord.members ? <span>· {discord.members.toLocaleString()} members</span> : null}
+      {/* ============ Hero: who we are and one clear next step ============ */}
+      <section className="hm-hero" id="home">
+        <div className="hm-hero-copy">
+          <a className="hm-live" href="/join?via=website-live">
+            <i aria-hidden="true" /> {discord.online !== null ? `${discord.online.toLocaleString()} members online now` : "Members online now"}
           </a>
-          <h1 className="lp-title">
-            Find your <RotatingWord words={["place", "people", "pack", "home"]} />
-            <br />
-            in <span className="lp-title-glow">Kitty Kingdom.</span>
+          <h1>
+            Find your <RotatingWord words={["people", "pack", "place", "home"]} /> in <span className="hm-glow">Kitty Kingdom</span>
           </h1>
-          <p className="lp-lead">
-            <SeasonCopy part="subtitle" /> for adults: friends, verified members, Social profiles, games, events and a custom-built bot, with a website that grows with you.
+          <p className="hm-lead">
+            <SeasonCopy part="subtitle" /> for adults. Make friends, join weekly events, play games and earn rewards, all connected to a website that grows with
+            you.
           </p>
-          <div className="lp-actions">
-            <a className="lp-btn lp-btn--discord" href="/join?via=website" data-leaf-burst>
+          <div className="hm-actions">
+            <a className="hm-btn hm-btn--primary" href="/join?via=website" data-leaf-burst>
               <DiscordLogo size={20} /> Join the Discord
             </a>
             {signedIn ? (
-              <a className="lp-btn lp-btn--ghost" href="/account">
+              <a className="hm-btn hm-btn--ghost" href="/account">
                 My account <ArrowRight size={16} aria-hidden="true" />
               </a>
             ) : (
-              <a className="lp-btn lp-btn--ghost" href="/register" data-leaf-burst>
+              <a className="hm-btn hm-btn--ghost" href="/register">
                 Create an account <ArrowRight size={16} aria-hidden="true" />
               </a>
             )}
           </div>
-          <ul className="lp-trust" aria-label="Highlights">
+          <ul className="hm-trust" aria-label="Highlights">
             <li>
-              <Stars value={reviews.average} /> <b>{reviews.average.toFixed(1)}</b> on DISBOARD
+              <Stars value={reviews.average} /> <b>{reviews.average.toFixed(1)}</b> from {reviews.count} reviews
             </li>
             <li>
-              <BadgeCheck size={15} aria-hidden="true" /> 18+ &amp; verified
+              <BadgeCheck size={16} aria-hidden="true" /> 18+ and verified
             </li>
             <li>
-              <ShieldCheck size={15} aria-hidden="true" /> AutoMod &amp; active staff
+              <ShieldCheck size={16} aria-hidden="true" /> Friendly, active staff
             </li>
           </ul>
         </div>
 
-        <div className="lp-hero-art">
-          <TiltCard className="lp-hero-frame">
-            <SeasonArt kind="banner" className="lp-hero-banner" />
-            <span className="lp-hero-glare" aria-hidden="true" />
+        <div className="hm-hero-art">
+          <TiltCard className="hm-frame">
+            <SeasonArt kind="banner" className="hm-banner" />
           </TiltCard>
-          <SeasonArt kind="logo" className="lp-hero-logo" />
-          <SeasonBadge />
-          <div className="lp-float lp-float--live">
+          <div className="hm-chip hm-chip--members">
+            <Users size={18} aria-hidden="true" />
+            <span>
+              <b>{discord.members ? discord.members.toLocaleString() : "Hundreds of"} members</b>
+              <small>{growth ? `${growth.today.toLocaleString()} joined today` : "and counting"}</small>
+            </span>
+          </div>
+          <div className="hm-chip hm-chip--online">
             <i aria-hidden="true" />
             <span>
               <b>{discord.online !== null ? discord.online.toLocaleString() : "Lots"} online</b>
-              <small>{growth ? `${growth.today.toLocaleString()} joined today` : "Come say hi"}</small>
+              <small>Come say hi</small>
             </span>
           </div>
-          {firstReview ? (
-            <figure className="lp-float lp-float--review">
-              <Stars value={firstReview.rating} />
-              <blockquote>“{firstReview.text}”</blockquote>
-              <figcaption>{firstReview.author}</figcaption>
-            </figure>
-          ) : null}
         </div>
       </section>
 
       {/* ============ Numbers ============ */}
-      <section className="lp-stats" aria-label="Community in numbers" data-reveal>
+      <section className="hm-stats" aria-label="Community in numbers" data-reveal>
         <div>
           <strong>{discord.members ? <CountUp value={discord.members} /> : "—"}</strong>
           <span>members</span>
@@ -235,319 +226,185 @@ export default async function Home({ searchParams }: { searchParams?: { register
             <CountUp value={reviews.average} decimals={1} />
             <Star size={22} fill="currentColor" strokeWidth={0} aria-hidden="true" />
           </strong>
-          <span>{reviews.count} reviews</span>
+          <span>average rating</span>
         </div>
       </section>
 
-      {/* ============ Inside the kingdom ============ */}
-      <section className="lp-section" id="features" data-reveal>
-        <div className="lp-head">
-          <p className="lp-eyebrow">Inside the kingdom</p>
+      {/* ============ What you get ============ */}
+      <section className="hm-section" data-reveal>
+        <header className="hm-head">
+          <p className="hm-eyebrow">Why Kitty Kingdom</p>
           <h2>More than a chat server</h2>
-          <p className="lp-lead">A custom bot, a real website and a community that actually talks. Here&apos;s a peek at what&apos;s waiting.</p>
-        </div>
-        <div className="lp-bento">
-          <a className="lp-tile lp-tile--social" href="/social" data-spotlight>
-            <div className="lp-tile-copy">
-              <span className="lp-tile-icon">
-                <HeartHandshake size={20} aria-hidden="true" />
+          <p>A custom bot, a real website and a community that actually talks. Here&apos;s what&apos;s waiting for you.</p>
+        </header>
+        <div className="hm-features">
+          {FEATURES.map((f) => (
+            <a key={f.title} className="hm-feature" href={f.href}>
+              <span className="hm-feature-icon" aria-hidden="true">
+                <f.icon size={22} />
               </span>
-              <h3>Social profiles</h3>
-              <p>Make a profile, find people who share your interests and get matched with friends (or more).</p>
-            </div>
-            <div className="lp-mini-toast" aria-hidden="true">
-              <span>💞</span>
-              <span>
-                <b>It&apos;s a match!</b>
-                <small>You and Mochi liked each other</small>
+              <h3>{seasonal(f.title)}</h3>
+              <p>{seasonal(f.text)}</p>
+              <span className="hm-feature-more">
+                Learn more <ArrowRight size={14} aria-hidden="true" />
               </span>
-            </div>
-            <div className="lp-mini-profile" aria-hidden="true">
-              <div className="lp-mini-profile-top">
-                <span className="lp-mini-avatar">🦊</span>
-                <span>
-                  <b>Mochi</b>
-                  <small>Fox · 24 · they/them</small>
-                </span>
-                <span className="lp-mini-match">92% match</span>
-              </div>
-              <p>Gamer, night owl and professional cocoa enjoyer. Looking for VC buddies!</p>
-              <div className="lp-mini-tags">
-                <span>🎮 Gaming</span>
-                <span>🎨 Art</span>
-                <span>🎧 Music</span>
-              </div>
-              <div className="lp-mini-buttons">
-                <span>Pass</span>
-                <span className="is-like">Like</span>
-              </div>
-            </div>
-          </a>
-
-          <a className="lp-tile lp-tile--store" href={signedIn ? "/store" : "/register"} data-spotlight>
-            <div className="lp-tile-copy">
-              <span className="lp-tile-icon">
-                <Gift size={20} aria-hidden="true" />
-              </span>
-              <h3>Economy &amp; store</h3>
-              <p>Earn currency by chatting, then spend it on color roles, boosters and gifts.</p>
-            </div>
-            <StorePreview />
-          </a>
-
-          <a className="lp-tile lp-tile--games" href={signedIn ? "/games" : "/register"} data-spotlight>
-            <div className="lp-tile-copy">
-              <span className="lp-tile-icon">
-                <Dices size={20} aria-hidden="true" />
-              </span>
-              <h3>Casino games</h3>
-              <p>Slots, blackjack, roulette, mines and scratch-offs, on the website and in Discord.</p>
-            </div>
-            <div className="lp-mini-slots" aria-hidden="true">
-              <span>🍒</span>
-              <span>🐾</span>
-              <span>🍒</span>
-            </div>
-          </a>
-
-          <a className="lp-tile lp-tile--levels" href="/leaderboards" data-spotlight>
-            <div className="lp-tile-copy">
-              <span className="lp-tile-icon">
-                <Trophy size={20} aria-hidden="true" />
-              </span>
-              <h3>Levels &amp; leaderboards</h3>
-              <p>Level up as you chat and hang out in voice. Roles change with the seasons.</p>
-            </div>
-            <LevelLadder compact />
-          </a>
-
-          <div className="lp-tile lp-tile--events" data-spotlight>
-            <div className="lp-tile-copy">
-              <span className="lp-tile-icon">
-                <CalendarHeart size={20} aria-hidden="true" />
-              </span>
-              <h3>Always something going on</h3>
-              <p>Daily games, events and surprises in chat, run by the bot and the staff team.</p>
-            </div>
-            <ul className="lp-mini-list">
-              <li>
-                <MessageCircleQuestion size={15} aria-hidden="true" /> Question of the Day
-              </li>
-              <li>
-                <Sparkles size={15} aria-hidden="true" /> Daily Wordle &amp; chat games
-              </li>
-              <li>
-                <Gift size={15} aria-hidden="true" /> Giveaways
-              </li>
-              <li>
-                <Trophy size={15} aria-hidden="true" /> Monthly top members
-              </li>
-            </ul>
-          </div>
-
-          <div className="lp-tile lp-tile--safety" data-spotlight>
-            <div className="lp-tile-copy">
-              <span className="lp-tile-icon">
-                <ShieldCheck size={20} aria-hidden="true" />
-              </span>
-              <h3>Safe and looked after</h3>
-              <p>A friendly space starts with keeping the trolls out.</p>
-            </div>
-            <ul className="lp-mini-list lp-mini-list--check">
-              <li>Join forms and an anti-raid gate</li>
-              <li>AutoMod that catches the bad stuff</li>
-              <li>Real staff, fair appeals</li>
-            </ul>
-          </div>
-
-          <a className="lp-tile lp-tile--account" href={signedIn ? "/account" : "/register"} data-spotlight>
-            <div className="lp-tile-copy">
-              <span className="lp-tile-icon">
-                <UserRound size={20} aria-hidden="true" />
-              </span>
-              <h3>Your own account</h3>
-              <p>Stats, badges, daily rewards and your inventory, all synced with Discord.</p>
-            </div>
-            <span className="lp-tile-cta">
-              {signedIn ? "Open my account" : "Create one free"} <ArrowRight size={15} aria-hidden="true" />
-            </span>
-          </a>
-        </div>
-      </section>
-
-      {/* ============ Upcoming events ============ */}
-      {upcoming.length ? (
-        <section className="lp-section" id="events" data-reveal>
-          <div className="lp-head lp-head--row">
-            <div>
-              <p className="lp-eyebrow">Coming up</p>
-              <h2>Join an event</h2>
-            </div>
-            <a className="lp-link" href="/events">
-              All events <ArrowRight size={15} aria-hidden="true" />
             </a>
-          </div>
-          <div className="lp-events">
-            {upcoming.map((e) => {
-              const kind = EVENT_KINDS.find((k) => k.key === e.kind);
-              return (
-                <a key={e.id} className="lp-event" href={`/events#event-${e.id}`} data-spotlight>
-                  <LocalDateBlock iso={e.startAt} />
-                  <span className="lp-event-main">
-                    <small>
-                      {kind?.emoji} {kind?.label}
-                    </small>
-                    <b>{e.title}</b>
-                    <span>
-                      <LocalTime iso={e.startAt} /> · {e.channelName ? `#${e.channelName}` : e.place}
-                    </span>
-                  </span>
-                  {e.going ? <span className="lp-event-going">{e.going} going</span> : null}
-                </a>
-              );
-            })}
-          </div>
-        </section>
-      ) : null}
-
-      {/* ============ This season ============ */}
-      <section className="lp-section" data-reveal>
-        <SeasonFeature />
+          ))}
+        </div>
       </section>
 
       {/* ============ How to join ============ */}
-      <section className="lp-section" id="join" data-reveal>
-        <div className="lp-head">
-          <p className="lp-eyebrow">Getting in</p>
-          <h2>Three steps to the kingdom</h2>
-        </div>
-        <ol className="lp-steps">
-          {JOIN_STEPS.map((step, i) => (
-            <li key={step.title} style={{ "--i": i } as CSSProperties}>
-              <span className="lp-step-num">{i + 1}</span>
-              <h3>{step.title}</h3>
-              <p>{step.text}</p>
+      <section className="hm-section" data-reveal>
+        <header className="hm-head">
+          <p className="hm-eyebrow">Getting started</p>
+          <h2>Three steps and you&apos;re in</h2>
+        </header>
+        <ol className="hm-steps">
+          {JOIN_STEPS.map((s, i) => (
+            <li key={s.title}>
+              <span className="hm-step-num">{i + 1}</span>
+              <h3>{s.title}</h3>
+              <p>{s.text}</p>
             </li>
           ))}
         </ol>
       </section>
 
-      {/* ============ News ============ */}
-      {news.length ? (
-        <section className="lp-section" id="news" data-reveal>
-          <div className="lp-head lp-head--row">
-            <div>
-              <p className="lp-eyebrow">News</p>
-              <h2>What&apos;s new</h2>
+      {/* ============ Happening now: events and news ============ */}
+      <section className="hm-section hm-now" data-reveal>
+        <div className="hm-panel">
+          <header>
+            <h2>
+              <CalendarDays size={20} aria-hidden="true" /> Upcoming events
+            </h2>
+            <a href="/events">
+              All events <ArrowRight size={14} aria-hidden="true" />
+            </a>
+          </header>
+          {upcoming.length ? (
+            <ul className="hm-events">
+              {upcoming.map((e) => (
+                <li key={e.id}>
+                  <a href={`/events#event-${e.id}`}>
+                    <LocalDateBlock iso={e.startAt} />
+                    <span>
+                      <b>
+                        {kind(e.kind)?.emoji} {e.title}
+                      </b>
+                      <small>
+                        <LocalTime iso={e.startAt} />
+                        {e.place || e.channelName ? (
+                          <>
+                            {" · "}
+                            <MapPin size={12} aria-hidden="true" /> {e.channelName ? `#${e.channelName}` : e.place}
+                          </>
+                        ) : null}
+                      </small>
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="hm-empty">New events are planned every week. Check the calendar soon!</p>
+          )}
+        </div>
+        <div className="hm-panel">
+          <header>
+            <h2>
+              <Newspaper size={20} aria-hidden="true" /> Latest news
+            </h2>
+            <a href="/news">
+              All news <ArrowRight size={14} aria-hidden="true" />
+            </a>
+          </header>
+          {news.length ? (
+            <ul className="hm-news">
+              {news.map((n) => (
+                <li key={n.id}>
+                  <a href={`/news/${n.id}`}>
+                    {n.tag ? (
+                      <span className="hm-tag" style={n.tagColor ? ({ "--tag": n.tagColor } as CSSProperties) : undefined}>
+                        {n.tag}
+                      </span>
+                    ) : null}
+                    <b>{n.title}</b>
+                    <small>{n.text}</small>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="hm-empty">No news yet. Big things are coming!</p>
+          )}
+        </div>
+      </section>
+
+      {/* ============ Reviews: a summary and three quotes ============ */}
+      {shownReviews.length ? (
+        <section className="hm-section hm-reviews" data-reveal>
+          <div className="hm-rating">
+            <p className="hm-eyebrow">What members say</p>
+            <strong>{reviews.average.toFixed(1)}</strong>
+            <Stars value={reviews.average} />
+            <span>from {reviews.count} reviews on DISBOARD</span>
+            <div className="hm-rating-links">
+              <a href={REVIEWS_URL} target="_blank" rel="noopener noreferrer">
+                Read them all <ArrowRight size={14} aria-hidden="true" />
+              </a>
+              <a href={LEAVE_REVIEW_URL} target="_blank" rel="noopener noreferrer">
+                Leave a review
+              </a>
             </div>
-            {moreNews ? (
-              <a className="lp-link" href="/news">
-                All news <ArrowRight size={15} aria-hidden="true" />
-              </a>
-            ) : null}
           </div>
-          <HomeNewsNotice posts={latestNews.map((p) => ({ id: p.id, title: p.title, publishedAt: p.publishedAt })).sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))} />
-          <div className={`lp-news lp-news--${news.length}`}>
-            {news.map((item, index) => (
-              <a className="lp-news-card" data-spotlight key={item.id} href={`/news/${item.id}`}>
-                <span className="lp-news-tag" style={{ "--tag": item.tagColor } as CSSProperties}>
-                  {item.tag}
-                </span>
-                {item.isNew ? <span className="lp-news-new">New</span> : null}
-                <h3>{item.title}</h3>
-                <p>
-                  {item.text}
-                  {item.cut ? "…" : ""}
-                </p>
-                <span className="lp-news-more">
-                  Read more <ArrowRight size={14} aria-hidden="true" />
-                </span>
-                <span className="lp-news-glyph" aria-hidden="true">
-                  <SeasonGlyph index={index} color="rgba(var(--ember-rgb), 0.14)" size={110} />
-                </span>
-              </a>
+          <div className="hm-review-list">
+            {shownReviews.map((r) => (
+              <ReviewCard key={`${r.author}-${r.postedAt}`} review={r} />
             ))}
           </div>
         </section>
       ) : null}
 
-      {/* ============ Reviews ============ */}
-      <section className="lp-section lp-reviews" aria-label="Kitty Kingdom reviews" data-reveal>
-        <div className="lp-head lp-head--row">
-          <div>
-            <p className="lp-eyebrow">Reviews</p>
-            <h2>What members say</h2>
-          </div>
-          <div className="lp-rating">
-            <strong>{reviews.average.toFixed(1)}</strong>
-            <div>
-              <Stars value={reviews.average} />
-              <small>{reviews.count} reviews on DISBOARD</small>
-            </div>
-          </div>
-        </div>
-        <div className="lp-review-rows">
-          {[rowA, rowB].map((row, r) =>
-            row.length ? (
-              <div className={`lp-review-row${r === 1 ? " is-reverse" : ""}`} key={r}>
-                <div className="lp-review-track" style={{ animationDuration: `${Math.max(40, row.length * 11)}s` }}>
-                  {[...row, ...row].map((review, i) => (
-                    <ReviewCard review={review} key={`${review.author}-${i}`} />
-                  ))}
-                </div>
-              </div>
-            ) : null,
-          )}
-        </div>
-        <div className="lp-actions lp-actions--center">
-          <a className="lp-btn lp-btn--ghost" href={REVIEWS_URL}>
-            Read all reviews
-          </a>
-          <a className="lp-btn lp-btn--primary" href={LEAVE_REVIEW_URL} data-leaf-burst>
-            Leave a review
-          </a>
-        </div>
-      </section>
-
-      {/* ============ Supporters ============ */}
       <HomePatrons groups={patrons} />
 
-      {/* ============ FAQ ============ */}
-      <section className="lp-section lp-faq" data-reveal>
-        <div className="lp-head">
-          <p className="lp-eyebrow">Questions</p>
-          <h2>Good to know</h2>
-        </div>
-        <div className="lp-faq-list">
+      {/* ============ Questions ============ */}
+      <section className="hm-section" data-reveal>
+        <header className="hm-head">
+          <p className="hm-eyebrow">Good to know</p>
+          <h2>Questions people ask</h2>
+        </header>
+        <div className="hm-faq">
           {FAQ.map((f) => (
             <details key={f.q}>
-              <summary>{f.q}</summary>
+              <summary>
+                {f.q}
+                <ChevronDown size={18} aria-hidden="true" />
+              </summary>
               <p>{f.a}</p>
             </details>
           ))}
         </div>
-        <a className="lp-link lp-link--center" href="/faq">
-          More answers in the FAQ &amp; Guide <ArrowRight size={15} aria-hidden="true" />
-        </a>
+        <p className="hm-faq-more">
+          More answers in the <a href="/faq">FAQ &amp; Guide</a>.
+        </p>
       </section>
 
-      {/* ============ Final call ============ */}
-      <section className="lp-section" id="discord" data-reveal>
-        <div className="lp-cta">
-          <div className="lp-cta-glyphs" aria-hidden="true">
-            <SeasonGlyph index={0} size={90} />
-            <SeasonGlyph index={1} size={64} />
-            <SeasonGlyph index={2} size={52} />
-          </div>
+      {/* ============ Last call ============ */}
+      <section className="hm-section" data-reveal>
+        <div className="hm-cta">
           <h2>
             <SeasonCopy part="cta" />
           </h2>
-          <p>Meet the community, join events and find your place in the kingdom. It only takes a minute.</p>
-          <div className="lp-actions lp-actions--center">
-            <a className="lp-btn lp-btn--discord" href="/join?via=website" data-leaf-burst>
+          <p>Meet the community, join an event and find your place in the kingdom. It only takes a minute.</p>
+          <div className="hm-actions">
+            <a className="hm-btn hm-btn--primary" href="/join?via=website" data-leaf-burst>
               <DiscordLogo size={20} /> Join the Discord
-              {discord.online !== null ? <small>{discord.online.toLocaleString()} online</small> : null}
             </a>
+            {signedIn ? null : (
+              <a className="hm-btn hm-btn--ghost" href="/register">
+                Create an account <ArrowRight size={16} aria-hidden="true" />
+              </a>
+            )}
           </div>
         </div>
       </section>
@@ -586,3 +443,4 @@ export default async function Home({ searchParams }: { searchParams?: { register
     </main>
   );
 }
+

@@ -1,18 +1,18 @@
-/* My Account, v3: a sticky glass sidebar (profile + every section) beside a wide two-column board of cards.
-   Uses the whole window on big screens; on tablets and phones the sidebar stacks on top and the section
-   links wrap onto as many rows as they need, so none of them fall off the edge. */
+/* My Account: a sticky sidebar (profile + every part of the account) and one tab at a time on the right.
+   No long scrolling page, no empty gaps between cards and no fold/unfold arrows: the sidebar picks the tab
+   (account-tabs.tsx), the Dashboard shows the daily reward, perks, Discord and account details in two stacks. */
 
-.acct3 {
+.acct4 {
   display: grid;
-  grid-template-columns: 19rem minmax(0, 1fr);
+  grid-template-columns: 20rem minmax(0, 1fr);
   align-items: start;
-  gap: 1.4rem;
+  gap: 1.5rem;
   width: min(112rem, calc(100% - 2.5rem));
   margin: 1rem auto 4rem;
 }
 
 /* ---------- Sidebar ---------- */
-.acct3-side {
+.acct4-side {
   position: sticky;
   top: 5.6rem;
   display: grid;
@@ -22,8 +22,7 @@
   scrollbar-width: none;
   border-radius: 1.5rem;
 }
-.acct3-side::-webkit-scrollbar { display: none; }
-
+.acct4-side::-webkit-scrollbar { display: none; }
 .acct3-profile {
   position: relative;
   display: grid;
@@ -101,35 +100,57 @@
 .acct3-btn:hover { border-color: rgba(var(--ember-rgb), 0.55); background: rgba(var(--ember-rgb), 0.12); }
 :root[data-theme="light"] .acct3-btn { background: rgba(255, 255, 255, 0.6); }
 
-/* Section links: one per row, nothing hidden */
-.acct3-nav.acct-nav {
-  gap: 0.1rem;
+
+.acct4-nav {
+  display: grid;
+  gap: 0.15rem;
   border: 1px solid var(--glass-border);
   border-radius: 1.5rem;
   background: var(--glass);
   -webkit-backdrop-filter: var(--glass-blur);
   backdrop-filter: var(--glass-blur);
   box-shadow: var(--glass-edge), var(--glass-shadow);
-  padding: 0.5rem;
+  padding: 0.55rem;
 }
-.acct3-nav.acct-nav a {
+.acct4-nav a {
   position: relative;
-  gap: 0.6rem;
-  border-radius: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  border-radius: 0.9rem;
   color: var(--muted);
-  font-size: 0.9rem;
-  padding: 0.55rem 0.75rem;
-  transition: background 0.15s ease, color 0.15s ease;
+  font-size: 0.93rem;
+  font-weight: 700;
+  padding: 0.65rem 0.8rem;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
-.acct3-nav.acct-nav a:hover { background: rgba(var(--cream-rgb), 0.07); color: var(--text); }
-:root[data-theme="light"] .acct3-nav.acct-nav a:hover { background: rgba(var(--bark-rgb), 0.06); }
-.acct3-nav.acct-nav a.is-here { background: linear-gradient(135deg, rgba(var(--ember-rgb), 0.9), rgba(var(--maple-rgb), 0.9)); color: #fff; }
-.acct3-nav.acct-nav a.is-here svg { color: #fff; }
-.acct3-nav .acct-nav-dot { margin-left: auto; }
-.acct3-nav.acct-nav a.acct-nav-danger { margin-top: 0.3rem; color: #f87171; }
+.acct4-nav a svg { flex: none; }
+.acct4-nav a:hover { background: rgba(var(--cream-rgb), 0.07); color: var(--text); }
+:root[data-theme="light"] .acct4-nav a:hover { background: rgba(var(--bark-rgb), 0.06); }
+.acct4-nav a.is-here {
+  background: linear-gradient(135deg, rgba(var(--ember-rgb), 0.95), rgba(var(--maple-rgb), 0.95));
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 8px 20px rgba(var(--ember-rgb), 0.25);
+}
+.acct4-nav .acct-nav-dot, .acct4-nav .daily-ready-dot { margin-left: auto; }
+.acct4-nav a.acct4-nav-danger { margin-top: 0.35rem; border-top: 1px solid var(--line); border-radius: 0 0 0.9rem 0.9rem; color: #f87171; }
+.acct4-nav a.acct4-nav-danger.is-here { border-radius: 0.9rem; background: linear-gradient(135deg, #e5484d, #b42318); color: #fff; }
 
-/* ---------- Content ---------- */
-.acct3-content { display: grid; gap: 1.2rem; min-width: 0; }
+/* ---------- Content: one tab at a time ---------- */
+.acct4-content { display: grid; gap: 1.2rem; min-width: 0; }
+.acct4-content > :is(.acct-banner-wrap, .acct-status, .acct-temp-password) { width: auto; margin: 0; }
+.acct4 .acct-main, .acct4 .acct-main-sections { display: grid; gap: 1.2rem; min-width: 0; }
+/* (the stats page hides the sections with the hidden attribute) */
+.acct4 .acct-main-sections[hidden] { display: none; }
+.acct4-tab { display: none; gap: 1.2rem; min-width: 0; }
+.acct4-tab.is-active { display: grid; animation: acct4-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes acct4-in { from { opacity: 0; transform: translateY(6px); } }
+@media (prefers-reduced-motion: reduce) { .acct4-tab.is-active { animation: none; } }
+
+/* Dashboard: two independent stacks, so a tall card never leaves a hole beside it */
+.acct4-home { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 1.2rem; }
+.acct4-stack { display: grid; align-content: start; gap: 1.2rem; min-width: 0; }
+
 .acct3-hero {
   display: flex;
   flex-wrap: wrap;
@@ -156,43 +177,74 @@
 .acct3-showcase .acct-badges-showcase { display: flex; flex-wrap: wrap; align-items: center; justify-items: start; gap: 0.5rem; margin: 0; }
 .acct3-showcase .acct-pinned-badges { flex-wrap: wrap; }
 
-/* Banners (verify email, saved, temporary password) sit in the content column */
-.acct3-content > :is(.acct-banner-wrap, .acct-status, .acct-temp-password) { width: auto; margin: 0; }
 
-/* The cards: two columns, wide ones across both */
-.acct3 .acct-main { min-width: 0; }
-.acct3 .acct-main-sections {
+/* ---------- Panels ---------- */
+.acct4-panel {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: start;
-  gap: 1.2rem;
+  gap: 1.1rem;
+  min-width: 0;
+  border: 1px solid var(--glass-border);
+  border-radius: 1.5rem;
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  padding: 1.35rem 1.5rem 1.5rem;
+  scroll-margin-top: 6rem;
 }
-.acct3 .acct-main-sections > :is(#roles, #inventory, #transcripts, #punishments, #profile, #security, #delete-account) { grid-column: 1 / -1; }
-.acct3 .acct-main-sections > * { margin: 0; min-width: 0; scroll-margin-top: 6rem; }
-.acct3 .acct-card,
-.acct3 .acct-collapsible { border-radius: 1.4rem; }
+.acct4-panel-head { display: flex; align-items: center; gap: 0.9rem; }
+.acct4-panel-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.7rem;
+  height: 2.7rem;
+  border-radius: 0.95rem;
+  background: linear-gradient(135deg, rgba(var(--ember-rgb), 0.9), rgba(var(--maple-rgb), 0.85));
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 8px 18px rgba(var(--ember-rgb), 0.25);
+}
+.acct4-panel-title { display: grid; gap: 0.15rem; min-width: 0; flex: 1; }
+.acct4-panel-title h2 { max-width: none; margin: 0; font-size: 1.2rem; letter-spacing: -0.02em; }
+.acct4-panel-title p { margin: 0; color: var(--muted); font-size: 0.88rem; line-height: 1.45; }
+.acct4-summary {
+  flex: none;
+  border: 1px solid rgba(var(--ember-rgb), 0.45);
+  border-radius: 999px;
+  background: rgba(var(--ember-rgb), 0.14);
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 0.3rem 0.75rem;
+  white-space: nowrap;
+}
+.acct4-panel-body { display: grid; gap: 1rem; min-width: 0; }
+.acct4-panel--danger { border-color: rgba(229, 72, 77, 0.35); }
+.acct4-panel--danger .acct4-panel-icon { background: linear-gradient(135deg, #e5484d, #b42318); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 8px 18px rgba(229, 72, 77, 0.25); }
 
-/* ---------- Tablets and phones: sidebar on top ---------- */
+/* The Discord card matches the panels */
+.acct4 .acct-discord { margin: 0; border-radius: 1.5rem; scroll-margin-top: 6rem; }
+
+/* ---------- Tablets and phones: sidebar on top, links wrap ---------- */
 @media (max-width: 1100px) {
-  .acct3 { grid-template-columns: minmax(0, 1fr); width: min(100% - 1.5rem, 60rem); }
-  .acct3-side { position: static; max-height: none; overflow: visible; grid-template-columns: minmax(0, 1fr); }
-  .acct3-nav.acct-nav { display: flex; flex-wrap: wrap; gap: 0.3rem; }
-  .acct3-nav.acct-nav a { flex: 1 1 auto; justify-content: center; font-size: 0.84rem; padding: 0.5rem 0.75rem; }
-  .acct3-nav.acct-nav a.acct-nav-danger { margin-top: 0; }
-  .acct3-nav .acct-nav-dot { margin-left: 0.1rem; }
+  .acct4 { grid-template-columns: minmax(0, 1fr); width: min(100% - 1.5rem, 62rem); }
+  .acct4-side { position: static; max-height: none; overflow: visible; }
+  .acct4-nav { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+  .acct4-nav a { flex: 1 1 auto; justify-content: center; font-size: 0.85rem; padding: 0.5rem 0.75rem; }
+  .acct4-nav a.acct4-nav-danger { margin-top: 0; border-top: 0; border-radius: 0.9rem; }
+  .acct4-nav .acct-nav-dot, .acct4-nav .daily-ready-dot { margin-left: 0.15rem; }
 }
 @media (min-width: 700px) and (max-width: 1100px) {
-  /* Profile beside nothing: lay it out in a row */
   .acct3-profile { grid-template-columns: auto minmax(0, 1fr); justify-items: start; text-align: left; column-gap: 1.2rem; }
   .acct3-profile > .acct3-avatar { grid-row: span 4; margin-top: 0.4rem; }
   .acct3-meta, .acct3-profile .acct-server-status ul, .acct3-profile .acct-badges { justify-content: flex-start; }
-  .acct3-actions { grid-template-columns: repeat(3, auto); justify-content: start; }
-  .acct3-actions .acct-stats-button { grid-column: auto; padding: 0 1rem; }
+  .acct3-actions { grid-template-columns: repeat(2, auto); justify-content: start; }
   .acct3-actions .acct3-btn { padding: 0 1rem; }
 }
-@media (max-width: 760px) {
-  .acct3 .acct-main-sections { grid-template-columns: minmax(0, 1fr); }
-  .acct3-hero { padding: 1.2rem; }
+@media (max-width: 860px) {
+  .acct4-home { grid-template-columns: minmax(0, 1fr); }
+  .acct3-hero, .acct4-panel { padding: 1.15rem; }
+  .acct4-panel-head { flex-wrap: wrap; }
 }
 
 /* Card chips: Staff Member / 18+ Verified */

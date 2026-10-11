@@ -1,31 +1,6 @@
 import "./footer.css";
-import {
-  Activity,
-  ArrowUp,
-  CalendarDays,
-  BookOpen,
-  ScrollText,
-  Dices,
-  Gift,
-  Medal,
-  Heart,
-  HeartHandshake,
-  Home,
-  LifeBuoy,
-  LogIn,
-  MessageCircle,
-  Newspaper,
-  Scale,
-  Settings,
-  ShoppingBag,
-  Star,
-  Trophy,
-  UserPlus,
-  UserRound,
-  Users,
-} from "lucide-react";
+import { ArrowUp } from "lucide-react";
 import { canViewStaffPage, getCurrentUser } from "../lib/auth";
-import { canSeeDating } from "../lib/dating/access";
 import { REVIEWS_URL } from "../lib/reviews";
 import { ThemeSwitch } from "./theme-switch";
 import { SiteLogo } from "./ui-icons";
@@ -47,8 +22,6 @@ function DiscordLogo({ size }: { size: number }) {
 /** The footer on every page: quick links for where you can go, what you can do and where to get help. */
 export async function SiteFooter() {
   const user = await getCurrentUser().catch(() => null);
-  const linked = Boolean(user?.discordId);
-  const social = linked ? await canSeeDating(user?.discordId).catch(() => false) : false;
   const year = new Date().getFullYear();
   return (
     <footer className="site-footer ft" aria-label="Footer">
@@ -66,116 +39,46 @@ export async function SiteFooter() {
             <a className="ft-join" href="/join">
               <DiscordLogo size={15} /> Join the server
             </a>
-            <a className="ft-icon" href={PATREON_URL} target="_blank" rel="noopener noreferrer" aria-label="Support us on Patreon" title="Patreon">
-              <SiteSocialIcon name="patreon" size={15} />
-            </a>
-            {SITE_SOCIALS.map((s) => (
-              <a key={s.key} className={`ft-icon ft-icon--${s.key}`} href={s.href} target="_blank" rel="noopener noreferrer" aria-label={`Kitty Kingdom on ${s.label}`} title={s.label}>
-                <SiteSocialIcon name={s.key} size={15} />
+            <span className="ft-icons">
+              <a className="ft-icon" href={PATREON_URL} target="_blank" rel="noopener noreferrer" aria-label="Support us on Patreon" title="Patreon">
+                <SiteSocialIcon name="patreon" size={15} />
               </a>
-            ))}
-            <a className="ft-icon" href={REVIEWS_URL} target="_blank" rel="noopener noreferrer" aria-label="Read our reviews" title="Reviews">
-              <Star size={16} aria-hidden="true" />
-            </a>
+              {SITE_SOCIALS.map((s) => (
+                <a key={s.key} className={`ft-icon ft-icon--${s.key}`} href={s.href} target="_blank" rel="noopener noreferrer" aria-label={`Kitty Kingdom on ${s.label}`} title={s.label}>
+                  <SiteSocialIcon name={s.key} size={15} />
+                </a>
+              ))}
+            </span>
           </div>
         </div>
 
+        {/* Three short columns: where to go, where to find us, where to get help */}
         <nav className="ft-cols" aria-label="Footer links">
           <div>
             <h3>Explore</h3>
-            <a href="/home">
-              <Home size={14} aria-hidden="true" /> Home
-            </a>
-            <a href="/news">
-              <Newspaper size={14} aria-hidden="true" /> News
-            </a>
-            <a href="/events">
-              <CalendarDays size={14} aria-hidden="true" /> Events
-            </a>
-            {user ? (
-              <a href="/giveaways">
-                <Gift size={14} aria-hidden="true" /> Giveaways
-              </a>
-            ) : null}
-            {social ? (
-              <a href="/social">
-                <HeartHandshake size={14} aria-hidden="true" /> Social
-              </a>
-            ) : null}
-            <a href="/leaderboards">
-              <Trophy size={14} aria-hidden="true" /> Leaderboards
-            </a>
-            <a href="/achievements">
-              <Medal size={14} aria-hidden="true" /> Achievements
-            </a>
-            <a href="/store">
-              <ShoppingBag size={14} aria-hidden="true" /> Store
-            </a>
-            <a href="/games">
-              <Dices size={14} aria-hidden="true" /> Games
-            </a>
+            <a href="/events">Events</a>
+            <a href="/news">News</a>
+            {user ? <a href="/giveaways">Giveaways</a> : null}
+            <a href="/leaderboards">Leaderboards</a>
+            <a href="/store">Store</a>
           </div>
           <div>
             <h3>Community</h3>
             <a href={DISCORD_INVITE} target="_blank" rel="noopener noreferrer">
-              <MessageCircle size={14} aria-hidden="true" /> Discord
+              Discord
             </a>
-            <a href="/patreon">
-              <Heart size={14} aria-hidden="true" /> Patreon
-            </a>
-            {canViewStaffPage(user) ? (
-              <a href="/staff">
-                <Users size={14} aria-hidden="true" /> Staff
-              </a>
-            ) : null}
+            <a href="/patreon">Patreon</a>
             <a href={REVIEWS_URL} target="_blank" rel="noopener noreferrer">
-              <Star size={14} aria-hidden="true" /> Reviews
+              Reviews
             </a>
-          </div>
-          <div>
-            <h3>Your account</h3>
-            {user ? (
-              <>
-                <a href="/account">
-                  <UserRound size={14} aria-hidden="true" /> My Account
-                </a>
-                {social ? (
-                  <a href="/social/profile">
-                    <HeartHandshake size={14} aria-hidden="true" /> My Social Profile
-                  </a>
-                ) : null}
-                <a href="/settings">
-                  <Settings size={14} aria-hidden="true" /> Settings
-                </a>
-              </>
-            ) : (
-              <>
-                <a href="/login">
-                  <LogIn size={14} aria-hidden="true" /> Log in
-                </a>
-                <a href="/register">
-                  <UserPlus size={14} aria-hidden="true" /> Create an account
-                </a>
-              </>
-            )}
+            {canViewStaffPage(user) ? <a href="/staff">Staff team</a> : null}
           </div>
           <div>
             <h3>Help</h3>
-            <a href="/faq">
-              <BookOpen size={14} aria-hidden="true" /> FAQ &amp; Guide
-            </a>
-            <a href="/rules">
-              <ScrollText size={14} aria-hidden="true" /> Server Rules
-            </a>
-            <a href="/support">
-              <LifeBuoy size={14} aria-hidden="true" /> Support
-            </a>
-            <a href="/appeals">
-              <Scale size={14} aria-hidden="true" /> Appeal a punishment
-            </a>
-            <a href="https://status.kittykingdom.net" target="_blank" rel="noopener noreferrer">
-              <Activity size={14} aria-hidden="true" /> Server status
-            </a>
+            <a href="/faq">FAQ &amp; Guide</a>
+            <a href="/rules">Server rules</a>
+            <a href="/support">Support</a>
+            <a href="/appeals">Appeals</a>
           </div>
         </nav>
       </div>

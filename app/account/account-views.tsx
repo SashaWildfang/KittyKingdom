@@ -1,6 +1,5 @@
 "use client";
 
-import { BarChart3 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { StatsView } from "./stats-view";
 
@@ -56,28 +55,5 @@ export function AccountViews({ children }: { children: ReactNode }) {
       </div>
       {stats ? <StatsView onBack={back} /> : null}
     </div>
-  );
-}
-
-/** Profile card button that opens the stats page (hidden while the stats page is open). */
-export function StatsButton() {
-  const [hidden, setHidden] = useState(false);
-  useEffect(() => {
-    const sync = () => setHidden(isStats());
-    sync();
-    window.addEventListener("hashchange", sync);
-    window.addEventListener("popstate", sync);
-    window.addEventListener(VIEW_EVENT, sync);
-    return () => {
-      window.removeEventListener("hashchange", sync);
-      window.removeEventListener("popstate", sync);
-      window.removeEventListener(VIEW_EVENT, sync);
-    };
-  }, []);
-  if (hidden) return null;
-  return (
-    <a className="acct-stats-button" href="#stats">
-      <BarChart3 size={16} aria-hidden="true" /> View my stats
-    </a>
   );
 }
