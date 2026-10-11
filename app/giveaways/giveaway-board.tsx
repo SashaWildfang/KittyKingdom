@@ -113,102 +113,108 @@ export function GiveawayBoard({ initial, signedIn, linked }: { initial: Data | n
         <p className="gwp-empty">Giveaways couldn&apos;t load right now.</p>
       ) : (
         <>
-          {data.running.length ? (
-            <div className="gwp-grid">
-              {data.running.map((g) => {
-                const ms = new Date(g.endAt).getTime() - now;
-                const isIn = entered.has(g.id);
-                return (
-                  <article key={g.id} className={`gwp-card${isIn ? " is-in" : ""}`} style={g.color ? ({ ["--gw" as string]: g.color } as React.CSSProperties) : undefined}>
-                    {g.image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img className="gwp-img" src={g.image} alt="" loading="lazy" />
-                    ) : null}
-                    <div className="gwp-card-body">
-                      <span className="gwp-timer">
-                        <CalendarClock size={14} aria-hidden="true" /> Ends in {left(ms)}
-                      </span>
-                      <h2>{g.title}</h2>
-                      <Prize g={g} />
-                      {g.description ? <p className="gwp-desc">{g.description}</p> : null}
-                      <ul className="gwp-facts">
-                        <li>
-                          <Trophy size={14} aria-hidden="true" /> {g.winners} winner{g.winners === 1 ? "" : "s"}
-                        </li>
-                        <li>
-                          <Users size={14} aria-hidden="true" /> {g.entries.toLocaleString()} entered
-                        </li>
-                      </ul>
-                      {g.needs.length ? (
-                        <p className="gwp-needs">
-                          To enter: {g.needs.join(" · ")}
-                        </p>
-                      ) : null}
-                      {linked ? (
-                        <button type="button" className={`gwp-enter${isIn ? " is-in" : ""}`} disabled={busy === g.id || ms <= 0} onClick={() => toggle(g)}>
-                          {isIn ? (
-                            <>
-                              <Check size={16} aria-hidden="true" /> Entered (tap to leave)
-                            </>
+          {/* Running giveaways on the left; what's next and recent winners beside them on wide screens */}
+          <div className="gwp-layout">
+            <div className="gwp-main">
+              {data.running.length ? (
+                <div className="gwp-grid">
+                  {data.running.map((g) => {
+                    const ms = new Date(g.endAt).getTime() - now;
+                    const isIn = entered.has(g.id);
+                    return (
+                      <article key={g.id} className={`gwp-card${isIn ? " is-in" : ""}`} style={g.color ? ({ ["--gw" as string]: g.color } as React.CSSProperties) : undefined}>
+                        {g.image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img className="gwp-img" src={g.image} alt="" loading="lazy" />
+                        ) : null}
+                        <div className="gwp-card-body">
+                          <span className="gwp-timer">
+                            <CalendarClock size={14} aria-hidden="true" /> Ends in {left(ms)}
+                          </span>
+                          <h2>{g.title}</h2>
+                          <Prize g={g} />
+                          {g.description ? <p className="gwp-desc">{g.description}</p> : null}
+                          <ul className="gwp-facts">
+                            <li>
+                              <Trophy size={14} aria-hidden="true" /> {g.winners} winner{g.winners === 1 ? "" : "s"}
+                            </li>
+                            <li>
+                              <Users size={14} aria-hidden="true" /> {g.entries.toLocaleString()} entered
+                            </li>
+                          </ul>
+                          {g.needs.length ? (
+                            <p className="gwp-needs">
+                              To enter: {g.needs.join(" · ")}
+                            </p>
+                          ) : null}
+                          {linked ? (
+                            <button type="button" className={`gwp-enter${isIn ? " is-in" : ""}`} disabled={busy === g.id || ms <= 0} onClick={() => toggle(g)}>
+                              {isIn ? (
+                                <>
+                                  <Check size={16} aria-hidden="true" /> Entered (tap to leave)
+                                </>
+                              ) : (
+                                <>
+                                  <PartyPopper size={16} aria-hidden="true" /> Enter giveaway
+                                </>
+                              )}
+                            </button>
                           ) : (
-                            <>
-                              <PartyPopper size={16} aria-hidden="true" /> Enter giveaway
-                            </>
+                            <a className="gwp-enter" href={signedIn ? "/account#discord" : "/login?next=/giveaways"}>
+                              {signedIn ? "Link Discord to enter" : "Log in to enter"}
+                            </a>
                           )}
-                        </button>
-                      ) : (
-                        <a className="gwp-enter" href={signedIn ? "/account#discord" : "/login?next=/giveaways"}>
-                          {signedIn ? "Link Discord to enter" : "Log in to enter"}
-                        </a>
-                      )}
-                      {msg?.id === g.id ? <p className={msg.ok ? "gwp-ok" : "gwp-err"}>{msg.text}</p> : null}
-                    </div>
-                  </article>
-                );
-              })}
+                          {msg?.id === g.id ? <p className={msg.ok ? "gwp-ok" : "gwp-err"}>{msg.text}</p> : null}
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="gwp-empty">
+                  <Gift size={28} aria-hidden="true" />
+                  <p>No giveaways running right now. Check back soon!</p>
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="gwp-empty">
-              <Gift size={28} aria-hidden="true" />
-              <p>No giveaways running right now. Check back soon!</p>
-            </div>
-          )}
+            <aside className="gwp-aside">
+              {data.upcoming.length ? (
+                <section className="gwp-section">
+                  <h2>Coming up</h2>
+                  <ul className="gwp-list">
+                    {data.upcoming.map((g) => (
+                      <li key={g.id}>
+                        <Prize g={g} />
+                        <span>
+                          <b>{g.title}</b>
+                          <small>Starts in {left(new Date(g.startAt ?? g.endAt).getTime() - now)}</small>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ) : null}
 
-          {data.upcoming.length ? (
-            <section className="gwp-section">
-              <h2>Coming up</h2>
-              <ul className="gwp-list">
-                {data.upcoming.map((g) => (
-                  <li key={g.id}>
-                    <Prize g={g} />
-                    <span>
-                      <b>{g.title}</b>
-                      <small>Starts in {left(new Date(g.startAt ?? g.endAt).getTime() - now)}</small>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-
-          {data.ended.length ? (
-            <section className="gwp-section">
-              <h2>Recent winners</h2>
-              <ul className="gwp-list">
-                {data.ended.map((g) => (
-                  <li key={g.id}>
-                    <Trophy size={18} aria-hidden="true" />
-                    <span>
-                      <b>{g.winnerNames.length ? g.winnerNames.join(", ") : "Nobody qualified"}</b>
-                      <small>
-                        won {g.title} · {new Date(g.endAt).toLocaleDateString([], { month: "short", day: "numeric" })}
-                      </small>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
+              {data.ended.length ? (
+                <section className="gwp-section">
+                  <h2>Recent winners</h2>
+                  <ul className="gwp-list">
+                    {data.ended.map((g) => (
+                      <li key={g.id}>
+                        <Trophy size={18} aria-hidden="true" />
+                        <span>
+                          <b>{g.winnerNames.length ? g.winnerNames.join(", ") : "Nobody qualified"}</b>
+                          <small>
+                            won {g.title} · {new Date(g.endAt).toLocaleDateString([], { month: "short", day: "numeric" })}
+                          </small>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ) : null}
+            </aside>
+          </div>
         </>
       )}
     </div>

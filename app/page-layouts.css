@@ -1,0 +1,61 @@
+/* ==========================================================================
+   Page layouts for the glass redesign: wider pages that use the whole window, and one shared header style
+   (a glass card with the eyebrow, title and intro). Loaded after glass.css in app/layout.tsx.
+   ========================================================================== */
+
+/* The shared glass page header */
+:where(.kb-hero, .nw2-hero, .sf-hero, .aw-hero, .nf-hero, .set-hero, .pt-hero, .leaderboard-hero, .store-hero) {
+  border: 1px solid var(--glass-border);
+  border-radius: 1.6rem;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(var(--ember-rgb), 0.22), transparent 55%),
+    radial-gradient(circle at 100% 110%, rgba(var(--gold-rgb), 0.12), transparent 55%),
+    var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  padding: clamp(1.3rem, 3vw, 2.2rem);
+}
+
+/* ---------- Rules, FAQ, Support, Appeals ---------- */
+html body .kb-container { width: min(96rem, calc(100% - 2.5rem)); padding-top: 1.5rem; }
+html body .kb-hero { justify-items: start; text-align: left; }
+html body .kb-hero > p:not(.eyebrow) { max-width: 52rem; }
+html body .rl-layout { grid-template-columns: 17rem minmax(0, 1fr); gap: 1.5rem; }
+@media (min-width: 1000px) {
+  html body .rl-tldr ul { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+/* FAQ topics: five per row (10 topics); Support: three per row (6 topics) */
+@media (min-width: 1200px) {
+  html body .kb-topics { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  html body .kb-topics--support { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* ---------- News ---------- */
+html body .nw, html body .nw--v2 { width: min(96rem, calc(100% - 2.5rem)); max-width: none; padding-top: 1.5rem; }
+html body .nw--v2 .nw-head {
+  border: 1px solid var(--glass-border);
+  border-radius: 1.6rem;
+  background: radial-gradient(circle at 0% 0%, rgba(var(--ember-rgb), 0.22), transparent 55%), var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  margin-bottom: 1.4rem;
+  padding: clamp(1.3rem, 3vw, 2.2rem);
+}
+/* Posts two across on wide screens (the featured one stays full width) */
+@media (min-width: 1100px) {
+  html body .nw2-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.9rem; }
+}
+
+/* ---------- Wider pages ---------- */
+html body .gm { width: min(88rem, calc(100% - 2.5rem)); }
+html body .leaderboard-shell > .lb { width: min(96rem, calc(100% - 2.5rem)); }
+html body .leaderboard-hero { max-width: min(96rem, calc(100% - 2.5rem)); }
+html body .dt { width: min(100rem, calc(100% - 2.5rem)); }
+html body .set-wrap { width: min(84rem, calc(100% - 2.5rem)); }
+html body .nf-wrap { width: min(64rem, calc(100% - 2.5rem)); }
+html body .pt { width: min(96rem, calc(100% - 2.5rem)); }
+/* Homepage sections and the footer line up with the wider pages */
+html body .lp { --lp-max: 88rem; }
+html body .ft-inner, html body .ft-bottom { width: min(96rem, calc(100% - 2.5rem)); }

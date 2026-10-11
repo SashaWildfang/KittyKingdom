@@ -1,5 +1,5 @@
 /* /staff */
-.sf { display: grid; gap: 1.6rem; width: min(72rem, calc(100% - 2rem)); margin: 0 auto; padding: 2.5rem 0 1rem; }
+.sf { display: grid; gap: 1.6rem; width: min(100rem, calc(100% - 2.5rem)); margin: 0 auto; padding: 1.5rem 0 1rem; }
 .sf-eyebrow { display: inline-flex; align-items: center; gap: 0.35rem; margin: 0 0 0.5rem; color: rgb(var(--gold-rgb)); font-size: 0.78rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; }
 :root[data-theme="light"] .sf-eyebrow { color: var(--maple); }
 .sf-hero { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1.5rem; align-items: end; }

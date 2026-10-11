@@ -101,71 +101,77 @@ export function AchievementWall({ feed, me }: { feed: AchievementFeed | null; me
 
       {feed ? (
         <>
-          <section className="aw-stats">
-            <div>
-              <Sparkles size={18} aria-hidden="true" />
-              <b>{feed.stats.badges.toLocaleString()}</b>
-              <span>badges earned</span>
-            </div>
-            <div>
-              <PartyPopper size={18} aria-hidden="true" />
-              <b>{feed.stats.bigWins.toLocaleString()}</b>
-              <span>big casino wins</span>
-            </div>
-            <div>
-              <Trophy size={18} aria-hidden="true" />
-              <b>
-                {feed.stats.biggestWin.toLocaleString()} <LeafEmote size={18} />
-              </b>
-              <span>biggest win</span>
-            </div>
-          </section>
-
-          {feed.trending.length ? (
-            <section className="aw-trending" aria-label="Trending badges">
-              <h2>Trending badges</h2>
-              <div>
-                {feed.trending.map((t) => (
-                  <span key={t.badgeId} className="aw-trend">
-                    <BadgeMedal icon={t.icon} shape={t.shape as BadgeShape} hue={t.hue} tier={1} size={34} />
-                    <span>
-                      <b>{t.name}</b>
-                      <small>
-                        {t.count} member{t.count === 1 ? "" : "s"}
-                      </small>
-                    </span>
-                  </span>
+          {/* The feed on the left; totals and trending badges beside it on wide screens */}
+          <div className="aw-layout">
+            <div className="aw-main">
+              <div className="aw-filters" role="tablist" aria-label="Show">
+                {(
+                  [
+                    ["all", "Everything"],
+                    ["badge", "Badges"],
+                    ["win", "Big wins"],
+                    ["giveaway", "Giveaways"],
+                  ] as [Filter, string][]
+                ).map(([k, label]) => (
+                  <button key={k} type="button" className={filter === k ? "is-on" : undefined} onClick={() => setFilter(k)}>
+                    {label}
+                  </button>
                 ))}
               </div>
-            </section>
-          ) : null}
 
-          <div className="aw-filters" role="tablist" aria-label="Show">
-            {(
-              [
-                ["all", "Everything"],
-                ["badge", "Badges"],
-                ["win", "Big wins"],
-                ["giveaway", "Giveaways"],
-              ] as [Filter, string][]
-            ).map(([k, label]) => (
-              <button key={k} type="button" className={filter === k ? "is-on" : undefined} onClick={() => setFilter(k)}>
-                {label}
-              </button>
-            ))}
+              {now === null ? (
+                <div className="aw-loading" />
+              ) : items.length ? (
+                <ul className="aw-list">
+                  {items.map((a, i) => (
+                    <Item key={`${a.kind}-${a.userId}-${a.at}-${i}`} a={a} name={feed.people[a.userId]?.name ?? "A member"} avatar={feed.people[a.userId]?.avatar} mine={a.userId === me} now={now} />
+                  ))}
+                </ul>
+              ) : (
+                <p className="aw-empty">Nothing here yet. Go earn something!</p>
+              )}
+            </div>
+            <aside className="aw-aside">
+              <section className="aw-stats">
+                <div>
+                  <Sparkles size={18} aria-hidden="true" />
+                  <b>{feed.stats.badges.toLocaleString()}</b>
+                  <span>badges earned</span>
+                </div>
+                <div>
+                  <PartyPopper size={18} aria-hidden="true" />
+                  <b>{feed.stats.bigWins.toLocaleString()}</b>
+                  <span>big casino wins</span>
+                </div>
+                <div>
+                  <Trophy size={18} aria-hidden="true" />
+                  <b>
+                    {feed.stats.biggestWin.toLocaleString()} <LeafEmote size={18} />
+                  </b>
+                  <span>biggest win</span>
+                </div>
+              </section>
+
+              {feed.trending.length ? (
+                <section className="aw-trending" aria-label="Trending badges">
+                  <h2>Trending badges</h2>
+                  <div>
+                    {feed.trending.map((t) => (
+                      <span key={t.badgeId} className="aw-trend">
+                        <BadgeMedal icon={t.icon} shape={t.shape as BadgeShape} hue={t.hue} tier={1} size={34} />
+                        <span>
+                          <b>{t.name}</b>
+                          <small>
+                            {t.count} member{t.count === 1 ? "" : "s"}
+                          </small>
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+            </aside>
           </div>
-
-          {now === null ? (
-            <div className="aw-loading" />
-          ) : items.length ? (
-            <ul className="aw-list">
-              {items.map((a, i) => (
-                <Item key={`${a.kind}-${a.userId}-${a.at}-${i}`} a={a} name={feed.people[a.userId]?.name ?? "A member"} avatar={feed.people[a.userId]?.avatar} mine={a.userId === me} now={now} />
-              ))}
-            </ul>
-          ) : (
-            <p className="aw-empty">Nothing here yet. Go earn something!</p>
-          )}
         </>
       ) : (
         <p className="aw-empty">The wall couldn&apos;t load right now.</p>

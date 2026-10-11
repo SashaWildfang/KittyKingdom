@@ -92,9 +92,11 @@ export async function SiteFooter() {
             <a href="/events">
               <CalendarDays size={14} aria-hidden="true" /> Events
             </a>
-            <a href="/giveaways">
-              <Gift size={14} aria-hidden="true" /> Giveaways
-            </a>
+            {user ? (
+              <a href="/giveaways">
+                <Gift size={14} aria-hidden="true" /> Giveaways
+              </a>
+            ) : null}
             {social ? (
               <a href="/social">
                 <HeartHandshake size={14} aria-hidden="true" /> Social

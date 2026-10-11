@@ -1,5 +1,17 @@
 /* /achievements */
-.aw { display: grid; gap: 1.4rem; width: min(60rem, calc(100% - 2rem)); margin: 0 auto; padding: 2.5rem 0 1rem; }
+.aw { display: grid; gap: 1.4rem; width: min(100rem, calc(100% - 2.5rem)); margin: 0 auto; padding: 1.5rem 0 1rem; }
+.aw-layout { display: grid; grid-template-columns: minmax(0, 1fr) 22rem; align-items: start; gap: 1.6rem; }
+.aw-main, .aw-aside { display: grid; align-content: start; gap: 1.2rem; min-width: 0; }
+.aw-aside { position: sticky; top: 6rem; }
+.aw-aside .aw-stats { grid-template-columns: minmax(0, 1fr); }
+.aw-aside .aw-stats > div { grid-template-columns: auto 1fr; justify-items: start; align-items: center; column-gap: 0.8rem; text-align: left; }
+.aw-aside .aw-stats > div > svg { grid-row: span 2; }
+@media (min-width: 1300px) { .aw-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 1100px) {
+  .aw-layout { grid-template-columns: minmax(0, 1fr); }
+  .aw-aside { position: static; order: -1; }
+  .aw-aside .aw-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 .aw-eyebrow { display: inline-flex; align-items: center; gap: 0.35rem; margin: 0 0 0.5rem; color: rgb(var(--gold-rgb)); font-size: 0.78rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; }
 :root[data-theme="light"] .aw-eyebrow { color: var(--maple); }
 .aw-hero { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 1rem; }
