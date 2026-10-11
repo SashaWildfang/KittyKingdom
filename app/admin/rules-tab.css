@@ -5,7 +5,8 @@
 .rt p.adm-muted { margin: 0 0 0.75rem; }
 
 .rt-top { flex-direction: row !important; align-items: flex-start; gap: 0.9rem; }
-.rt-top p.adm-muted { margin: 0; }
+.rt-top > div { flex: 1 1 auto !important; min-width: 0; }
+.rt-top p.adm-muted { margin: 0; overflow-wrap: anywhere; }
 .rt-top a { display: inline-flex; align-items: center; gap: 0.2rem; }
 .rt-top-icon {
   display: grid;
