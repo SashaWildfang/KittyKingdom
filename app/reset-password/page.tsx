@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { findResetUser } from "../../lib/password-reset";
 import { PasswordField } from "../password-field";
 import { SiteLogo } from "../ui-icons";
+
+export const metadata: Metadata = { title: "Reset password | Kitty Kingdom" };
 
 export const dynamic = "force-dynamic";
 

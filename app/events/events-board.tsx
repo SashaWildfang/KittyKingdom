@@ -57,7 +57,7 @@ function EventCard({ e, reminded, onRemind, busy, signedIn, linked, now }: { e: 
       <div className="evp-card-body">
         <div className="evp-card-tags">
           <span className="evp-kind">
-            {k?.emoji} {k?.label}
+            <span className="emo" aria-hidden="true">{k?.emoji}</span>{k?.label}
           </span>
           {live ? <span className="evp-live">Live now</span> : e.cancelled ? <span className="evp-cancelled">Cancelled</span> : <span className="evp-soon">{start > now ? countdown(start - now) : "Ended"}</span>}
           {e.weekly ? (
@@ -69,7 +69,7 @@ function EventCard({ e, reminded, onRemind, busy, signedIn, linked, now }: { e: 
         <h3>{e.title}</h3>
         <p className="evp-when">
           {time(e.startAt)}
-          {e.endAt ? ` – ${time(e.endAt)}` : ""}
+          {e.endAt ? ` – ${new Date(e.endAt).toDateString() === new Date(e.startAt).toDateString() ? time(e.endAt) : `${new Date(e.endAt).toLocaleDateString([], { month: "short", day: "numeric" })}, ${time(e.endAt)}`}` : ""}
           <span>·</span>
           {e.channelName ? (
             <>
@@ -149,7 +149,7 @@ function Month({ events, month, onMonth, onPick }: { events: PublicEvent[]; mont
               <span className="evp-day-num">{i + 1}</span>
               {list.slice(0, 2).map((e) => (
                 <span key={e.id} className={`evp-day-event${e.cancelled ? " is-cancelled" : ""}`}>
-                  {KIND[e.kind]?.emoji} <span>{e.title}</span>
+                  <span className="emo" aria-hidden="true">{KIND[e.kind]?.emoji}</span><span>{e.title}</span>
                 </span>
               ))}
               {list.length > 2 ? <span className="evp-day-more">+{list.length - 2} more</span> : null}
@@ -247,7 +247,7 @@ export function EventsBoard({ initial, signedIn, linked, canManage = false, poll
           <a className="evp-next" href={`#event-${next.id}`}>
             <small>Up next</small>
             <b>
-              {KIND[next.kind]?.emoji} {next.title}
+              <span className="emo" aria-hidden="true">{KIND[next.kind]?.emoji}</span>{next.title}
             </b>
             <span>
               {dayTitle(new Date(next.startAt))}, {time(next.startAt)} · {countdown(new Date(next.startAt).getTime() - now)}
@@ -274,7 +274,7 @@ export function EventsBoard({ initial, signedIn, linked, canManage = false, poll
               </button>
               {EVENT_KINDS.filter((k) => (data?.events ?? []).some((e) => e.kind === k.key)).map((k) => (
                 <button key={k.key} type="button" className={kind === k.key ? "is-on" : undefined} onClick={() => setKind(k.key)}>
-                  {k.emoji} {k.label}
+                  <span className="emo" aria-hidden="true">{k.emoji}</span>{k.label}
                 </button>
               ))}
             </div>

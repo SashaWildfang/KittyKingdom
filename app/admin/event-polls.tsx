@@ -135,7 +135,7 @@ function PollRow({ p, by, event, onChanged }: { p: EventPoll; by?: string; event
           <li key={i} className={p.status === "ended" && a.votes === top && a.votes > 0 ? "is-win" : undefined}>
             <span className="evpoll-bar" style={{ width: `${p.totalVotes ? (a.votes / top) * 100 : 0}%` }} aria-hidden="true" />
             <span className="evpoll-text">
-              {a.emojiUrl ? <img src={a.emojiUrl} alt="" width={16} height={16} style={{ verticalAlign: "-3px" }} /> : a.emoji ? <span aria-hidden="true">{a.emoji}</span> : null} {a.text}
+              {a.emojiUrl ? <img src={a.emojiUrl} alt="" width={16} height={16} style={{ verticalAlign: "-3px" }} /> : a.emoji ? <span className="emo" aria-hidden="true">{a.emoji}</span> : null}{a.text}
             </span>
             <b>{a.votes}</b>
           </li>

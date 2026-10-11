@@ -194,7 +194,7 @@ export default async function Home({ searchParams }: { searchParams?: { register
             <Users size={18} aria-hidden="true" />
             <span>
               <b>{discord.members ? discord.members.toLocaleString() : "Hundreds of"} members</b>
-              <small>{growth ? `${growth.today.toLocaleString()} joined today` : "and counting"}</small>
+              <small>{growth?.today ? `${growth.today.toLocaleString()} joined today` : "and counting"}</small>
             </span>
           </div>
           <div className="hm-chip hm-chip--online">
@@ -289,7 +289,7 @@ export default async function Home({ searchParams }: { searchParams?: { register
                     <LocalDateBlock iso={e.startAt} />
                     <span>
                       <b>
-                        {kind(e.kind)?.emoji} {e.title}
+                        <span className="emo" aria-hidden="true">{kind(e.kind)?.emoji}</span>{e.title}
                       </b>
                       <small>
                         <LocalTime iso={e.startAt} />

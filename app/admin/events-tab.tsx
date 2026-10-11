@@ -137,7 +137,7 @@ function EventRow({ e, people, channel, onEdit, onCopy, onChanged, past }: { e: 
       </div>
       <div className="ev-main">
         <b>
-          <span aria-hidden="true">{KIND[e.kind]?.emoji}</span> {e.title}
+          <span className="emo" aria-hidden="true">{KIND[e.kind]?.emoji}</span>{e.title}
           {e.cancelled ? <span className="ev-tag is-bad">Cancelled</span> : null}
           {e.weekly ? (
             <span className="ev-tag">
@@ -147,7 +147,7 @@ function EventRow({ e, people, channel, onEdit, onCopy, onChanged, past }: { e: 
         </b>
         <small>
           {when(e.startAt)}
-          {e.endAt ? ` – ${new Date(e.endAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : ""} ·{" "}
+          {e.endAt ? ` – ${new Date(e.endAt).toDateString() === new Date(e.startAt).toDateString() ? "" : `${new Date(e.endAt).toLocaleDateString([], { month: "short", day: "numeric" })}, `}${new Date(e.endAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : ""} ·{" "}
           {channel ? (
             <>
               <Hash size={11} aria-hidden="true" />
@@ -316,7 +316,7 @@ function EventEditor({ initial, isNew, meta, onClose, onSaved }: { initial: Staf
           <div className="ev-kinds">
             {EVENT_KINDS.map((k) => (
               <button key={k.key} type="button" className={f.kind === k.key ? "is-on" : undefined} onClick={() => set({ kind: k.key })}>
-                <span aria-hidden="true">{k.emoji}</span> {k.label}
+                <span className="emo" aria-hidden="true">{k.emoji}</span>{k.label}
               </button>
             ))}
           </div>

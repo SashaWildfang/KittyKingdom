@@ -1,5 +1,8 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteLogo } from "../ui-icons";
+
+export const metadata: Metadata = { title: "Forgot password | Kitty Kingdom" };
 
 const CODE_STATUS: Record<string, string> = {
   failed: "That didn't work. Check your email or username and the code. Codes only work if two-factor is turned on for the account.",
