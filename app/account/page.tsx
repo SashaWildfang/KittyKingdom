@@ -1,4 +1,4 @@
-import "./account-v2.css";
+import "./account-v3.css";
 import { userTimeZone } from "../../lib/timezone";
 import { accountGreeting } from "../../lib/greeting";
 import { Backpack, ChevronDown, Settings, Crown, Gift, ShieldCheck, Check, CircleAlert, ClipboardList, FileText, Gavel, KeyRound, Lock, Mail, MessageCircle, Rocket, Sparkles, TriangleAlert, UserRound } from "lucide-react";
@@ -174,98 +174,53 @@ export default async function AccountPage({
   const statusTone = status && successStatuses.has(status) ? "success" : "error";
 
   return (
-    <main className="site-shell account-site-shell">
-      <div className="leaf-field" aria-hidden="true" />
+    <main className="site-shell account-site-shell acct3-shell">
       <SiteNav signedIn discordOnline={discord.online} />
 
-      {/* ---------- Profile hero: who you are, your flair and quick actions ---------- */}
-      <section className={`acct-top${extras?.flair.banner ? " has-cos-banner" : ""}`} aria-label="My Account">
-        <FlairBanner banner={extras?.flair.banner}>
-          <FlairEffect effect={extras?.flair.effect} count={14} />
-        </FlairBanner>
-        <div className="acct-top-inner">
-          <Framed frame={extras?.flair.frame} className="acct-avatar-frame acct-top-avatar">
-            <div className="acct-avatar">
-              {discordLinked ? (
-                <img src={`/api/discord/avatar/${user.discordId}`} alt="" width="120" height="120" />
-              ) : (
-                <span aria-hidden="true">{shownName.charAt(0).toUpperCase()}</span>
-              )}
-            </div>
-          </Framed>
-          <div className="acct-top-id">
-            <p className="acct-top-greeting">{displayName || user.discordId ? greeting.eyebrow : "Member portal"}</p>
+      <div className="acct3">
+        {/* ---------- Sidebar: who you are, quick actions and every section ---------- */}
+        <aside className="acct3-side">
+          <section className={`acct3-profile${extras?.flair.banner ? " has-cos-banner" : ""}`} aria-label="Your profile">
+            <FlairBanner banner={extras?.flair.banner}>
+              <FlairEffect effect={extras?.flair.effect} count={10} />
+            </FlairBanner>
+            <Framed frame={extras?.flair.frame} className="acct-avatar-frame acct3-avatar">
+              <div className="acct-avatar">
+                {discordLinked ? (
+                  <img src={`/api/discord/avatar/${user.discordId}`} alt="" width="120" height="120" />
+                ) : (
+                  <span aria-hidden="true">{shownName.charAt(0).toUpperCase()}</span>
+                )}
+              </div>
+            </Framed>
             <h1>
               <FlairName nameplate={extras?.flair.nameplate} text={shownName}>
                 {shownName}
               </FlairName>
             </h1>
-            <p className="acct-top-meta">
+            <p className="acct3-meta">
               {user.username ? <span>@{user.username}</span> : null}
               {memberSince ? (
                 <span>
-                  <LeafEmote size={15} /> Member since {memberSince}
+                  <LeafEmote size={14} /> Since {memberSince}
                 </span>
               ) : null}
             </p>
-          </div>
-          <div className="acct-top-actions">
-            {discordLinked ? <StatsButton /> : null}
-            {discordLinked ? (
-              <a className="acct-top-btn" href="/store">
-                <Backpack size={16} aria-hidden="true" /> Store &amp; locker
-              </a>
-            ) : null}
-            <a className="acct-top-btn" href="/settings">
-              <Settings size={16} aria-hidden="true" /> Settings
-            </a>
-          </div>
-        </div>
-        {/* Badges on the left, server roles as a row of chips on the right */}
-        <div className="acct-top-strip">
-          {discordLinked ? (
-            <div className="acct-top-block acct-top-block--badges">
-              <h2>Showcase</h2>
-              <ProfileBadges
-                initial={(user.badgeShowcase as BadgeShowcase | undefined) ?? null}
-                earned={badgeDates?.earned}
-                customTitle={extras?.customTitle}
-                customBadges={extras?.customBadges}
-              />
-            </div>
-          ) : null}
-          <div className="acct-top-block acct-top-block--server">
-            <h2>In the server</h2>
             <LiveServerStatus initial={roleState} discordLinked={discordLinked} fallbackStaff={roles.isStaff} />
-          </div>
-        </div>
-        <p className="acct-top-line">{displayName || user.discordId ? greeting.line : "Manage your Kitty Kingdom profile, Discord link, and account security, all in one place."}</p>
-      </section>
-
-      {user.emailVerified === false ? (
-        <div className="acct-banner-wrap">
-          <VerifyEmailBanner email={user.email} />
-        </div>
-      ) : null}
-
-      {statusText ? (
-        <div className={`acct-status acct-status--${statusTone}`} role="status">
-          <span aria-hidden="true">{statusTone === "success" ? <Check size={16} /> : <CircleAlert size={16} />}</span>
-          {statusText}
-        </div>
-      ) : null}
-
-      {user.mustChangePassword ? (
-        <div className="acct-temp-password" role="alert">
-          <strong className="acct-inline-icon"><KeyRound size={16} aria-hidden="true" /> You&apos;re using a temporary password from staff.</strong>
-          <span>Please choose your own password now.</span>
-          <a href="#security">Change password →</a>
-        </div>
-      ) : null}
-
-      <div className="acct-layout acct-layout--v2">
+            <div className="acct3-actions">
+              {discordLinked ? <StatsButton /> : null}
+              {discordLinked ? (
+                <a className="acct3-btn" href="/store">
+                  <Backpack size={15} aria-hidden="true" /> Store
+                </a>
+              ) : null}
+              <a className="acct3-btn" href="/settings">
+                <Settings size={15} aria-hidden="true" /> Settings
+              </a>
+            </div>
+          </section>
           <NavSpy />
-          <nav className="acct-nav acct-nav--bar" aria-label="Account sections">
+          <nav className="acct-nav acct3-nav" aria-label="Account sections">
             {discordLinked ? <a href="#daily"><Gift size={16} aria-hidden="true" /> Daily Reward<DailyReadyDot ready={dailyReady} /></a> : null}
             {discordLinked ? <a href="#supporter"><Crown size={16} aria-hidden="true" /> Supporter perks</a> : null}
             <a href="#discord-account"><MessageCircle size={16} aria-hidden="true" /> Discord</a>
@@ -279,311 +234,354 @@ export default async function AccountPage({
             <a href="#security"><Lock size={16} aria-hidden="true" /> Security{twoFactor.enabled ? null : <span className="acct-nav-dot" title="Two-factor is off" />}</a>
             <a className="acct-nav-danger" href="#delete-account"><TriangleAlert size={16} aria-hidden="true" /> Delete account</a>
           </nav>
+        </aside>
 
-        {/* ---------- Main column (swaps to the stats page on #stats) ---------- */}
-        <AccountViews>
-          {discordLinked ? (
-            <CollapsibleCard id="daily" defaultOpen={!collapsed.has("daily")} title="Daily Reward" description={seasonal("Claim free leaves once a day. Claim every day to build your streak.")} summary={dailyReady ? "🎁 Ready to claim!" : undefined}>
-              <DailyCard initial={dailyStatus} guildId={serverId} />
-            </CollapsibleCard>
-          ) : null}
-
-          {discordLinked ? (
-            <CollapsibleCard id="supporter" defaultOpen={!collapsed.has("supporter")} title="Supporter perks" description="Your Patreon and Nitro perks, and your custom role if you have one.">
-              <SupporterCard displayName={(displayName || discordName || "You").slice(0, 32)} />
-            </CollapsibleCard>
-          ) : null}
-
-          <section className="acct-card acct-discord" id="discord-account">
-            <span className="acct-discord-icon">
-              <DiscordIcon />
-            </span>
-            <div className="acct-discord-copy">
-              <h2>Discord</h2>
-              <p>
-                {discordLinked ? (
-                  <>
-                    Linked as <strong>{discordName}</strong>. Your roles, level and store stay in sync automatically.
-                  </>
-                ) : (
-                  "Link Discord to unlock the Store, Leaderboards and your server roles. Just grab a code and use /link in the server."
-                )}
-              </p>
+        <div className="acct3-content">
+          {/* ---------- Welcome: greeting and badge showcase ---------- */}
+          <section className="acct3-hero" aria-label="Welcome">
+            <div className="acct3-hero-copy">
+              <p className="acct3-eyebrow">{displayName || user.discordId ? greeting.eyebrow : "Member portal"}</p>
+              <h2>{displayName || user.discordId ? greeting.line : "Manage your Kitty Kingdom profile, Discord link, and account security, all in one place."}</h2>
             </div>
             {discordLinked ? (
-              <div className="acct-discord-actions">
-                <DiscordUnlinkForm />
+              <div className="acct3-showcase">
+                <span>Showcase</span>
+                <ProfileBadges
+                  initial={(user.badgeShowcase as BadgeShowcase | undefined) ?? null}
+                  earned={badgeDates?.earned}
+                  customTitle={extras?.customTitle}
+                  customBadges={extras?.customBadges}
+                />
               </div>
-            ) : user.emailVerified !== true ? (
-              <p className="acct-discord-needs-email">
-                <Mail size={16} aria-hidden="true" /> Confirm your email address first (see the banner above), then you can link Discord.
-              </p>
-            ) : (
-              <DiscordLinkCode />
-            )}
+            ) : null}
           </section>
 
-          <CollapsibleCard id="overview" defaultOpen={!collapsed.has("overview")} title={"Overview"} description={"Your account details. Age and birthday come from your Discord join application."}>
-            <dl className="acct-info-grid">
-              <div>
-                <dt>Email</dt>
-                <dd>{user.email}</dd>
-              </div>
-              <div>
-                <dt>Username</dt>
-                <dd>{user.username ?? <span className="acct-muted">Not set</span>}</dd>
-              </div>
-              <div>
-                <dt>Discord</dt>
-                <dd>{discordName ?? <span className="acct-muted">Not linked</span>}</dd>
-              </div>
-              <div>
-                <dt>Age</dt>
-                <dd>{age ?? <span className="acct-muted">Not available</span>}</dd>
-              </div>
-              <div>
-                <dt>Date of birth</dt>
-                <dd>{dob === "Not available" ? <span className="acct-muted">Not available</span> : dob}</dd>
-              </div>
-              <div>
-                <dt>Member since</dt>
-                <dd>{memberSince ?? <span className="acct-muted">—</span>}</dd>
-              </div>
-            </dl>
-          </CollapsibleCard>
-
-          {discordLinked ? (
-            <CollapsibleCard
-              id="roles"
-              defaultOpen={!collapsed.has("roles")}
-              title="Server roles"
-              description="Pick your roles here and they update in Discord instantly, just like the role selector."
-              summary={
-                roleState
-                  ? `${roleState.categories.reduce((n, c) => n + c.roles.filter((r) => r.has).length, 0)} picked · ${roleState.colorRoles.length}/${roleState.colorRoleTotal} colors`
-                  : undefined
-              }
-            >
-              <RoleManager initial={roleState} />
-            </CollapsibleCard>
-          ) : null}
-
-          {discordLinked ? (
-            <CollapsibleCard id="inventory" defaultOpen={!collapsed.has("inventory")} title="Inventory" description="Everything you've bought or been gifted. Equip roles, use boosters and send gifts right here.">
-              <AccountInventory />
-            </CollapsibleCard>
-          ) : null}
-
-          {discordLinked ? (
-            <CollapsibleCard id="boosts" defaultOpen={!collapsed.has("boosts")} title="Boosters & odds" description="Boosters running right now, what you earn at, and your chances of being featured on Social.">
-              <BoostsCard />
-            </CollapsibleCard>
-          ) : null}
-
-          {discordLinked ? (
-            <CollapsibleCard
-              id="transcripts"
-              defaultOpen={!collapsed.has("transcripts")}
-              title="Transcripts"
-              description="Your closed tickets. Images, videos and files are removed from your copy for privacy."
-              summary={transcripts ? `${transcripts.length} ticket${transcripts.length === 1 ? "" : "s"}` : undefined}
-            >
-              {transcripts === null ? (
-                <p className="acct-muted">Your transcripts couldn&apos;t be loaded right now. Please try again in a moment.</p>
-              ) : transcripts.length === 0 ? (
-                <p className="acct-muted">No transcripts yet. When a ticket you opened is closed, it shows up here.</p>
-              ) : (
-                <ul className="acct-transcripts">
-                  {transcripts.map((t) => (
-                    <li key={t.ticketId}>
-                      <a href={`/account/transcripts/${t.ticketId}`}>
-                        <span className="acct-transcript-icon" aria-hidden="true">
-                          <FileText size={17} />
-                        </span>
-                        <span className="acct-transcript-main">
-                          <strong>
-                            Ticket #{t.ticketId} · {ticketTypeLabel(t.type)}
-                          </strong>
-                          <small>
-                            {t.created ? `Opened ${shortDate.format(new Date(t.created))}` : "Opened —"}
-                            {t.resolvedAt ? ` · Closed ${shortDate.format(new Date(t.resolvedAt))}` : ""}
-                          </small>
-                        </span>
-                        <span className="acct-transcript-open">View →</span>
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CollapsibleCard>
-          ) : null}
-
-          {discordLinked ? (
-            <CollapsibleCard
-              id="punishments"
-              defaultOpen={!collapsed.has("punishments")}
-              title="Punishments"
-              description="Warnings, mutes, kicks and bans on your Discord account. Think one was a mistake? Appeal it."
-              summary={punishments ? (activeCount ? `${activeCount} active` : punishments.length ? `${punishments.length} on record` : "Clean record") : undefined}
-            >
-              {punishments === null ? (
-                <p className="acct-muted">Your record couldn&apos;t be loaded right now. Please try again in a moment.</p>
-              ) : punishments.length === 0 ? (
-                <p className="acct-clean-record"><ShieldCheck size={18} aria-hidden="true" /> <span>Nothing on your record. Keep it up!</span></p>
-              ) : (
-                <ul className="acct-puns">
-                  {punishments.map((p) => {
-                    const again = p.appeal?.status === "denied" && p.appeal.canAppealAgainAt && Date.parse(p.appeal.canAppealAgainAt) < Date.now();
-                    const canAppeal = p.appealable && (!p.appeal || again);
-                    const ends = p.expiresAt ? Date.parse(p.expiresAt) : null;
-                    const kind = p.action === "kick_unverified" ? "kick" : p.action;
-                    return (
-                      <li key={p.id} className={p.active ? "is-active" : undefined}>
-                        <span className={`acct-pun-action apl-action apl-action--${kind}`}>{PUNISHMENT_WORDS[p.action] ?? p.action}</span>
-                        <span className="acct-pun-main">
-                          <strong>{p.reason}</strong>
-                          <small>
-                            {p.at ? punDate.format(new Date(p.at)) : "Date unknown"}
-                            {p.action === "ban" ? (p.active ? " · Active (permanent until lifted)" : " · Lifted") : null}
-                            {p.durationSeconds ? ` · ${lengthText(p.durationSeconds)}` : null}
-                            {ends ? (ends > Date.now() ? ` · Ends ${punDate.format(new Date(ends))}` : ` · Ended ${punDate.format(new Date(ends))}`) : null}
-                          </small>
-                        </span>
-                        <span className="acct-pun-end">
-                          {p.active ? <span className="acct-pun-live">Active</span> : null}
-                          {canAppeal ? (
-                            <a className="acct-pun-appeal" href={`/appeals?p=${p.id}`}>Appeal</a>
-                          ) : p.appeal ? (
-                            <a className={`apl-chip apl-chip--${p.appeal.status}`} href="/appeals">
-                              {p.appeal.status === "pending" ? "Appeal under review" : p.appeal.status === "accepted" ? "Appeal accepted" : "Appeal denied"}
-                            </a>
-                          ) : !p.appealable ? (
-                            <span className="apl-chip apl-chip--locked">Not appealable</span>
-                          ) : null}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </CollapsibleCard>
-          ) : null}
-
-          <CollapsibleCard id="profile" defaultOpen={!collapsed.has("profile")} title={"Profile"} description={"How you appear around the site."}>
-            <div className="acct-form-grid">
-              <form className="acct-form" action="/api/account/name" method="post" autoComplete="off">
-                <label>
-                  Display name
-                  <input
-                    name="displayName"
-                    autoComplete="off"
-                    defaultValue={displayName ?? ""}
-                    placeholder="Your name"
-                    minLength={3}
-                    maxLength={18}
-                    pattern="[A-Za-z0-9 ]{3,18}"
-                    required
-                  />
-                </label>
-                <p className="form-note">3–18 characters. Letters, numbers, and spaces only.</p>
-                <button className="acct-button" type="submit">Save name</button>
-              </form>
-
-              <form className="acct-form" action="/api/account/username" method="post" autoComplete="off">
-                {user.username ? (
-                  <>
-                    <label>
-                      Username
-                      <span className="acct-locked-field">
-                        <input value={user.username} readOnly aria-readonly="true" />
-                        <Lock size={15} aria-hidden="true" />
-                      </span>
-                    </label>
-                    <p className="form-note">
-                      Usernames can only be set once. Need a change? Contact the staff team on Discord.
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <label>
-                      Username
-                      <input name="newUsername" autoComplete="off" placeholder="YourUsername" pattern="[A-Za-z0-9_]{3,20}" required />
-                    </label>
-                    <label>
-                      Confirm username
-                      <input name="confirmUsername" autoComplete="off" placeholder="YourUsername" pattern="[A-Za-z0-9_]{3,20}" required />
-                    </label>
-                    <p className="form-note">3–20 letters, numbers, or underscores. This can only be set once.</p>
-                    <button className="acct-button" type="submit">Save username</button>
-                  </>
-                )}
-              </form>
-
-              <form className="acct-form" action="/api/account/contact" method="post" autoComplete="off">
-                <label>
-                  Phone number
-                  <input
-                    name="phone"
-                    type="tel"
-                    inputMode="tel"
-                    autoComplete="tel"
-                    defaultValue={phone ? formatPhone(phone) : ""}
-                    placeholder="+1 555 123 4567"
-                    maxLength={24}
-                  />
-                </label>
-                <p className="form-note acct-inline-icon"><Lock size={13} aria-hidden="true" /> Optional and private: only you can see it. Include your country code if you&apos;re outside the US/Canada.</p>
-                <button className="acct-button" type="submit">Save phone number</button>
-              </form>
+          {user.emailVerified === false ? (
+            <div className="acct-banner-wrap">
+              <VerifyEmailBanner email={user.email} />
             </div>
-          </CollapsibleCard>
+          ) : null}
 
+          {statusText ? (
+            <div className={`acct-status acct-status--${statusTone}`} role="status">
+              <span aria-hidden="true">{statusTone === "success" ? <Check size={16} /> : <CircleAlert size={16} />}</span>
+              {statusText}
+            </div>
+          ) : null}
 
+          {user.mustChangePassword ? (
+            <div className="acct-temp-password" role="alert">
+              <strong className="acct-inline-icon"><KeyRound size={16} aria-hidden="true" /> You&apos;re using a temporary password from staff.</strong>
+              <span>Please choose your own password now.</span>
+              <a href="#security">Change password →</a>
+            </div>
+          ) : null}
 
+          {/* ---------- Main column (swaps to the stats page on #stats) ---------- */}
+          <AccountViews>
+            {discordLinked ? (
+              <CollapsibleCard id="daily" defaultOpen={!collapsed.has("daily")} title="Daily Reward" description={seasonal("Claim free leaves once a day. Claim every day to build your streak.")} summary={dailyReady ? "🎁 Ready to claim!" : undefined}>
+                <DailyCard initial={dailyStatus} guildId={serverId} />
+              </CollapsibleCard>
+            ) : null}
 
-          <CollapsibleCard id="security" defaultOpen={!collapsed.has("security")} title={"Security"} description={"Your password and two-factor authentication."} summary={twoFactor.enabled ? "Two-factor on" : "Two-factor off"}>
-            <h3 className="acct-subhead">Password</h3>
-            <ChangePasswordForm />
-            <div className="acct-divider" />
-            <TwoFactorSettings initial={twoFactor} />
-          </CollapsibleCard>
+            {discordLinked ? (
+              <CollapsibleCard id="supporter" defaultOpen={!collapsed.has("supporter")} title="Supporter perks" description="Your Patreon and Nitro perks, and your custom role if you have one.">
+                <SupporterCard displayName={(displayName || discordName || "You").slice(0, 32)} />
+              </CollapsibleCard>
+            ) : null}
 
-          <details className="acct-card acct-danger" id="delete-account">
-            <summary>
-              <span>
-                <span className="acct-danger-title">Delete account</span>
-                <span className="acct-danger-sub">Permanently remove your website account</span>
+            <section className="acct-card acct-discord" id="discord-account">
+              <span className="acct-discord-icon">
+                <DiscordIcon />
               </span>
-              <span className="acct-collapse-chevron acct-danger-chevron" aria-hidden="true">
-                <ChevronDown size={20} strokeWidth={2.5} />
-              </span>
-            </summary>
-            {staffAccount ? (
-              <p className="acct-protected">
-                <ShieldCheck size={16} aria-hidden="true" /> Staff accounts can&apos;t be deleted. If you&apos;re leaving the team, ask an admin to remove your staff role
-                first.
-              </p>
-            ) : (
-            <form className="acct-form" action="/api/account/delete" method="post" autoComplete="off">
-              <p>
-                This permanently deletes your website account and can&apos;t be undone. Type{" "}
-                <strong>DELETE MY ACCOUNT</strong> and enter your password to confirm.
-              </p>
-              <div className="acct-fields-row">
-                <label>
-                  Confirmation
-                  <input name="deleteConfirmation" autoComplete="off" placeholder="DELETE MY ACCOUNT" required />
-                </label>
-                <label>
-                  Password
-                  <input name="deletePassword" autoComplete="off" data-1p-ignore="true" data-lpignore="true" type="password" required />
-                </label>
+              <div className="acct-discord-copy">
+                <h2>Discord</h2>
+                <p>
+                  {discordLinked ? (
+                    <>
+                      Linked as <strong>{discordName}</strong>. Your roles, level and store stay in sync automatically.
+                    </>
+                  ) : (
+                    "Link Discord to unlock the Store, Leaderboards and your server roles. Just grab a code and use /link in the server."
+                  )}
+                </p>
               </div>
-              <button className="acct-button acct-button--danger" type="submit">Delete my account</button>
-            </form>
-            )}
-          </details>
-        </AccountViews>
+              {discordLinked ? (
+                <div className="acct-discord-actions">
+                  <DiscordUnlinkForm />
+                </div>
+              ) : user.emailVerified !== true ? (
+                <p className="acct-discord-needs-email">
+                  <Mail size={16} aria-hidden="true" /> Confirm your email address first (see the banner above), then you can link Discord.
+                </p>
+              ) : (
+                <DiscordLinkCode />
+              )}
+            </section>
+
+            <CollapsibleCard id="overview" defaultOpen={!collapsed.has("overview")} title={"Overview"} description={"Your account details. Age and birthday come from your Discord join application."}>
+              <dl className="acct-info-grid">
+                <div>
+                  <dt>Email</dt>
+                  <dd>{user.email}</dd>
+                </div>
+                <div>
+                  <dt>Username</dt>
+                  <dd>{user.username ?? <span className="acct-muted">Not set</span>}</dd>
+                </div>
+                <div>
+                  <dt>Discord</dt>
+                  <dd>{discordName ?? <span className="acct-muted">Not linked</span>}</dd>
+                </div>
+                <div>
+                  <dt>Age</dt>
+                  <dd>{age ?? <span className="acct-muted">Not available</span>}</dd>
+                </div>
+                <div>
+                  <dt>Date of birth</dt>
+                  <dd>{dob === "Not available" ? <span className="acct-muted">Not available</span> : dob}</dd>
+                </div>
+                <div>
+                  <dt>Member since</dt>
+                  <dd>{memberSince ?? <span className="acct-muted">—</span>}</dd>
+                </div>
+              </dl>
+            </CollapsibleCard>
+
+            {discordLinked ? (
+              <CollapsibleCard
+                id="roles"
+                defaultOpen={!collapsed.has("roles")}
+                title="Server roles"
+                description="Pick your roles here and they update in Discord instantly, just like the role selector."
+                summary={
+                  roleState
+                    ? `${roleState.categories.reduce((n, c) => n + c.roles.filter((r) => r.has).length, 0)} picked · ${roleState.colorRoles.length}/${roleState.colorRoleTotal} colors`
+                    : undefined
+                }
+              >
+                <RoleManager initial={roleState} />
+              </CollapsibleCard>
+            ) : null}
+
+            {discordLinked ? (
+              <CollapsibleCard id="inventory" defaultOpen={!collapsed.has("inventory")} title="Inventory" description="Everything you've bought or been gifted. Equip roles, use boosters and send gifts right here.">
+                <AccountInventory />
+              </CollapsibleCard>
+            ) : null}
+
+            {discordLinked ? (
+              <CollapsibleCard id="boosts" defaultOpen={!collapsed.has("boosts")} title="Boosters & odds" description="Boosters running right now, what you earn at, and your chances of being featured on Social.">
+                <BoostsCard />
+              </CollapsibleCard>
+            ) : null}
+
+            {discordLinked ? (
+              <CollapsibleCard
+                id="transcripts"
+                defaultOpen={!collapsed.has("transcripts")}
+                title="Transcripts"
+                description="Your closed tickets. Images, videos and files are removed from your copy for privacy."
+                summary={transcripts ? `${transcripts.length} ticket${transcripts.length === 1 ? "" : "s"}` : undefined}
+              >
+                {transcripts === null ? (
+                  <p className="acct-muted">Your transcripts couldn&apos;t be loaded right now. Please try again in a moment.</p>
+                ) : transcripts.length === 0 ? (
+                  <p className="acct-muted">No transcripts yet. When a ticket you opened is closed, it shows up here.</p>
+                ) : (
+                  <ul className="acct-transcripts">
+                    {transcripts.map((t) => (
+                      <li key={t.ticketId}>
+                        <a href={`/account/transcripts/${t.ticketId}`}>
+                          <span className="acct-transcript-icon" aria-hidden="true">
+                            <FileText size={17} />
+                          </span>
+                          <span className="acct-transcript-main">
+                            <strong>
+                              Ticket #{t.ticketId} · {ticketTypeLabel(t.type)}
+                            </strong>
+                            <small>
+                              {t.created ? `Opened ${shortDate.format(new Date(t.created))}` : "Opened —"}
+                              {t.resolvedAt ? ` · Closed ${shortDate.format(new Date(t.resolvedAt))}` : ""}
+                            </small>
+                          </span>
+                          <span className="acct-transcript-open">View →</span>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CollapsibleCard>
+            ) : null}
+
+            {discordLinked ? (
+              <CollapsibleCard
+                id="punishments"
+                defaultOpen={!collapsed.has("punishments")}
+                title="Punishments"
+                description="Warnings, mutes, kicks and bans on your Discord account. Think one was a mistake? Appeal it."
+                summary={punishments ? (activeCount ? `${activeCount} active` : punishments.length ? `${punishments.length} on record` : "Clean record") : undefined}
+              >
+                {punishments === null ? (
+                  <p className="acct-muted">Your record couldn&apos;t be loaded right now. Please try again in a moment.</p>
+                ) : punishments.length === 0 ? (
+                  <p className="acct-clean-record"><ShieldCheck size={18} aria-hidden="true" /> <span>Nothing on your record. Keep it up!</span></p>
+                ) : (
+                  <ul className="acct-puns">
+                    {punishments.map((p) => {
+                      const again = p.appeal?.status === "denied" && p.appeal.canAppealAgainAt && Date.parse(p.appeal.canAppealAgainAt) < Date.now();
+                      const canAppeal = p.appealable && (!p.appeal || again);
+                      const ends = p.expiresAt ? Date.parse(p.expiresAt) : null;
+                      const kind = p.action === "kick_unverified" ? "kick" : p.action;
+                      return (
+                        <li key={p.id} className={p.active ? "is-active" : undefined}>
+                          <span className={`acct-pun-action apl-action apl-action--${kind}`}>{PUNISHMENT_WORDS[p.action] ?? p.action}</span>
+                          <span className="acct-pun-main">
+                            <strong>{p.reason}</strong>
+                            <small>
+                              {p.at ? punDate.format(new Date(p.at)) : "Date unknown"}
+                              {p.action === "ban" ? (p.active ? " · Active (permanent until lifted)" : " · Lifted") : null}
+                              {p.durationSeconds ? ` · ${lengthText(p.durationSeconds)}` : null}
+                              {ends ? (ends > Date.now() ? ` · Ends ${punDate.format(new Date(ends))}` : ` · Ended ${punDate.format(new Date(ends))}`) : null}
+                            </small>
+                          </span>
+                          <span className="acct-pun-end">
+                            {p.active ? <span className="acct-pun-live">Active</span> : null}
+                            {canAppeal ? (
+                              <a className="acct-pun-appeal" href={`/appeals?p=${p.id}`}>Appeal</a>
+                            ) : p.appeal ? (
+                              <a className={`apl-chip apl-chip--${p.appeal.status}`} href="/appeals">
+                                {p.appeal.status === "pending" ? "Appeal under review" : p.appeal.status === "accepted" ? "Appeal accepted" : "Appeal denied"}
+                              </a>
+                            ) : !p.appealable ? (
+                              <span className="apl-chip apl-chip--locked">Not appealable</span>
+                            ) : null}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </CollapsibleCard>
+            ) : null}
+
+            <CollapsibleCard id="profile" defaultOpen={!collapsed.has("profile")} title={"Profile"} description={"How you appear around the site."}>
+              <div className="acct-form-grid">
+                <form className="acct-form" action="/api/account/name" method="post" autoComplete="off">
+                  <label>
+                    Display name
+                    <input
+                      name="displayName"
+                      autoComplete="off"
+                      defaultValue={displayName ?? ""}
+                      placeholder="Your name"
+                      minLength={3}
+                      maxLength={18}
+                      pattern="[A-Za-z0-9 ]{3,18}"
+                      required
+                    />
+                  </label>
+                  <p className="form-note">3–18 characters. Letters, numbers, and spaces only.</p>
+                  <button className="acct-button" type="submit">Save name</button>
+                </form>
+
+                <form className="acct-form" action="/api/account/username" method="post" autoComplete="off">
+                  {user.username ? (
+                    <>
+                      <label>
+                        Username
+                        <span className="acct-locked-field">
+                          <input value={user.username} readOnly aria-readonly="true" />
+                          <Lock size={15} aria-hidden="true" />
+                        </span>
+                      </label>
+                      <p className="form-note">
+                        Usernames can only be set once. Need a change? Contact the staff team on Discord.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <label>
+                        Username
+                        <input name="newUsername" autoComplete="off" placeholder="YourUsername" pattern="[A-Za-z0-9_]{3,20}" required />
+                      </label>
+                      <label>
+                        Confirm username
+                        <input name="confirmUsername" autoComplete="off" placeholder="YourUsername" pattern="[A-Za-z0-9_]{3,20}" required />
+                      </label>
+                      <p className="form-note">3–20 letters, numbers, or underscores. This can only be set once.</p>
+                      <button className="acct-button" type="submit">Save username</button>
+                    </>
+                  )}
+                </form>
+
+                <form className="acct-form" action="/api/account/contact" method="post" autoComplete="off">
+                  <label>
+                    Phone number
+                    <input
+                      name="phone"
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      defaultValue={phone ? formatPhone(phone) : ""}
+                      placeholder="+1 555 123 4567"
+                      maxLength={24}
+                    />
+                  </label>
+                  <p className="form-note acct-inline-icon"><Lock size={13} aria-hidden="true" /> Optional and private: only you can see it. Include your country code if you&apos;re outside the US/Canada.</p>
+                  <button className="acct-button" type="submit">Save phone number</button>
+                </form>
+              </div>
+            </CollapsibleCard>
+
+
+
+
+            <CollapsibleCard id="security" defaultOpen={!collapsed.has("security")} title={"Security"} description={"Your password and two-factor authentication."} summary={twoFactor.enabled ? "Two-factor on" : "Two-factor off"}>
+              <h3 className="acct-subhead">Password</h3>
+              <ChangePasswordForm />
+              <div className="acct-divider" />
+              <TwoFactorSettings initial={twoFactor} />
+            </CollapsibleCard>
+
+            <details className="acct-card acct-danger" id="delete-account">
+              <summary>
+                <span>
+                  <span className="acct-danger-title">Delete account</span>
+                  <span className="acct-danger-sub">Permanently remove your website account</span>
+                </span>
+                <span className="acct-collapse-chevron acct-danger-chevron" aria-hidden="true">
+                  <ChevronDown size={20} strokeWidth={2.5} />
+                </span>
+              </summary>
+              {staffAccount ? (
+                <p className="acct-protected">
+                  <ShieldCheck size={16} aria-hidden="true" /> Staff accounts can&apos;t be deleted. If you&apos;re leaving the team, ask an admin to remove your staff role
+                  first.
+                </p>
+              ) : (
+              <form className="acct-form" action="/api/account/delete" method="post" autoComplete="off">
+                <p>
+                  This permanently deletes your website account and can&apos;t be undone. Type{" "}
+                  <strong>DELETE MY ACCOUNT</strong> and enter your password to confirm.
+                </p>
+                <div className="acct-fields-row">
+                  <label>
+                    Confirmation
+                    <input name="deleteConfirmation" autoComplete="off" placeholder="DELETE MY ACCOUNT" required />
+                  </label>
+                  <label>
+                    Password
+                    <input name="deletePassword" autoComplete="off" data-1p-ignore="true" data-lpignore="true" type="password" required />
+                  </label>
+                </div>
+                <button className="acct-button acct-button--danger" type="submit">Delete my account</button>
+              </form>
+              )}
+            </details>
+          </AccountViews>
+        </div>
       </div>
     </main>
   );

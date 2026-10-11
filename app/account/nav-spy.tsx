@@ -5,7 +5,7 @@ import { useEffect } from "react";
 /** Highlights the section-bar link for the part of My Account you're looking at (and keeps it in view). */
 export function NavSpy() {
   useEffect(() => {
-    const links = Array.from(document.querySelectorAll<HTMLAnchorElement>(".acct-nav--bar a[href^='#']"));
+    const links = Array.from(document.querySelectorAll<HTMLAnchorElement>(".acct3-nav a[href^='#']"));
     const targets = links.map((a) => document.getElementById(a.hash.slice(1))).filter((el): el is HTMLElement => Boolean(el));
     if (!targets.length || !("IntersectionObserver" in window)) return;
     const visible = new Map<string, number>();
