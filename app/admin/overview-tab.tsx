@@ -218,7 +218,7 @@ export function OverviewTab({
         ) : null}
         {show("timeline") ? (
           <Card title="Punishments over time" span={2}>
-            {p ? <StackedBars points={p.timeline} series={series} unit={unit} /> : <Skeleton />}
+            {p ? <StackedBars points={p.timeline} series={series} unit={unit} onPick={(start) => setDrill({ kind: "period", start, unit })} /> : <Skeleton />}
           </Card>
         ) : null}
         {show("breakdown") ? (

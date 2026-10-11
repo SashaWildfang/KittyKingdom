@@ -33,6 +33,23 @@ export type Section = { key: string; title: string; icon: string; about: string;
 
 export type BotDef = { key: string; name: string; about: string; ready: boolean; sections: Section[] };
 
+// Moderation staff roles (defaults for Command permissions; must match the bot's role sets)
+const HELPER = "1358470318087340342";
+const ADMIN = "1358472511133585564";
+const MOD = "1358472532222808126";
+const JR_MOD = "1358472557862457537";
+const SR_MOD = "1358472588430676018";
+const SR_ADMIN = "1358472635234779207";
+const OWNER = "1358473248534167663";
+const CM = "1558568175191203931";
+
+// The unverified chat clear-out, every half hour
+const PURGE_TIMES = Array.from({ length: 48 }, (_, i) => {
+  const value = `${String(Math.floor(i / 2)).padStart(2, "0")}:${i % 2 ? "30" : "00"}`;
+  const h = Math.floor(i / 2) % 12 || 12;
+  return { value, label: `${h}:${i % 2 ? "30" : "00"} ${i < 24 ? "AM" : "PM"}${i === 0 ? " (midnight)" : i === 24 ? " (noon)" : ""}` };
+});
+
 const HUGS = [
   "{sender} wraps their arms around {target} in a warm, cozy hug.",
   "{sender} gives {target} a big, squishy bear hug!",
@@ -464,7 +481,9 @@ const MODERATION: BotDef = {
         { key: "join.passwordRetryMinutes", label: "Wait after a wrong password", help: "How long before someone with a near-miss password can submit again.", type: "number", default: 5, min: 0, max: 1440, unit: "minutes" },
         { key: "join.denyHours", label: "Wait after a staff denial", help: "How long before someone denied by staff can submit a new form.", type: "number", default: 24, min: 0, max: 720, unit: "hours" },
         { key: "join.unverifiedReminder", label: "Daily reminder for unverified members", help: "Ping unverified members once a day to finish their join form.", type: "toggle", default: true },
-        { key: "join.purgeUnverifiedChat", label: "Clear the unverified chat daily", help: "Wipe the unverified chat channel at midnight UTC.", type: "toggle", default: true },
+        { key: "join.purgeUnverifiedChat", label: "Clear the unverified chat daily", help: "Wipe the unverified chat channel once a day, at the time below.", type: "toggle", default: true },
+        { key: "join.purgeTime", label: "…at", help: "Applies within a minute, no restart needed. If the bot was offline at that time, it clears as soon as it's back.", type: "select", default: "00:00", options: PURGE_TIMES },
+        { key: "join.purgeTimezone", label: "…in time zone", help: "", type: "timezone", default: "UTC" },
         { key: "join.welcomeChannel", label: "Welcome / verify channel", help: "Where new members verify and get denial notices.", type: "channel", default: "1358486077916057691" },
         { key: "join.applicationsChannel", label: "Applications channel", help: "Where staff review join forms.", type: "channel", default: "1381975737808191599" },
         { key: "join.joinLogChannel", label: "Join log channel", help: "Where joins are logged.", type: "channel", default: "1358485536511234164" },
@@ -492,6 +511,37 @@ const MODERATION: BotDef = {
       icon: "volumex",
       about: "The role used for muzzles, tempmutes and AutoMod mutes.",
       fields: [{ key: "mutes.role", label: "Muted role", help: "", type: "role", default: "1360956830263541950" }],
+    },
+    {
+      key: "perms",
+      title: "Command permissions",
+      icon: "shield",
+      about: "Which staff roles can use each moderation command. Members with any listed role can use it. An empty list means nobody can. Applies within a minute.",
+      fields: [
+        { key: "perms.warn", label: "/warn", help: "", type: "roles", default: [HELPER, ADMIN, MOD, JR_MOD, SR_MOD, SR_ADMIN, OWNER, CM] },
+        { key: "perms.tempmute", label: "/tempmute", help: "", type: "roles", default: [HELPER, ADMIN, MOD, JR_MOD, SR_MOD, SR_ADMIN, OWNER, CM] },
+        { key: "perms.mute", label: "/mute", help: "", type: "roles", default: [ADMIN, MOD, SR_MOD, SR_ADMIN, OWNER, CM] },
+        { key: "perms.unmute", label: "/unmute", help: "", type: "roles", default: [ADMIN, MOD, SR_MOD, SR_ADMIN, OWNER, CM] },
+        { key: "perms.muzzle", label: "/muzzle", help: "", type: "roles", default: [ADMIN, SR_ADMIN, OWNER] },
+        { key: "perms.kick", label: "/kick", help: "", type: "roles", default: [ADMIN, MOD, JR_MOD, SR_MOD, SR_ADMIN, OWNER, CM] },
+        { key: "perms.ban", label: "/ban (bans right away)", help: "", type: "roles", default: [MOD, CM, SR_MOD, ADMIN, SR_ADMIN, "1416866395366359193", OWNER] },
+        { key: "perms.banRequest", label: "/ban (sends a ban request)", help: "These roles can use /ban, but it becomes a ban request for a senior to approve.", type: "roles", default: [JR_MOD] },
+        { key: "perms.unban", label: "/unban", help: "", type: "roles", default: [ADMIN, SR_MOD, SR_ADMIN, OWNER] },
+        { key: "perms.slowmode", label: "/slowmode", help: "", type: "roles", default: [ADMIN, MOD, JR_MOD, SR_MOD, SR_ADMIN, OWNER, CM] },
+        { key: "perms.lock", label: "/lock and /unlock", help: "", type: "roles", default: [ADMIN, MOD, JR_MOD, SR_MOD, SR_ADMIN, OWNER, CM] },
+        { key: "perms.clear", label: "/clear", help: "", type: "roles", default: [ADMIN, MOD, JR_MOD, SR_MOD, SR_ADMIN, OWNER, CM] },
+        { key: "perms.lockdown", label: "/lockdown", help: "", type: "roles", default: [ADMIN, SR_ADMIN, OWNER] },
+        { key: "perms.forceUnverify", label: "/force_unverify (members)", help: "", type: "roles", default: [HELPER, ADMIN, MOD, JR_MOD, SR_MOD, SR_ADMIN, OWNER, CM] },
+        { key: "perms.forceUnverifyStaff", label: "/force_unverify (staff members)", help: "Who can unverify someone who is staff themselves.", type: "roles", default: [ADMIN, MOD, JR_MOD, SR_MOD, SR_ADMIN, OWNER, CM] },
+      ],
+    },
+    {
+      key: "rules",
+      title: "Server rules",
+      icon: "scroll",
+      about: "The rules text (Discord #rules and the website's Rules page) has its own editor.",
+      link: { href: "/admin?tab=rules", label: "Open Admin → Rules" },
+      fields: [],
     },
     {
       key: "automod",
