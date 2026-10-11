@@ -35,7 +35,7 @@
 .evp-empty { display: grid; justify-items: center; gap: 0.6rem; border: 1px dashed var(--line); border-radius: 1.2rem; color: var(--muted); padding: 3rem 1rem; text-align: center; }
 .evp-empty p { margin: 0; }
 
-.evp-days { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 30rem), 1fr)); align-items: start; gap: 1.6rem 1.2rem; }
+.evp-days { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 25rem), 1fr)); align-items: start; gap: 1.6rem 1.2rem; }
 .evp-day-group { display: grid; gap: 0.7rem; scroll-margin-top: 5rem; }
 .evp-day-group h2 { margin: 0; font-size: 1.05rem; color: var(--muted); }
 .evp-cards { display: grid; gap: 0.9rem; }
@@ -128,3 +128,6 @@ button.evp-poll-opt:disabled { cursor: progress; }
 
 .evp-loading { min-height: 60vh; border-radius: 1.2rem; background: linear-gradient(90deg, var(--panel), var(--panel-strong), var(--panel)); background-size: 200% 100%; animation: evp-shimmer 1.4s linear infinite; }
 @keyframes evp-shimmer { to { background-position: -200% 0; } }
+/* No polls or past events: the calendar takes the full width */
+.evp-aside:empty { display: none; }
+.evp-layout:has(> .evp-aside:empty) { grid-template-columns: minmax(0, 1fr); }

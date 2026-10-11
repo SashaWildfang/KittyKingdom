@@ -85,7 +85,7 @@ export function EventPollsBoard({ initial, events, signedIn, linked, now }: { in
                         {picked ? <Check size={13} strokeWidth={3} /> : null}
                       </span>
                       <span className="evp-poll-answer">
-                        {a.emojiUrl ? <img className="evp-poll-emoji" src={a.emojiUrl} alt="" width={18} height={18} /> : a.emoji ? <span aria-hidden="true">{a.emoji}</span> : null} {a.text}
+                        {a.emojiUrl ? <img className="evp-poll-emoji" src={a.emojiUrl} alt="" width={18} height={18} /> : a.emoji ? <span className="emo" aria-hidden="true">{a.emoji}</span> : null}{a.text}
                       </span>
                       <span className="evp-poll-pct">{pct}%</span>
                     </>

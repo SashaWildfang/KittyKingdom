@@ -605,7 +605,7 @@ export function ProfileScreen({ id }: { id: string }) {
                   ) : (
                     <>
                       <b className="dt-h-icon">
-                        <TierIcon score={c.score} fit={!c.blocked} size={16} /> {noDating ? "Not a dating match" : c.blocked ? "Friendly fit" : `${c.tier} match`}
+                        <TierIcon score={c.score} fit={!c.blocked} size={16} /> {noDating ? "Not a dating match" : c.blocked ? "Friendly fit" : (/match|connection/i.test(c.tier) ? c.tier : `${c.tier} match`)}
                       </b>
                       {noDating ? (
                         <small className="dt-muted">

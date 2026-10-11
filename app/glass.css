@@ -600,3 +600,7 @@ html body :is(.primary-pill, .cta, .form-button) {
 html { scrollbar-color: rgba(var(--cream-rgb), 0.22) transparent; }
 :root[data-theme="light"] { scrollbar-color: rgba(var(--bark-rgb), 0.25) transparent; }
 ::selection { background: rgba(var(--ember-rgb), 0.35); }
+
+/* An emoji label before text: a real gap (a plain space renders very thin next to color emoji) */
+.emo { display: inline-block; margin-right: 0.4em; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; font-style: normal; line-height: 1; }
+img.evp-poll-emoji { margin-right: 0.35em; }

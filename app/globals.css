@@ -323,17 +323,17 @@ h3,
 p {
   margin-top: 0;
 }
+/* Sensible defaults: pages that want a big display heading size their own */
 h1 {
-  max-width: 11ch;
-  margin-bottom: 1.3rem;
-  font-size: clamp(3.7rem, 9vw, 8.6rem);
-  line-height: 0.86;
-  letter-spacing: -0.085em;
+  margin-bottom: 1rem;
+  font-size: clamp(2.1rem, 4.5vw, 3.4rem);
+  line-height: 1.05;
+  letter-spacing: -0.035em;
 }
 h2 {
-  font-size: clamp(2rem, 4vw, 4rem);
-  line-height: 0.98;
-  letter-spacing: -0.05em;
+  font-size: clamp(1.35rem, 2.4vw, 1.9rem);
+  line-height: 1.15;
+  letter-spacing: -0.025em;
 }
 .subtitle,
 .discord-panel p,
@@ -4813,7 +4813,10 @@ input[type="submit"] {
 }
 
 .store-empty-card h2 {
+  max-width: none;
   margin: 0.5rem 0 0.3rem;
+  font-size: 1.35rem;
+  letter-spacing: -0.02em;
 }
 
 .store-empty-card p {
@@ -31747,7 +31750,7 @@ a.apl-chip {
 .store-supporter-discount {
   position: relative;
   z-index: 2;
-  width: min(1180px, calc(100% - 2rem));
+  width: min(96rem, calc(100% - 2.5rem));
   margin: 1rem auto 0;
   padding: 0.7rem 1rem;
   border: 1px solid color-mix(in srgb, var(--gold) 45%, var(--line));

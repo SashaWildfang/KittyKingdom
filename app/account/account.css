@@ -178,6 +178,21 @@
 .acct3-showcase .acct-pinned-badges { flex-wrap: wrap; }
 
 
+/* No badges pinned yet: no lonely "Showcase" label */
+.acct3-showcase:not(:has(.acct-badges-showcase)) { display: none; }
+/* Account details sit in a narrow column on the dashboard: two per row so emails don't break mid-word */
+.acct4-stack .acct-info-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.acct4-stack .acct-info-grid dd { overflow-wrap: anywhere; }
+.acct4-stack .acct-info-grid > div:first-child { grid-column: 1 / -1; }
+
+/* Security: password on the left, two-factor on the right */
+@media (min-width: 1000px) {
+  #security .acct4-panel-body { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; column-gap: 2.2rem; }
+  #security .acct4-panel-body > * { grid-column: 1; min-width: 0; }
+  #security .acct4-panel-body > .acct-divider { display: none; }
+  #security .acct4-panel-body > :last-child { grid-column: 2; grid-row: 1 / span 2; border-left: 1px solid var(--line); padding-left: 2.2rem; }
+}
+
 /* ---------- Panels ---------- */
 .acct4-panel {
   display: grid;
@@ -222,8 +237,23 @@
 .acct4-panel--danger { border-color: rgba(229, 72, 77, 0.35); }
 .acct4-panel--danger .acct4-panel-icon { background: linear-gradient(135deg, #e5484d, #b42318); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 8px 18px rgba(229, 72, 77, 0.25); }
 
-/* The Discord card matches the panels */
-.acct4 .acct-discord { margin: 0; border-radius: 1.5rem; scroll-margin-top: 6rem; }
+/* The Discord card matches the panels (a light Discord-blue tint, same sizes) */
+.acct4 .acct-discord {
+  margin: 0;
+  border: 1px solid var(--glass-border);
+  border-radius: 1.5rem;
+  background: radial-gradient(circle at 100% 0, rgba(88, 101, 242, 0.16), transparent 16rem), var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  padding: 1.35rem 1.5rem 1.5rem;
+  scroll-margin-top: 6rem;
+}
+.acct4 .acct-discord-icon { width: 2.7rem; height: 2.7rem; border-radius: 0.95rem; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 8px 18px rgba(88, 101, 242, 0.3); }
+.acct4 .acct-discord-icon svg { width: 1.5rem; }
+.acct4 .acct-discord-copy h2 { max-width: none; margin: 0; font-size: 1.2rem; }
+.acct4 .acct-discord-copy p { font-size: 0.9rem; line-height: 1.5; }
+.acct4-stack .acct-info-grid > div:last-child:nth-child(even) { grid-column: 1 / -1; }
 
 /* ---------- Tablets and phones: sidebar on top, links wrap ---------- */
 @media (max-width: 1100px) {
@@ -244,7 +274,9 @@
 @media (max-width: 860px) {
   .acct4-home { grid-template-columns: minmax(0, 1fr); }
   .acct3-hero, .acct4-panel { padding: 1.15rem; }
-  .acct4-panel-head { flex-wrap: wrap; }
+  .acct4-panel-head { flex-wrap: wrap; row-gap: 0.5rem; }
+  .acct4-panel-title { flex: 1 1 calc(100% - 3.7rem); }
+  .acct4-summary { margin-left: 3.6rem; }
 }
 
 /* Card chips: Staff Member / 18+ Verified */

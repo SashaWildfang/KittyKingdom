@@ -157,7 +157,7 @@ export function ProfileTile({ card, extra, onLike }: { card: Card; extra?: React
           {/* One tidy row up top: the match score and a single status (Spotlight beats New) */}
           <span className="dt-tile-corner">
             {card.score !== null ? (
-              <span className={`dt-score${card.datingFit ? "" : " is-friendly"}`} title={card.datingFit ? `${card.tier} match` : "Compatibility (not a dating fit on preferences)"}>
+              <span className={`dt-score${card.datingFit ? "" : " is-friendly"}`} title={card.datingFit ? (/match|connection/i.test(card.tier ?? "") ? card.tier ?? undefined : `${card.tier} match`) : "Compatibility (not a dating fit on preferences)"}>
                 <Score score={card.score} fit={card.datingFit} size={12} />
               </span>
             ) : null}

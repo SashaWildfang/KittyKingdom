@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Crown } from "lucide-react";
 import { supporterDiscount } from "../../lib/store";
 import { redirect } from "next/navigation";
@@ -6,6 +7,8 @@ import { getDiscordInviteSummary } from "../../lib/discord";
 import { getStoreState, type StoreState } from "../../lib/store";
 import { SiteNav } from "../site-nav";
 import { StoreClient } from "./store-client";
+
+export const metadata: Metadata = { title: "Store | Kitty Kingdom" };
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 10;
