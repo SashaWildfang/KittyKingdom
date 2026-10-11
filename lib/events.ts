@@ -241,3 +241,30 @@ export async function eventIcs(id: string) {
     "END:VCALENDAR",
   ].join("\r\n");
 }
+
+/**
+ * For the bubble on the Events tab: upcoming events and open polls (by id, so the bubble can count the ones
+ * you haven't seen on /events yet) and whether an event is happening right now.
+ */
+export async function eventNavStamps(): Promise<{ ids: string[]; live: boolean }> {
+  try {
+    const now = new Date();
+    const [events, polls] = await Promise.all([
+      (await eventsCol())
+        .find(
+          { deleted: { $ne: true }, cancelled: { $ne: true }, startAt: { $lte: new Date(now.getTime() + 30 * 86_400_000) }, $or: [{ endAt: { $gt: now } }, { endAt: null, startAt: { $gt: new Date(now.getTime() - 2 * 3600_000) } }] },
+          { projection: { startAt: 1, endAt: 1 } },
+        )
+        .limit(50)
+        .toArray(),
+      (await getBotCollection("event_polls"))
+        .find({ status: "posted", deleted: { $ne: true }, endRequested: { $ne: true }, $or: [{ expiresAt: { $gt: now } }, { expiresAt: null }] }, { projection: { _id: 1 } })
+        .limit(20)
+        .toArray(),
+    ]);
+    const live = events.some((e) => new Date(e.startAt).getTime() <= now.getTime());
+    return { ids: [...events.map((e) => `e:${e._id}`), ...polls.map((p) => `p:${p._id}`)], live };
+  } catch {
+    return { ids: [], live: false };
+  }
+}

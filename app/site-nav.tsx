@@ -5,6 +5,8 @@ import { getCurrentUser } from "../lib/auth";
 import { OnlineStatus } from "./online-status";
 import { NewsNavBadge } from "./news-nav-badge";
 import { recentNewsStamps } from "../lib/news";
+import { eventNavStamps } from "../lib/events";
+import { EventsNavBadge } from "./events-nav-badge";
 import { canSeeDating } from "../lib/dating/access";
 import { NotificationBell } from "./notification-bell";
 import { MobileMenu } from "./mobile-menu";
@@ -29,6 +31,8 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
   const dating = linked ? await canSeeDating(user?.discordId).catch(() => false) : false;
   // Recent posts, for the unread bubble on the News tab
   const newsStamps = await recentNewsStamps();
+  // Upcoming events and open polls, for the bubble on the Events tab
+  const eventStamps = await eventNavStamps();
   // Same links for the phone menu
   const mobileLinks = [
     { href: "/home", label: "Home", icon: "home" as const },
@@ -59,7 +63,10 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
           News
           <NewsNavBadge items={newsStamps} />
         </a>
-        <a href="/events">Events</a>
+        <a href="/events" className="nav-news-tab">
+          Events
+          <EventsNavBadge ids={eventStamps.ids} live={eventStamps.live} />
+        </a>
         <a href="/giveaways">Giveaways</a>
         {/* Signed-in members already know the rules and the server, so the bar stays short */}
         {signedIn ? null : <a href="/rules">Rules</a>}
@@ -108,7 +115,7 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
           </>
         )}
       </div>
-      <MobileMenu links={mobileLinks} signedIn={signedIn} newsStamps={newsStamps} bell={linked} messages={dating} />
+      <MobileMenu links={mobileLinks} signedIn={signedIn} newsStamps={newsStamps} eventStamps={eventStamps} bell={linked} messages={dating} />
     </nav>
   );
 }

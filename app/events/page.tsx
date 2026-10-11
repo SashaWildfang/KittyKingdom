@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getCurrentUser } from "../../lib/auth";
 import { getDiscordInviteSummary } from "../../lib/discord";
-import { listEvents } from "../../lib/events";
+import { eventNavStamps, listEvents } from "../../lib/events";
 import { publicPolls } from "../../lib/event-polls";
 import { COMMUNITY_MANAGER_ROLE_ID, getPanelUser } from "../../lib/admin";
 import { memberRoleIdsCached } from "../../lib/discord-member";
@@ -19,6 +19,7 @@ export const metadata: Metadata = {
 export default async function EventsPage() {
   const [user, discord] = await Promise.all([getCurrentUser().catch(() => null), getDiscordInviteSummary()]);
   const data = await listEvents({ discordId: user?.discordId ? String(user.discordId) : null, includePast: true }).catch(() => null);
+  const stamps = await eventNavStamps();
   const polls = await publicPolls(user?.discordId ? String(user.discordId) : null).catch(() => []);
   // Admins and Community Managers get a shortcut to the events panel
   const panel = user ? await getPanelUser().catch(() => null) : null;
@@ -27,7 +28,7 @@ export default async function EventsPage() {
   return (
     <main className="site-shell evp-shell">
       <SiteNav signedIn={Boolean(user)} discordOnline={discord.online} />
-      <EventsBoard initial={data} signedIn={Boolean(user)} linked={Boolean(user?.discordId)} canManage={canManage} polls={polls} />
+      <EventsBoard initial={data} signedIn={Boolean(user)} linked={Boolean(user?.discordId)} canManage={canManage} polls={polls} seenIds={stamps.ids} />
     </main>
   );
 }
