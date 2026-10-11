@@ -1,5 +1,6 @@
 "use client";
 
+import { EventsNavBadge, useUnseenEvents } from "./events-nav-badge";
 import { Dices, ScrollText, Heart, HeartHandshake, Home, LogIn, LogOut, Menu, MessageCircle, MessagesSquare, Newspaper, Settings, ShoppingBag, Trophy, UserPlus, UserRound, UserStar, Users, X, CalendarDays, Gift } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -14,8 +15,12 @@ type NavLink = { href: string; label: string; icon: "home" | "news" | "events" |
 const ICONS = { home: Home, news: Newspaper, events: CalendarDays, giveaways: Gift, rules: ScrollText, discord: MessageCircle, patreon: Heart, staff: Users, store: ShoppingBag, games: Dices, leaderboards: Trophy, admin: UserStar, dating: HeartHandshake, settings: Settings, messages: MessagesSquare, profile: UserRound };
 
 /** Phone navigation: a slim bar with the theme switch and a menu that opens a sheet of big, tappable links. */
-export function MobileMenu({ links, signedIn, newsStamps = [], bell = false, messages = false }: { links: NavLink[]; signedIn: boolean; newsStamps?: { id: string; at: string }[]; bell?: boolean; messages?: boolean }) {
+const NO_EVENTS = { ids: [] as string[], live: false };
+
+export function MobileMenu({ links, signedIn, newsStamps = [], eventStamps = NO_EVENTS, bell = false, messages = false }: { links: NavLink[]; signedIn: boolean; newsStamps?: { id: string; at: string }[]; eventStamps?: { ids: string[]; live: boolean }; bell?: boolean; messages?: boolean }) {
   const unreadNews = useUnreadNews(newsStamps);
+  const newEvents = useUnseenEvents(eventStamps.ids);
+  const dotCount = unreadNews + newEvents;
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
@@ -44,7 +49,7 @@ export function MobileMenu({ links, signedIn, newsStamps = [], bell = false, mes
       <ThemeToggle />
       <button type="button" className={`mobile-nav-button${open ? " is-open" : ""}`} onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-controls="mobile-sheet" aria-label={open ? "Close menu" : "Open menu"}>
         {open ? <X size={22} /> : <Menu size={22} />}
-        {!open && unreadNews ? <span className="nav-news-badge nav-news-badge--dot" aria-label={`${unreadNews} unread news`}>{unreadNews > 9 ? "9+" : unreadNews}</span> : null}
+        {!open && dotCount ? <span className="nav-news-badge nav-news-badge--dot" aria-label={`${dotCount} new`}>{dotCount > 9 ? "9+" : dotCount}</span> : null}
       </button>
 
       {open ? <div className="mobile-sheet-backdrop" onClick={() => setOpen(false)} aria-hidden="true" /> : null}
@@ -59,6 +64,7 @@ export function MobileMenu({ links, signedIn, newsStamps = [], bell = false, mes
                 </span>
                 {link.label}
                 {link.icon === "news" && unreadNews ? <span className="nav-news-badge">{unreadNews > 9 ? "9+" : unreadNews}</span> : null}
+                {link.icon === "events" ? <EventsNavBadge ids={eventStamps.ids} live={eventStamps.live} /> : null}
               </a>
             );
           })}
