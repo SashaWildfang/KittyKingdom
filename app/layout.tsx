@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 import "./polish.css";
 import "./glass.css";
+import "./page-layouts.css";
 import { Inter } from "next/font/google";
 import { PageTracker } from "./page-tracker";
 import { TimeZoneSync } from "./time-zone-sync";
