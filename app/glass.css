@@ -576,11 +576,14 @@ html body .site-shell { padding-top: 6.2rem; }
 html body .topbar .tabs a { border: 0; border-radius: 0.8rem; transition: background 0.15s ease, color 0.15s ease; }
 html body .topbar .tabs a:hover { background: rgba(var(--cream-rgb), 0.08); color: var(--text); }
 :root[data-theme="light"] body .topbar .tabs a:hover { background: rgba(var(--bark-rgb), 0.07); }
-html body .mobile-sheet {
-  background: var(--glass-strong);
-  -webkit-backdrop-filter: saturate(180%) blur(26px);
-  backdrop-filter: saturate(180%) blur(26px);
-}
+/* Menus that open over the page are solid so their buttons are easy to read. (The phone menu sits inside the
+   top bar, whose own blur stops it from blurring the page, so any see-through background shows the page sharply.) */
+html body .mobile-sheet { background: linear-gradient(180deg, var(--bg-soft), var(--bg)); }
+html body .acct-menu-panel { background: var(--bg-soft); }
+:root[data-theme="light"] body .mobile-sheet,
+:root[data-theme="light"] body .acct-menu-panel { background: #fffcf6; }
+/* A darker backdrop behind the phone menu, so the page underneath doesn't compete with it */
+html body .mobile-sheet-backdrop { background: rgba(10, 4, 2, 0.72); }
 
 /* ---------- Footer: a glass shelf ---------- */
 html body .site-footer.ft {
@@ -604,3 +607,13 @@ html { scrollbar-color: rgba(var(--cream-rgb), 0.22) transparent; }
 /* An emoji label before text: a real gap (a plain space renders very thin next to color emoji) */
 .emo { display: inline-block; margin-right: 0.4em; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; font-style: normal; line-height: 1; }
 img.evp-poll-emoji { margin-right: 0.35em; }
+
+/* Phone menu buttons: a clear fill and edge on the solid sheet */
+html body .mobile-sheet-links a {
+  border-color: rgba(var(--cream-rgb), 0.14);
+  background: rgba(var(--cream-rgb), 0.07);
+}
+html body .mobile-sheet-links a:hover { background: rgba(var(--cream-rgb), 0.12); }
+html body .mobile-sheet-links a.is-active { border-color: var(--ember); background: rgba(var(--ember-rgb), 0.2); }
+:root[data-theme="light"] body .mobile-sheet-links a { border-color: rgba(var(--bark-rgb), 0.16); background: rgba(var(--bark-rgb), 0.05); }
+:root[data-theme="light"] body .mobile-sheet-links a.is-active { border-color: var(--ember); background: rgba(var(--ember-rgb), 0.14); }
