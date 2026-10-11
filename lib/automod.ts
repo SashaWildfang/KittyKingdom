@@ -192,6 +192,7 @@ export type AutomodEvent = {
   at: string;
   userId: string | null;
   channelId: string | null;
+  messageId: string | null;
   rule: string;
   label: string;
   reason: string;
@@ -199,70 +200,197 @@ export type AutomodEvent = {
   action: string;
   offense: number | null;
   content: string | null;
+  /** The bot saved the messages before it (newer catches) */
+  hasContext: boolean;
 };
 
 const RANGE_DAYS: Record<string, number> = { "24h": 1, "7d": 7, "30d": 30, "90d": 90 };
+/** The four headline numbers, as filters */
+export const ACTION_FILTERS: Record<string, string[]> = { punish: ["punish"], delete: ["delete"], flagged: ["alert", "rename"] };
+const ruleLabel = (r: unknown) => RULE_LABELS[String(r)] ?? (r === "raid" ? "Raid alert" : String(r ?? ""));
 
-export async function automodActivity(opts: { range: string; timeZone: string; rule?: string | null; userId?: string | null; page?: number }) {
-  const days = RANGE_DAYS[opts.range] ?? 7;
-  const since = new Date(Date.now() - days * 86_400_000);
+function toEvent(d: Document): AutomodEvent {
+  return {
+    id: String(d._id),
+    at: iso(d.at) ?? "",
+    userId: d.userId ? String(d.userId) : null,
+    channelId: d.channelId ? String(d.channelId) : null,
+    messageId: d.messageId ? String(d.messageId) : null,
+    rule: String(d.rule ?? ""),
+    label: ruleLabel(d.rule),
+    reason: String(d.reason ?? ""),
+    term: d.term ? String(d.term) : null,
+    action: String(d.action ?? ""),
+    offense: typeof d.offense === "number" ? d.offense : null,
+    content: d.content ? String(d.content) : null,
+    hasContext: Array.isArray(d.context) && d.context.length > 0,
+  };
+}
+
+type ActivityOpts = {
+  range: string;
+  timeZone: string;
+  rule?: string | null;
+  userId?: string | null;
+  page?: number;
+  /** punish | delete | flagged */
+  action?: string | null;
+  channelId?: string | null;
+  /** A custom period (a clicked bar): overrides range */
+  from?: string | null;
+  to?: string | null;
+};
+
+export async function automodActivity(opts: ActivityOpts) {
+  const custom = opts.from && opts.to && !Number.isNaN(Date.parse(opts.from)) && !Number.isNaN(Date.parse(opts.to));
+  const until = custom ? new Date(opts.to!) : new Date();
+  const since = custom ? new Date(opts.from!) : new Date(Date.now() - (RANGE_DAYS[opts.range] ?? 7) * 86_400_000);
+  const spanMs = Math.max(3_600_000, until.getTime() - since.getTime());
+  const days = spanMs / 86_400_000;
+  const unit: "hour" | "day" = days <= 2 ? "hour" : "day";
   const col = await getBotCollection("automod_events");
-  const match: Document = { at: { $gte: since } };
-  if (opts.rule) match.rule = opts.rule;
-  if (opts.userId && /^\d{15,21}$/.test(opts.userId)) match.userId = opts.userId;
+  const filters: Document = {};
+  if (opts.rule) filters.rule = opts.rule;
+  if (opts.userId && /^\d{15,21}$/.test(opts.userId)) filters.userId = opts.userId;
+  if (opts.channelId && /^\d{15,21}$/.test(opts.channelId)) filters.channelId = opts.channelId;
+  if (opts.action && ACTION_FILTERS[opts.action]) filters.action = { $in: ACTION_FILTERS[opts.action] };
+  const match: Document = { ...filters, at: { $gte: since, $lt: until } };
   const page = Math.max(0, Math.min(200, opts.page ?? 0));
-  const [agg] = await col
-    .aggregate([
-      { $match: match },
-      {
-        $facet: {
-          total: [{ $count: "n" }],
-          byRule: [{ $group: { _id: "$rule", n: { $sum: 1 } } }, { $sort: { n: -1 } }],
-          byAction: [{ $group: { _id: "$action", n: { $sum: 1 } } }],
-          members: [{ $match: { userId: { $ne: null } } }, { $group: { _id: "$userId", n: { $sum: 1 }, last: { $max: "$at" } } }, { $sort: { n: -1 } }, { $limit: 8 }],
-          terms: [{ $match: { term: { $nin: [null, ""] }, rule: { $in: ["words", "severe", "names"] } } }, { $group: { _id: "$term", n: { $sum: 1 } } }, { $sort: { n: -1 } }, { $limit: 10 }],
-          series: [
-            { $group: { _id: { t: { $dateTrunc: { date: "$at", unit: days <= 1 ? "hour" : "day", timezone: opts.timeZone } }, r: "$rule" }, n: { $sum: 1 } } },
-            { $sort: { "_id.t": 1 } },
-          ],
-          rows: [{ $sort: { at: -1, _id: -1 } }, { $skip: page * 25 }, { $limit: 25 }],
+  const [[agg], prevTotal] = await Promise.all([
+    col
+      .aggregate([
+        { $match: match },
+        {
+          $facet: {
+            total: [{ $count: "n" }],
+            byRule: [{ $group: { _id: "$rule", n: { $sum: 1 } } }, { $sort: { n: -1, _id: 1 } }],
+            byAction: [{ $group: { _id: "$action", n: { $sum: 1 } } }],
+            people: [{ $match: { userId: { $ne: null } } }, { $group: { _id: "$userId", n: { $sum: 1 } } }, { $group: { _id: null, all: { $sum: 1 }, repeat: { $sum: { $cond: [{ $gte: ["$n", 2] }, 1, 0] } } } }],
+            members: [{ $match: { userId: { $ne: null } } }, { $group: { _id: "$userId", n: { $sum: 1 }, strikes: { $sum: { $cond: [{ $eq: ["$action", "punish"] }, 1, 0] } }, last: { $max: "$at" } } }, { $sort: { n: -1, last: -1, _id: 1 } }, { $limit: 10 }],
+            byChannel: [{ $match: { channelId: { $ne: null } } }, { $group: { _id: "$channelId", n: { $sum: 1 } } }, { $sort: { n: -1, _id: 1 } }, { $limit: 8 }],
+            byHour: [{ $group: { _id: { $hour: { date: "$at", timezone: opts.timeZone } }, n: { $sum: 1 } } }],
+            byWeekday: [{ $group: { _id: { $dayOfWeek: { date: "$at", timezone: opts.timeZone } }, n: { $sum: 1 } } }],
+            offenses: [{ $match: { action: "punish", offense: { $type: "number" } } }, { $group: { _id: "$offense", n: { $sum: 1 } } }, { $sort: { _id: 1 } }],
+            terms: [{ $match: { term: { $nin: [null, ""] }, rule: { $in: ["words", "severe", "names"] } } }, { $group: { _id: "$term", n: { $sum: 1 } } }, { $sort: { n: -1, _id: 1 } }, { $limit: 12 }],
+            series: [
+              { $group: { _id: { t: { $dateTrunc: { date: "$at", unit, timezone: opts.timeZone } }, r: "$rule" }, n: { $sum: 1 } } },
+              { $sort: { "_id.t": 1 } },
+            ],
+            rows: [{ $sort: { at: -1, _id: -1 } }, { $skip: page * 25 }, { $limit: 25 }, { $project: { context: { $slice: ["$context", 1] }, userId: 1, channelId: 1, messageId: 1, rule: 1, reason: 1, term: 1, action: 1, offense: 1, content: 1, at: 1 } }],
+          },
         },
-      },
-    ])
-    .toArray();
+      ])
+      .toArray(),
+    col.countDocuments({ ...filters, at: { $gte: new Date(since.getTime() - spanMs), $lt: since } }),
+  ]);
   const count = (list: Document[]) => Object.fromEntries(list.map((d) => [String(d._id), d.n as number]));
+  const hours = Array.from({ length: 24 }, (_, h) => ((agg?.byHour ?? []) as Document[]).find((d) => d._id === h)?.n ?? 0);
+  // Mongo's $dayOfWeek is 1 = Sunday … 7 = Saturday
+  const weekdays = Array.from({ length: 7 }, (_, i) => ((agg?.byWeekday ?? []) as Document[]).find((d) => d._id === i + 1)?.n ?? 0);
   return {
     days,
+    since: since.toISOString(),
+    until: until.toISOString(),
     total: (agg?.total?.[0]?.n as number) ?? 0,
-    byRule: (agg?.byRule ?? []).map((d: Document) => ({ rule: String(d._id), label: RULE_LABELS[String(d._id)] ?? (d._id === "raid" ? "Raid alert" : String(d._id)), n: d.n as number })),
+    prevTotal,
+    uniqueMembers: (agg?.people?.[0]?.all as number) ?? 0,
+    repeatMembers: (agg?.people?.[0]?.repeat as number) ?? 0,
+    byRule: (agg?.byRule ?? []).map((d: Document) => ({ rule: String(d._id), label: ruleLabel(d._id), n: d.n as number })),
     byAction: count(agg?.byAction ?? []),
-    members: (agg?.members ?? []).map((d: Document) => ({ id: String(d._id), n: d.n as number, last: iso(d.last) })),
+    members: (agg?.members ?? []).map((d: Document) => ({ id: String(d._id), n: d.n as number, strikes: d.strikes as number, last: iso(d.last) })),
+    byChannel: (agg?.byChannel ?? []).map((d: Document) => ({ id: String(d._id), n: d.n as number })),
+    hours,
+    weekdays,
+    offenses: (agg?.offenses ?? []).map((d: Document) => ({ offense: d._id as number, n: d.n as number })),
     terms: (agg?.terms ?? []).map((d: Document) => ({ term: String(d._id), n: d.n as number })),
     // Every day (or hour) in the range, stacked by rule; quiet periods stay as empty bars
     timeline: fillTimeline(
       (agg?.series ?? []).map((d: Document) => ({ bucket: iso(d._id?.t) ?? "", action: String(d._id?.r ?? "other"), count: d.n as number })),
       since,
-      days <= 1 ? "hour" : "day",
+      unit,
       opts.timeZone,
+      until,
     ),
-    unit: days <= 1 ? "hour" : "day",
+    unit,
     page,
-    rows: ((agg?.rows ?? []) as Document[]).map(
-      (d): AutomodEvent => ({
-        id: String(d._id),
-        at: iso(d.at) ?? "",
-        userId: d.userId ? String(d.userId) : null,
-        channelId: d.channelId ? String(d.channelId) : null,
-        rule: String(d.rule ?? ""),
-        label: RULE_LABELS[String(d.rule)] ?? (d.rule === "raid" ? "Raid alert" : String(d.rule ?? "")),
-        reason: String(d.reason ?? ""),
-        term: d.term ? String(d.term) : null,
-        action: String(d.action ?? ""),
-        offense: typeof d.offense === "number" ? d.offense : null,
-        content: d.content ? String(d.content) : null,
-      }),
-    ),
+    rows: ((agg?.rows ?? []) as Document[]).map(toEvent),
   };
+}
+
+export type ContextMessage = { id: string; authorId: string; name: string; bot: boolean; content: string; at: string; files: number; caught?: boolean; deleted?: boolean };
+
+/**
+ * One catch in full: the messages around it (saved by the bot when it caught it, plus what Live Chat still has
+ * for the last 72 hours, which also shows what came after), and the member's AutoMod history.
+ */
+export async function automodEvent(id: string) {
+  if (!/^[0-9a-f]{24}$/.test(id)) return null;
+  const { ObjectId } = await import("mongodb");
+  const col = await getBotCollection("automod_events");
+  const doc = (await col.findOne({ _id: new ObjectId(id) })) as Document | null;
+  if (!doc) return null;
+  const event = toEvent(doc);
+  const at = doc.at instanceof Date ? doc.at : new Date(event.at);
+
+  const saved: ContextMessage[] = ((doc.context ?? []) as Document[]).map((m) => ({
+    id: String(m.id ?? ""),
+    authorId: String(m.a ?? ""),
+    name: String(m.n ?? "Someone"),
+    bot: Boolean(m.bot),
+    content: String(m.c ?? ""),
+    at: iso(m.t) ?? event.at,
+    files: Number(m.files) || 0,
+  }));
+
+  let before: ContextMessage[] = saved;
+  let after: ContextMessage[] = [];
+  let liveCaught: ContextMessage | null = null;
+  if (event.channelId && Date.now() - at.getTime() < 72 * 3_600_000) {
+    const client = await (await import("./mongodb")).getMongoClient();
+    const live = client.db(process.env.MONGODB_DB ?? "website").collection("live_messages");
+    const toMsg = (m: Document): ContextMessage => ({
+      id: String(m._id),
+      authorId: String(m.authorId ?? ""),
+      name: String(m.displayName || m.authorName || "Someone"),
+      bot: Boolean(m.bot),
+      content: String(m.content ?? ""),
+      at: iso(m.ts) ?? "",
+      files: Array.isArray(m.attachments) ? m.attachments.length : 0,
+      deleted: Boolean(m.deleted),
+    });
+    const inChannel = { channelId: event.channelId };
+    const [b, a, c] = await Promise.all([
+      saved.length ? Promise.resolve([]) : live.find({ ...inChannel, ts: { $lt: at, $gte: new Date(at.getTime() - 3_600_000) } }).sort({ ts: -1 }).limit(8).toArray(),
+      live.find({ ...inChannel, ts: { $gt: at, $lte: new Date(at.getTime() + 3_600_000) } }).sort({ ts: 1 }).limit(6).toArray(),
+      event.messageId ? live.findOne({ _id: event.messageId as never }) : Promise.resolve(null),
+    ]);
+    if (!saved.length) before = (b as Document[]).reverse().map(toMsg).filter((m) => m.id !== event.messageId);
+    after = (a as Document[]).map(toMsg).filter((m) => m.id !== event.messageId);
+    if (c) liveCaught = toMsg(c as Document);
+  }
+  const caught: ContextMessage = {
+    id: event.messageId ?? "caught",
+    authorId: event.userId ?? "",
+    name: liveCaught?.name ?? "",
+    bot: false,
+    content: event.content ?? liveCaught?.content ?? "",
+    at: event.at,
+    files: liveCaught?.files ?? 0,
+    caught: true,
+    deleted: event.action === "punish" || event.action === "delete",
+  };
+
+  // The member's AutoMod history
+  const history = event.userId
+    ? ((await col.find({ userId: event.userId }).sort({ at: -1 }).limit(20).project({ context: 0 }).toArray()) as Document[]).map(toEvent)
+    : [];
+  const totals = event.userId
+    ? await col
+        .aggregate([{ $match: { userId: event.userId } }, { $group: { _id: "$action", n: { $sum: 1 } } }])
+        .toArray()
+        .then((list) => Object.fromEntries(list.map((d) => [String(d._id), d.n as number])))
+    : {};
+  return { event, before, caught, after, contextSource: saved.length ? "bot" : before.length || after.length ? "live" : "none", history, totals };
 }
 
 export async function automodChanges(limit = 30) {
@@ -308,10 +436,10 @@ export async function markAutomodSeen(viewerId: string) {
 }
 
 /** Adds an empty bucket for every day (or hour) in the range that had no catches. */
-function fillTimeline(points: { bucket: string; action: string; count: number }[], since: Date, unit: "hour" | "day", timeZone: string) {
+function fillTimeline(points: { bucket: string; action: string; count: number }[], since: Date, unit: "hour" | "day", timeZone: string, until = new Date()) {
   const seen = new Set(points.map((p) => p.bucket));
   const out = [...points];
-  const now = Date.now();
+  const now = until.getTime() - 1;
   if (unit === "hour") {
     for (let t = Math.floor(since.getTime() / 3_600_000) * 3_600_000; t <= now; t += 3_600_000) {
       const key = new Date(t).toISOString();

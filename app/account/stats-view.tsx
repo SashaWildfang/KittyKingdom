@@ -556,6 +556,23 @@ export function StatsView({ onBack }: { onBack: () => void }) {
   const [emoji, setEmoji] = useState<string | null>(null);
   const tabsRef = useRef<HTMLDivElement>(null);
 
+  // #stats-badges (from the badges on your profile card) opens that tab
+  useEffect(() => {
+    const sync = () => {
+      const t = /^#stats-(\w+)$/.exec(window.location.hash)?.[1];
+      if (!t || !TABS.some((x) => x.key === t)) return;
+      setTab(t as Tab);
+      // After the page's own scroll to the top: bring that tab into view
+      window.setTimeout(() => {
+        const el = tabsRef.current;
+        if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 90, behavior: "smooth" });
+      }, 400);
+    };
+    sync();
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, []);
+
   useEffect(() => {
     let alive = true;
     let first = true;

@@ -3,7 +3,8 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { StatsView } from "./stats-view";
 
-const isStats = () => typeof window !== "undefined" && window.location.hash === "#stats";
+// #stats, or #stats-badges etc. to open one of its tabs
+const isStats = () => typeof window !== "undefined" && /^#stats(-\w+)?$/.test(window.location.hash);
 // "Back to profile" changes the URL without a hashchange event, so it announces itself
 const VIEW_EVENT = "kk-account-view";
 
