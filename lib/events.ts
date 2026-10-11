@@ -258,7 +258,7 @@ export async function eventNavStamps(): Promise<{ ids: string[]; live: boolean }
         .limit(50)
         .toArray(),
       (await getBotCollection("event_polls"))
-        .find({ status: "posted", deleted: { $ne: true }, endRequested: { $ne: true }, $or: [{ expiresAt: { $gt: now } }, { expiresAt: null }] }, { projection: { _id: 1 } })
+        .find({ status: "posted", deleted: { $ne: true }, hidden: { $ne: true }, endRequested: { $ne: true }, $or: [{ expiresAt: { $gt: now } }, { expiresAt: null }] }, { projection: { _id: 1 } })
         .limit(20)
         .toArray(),
     ]);

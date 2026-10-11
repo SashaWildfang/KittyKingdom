@@ -181,3 +181,11 @@
   .acct-top-line { text-align: center; }
   .acct-nav.acct-nav--bar { top: 4rem; border-radius: 1rem; }
 }
+
+/* Card chips: Staff Member / 18+ Verified */
+.acct-chip { display: inline-flex; align-items: center; gap: 0.35rem; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-size: 0.78rem; font-weight: 800; opacity: 0.75; padding: 0.28rem 0.7rem; }
+.acct-chip.is-on { border-color: rgba(61, 220, 132, 0.45); background: rgba(61, 220, 132, 0.1); color: var(--text); opacity: 1; }
+.acct-chip.is-on svg:last-child { color: #3ddc84; }
+.acct-chip--staff { border-color: rgba(var(--gold-rgb), 0.5); background: rgba(var(--gold-rgb), 0.14); color: rgb(var(--gold-rgb)); opacity: 1; }
+:root[data-theme="light"] .acct-chip--staff { color: var(--maple); }
+.acct-server-status ul { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0; padding: 0; list-style: none; }

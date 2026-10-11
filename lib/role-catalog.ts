@@ -413,6 +413,12 @@ export const ROLE_CATEGORIES: SelfRoleCategory[] = [
         "name": "Event Ping",
         "emoji": "🎉",
         "description": "Pings when an event starts or a new event poll is posted."
+      },
+      {
+        "id": "1558806652654850049",
+        "name": "Giveaway Ping",
+        "emoji": "🎁",
+        "description": "Pings when a new giveaway starts."
       }
     ]
   },

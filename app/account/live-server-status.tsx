@@ -1,6 +1,6 @@
 "use client";
 
-import { BadgeCheck, Check, Gem, Image as ImageIcon, Mic, Minus, ShieldCheck, type LucideIcon } from "lucide-react";
+import { Check, Minus, ShieldCheck, UserStar } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { RoleState } from "../../lib/member-roles";
 
@@ -8,10 +8,9 @@ import type { RoleState } from "../../lib/member-roles";
 export const ROLE_STATE_EVENT = "kk-role-state";
 
 const POLL_MS = 20_000;
-const STATUS_ICONS: Record<string, LucideIcon> = { adult: ShieldCheck, member: BadgeCheck, media: ImageIcon, vc: Mic, nitro: Gem };
 
 /**
- * The profile card's staff line and server status list (level and XP live on the stats page). Updates live: from the
+ * The profile card's staff and 18+ verified chips (level and XP live on the stats page). Updates live: from the
  * Server roles section's refreshes, plus its own check every 20s and when the tab comes back.
  */
 export function LiveServerStatus({
@@ -62,32 +61,30 @@ export function LiveServerStatus({
   }, [discordLinked]);
 
   const isStaff = state ? state.isStaff : fallbackStaff;
+  // Only what matters on the card: staff, and whether they're 18+ verified
+  const adult = state?.status.find((r) => r.key === "adult");
 
+  if (!state?.inServer)
+    return (
+      <div className="acct-badges">
+        {isStaff ? <span className="acct-chip acct-chip--staff"><UserStar size={13} aria-hidden="true" /> Staff Member</span> : null}
+        <span className={`acct-badge ${discordLinked ? "acct-badge--discord" : "acct-badge--muted"}`}>{discordLinked ? "Discord linked" : "Discord not linked"}</span>
+      </div>
+    );
   return (
-    <>
-      {isStaff ? <p className="acct-staff-line">Staff Member</p> : null}
-      {state?.inServer ? (
-        <div className="acct-server-status" aria-label="Server status" aria-live="polite">
-          <ul>
-            {state.status
-              .filter((r) => r.key !== "nitro" || r.has)
-              .map((r) => {
-                const Icon = STATUS_ICONS[r.key] ?? BadgeCheck;
-                return (
-                  <li key={r.key} className={r.has ? "is-on" : undefined} title={r.has ? `You have ${r.label}` : `You don't have ${r.label} yet`}>
-                    <Icon className="acct-status-icon" size={14} aria-hidden="true" />
-                    <span className="acct-status-label">{r.label}</span>
-                    <i aria-hidden="true">{r.has ? <Check size={14} strokeWidth={3} /> : <Minus size={14} />}</i>
-                  </li>
-                );
-              })}
-          </ul>
-        </div>
-      ) : (
-        <div className="acct-badges">
-          <span className={`acct-badge ${discordLinked ? "acct-badge--discord" : "acct-badge--muted"}`}>{discordLinked ? "Discord linked" : "Discord not linked"}</span>
-        </div>
-      )}
-    </>
+    <div className="acct-server-status" aria-label="Server status" aria-live="polite">
+      <ul>
+        {isStaff ? (
+          <li className="acct-chip acct-chip--staff">
+            <UserStar size={13} aria-hidden="true" /> Staff Member
+          </li>
+        ) : null}
+        {adult ? (
+          <li className={`acct-chip${adult.has ? " is-on" : ""}`} title={adult.has ? "You're 18+ verified" : "You're not 18+ verified yet"}>
+            <ShieldCheck size={13} aria-hidden="true" /> 18+ Verified {adult.has ? <Check size={13} strokeWidth={3} aria-hidden="true" /> : <Minus size={13} aria-hidden="true" />}
+          </li>
+        ) : null}
+      </ul>
+    </div>
   );
 }

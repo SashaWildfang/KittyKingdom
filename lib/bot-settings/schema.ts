@@ -185,6 +185,7 @@ const MAIN: BotDef = {
       fields: [
         { key: "events.postChannel", label: "Event posts channel", help: "Every event is posted here as an embed, and edited or removed when it changes in Admin → Events. Empty: no posts.", type: "channel", channelKind: "text", default: "1558611265994367079" },
         { key: "events.pollChannel", label: "Event polls channel", help: "Where polls from Admin → Events are posted. Empty: the channel named event-polls.", type: "channel", channelKind: "text", default: null },
+        { key: "events.communityPollChannel", label: "Member polls channel", help: "Polls members post here also show on /events. Empty: the #polls channel in Maple Grove.", type: "channel", channelKind: "text", default: null },
         { key: "events.channel", label: "Announcement channel", help: "Where the bot posts when an event starts. Empty: no announcements.", type: "channel", channelKind: "text", default: null },
         { key: "events.pingRole", label: "Ping role", help: "Pinged when an event starts and on polls posted with “Ping the events role”. Empty: no ping.", type: "role", default: "1558626192037511228" },
         { key: "events.dmReminders", label: "DM reminders", help: "DM members who pressed Remind me before the event starts.", type: "toggle", default: true },
@@ -201,7 +202,7 @@ const MAIN: BotDef = {
       fields: [
         { key: "giveaways.enabled", label: "Start giveaways", help: "Turn off to pause scheduled giveaways from starting. Running ones still end and pay out.", type: "toggle", default: true },
         { key: "giveaways.defaultChannel", label: "Default channel", help: "Where giveaways post when one doesn't pick its own channel.", type: "channel", channelKind: "text", default: null },
-        { key: "giveaways.pingRole", label: "Default ping role", help: "Pinged when a giveaway starts (a giveaway can pick its own). Empty: no ping.", type: "role", default: null },
+        { key: "giveaways.pingRole", label: "Default ping role", help: "Pinged when a giveaway starts (a giveaway can pick its own). Empty: no ping.", type: "role", default: "1558806652654850049" },
         { key: "giveaways.logChannel", label: "Log channel", help: "Where winners, entries and prizes to hand out are logged for staff.", type: "channel", channelKind: "text", default: "1360344042705256660" },
         { key: "giveaways.dmWinners", label: "DM winners", help: "Send winners a DM telling them what they won.", type: "toggle", default: true },
         { key: "giveaways.allowStaff", label: "Staff can enter", help: "Off: members with the Staff Team role can't enter.", type: "toggle", default: true },
