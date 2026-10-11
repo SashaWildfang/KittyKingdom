@@ -140,6 +140,8 @@
 .acct4-content { display: grid; gap: 1.2rem; min-width: 0; }
 .acct4-content > :is(.acct-banner-wrap, .acct-status, .acct-temp-password) { width: auto; margin: 0; }
 .acct4 .acct-main, .acct4 .acct-main-sections { display: grid; gap: 1.2rem; min-width: 0; }
+/* (the stats page hides the sections with the hidden attribute) */
+.acct4 .acct-main-sections[hidden] { display: none; }
 .acct4-tab { display: none; gap: 1.2rem; min-width: 0; }
 .acct4-tab.is-active { display: grid; animation: acct4-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) both; }
 @keyframes acct4-in { from { opacity: 0; transform: translateY(6px); } }
