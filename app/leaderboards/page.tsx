@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "../../lib/auth";
 import { getDiscordInviteSummary } from "../../lib/discord";
 import { SiteNav } from "../site-nav";
 import { LeaderboardsClient } from "./leaderboards-client";
 import { CurrencyName } from "../season-context";
+
+export const metadata: Metadata = { title: "Leaderboards | Kitty Kingdom" };
 
 export const dynamic = "force-dynamic";
 

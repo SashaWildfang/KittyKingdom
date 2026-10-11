@@ -476,7 +476,7 @@ textarea.dt-input {
   border: 1px solid var(--line);
   box-shadow: 0 10px 30px var(--shadow);
   position: sticky;
-  top: 5.2rem;
+  top: 6rem;
   z-index: 20;
 }
 .dt-nav-brand {
@@ -1339,7 +1339,7 @@ textarea.dt-input {
 }
 .dt-profile-left {
   position: sticky;
-  top: 9.5rem;
+  top: 10.2rem;
   display: grid;
   gap: 1rem;
 }
@@ -1965,7 +1965,7 @@ textarea.dt-input {
 }
 .dt-editor-nav {
   position: sticky;
-  top: 9.5rem;
+  top: 10.2rem;
   display: grid;
   gap: 0.6rem;
 }
@@ -4634,3 +4634,11 @@ a.dt-partner-chip:hover {
   flex-wrap: wrap;
   gap: 0.3rem;
 }
+
+/* Nothing in the side column (no birthdays, events…): the main column takes the full width */
+.dt-side:empty { display: none; }
+.dt-home-grid:has(> .dt-side:empty) { grid-template-columns: minmax(0, 1fr); }
+
+/* Your own profile has no compatibility card: the details take the full width */
+.dt-profile-left:empty { display: none; }
+.dt-profile-grid:has(> .dt-profile-left:empty) { grid-template-columns: minmax(0, 1fr); }

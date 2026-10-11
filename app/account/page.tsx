@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import "./account.css";
 import { userTimeZone } from "../../lib/timezone";
 import { accountGreeting } from "../../lib/greeting";
@@ -42,6 +43,8 @@ import { ProfileBadges } from "./profile-badges";
 import type { BadgeShowcase } from "../../lib/badges";
 import { accountName } from "../../lib/names";
 import { seasonal } from "../../lib/season-store";
+
+export const metadata: Metadata = { title: "My Account | Kitty Kingdom" };
 
 const statusMessages: Record<string, string> = {
   "contact-saved": "Phone number saved.",
@@ -390,7 +393,7 @@ export default async function AccountPage({
                   icon={<Sparkles size={20} />}
                   title="Server roles"
                   description="Pick your roles here and they update in Discord instantly, just like the role selector."
-                  summary={roleState ? `${roleState.categories.reduce((n, c) => n + c.roles.filter((r) => r.has).length, 0)} picked · ${roleState.colorRoles.length}/${roleState.colorRoleTotal} colors` : undefined}
+                  summary={roleState?.inServer ? `${roleState.categories.reduce((n, c) => n + c.roles.filter((r) => r.has).length, 0)} picked · ${roleState.colorRoles.length}/${roleState.colorRoleTotal} colors` : undefined}
                 >
                   <RoleManager initial={roleState} />
                 </AccountPanel>

@@ -44,3 +44,11 @@
 
 .gwp-loading { min-height: 60vh; border-radius: 1.2rem; background: linear-gradient(90deg, var(--panel), var(--panel-strong), var(--panel)); background-size: 200% 100%; animation: gwp-shimmer 1.4s linear infinite; }
 @keyframes gwp-shimmer { to { background-position: -200% 0; } }
+/* Nothing coming up and no winners yet: the giveaways take the full width */
+.gwp-aside:empty { display: none; }
+.gwp-layout:has(> .gwp-aside:empty) { grid-template-columns: minmax(0, 1fr); }
+/* Cards in a row match heights and line their Enter buttons up */
+.gwp-grid { align-items: stretch; }
+.gwp-card { display: flex; flex-direction: column; }
+.gwp-card-body { display: flex; flex: 1; flex-direction: column; align-items: flex-start; }
+.gwp-card-body > .gwp-enter, .gwp-card-body > a.gwp-enter { align-self: stretch; margin-top: auto; }

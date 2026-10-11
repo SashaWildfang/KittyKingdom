@@ -19,7 +19,8 @@
 
 /* ---------- Rules, FAQ, Support, Appeals ---------- */
 html body .kb-container { width: min(96rem, calc(100% - 2.5rem)); padding-top: 1.5rem; }
-html body .kb-hero { justify-items: start; text-align: left; }
+html body .kb-hero { justify-items: start; padding: clamp(1.3rem, 3vw, 2.2rem); text-align: left; }
+html body .kb-hero h1 { max-width: none; font-size: clamp(2.1rem, 4.5vw, 3.4rem); line-height: 1.05; letter-spacing: -0.035em; }
 html body .kb-hero > p:not(.eyebrow) { max-width: 52rem; }
 html body .rl-layout { grid-template-columns: 17rem minmax(0, 1fr); gap: 1.5rem; }
 @media (min-width: 1000px) {
@@ -71,4 +72,98 @@ html body .ft-inner, html body .ft-bottom { width: min(96rem, calc(100% - 2.5rem
 }
 @media (prefers-reduced-motion: reduce) {
   :where(a.kb-topic, a.kb-guide, a.nw2-row, a.nw2-featured, a.news-card, a.evp-next, a.sf-join):hover { transform: none; }
+}
+
+/* Short pages keep the footer near the bottom of the window */
+html body main.site-shell { min-height: calc(100vh - 12rem); }
+
+/* ---------- Leaderboards header matches the other pages ---------- */
+html body .leaderboard-hero.account-hero {
+  width: min(96rem, calc(100% - 2.5rem));
+  max-width: none;
+  margin: 1.5rem auto 1.2rem;
+  padding: clamp(1.3rem, 3vw, 2.2rem);
+}
+html body .leaderboard-hero h1 { max-width: none; margin: 0.25rem 0 0.5rem; font-size: clamp(2.1rem, 4.5vw, 3.4rem); line-height: 1.05; letter-spacing: -0.035em; }
+html body .leaderboard-hero p:not(.eyebrow) { margin: 0; font-size: 1rem; line-height: 1.6; }
+html body .leaderboard-hero p:not(.eyebrow) + p { margin-top: 1rem; }
+html body .lb-wall-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid rgba(var(--ember-rgb), 0.5);
+  border-radius: 999px;
+  background: rgba(var(--ember-rgb), 0.12);
+  color: var(--text);
+  font-size: 0.88rem;
+  font-weight: 800;
+  padding: 0.45rem 0.95rem;
+}
+html body .lb-wall-link:hover { background: rgba(var(--ember-rgb), 0.22); }
+html body .leaderboard-panel { width: min(96rem, calc(100% - 2.5rem)); }
+
+/* ---------- Store lines up with the other pages ---------- */
+html body .store-app:not(.store-app--embedded),
+html body .store-gate {
+  width: min(96rem, calc(100% - 2.5rem));
+  margin-inline: auto;
+  padding-inline: 0;
+}
+html body .store-card-foot { flex-wrap: wrap; }
+html body .store-card-foot .store-buy { flex: 1 1 auto; white-space: nowrap; }
+
+/* ---------- Games: glass header, game tabs across the full width ---------- */
+html body .gm-head {
+  border: 1px solid var(--glass-border);
+  border-radius: 1.6rem;
+  background: radial-gradient(circle at 0% 0%, rgba(var(--ember-rgb), 0.22), transparent 55%), var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  padding: clamp(1.1rem, 2.5vw, 1.6rem) clamp(1.2rem, 3vw, 2rem);
+}
+html body .gm-head h1 { max-width: none; margin: 0; font-size: clamp(1.9rem, 3.6vw, 2.6rem); }
+html body .gm-tabs:not(.adm-games-tabs) { width: 100%; }
+
+/* ---------- Settings + Notifications headers match the other pages ---------- */
+html body :is(.set-head, .nf-head) {
+  display: grid;
+  justify-items: start;
+  gap: 0.35rem;
+  margin: 1.5rem 0 1.2rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 1.6rem;
+  background: radial-gradient(circle at 0% 0%, rgba(var(--ember-rgb), 0.22), transparent 55%), var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  padding: clamp(1.3rem, 3vw, 2.2rem);
+  text-align: left;
+}
+html body :is(.set-head, .nf-head) h1 { max-width: none; margin: 0; font-size: clamp(2.1rem, 4.5vw, 3.2rem); line-height: 1.05; }
+html body :is(.set-head, .nf-head) p:not(.eyebrow) { margin: 0; color: var(--muted); }
+
+/* ---------- Legal pages: glass header like the rest ---------- */
+html body .legal-head {
+  margin-bottom: 1.4rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 1.6rem;
+  background: radial-gradient(circle at 0% 0%, rgba(var(--ember-rgb), 0.22), transparent 55%), var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  padding: clamp(1.3rem, 3vw, 2.2rem);
+}
+html body .legal-head h1 { max-width: none; margin: 0.2rem 0 1rem; font-size: clamp(2.1rem, 4.5vw, 3.4rem); line-height: 1.05; letter-spacing: -0.035em; }
+html body .legal-container { width: min(84rem, calc(100% - 2.5rem)); }
+
+/* ---------- Admin: stat tiles fill every row, whatever the count ---------- */
+html body .adm-kpis { display: flex; flex-wrap: wrap; }
+html body .adm-kpis > * { flex: 1 1 15rem; min-width: 0; }
+
+/* Store tabs on phones: all four fit, nothing scrolls off the edge */
+@media (max-width: 600px) {
+  html body .store-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); width: 100%; overflow: visible; border-radius: 1.2rem; }
+  html body .store-tabs button { justify-content: center; gap: 0.3rem; min-width: 0; padding: 0.55rem 0.3rem; font-size: 0.8rem; }
+  html body .store-tabs button svg { flex: none; width: 14px; height: 14px; }
 }

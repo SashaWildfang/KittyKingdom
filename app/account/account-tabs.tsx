@@ -35,8 +35,11 @@ export function AccountTabs() {
       requestAnimationFrame(() => {
         if (card) card.scrollIntoView({ behavior: "smooth", block: "start" });
         else {
-          const top = root.getBoundingClientRect().top + window.scrollY - 96;
-          if (window.scrollY > top) window.scrollTo({ top, behavior: "smooth" });
+          // Phones stack the menu above the content, so bring the content into view
+          const stacked = window.innerWidth <= 1100;
+          const target = stacked ? root.querySelector<HTMLElement>(".acct4-content") ?? root : root;
+          const top = target.getBoundingClientRect().top + window.scrollY - 96;
+          if (stacked || window.scrollY > top) window.scrollTo({ top, behavior: "smooth" });
         }
       });
     };

@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { canViewStaffPage, getCurrentUser } from "../../lib/auth";
 import { getDiscordInviteSummary } from "../../lib/discord";
 import { getStaffDirectory } from "../../lib/staff";
 import { SiteNav } from "../site-nav";
 import { StaffView } from "./staff-view";
+
+export const metadata: Metadata = { title: "Staff Team | Kitty Kingdom" };
 
 export const dynamic = "force-dynamic";
 
