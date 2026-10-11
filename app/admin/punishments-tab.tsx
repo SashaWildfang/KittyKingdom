@@ -36,6 +36,9 @@ export type PunishmentFilters = {
   source: string;
   status: string;
   range: string;
+  /** With range "custom": YYYY-MM-DD, both days included */
+  from: string;
+  to: string;
   sort: SortKey;
   order: "asc" | "desc";
   pageSize: number;
@@ -48,6 +51,8 @@ export const DEFAULT_PUNISHMENT_FILTERS: PunishmentFilters = {
   source: "all",
   status: "all",
   range: "all",
+  from: "",
+  to: "",
   sort: "timestamp",
   order: "desc",
   pageSize: 25,
@@ -64,7 +69,10 @@ function buildParams(f: PunishmentFilters, page: number, pageSize = f.pageSize) 
     order: f.order,
     page: String(page),
     pageSize: String(pageSize),
-    ...(f.range !== "all" ? { range: f.range } : {}),
+    ...(f.range !== "all" && f.range !== "custom" ? { range: f.range } : {}),
+    // Custom dates: from the start of the first day to the end of the last, in your own time zone
+    ...(f.range === "custom" && f.from ? { from: new Date(`${f.from}T00:00:00`).toISOString() } : {}),
+    ...(f.range === "custom" && f.to ? { to: new Date(new Date(`${f.to}T00:00:00`).getTime() + 86_400_000).toISOString() } : {}),
   });
 }
 
@@ -176,7 +184,20 @@ export function PunishmentsTab({
               {r.label}
             </option>
           ))}
+          <option value="custom">Custom dates…</option>
         </select>
+        {filters.range === "custom" ? (
+          <span className="adm-date-range">
+            <label>
+              From
+              <input type="date" className="adm-select" value={filters.from ?? ""} max={filters.to || undefined} onChange={(e) => update({ from: e.target.value })} />
+            </label>
+            <label>
+              To
+              <input type="date" className="adm-select" value={filters.to ?? ""} min={filters.from || undefined} onChange={(e) => update({ to: e.target.value })} />
+            </label>
+          </span>
+        ) : null}
         <select className="adm-select" value={filters.status} onChange={(e) => update({ status: e.target.value })} aria-label="Status">
           <option value="all">Any status</option>
           <option value="active">Active (still banned / muted)</option>

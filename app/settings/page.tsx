@@ -5,6 +5,7 @@ import { datingAccess } from "../../lib/dating/access";
 import { getDiscordInviteSummary } from "../../lib/discord";
 import { SiteNav } from "../site-nav";
 import { SettingsPanel } from "./settings-panel";
+import "./settings.css";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Settings | Kitty Kingdom", robots: { index: false } };
@@ -17,12 +18,7 @@ export default async function SettingsPage() {
   return (
     <main className="site-shell set-page">
       <SiteNav signedIn discordOnline={discord.online} />
-      <div className="set-wrap">
-        <header className="set-head">
-          <p className="eyebrow">Your account</p>
-          <h1>Settings</h1>
-          <p>Changes save automatically.</p>
-        </header>
+      <div className="set-wrap set-v2">
         <SettingsPanel social={access.ok} />
       </div>
     </main>

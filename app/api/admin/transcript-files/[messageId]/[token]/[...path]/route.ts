@@ -40,18 +40,21 @@ const TYPES: Record<string, string> = {
 
 // The transcript is a web page generated from members' messages, so it runs sandboxed:
 // its own search script works, but it can't reach the site, cookies or other pages.
-const HTML_CSP = [
-  "sandbox allow-scripts allow-popups allow-popups-to-escape-sandbox",
-  "default-src 'self' data: blob:",
-  "img-src 'self' data: blob: https://cdn.discordapp.com https://media.discordapp.net",
-  "media-src 'self' data: blob:",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src 'self' data: https://fonts.gstatic.com",
-  "script-src 'unsafe-inline'",
-  "connect-src 'none'",
-  "form-action 'none'",
-  "frame-ancestors 'self'",
-].join("; ");
+// A sandboxed page has no origin of its own, so browsers don't count our files as 'self'
+// any more: the site's own address is listed instead.
+const htmlCsp = (site: string) =>
+  [
+    "sandbox allow-scripts allow-popups allow-popups-to-escape-sandbox",
+    `default-src 'self' ${site} data: blob:`,
+    `img-src 'self' ${site} data: blob: https://cdn.discordapp.com https://media.discordapp.net`,
+    `media-src 'self' ${site} data: blob:`,
+    `style-src 'self' ${site} 'unsafe-inline' https://fonts.googleapis.com`,
+    `font-src 'self' ${site} data: https://fonts.gstatic.com`,
+    "script-src 'unsafe-inline'",
+    "connect-src 'none'",
+    "form-action 'none'",
+    "frame-ancestors 'self'",
+  ].join("; ");
 
 export async function GET(
   request: Request,
@@ -77,8 +80,9 @@ export async function GET(
     "Referrer-Policy": "no-referrer",
     "Accept-Ranges": "bytes",
   };
-  if (ext === "html" || ext === "svg") headers["Content-Security-Policy"] = HTML_CSP;
-  else headers["Content-Security-Policy"] = "sandbox; default-src 'none'; img-src 'self'; media-src 'self'; style-src 'unsafe-inline'";
+  const site = new URL(request.url).origin;
+  if (ext === "html" || ext === "svg") headers["Content-Security-Policy"] = htmlCsp(site);
+  else headers["Content-Security-Policy"] = `sandbox; default-src 'none'; img-src 'self' ${site}; media-src 'self' ${site}; style-src 'unsafe-inline'`;
   if (!TYPES[ext]) headers["Content-Disposition"] = `attachment; filename="${name.split("/").pop()?.replace(/"/g, "") ?? "file"}"`;
 
   if (ext === "html") {
