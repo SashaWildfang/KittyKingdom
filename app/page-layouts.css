@@ -59,3 +59,16 @@ html body .pt { width: min(96rem, calc(100% - 2.5rem)); }
 /* Homepage sections and the footer line up with the wider pages */
 html body .lp { --lp-max: 88rem; }
 html body .ft-inner, html body .ft-bottom { width: min(96rem, calc(100% - 2.5rem)); }
+
+/* ---------- Clickable cards lift a little under the cursor ---------- */
+:where(a.kb-topic, a.kb-guide, a.nw2-row, a.nw2-featured, a.news-card, a.evp-next, a.sf-join) {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+}
+:where(a.kb-topic, a.kb-guide, a.nw2-row, a.nw2-featured, a.news-card, a.evp-next, a.sf-join):hover {
+  transform: translateY(-2px);
+  border-color: rgba(var(--ember-rgb), 0.45);
+  box-shadow: var(--glass-edge), 0 14px 32px -12px rgba(var(--ember-rgb), 0.35);
+}
+@media (prefers-reduced-motion: reduce) {
+  :where(a.kb-topic, a.kb-guide, a.nw2-row, a.nw2-featured, a.news-card, a.evp-next, a.sf-join):hover { transform: none; }
+}
