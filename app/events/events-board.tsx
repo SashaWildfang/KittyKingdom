@@ -256,76 +256,82 @@ export function EventsBoard({ initial, signedIn, linked, canManage = false, poll
         ) : null}
       </header>
 
-      <div className="evp-toolbar">
-        <div className="evp-seg" role="tablist" aria-label="View">
-          <button type="button" className={view === "list" ? "is-active" : undefined} onClick={() => setView("list")}>
-            <List size={15} aria-hidden="true" /> Upcoming
-          </button>
-          <button type="button" className={view === "month" ? "is-active" : undefined} onClick={() => setView("month")}>
-            <CalendarDays size={15} aria-hidden="true" /> Calendar
-          </button>
-        </div>
-        <div className="evp-kinds">
-          <button type="button" className={kind === "all" ? "is-on" : undefined} onClick={() => setKind("all")}>
-            All
-          </button>
-          {EVENT_KINDS.filter((k) => (data?.events ?? []).some((e) => e.kind === k.key)).map((k) => (
-            <button key={k.key} type="button" className={kind === k.key ? "is-on" : undefined} onClick={() => setKind(k.key)}>
-              {k.emoji} {k.label}
-            </button>
-          ))}
-        </div>
-      </div>
-      {err ? <p className="evp-error">{err}</p> : null}
+      {/* Calendar on the left; polls and recent events beside it on wide screens */}
+      <div className="evp-layout">
+        <div className="evp-main">
+          <div className="evp-toolbar">
+            <div className="evp-seg" role="tablist" aria-label="View">
+              <button type="button" className={view === "list" ? "is-active" : undefined} onClick={() => setView("list")}>
+                <List size={15} aria-hidden="true" /> Upcoming
+              </button>
+              <button type="button" className={view === "month" ? "is-active" : undefined} onClick={() => setView("month")}>
+                <CalendarDays size={15} aria-hidden="true" /> Calendar
+              </button>
+            </div>
+            <div className="evp-kinds">
+              <button type="button" className={kind === "all" ? "is-on" : undefined} onClick={() => setKind("all")}>
+                All
+              </button>
+              {EVENT_KINDS.filter((k) => (data?.events ?? []).some((e) => e.kind === k.key)).map((k) => (
+                <button key={k.key} type="button" className={kind === k.key ? "is-on" : undefined} onClick={() => setKind(k.key)}>
+                  {k.emoji} {k.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {err ? <p className="evp-error">{err}</p> : null}
 
-      {view === "month" ? (
-        <Month
-          events={shown}
-          month={month}
-          onMonth={setMonth}
-          onPick={(k) => {
-            setView("list");
-            window.setTimeout(() => document.getElementById(`day-${k}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
-          }}
-        />
-      ) : !data ? (
-        <p className="evp-empty">Events couldn&apos;t load right now. Try again in a moment.</p>
-      ) : !days.length ? (
-        <div className="evp-empty">
-          <CalendarDays size={28} aria-hidden="true" />
-          <p>Nothing on the calendar yet. Keep an eye on #announcements in the Discord!</p>
+          {view === "month" ? (
+            <Month
+              events={shown}
+              month={month}
+              onMonth={setMonth}
+              onPick={(k) => {
+                setView("list");
+                window.setTimeout(() => document.getElementById(`day-${k}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+              }}
+            />
+          ) : !data ? (
+            <p className="evp-empty">Events couldn&apos;t load right now. Try again in a moment.</p>
+          ) : !days.length ? (
+            <div className="evp-empty">
+              <CalendarDays size={28} aria-hidden="true" />
+              <p>Nothing on the calendar yet. Keep an eye on #announcements in the Discord!</p>
+            </div>
+          ) : (
+            <div className="evp-days">
+              {days.map(([k, { date, list }]) => (
+                <section key={k} id={`day-${k}`} className="evp-day-group">
+                  <h2>{dayTitle(date)}</h2>
+                  <div className="evp-cards">
+                    {list.map((e) => (
+                      <EventCard key={e.id} e={e} reminded={mine.has(e.id)} onRemind={() => remind(e)} busy={busy === e.id} signedIn={signedIn} linked={linked} now={now} />
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          )}
         </div>
-      ) : (
-        <div className="evp-days">
-          {days.map(([k, { date, list }]) => (
-            <section key={k} id={`day-${k}`} className="evp-day-group">
-              <h2>{dayTitle(date)}</h2>
-              <div className="evp-cards">
-                {list.map((e) => (
-                  <EventCard key={e.id} e={e} reminded={mine.has(e.id)} onRemind={() => remind(e)} busy={busy === e.id} signedIn={signedIn} linked={linked} now={now} />
+        <aside className="evp-aside">
+          <EventPollsBoard initial={polls} events={data?.events ?? []} signedIn={signedIn} linked={linked} now={now} />
+
+          {data?.past.length ? (
+            <section className="evp-past">
+              <h2>Recently</h2>
+              <ul>
+                {data.past.map((e) => (
+                  <li key={e.id}>
+                    <span aria-hidden="true">{KIND[e.kind]?.emoji}</span>
+                    <b>{e.title}</b>
+                    <small>{new Date(e.startAt).toLocaleDateString([], { month: "short", day: "numeric" })}</small>
+                  </li>
                 ))}
-              </div>
+              </ul>
             </section>
-          ))}
-        </div>
-      )}
-
-      <EventPollsBoard initial={polls} events={data?.events ?? []} signedIn={signedIn} linked={linked} now={now} />
-
-      {data?.past.length ? (
-        <section className="evp-past">
-          <h2>Recently</h2>
-          <ul>
-            {data.past.map((e) => (
-              <li key={e.id}>
-                <span aria-hidden="true">{KIND[e.kind]?.emoji}</span>
-                <b>{e.title}</b>
-                <small>{new Date(e.startAt).toLocaleDateString([], { month: "short", day: "numeric" })}</small>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+          ) : null}
+        </aside>
+      </div>
     </div>
   );
 }
