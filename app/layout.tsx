@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
 import "./polish.css";
+import "./glass.css";
+import { Inter } from "next/font/google";
 import { PageTracker } from "./page-tracker";
 import { TimeZoneSync } from "./time-zone-sync";
 import { ViewAsBar } from "./view-as-bar";
@@ -9,6 +11,9 @@ import { SiteFooter } from "./site-footer";
 import { SeasonProvider } from "./season-context";
 import { SeasonBackdrop } from "./season-backdrop";
 import { getAllSeasonViews, getSeason } from "../lib/season-store";
+
+// The site font (self-hosted by Next at build time)
+const sans = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
 
 const SITE = "https://www.kittykingdom.net";
 const DESCRIPTION =
@@ -53,7 +58,7 @@ export default async function RootLayout({
     // data-theme is set only by the script below (from the saved preference) and the theme
     // switch, never by React, so re-renders can't flip someone back to light mode
     // data-season picks the season's colors and scenery (an admin's preview can swap it before paint)
-    <html lang="en" data-season={season.key} suppressHydrationWarning>
+    <html lang="en" data-season={season.key} className={sans.variable} suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{

@@ -258,7 +258,6 @@ export function SeasonsTab() {
               ))}
             </div>
           </div>
-          <Toggle label="Scenery" help="The sky and landscape behind every page." value={draft.site.scenery} onChange={(v) => set({ site: { ...draft.site, scenery: v } })} />
           <Toggle label="Click bursts" help="Buttons on the homepage burst into the season's shapes." value={draft.site.bursts} onChange={(v) => set({ site: { ...draft.site, bursts: v } })} />
           <p className="adm-muted sn-note">Members who ask their device for less motion never see moving effects.</p>
         </div>
