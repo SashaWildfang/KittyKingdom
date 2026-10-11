@@ -1,0 +1,205 @@
+/* My Account, v3: a sticky glass sidebar (profile + every section) beside a wide two-column board of cards.
+   Uses the whole window on big screens; on tablets and phones the sidebar stacks on top and the section
+   links wrap onto as many rows as they need, so none of them fall off the edge. */
+
+.acct3 {
+  display: grid;
+  grid-template-columns: 19rem minmax(0, 1fr);
+  align-items: start;
+  gap: 1.4rem;
+  width: min(112rem, calc(100% - 2.5rem));
+  margin: 1rem auto 4rem;
+}
+
+/* ---------- Sidebar ---------- */
+.acct3-side {
+  position: sticky;
+  top: 5.6rem;
+  display: grid;
+  gap: 1rem;
+  max-height: calc(100vh - 6.6rem);
+  overflow-y: auto;
+  scrollbar-width: none;
+  border-radius: 1.5rem;
+}
+.acct3-side::-webkit-scrollbar { display: none; }
+
+.acct3-profile {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 0.55rem;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  border-radius: 1.5rem;
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  padding: 1.4rem 1.1rem 1.15rem;
+  text-align: center;
+}
+/* A soft color band behind the avatar (their store banner replaces it) */
+.acct3-profile::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 5.4rem;
+  background: linear-gradient(135deg, rgba(var(--ember-rgb), 0.55), rgba(var(--maple-rgb), 0.4) 55%, rgba(var(--gold-rgb), 0.3));
+  -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent);
+  mask-image: linear-gradient(180deg, #000 55%, transparent);
+}
+.acct3-profile.has-cos-banner::before { display: none; }
+.acct3-profile > .cos-banner {
+  inset: 0 0 auto;
+  height: 6rem;
+  -webkit-mask-image: linear-gradient(180deg, #000 50%, transparent);
+  mask-image: linear-gradient(180deg, #000 50%, transparent);
+}
+.acct3-profile > :not(.cos-banner) { position: relative; z-index: 1; }
+.acct3-avatar { margin-top: 0.9rem; }
+.acct3-profile .acct-avatar {
+  width: 6.2rem;
+  height: 6.2rem;
+  margin: 0;
+  border: 4px solid rgba(var(--cream-rgb), 0.9);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.35);
+  font-size: 2.4rem;
+}
+.acct3-profile .acct-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.acct3-profile h1 { max-width: none; margin: 0.2rem 0 0; font-size: 1.45rem; line-height: 1.15; letter-spacing: -0.03em; overflow-wrap: anywhere; }
+.acct3-meta { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.15rem 0.8rem; margin: 0; color: var(--muted); font-size: 0.84rem; }
+.acct3-meta span { display: inline-flex; align-items: center; gap: 0.3rem; }
+.acct3-profile .acct-server-status ul,
+.acct3-profile .acct-badges { justify-content: center; }
+.acct3-profile .acct-server-status { margin: 0.1rem 0 0; }
+
+.acct3-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem; width: 100%; margin-top: 0.35rem; }
+.acct3-actions .acct-stats-button {
+  grid-column: 1 / -1;
+  min-height: 2.6rem;
+  margin: 0;
+  border-color: transparent;
+  background: linear-gradient(135deg, rgb(var(--ember-rgb)), rgb(var(--maple-rgb)));
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 10px 24px rgba(var(--ember-rgb), 0.3);
+}
+.acct3-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.4rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(var(--cream-rgb), 0.06);
+  color: var(--text);
+  font-size: 0.86rem;
+  font-weight: 800;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.acct3-btn:hover { border-color: rgba(var(--ember-rgb), 0.55); background: rgba(var(--ember-rgb), 0.12); }
+:root[data-theme="light"] .acct3-btn { background: rgba(255, 255, 255, 0.6); }
+
+/* Section links: one per row, nothing hidden */
+.acct3-nav.acct-nav {
+  gap: 0.1rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 1.5rem;
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  padding: 0.5rem;
+}
+.acct3-nav.acct-nav a {
+  position: relative;
+  gap: 0.6rem;
+  border-radius: 0.8rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  padding: 0.55rem 0.75rem;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.acct3-nav.acct-nav a:hover { background: rgba(var(--cream-rgb), 0.07); color: var(--text); }
+:root[data-theme="light"] .acct3-nav.acct-nav a:hover { background: rgba(var(--bark-rgb), 0.06); }
+.acct3-nav.acct-nav a.is-here { background: linear-gradient(135deg, rgba(var(--ember-rgb), 0.9), rgba(var(--maple-rgb), 0.9)); color: #fff; }
+.acct3-nav.acct-nav a.is-here svg { color: #fff; }
+.acct3-nav .acct-nav-dot { margin-left: auto; }
+.acct3-nav.acct-nav a.acct-nav-danger { margin-top: 0.3rem; color: #f87171; }
+
+/* ---------- Content ---------- */
+.acct3-content { display: grid; gap: 1.2rem; min-width: 0; }
+.acct3-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 1.5rem;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(var(--ember-rgb), 0.24), transparent 55%),
+    radial-gradient(circle at 100% 120%, rgba(var(--gold-rgb), 0.14), transparent 55%),
+    var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  padding: 1.5rem 1.8rem;
+}
+.acct3-hero-copy { display: grid; gap: 0.35rem; min-width: min(100%, 22rem); flex: 1 1 26rem; }
+.acct3-eyebrow { margin: 0; color: rgb(var(--gold-rgb)); font-size: 0.74rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; }
+:root[data-theme="light"] .acct3-eyebrow { color: var(--maple); }
+.acct3-hero h2 { max-width: 48rem; margin: 0; font-size: clamp(1.25rem, 2.2vw, 1.7rem); line-height: 1.25; }
+.acct3-showcase { display: grid; justify-items: start; gap: 0.45rem; }
+.acct3-showcase > span { color: var(--muted); font-size: 0.7rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+.acct3-showcase .acct-badges-showcase { display: flex; flex-wrap: wrap; align-items: center; justify-items: start; gap: 0.5rem; margin: 0; }
+.acct3-showcase .acct-pinned-badges { flex-wrap: wrap; }
+
+/* Banners (verify email, saved, temporary password) sit in the content column */
+.acct3-content > :is(.acct-banner-wrap, .acct-status, .acct-temp-password) { width: auto; margin: 0; }
+
+/* The cards: two columns, wide ones across both */
+.acct3 .acct-main { min-width: 0; }
+.acct3 .acct-main-sections {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 1.2rem;
+}
+.acct3 .acct-main-sections > :is(#roles, #inventory, #transcripts, #punishments, #profile, #security, #delete-account) { grid-column: 1 / -1; }
+.acct3 .acct-main-sections > * { margin: 0; min-width: 0; scroll-margin-top: 6rem; }
+.acct3 .acct-card,
+.acct3 .acct-collapsible { border-radius: 1.4rem; }
+
+/* ---------- Tablets and phones: sidebar on top ---------- */
+@media (max-width: 1100px) {
+  .acct3 { grid-template-columns: minmax(0, 1fr); width: min(100% - 1.5rem, 60rem); }
+  .acct3-side { position: static; max-height: none; overflow: visible; grid-template-columns: minmax(0, 1fr); }
+  .acct3-nav.acct-nav { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+  .acct3-nav.acct-nav a { flex: 1 1 auto; justify-content: center; font-size: 0.84rem; padding: 0.5rem 0.75rem; }
+  .acct3-nav.acct-nav a.acct-nav-danger { margin-top: 0; }
+  .acct3-nav .acct-nav-dot { margin-left: 0.1rem; }
+}
+@media (min-width: 700px) and (max-width: 1100px) {
+  /* Profile beside nothing: lay it out in a row */
+  .acct3-profile { grid-template-columns: auto minmax(0, 1fr); justify-items: start; text-align: left; column-gap: 1.2rem; }
+  .acct3-profile > .acct3-avatar { grid-row: span 4; margin-top: 0.4rem; }
+  .acct3-meta, .acct3-profile .acct-server-status ul, .acct3-profile .acct-badges { justify-content: flex-start; }
+  .acct3-actions { grid-template-columns: repeat(3, auto); justify-content: start; }
+  .acct3-actions .acct-stats-button { grid-column: auto; padding: 0 1rem; }
+  .acct3-actions .acct3-btn { padding: 0 1rem; }
+}
+@media (max-width: 760px) {
+  .acct3 .acct-main-sections { grid-template-columns: minmax(0, 1fr); }
+  .acct3-hero { padding: 1.2rem; }
+}
+
+/* Card chips: Staff Member / 18+ Verified */
+.acct-chip, .acct-server-status li.acct-chip { display: inline-flex; align-items: center; gap: 0.35rem; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-size: 0.78rem; font-weight: 800; opacity: 0.75; padding: 0.28rem 0.7rem; }
+.acct-chip.is-on, .acct-server-status li.acct-chip.is-on { border-color: rgba(61, 220, 132, 0.45); background: rgba(61, 220, 132, 0.1); color: var(--text); opacity: 1; }
+.acct-server-status li.acct-chip.is-on svg:last-child { color: #3ddc84; }
+.acct-chip--staff, .acct-server-status li.acct-chip--staff { border-color: rgba(var(--gold-rgb), 0.5); background: rgba(var(--gold-rgb), 0.14); color: rgb(var(--gold-rgb)); opacity: 1; }
+.acct-server-status li.acct-chip { white-space: nowrap; }
+:root[data-theme="light"] .acct-chip--staff, :root[data-theme="light"] .acct-server-status li.acct-chip--staff { color: var(--maple); }
+.acct-server-status ul { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0; padding: 0; list-style: none; }
