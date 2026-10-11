@@ -27,5 +27,5 @@ export function ProfileBadges({
     window.addEventListener(BADGES_EVENT, on);
     return () => window.removeEventListener(BADGES_EVENT, on);
   }, []);
-  return <ShowcaseBadges showcase={showcase} earned={earned} customTitle={customTitle} customBadges={customBadges} />;
+  return <ShowcaseBadges showcase={showcase} earned={earned} customTitle={customTitle} customBadges={customBadges} href="#stats-badges" />;
 }

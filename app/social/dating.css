@@ -3987,6 +3987,8 @@ a.dt-partner-chip:hover {
 
 /* Banner: a 6:1 strip everywhere (the editor preview matches the profile) */
 .dt-profile--v2 .dt-hero-cover {
+  /* An explicit width: with only the 6:1 shape, max-height would shrink the width and leave a gap on the right */
+  width: 100%;
   height: auto;
   aspect-ratio: 6 / 1;
   min-height: 110px;

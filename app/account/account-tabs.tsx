@@ -8,7 +8,7 @@ const HOME_PARTS = new Set(["", "home", "daily", "supporter", "discord", "discor
 
 function tabFor(hash: string) {
   const id = hash.replace(/^#/, "");
-  if (id === "stats") return "stats";
+  if (/^stats(-\w+)?$/.test(id)) return "stats";
   if (HOME_PARTS.has(id)) return "home";
   return document.querySelector(`[data-tab-panel="${CSS.escape(id)}"]`) ? id : "home";
 }

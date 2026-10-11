@@ -48,7 +48,7 @@ export function periodBounds(start: string, unit: "hour" | "day" | "week" | "mon
   return { from, to };
 }
 
-function periodLabel(start: string, unit: "hour" | "day" | "week" | "month") {
+export function periodLabel(start: string, unit: "hour" | "day" | "week" | "month") {
   const d = new Date(start);
   if (unit === "hour") return d.toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric" });
   if (unit === "month") return d.toLocaleDateString(undefined, { month: "long", year: "numeric" });

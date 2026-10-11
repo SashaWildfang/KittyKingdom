@@ -21290,6 +21290,7 @@ button.st-emoji-chip.is-on {
    ========================================== */
 .am {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
 }
 .am-head {
@@ -25431,6 +25432,33 @@ body.live-fullscreen .view-as-bar {
 :root[data-theme="light"] .badge-tip-tier--2 { color: #6b7280; }
 :root[data-theme="light"] .badge-tip-tier--3 { color: #b7791f; }
 :root[data-theme="light"] .badge-tip-tier--4 { color: #0e7490; }
+/* Drawn at the page root and placed by script (badge-tip.tsx), so it stays on screen */
+.badge-tip.is-floating {
+  position: fixed;
+  /* Solid, so the page under it can't show through (the panel colors are see-through glass) */
+  background: color-mix(in srgb, var(--bg-soft) 96%, transparent);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  bottom: auto;
+  z-index: 1000;
+  max-width: min(17rem, calc(100vw - 20px));
+  transform: none;
+  transition: opacity 0.12s ease;
+}
+.badge-tip-go {
+  margin-top: 0.15rem;
+  color: var(--hue);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+a.badge-tip-wrap.is-link {
+  color: inherit;
+  cursor: pointer;
+  text-decoration: none;
+}
+a.badge-tip-wrap.is-link:hover > * {
+  filter: brightness(1.12);
+}
 @media (hover: none) {
   .badge-tip-wrap:focus .badge-tip {
     opacity: 1;

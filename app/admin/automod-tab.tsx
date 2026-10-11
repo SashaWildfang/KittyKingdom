@@ -33,32 +33,15 @@ import {
   Zap,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { RULE_LABELS } from "../../lib/automod-data";
+import { useEffect, useMemo, useState } from "react";
 import { testMessage, type AutomodWord } from "../../lib/automod-engine";
-import type { AutomodConfig, AutomodEvent, RuleKey } from "../../lib/automod";
-import { LiveBadge, Pager, PersonLink, formatDate, timeAgo, useLive, type People } from "./admin-shared";
-import { StackedBars } from "./admin-charts";
-
-const RULE_COLORS = ["#e5484d", "#f59b2a", "#5865f2", "#46a758", "#d6409f", "#0ea5e9", "#a855f7", "#eab308", "#14b8a6", "#8b8d98"];
+import type { AutomodConfig, RuleKey } from "../../lib/automod";
+import { formatDate, timeAgo } from "./admin-shared";
+import { ActivitySection } from "./automod-activity";
 
 type Places = { channels: { id: string; name: string; category: boolean; parent: string | null }[]; roles: { id: string; name: string; color: string | null }[] };
 type Change = { id: string; at: string | null; source: string; byId: string | null; byName: string | null; summary: string };
 type SettingsResponse = { ok: boolean; config: AutomodConfig; places: Places; changes: Change[]; canEdit: boolean; error?: string };
-type Activity = {
-  ok: boolean;
-  total: number;
-  byRule: { rule: string; label: string; n: number }[];
-  byAction: Record<string, number>;
-  members: { id: string; n: number; last: string | null }[];
-  terms: { term: string; n: number }[];
-  timeline: { bucket: string; action: string; count: number }[];
-  unit: "hour" | "day";
-  page: number;
-  rows: AutomodEvent[];
-  people: People;
-};
-
 const RULES: { key: RuleKey; name: string; icon: LucideIcon; about: string }[] = [
   { key: "words", name: "Blocked words", icon: Ban, about: "Sees through look-alike letters, zero-width tricks, s p a c e d or split words, leetspeak, accents and fancy fonts." },
   { key: "splits", name: "Words split over messages", icon: Split, about: "Catches a blocked word typed a few letters per message (n / i / g …) and removes every piece." },
@@ -99,13 +82,6 @@ const SECTIONS = [
   { key: "history", label: "Changes", icon: History },
 ] as const;
 type Section = (typeof SECTIONS)[number]["key"];
-
-function actionBadge(e: AutomodEvent) {
-  if (e.action === "punish") return { text: e.offense ? `Strike ${e.offense} · ${LADDER[(e.offense - 1) % 8]}` : "Strike", tone: "red" };
-  if (e.action === "delete") return { text: "Removed, no strike", tone: "blue" };
-  if (e.action === "rename") return { text: "Name reset", tone: "gold" };
-  return { text: e.rule === "raid" ? "Raid alert" : "Flagged", tone: "gold" };
-}
 
 export function AutoModTab({ onOpenMember }: { onOpenMember: (id: string) => void }) {
   const [section, setSection] = useState<Section>("activity");
@@ -237,171 +213,6 @@ function RaidSwitch({ raid, busy, onChange }: { raid: AutomodConfig["raid"]; bus
       <button type="button" className="adm-btn adm-btn--small am-danger" disabled={busy} onClick={() => onChange(true, minutes)}>
         Turn on
       </button>
-    </div>
-  );
-}
-
-// ---------- Activity ----------
-function ActivitySection({ onOpenMember }: { onOpenMember: (id: string) => void }) {
-  const [range, setRange] = useState("7d");
-  const [rule, setRule] = useState<string | null>(null);
-  const [member, setMember] = useState<string | null>(null);
-  const [page, setPage] = useState(0);
-  const [reveal, setReveal] = useState<Record<string, boolean>>({});
-  useEffect(() => setPage(0), [range, rule, member]);
-  const q = new URLSearchParams({ range, page: String(page) });
-  if (rule) q.set("rule", rule);
-  if (member) q.set("member", member);
-  const live = useLive<Activity>(`/api/admin/automod/activity?${q}`, 5_000);
-  const a = live.data;
-  // While this tab is open, everything it shows counts as seen (clears the tab's bubble)
-  useEffect(() => {
-    if (a) void fetch("/api/admin/automod/unread", { method: "POST" }).catch(() => undefined);
-  }, [a]);
-  // New catches flash in as they arrive
-  const known = useRef<Set<string> | null>(null);
-  const fresh = useMemo(() => {
-    const ids = new Set(a?.rows.map((r) => r.id) ?? []);
-    const prev = known.current;
-    const out = new Set(prev ? Array.from(ids).filter((id) => !prev.has(id)) : []);
-    if (a) known.current = new Set([...(prev ? Array.from(prev) : []), ...Array.from(ids)]);
-    return out;
-  }, [a]);
-  // One color per rule, in the same order as "By rule"
-  const ruleSeries = (a?.byRule ?? []).map((r, i) => ({ key: r.rule, label: r.label, color: RULE_COLORS[i % RULE_COLORS.length] }));
-  const strikes = a?.byAction.punish ?? 0;
-
-  return (
-    <div className="am-activity">
-      <div className="adm-toolbar am-toolbar">
-        <div className="adm-seg" role="tablist" aria-label="Time range">
-          {["24h", "7d", "30d", "90d"].map((r) => (
-            <button key={r} type="button" className={range === r ? "is-active" : undefined} onClick={() => setRange(r)}>
-              {r}
-            </button>
-          ))}
-        </div>
-        {rule || member ? (
-          <button type="button" className="adm-chip-btn is-active" onClick={() => { setRule(null); setMember(null); }}>
-            {rule ? RULE_LABELS[rule] ?? rule : ""}{rule && member ? " · " : ""}{member ? a?.people?.[member]?.name ?? "member" : ""} ✕
-          </button>
-        ) : null}
-      </div>
-
-      <div className="adm-kpis">
-        <div className="adm-kpi">
-          <small>Caught</small>
-          <strong>{a ? a.total.toLocaleString() : "…"}</strong>
-          <span>{range === "24h" ? "last 24 hours" : `last ${range.replace("d", " days")}`}</span>
-        </div>
-        <div className="adm-kpi adm-kpi--red">
-          <small>Strikes</small>
-          <strong>{a ? strikes.toLocaleString() : "…"}</strong>
-          <span>{a?.total ? `${Math.round((strikes / a.total) * 100)}% of catches` : " "}</span>
-        </div>
-        <div className="adm-kpi adm-kpi--blue">
-          <small>Removed, no strike</small>
-          <strong>{a ? (a.byAction.delete ?? 0).toLocaleString() : "…"}</strong>
-          <span>newcomer links, emoji piles…</span>
-        </div>
-        <div className="adm-kpi adm-kpi--yellow">
-          <small>Flagged / names reset</small>
-          <strong>{a ? ((a.byAction.alert ?? 0) + (a.byAction.rename ?? 0)).toLocaleString() : "…"}</strong>
-          <span>{a ? `${a.byAction.rename ?? 0} names reset` : " "}</span>
-        </div>
-      </div>
-
-      <div className="am-grid">
-        <section className="adm-card am-span2">
-          <h3>Catches over time</h3>
-          {!a ? (
-            <p className="adm-empty">Loading…</p>
-          ) : a.total ? (
-            <StackedBars points={a.timeline} series={ruleSeries} unit={a.unit} height={200} />
-          ) : (
-            <p className="adm-empty">All quiet 🌙 nothing caught in this range.</p>
-          )}
-        </section>
-        <section className="adm-card">
-          <h3>By rule</h3>
-          <ul className="am-rank">
-            {(a?.byRule ?? []).map((r) => (
-              <li key={r.rule}>
-                <button type="button" className={rule === r.rule ? "is-on" : undefined} onClick={() => setRule(rule === r.rule ? null : r.rule)}>
-                  <span>{r.label}</span>
-                  <i style={{ width: `${(r.n / Math.max(1, a!.byRule[0].n)) * 100}%` }} />
-                  <b>{r.n}</b>
-                </button>
-              </li>
-            ))}
-            {a && !a.byRule.length ? <li className="adm-muted">Nothing yet</li> : null}
-          </ul>
-        </section>
-        <section className="adm-card">
-          <h3>Most caught members</h3>
-          <ul className="am-rank am-rank--people">
-            {(a?.members ?? []).map((m) => (
-              <li key={m.id}>
-                <button type="button" className={member === m.id ? "is-on" : undefined} onClick={() => setMember(member === m.id ? null : m.id)} title="Filter the feed to this member">
-                  <span>{a!.people[m.id]?.name ?? m.id}</span>
-                  <b>{m.n}</b>
-                </button>
-                <button type="button" className="am-open" onClick={() => onOpenMember(m.id)} aria-label="Open member">
-                  ↗
-                </button>
-              </li>
-            ))}
-            {a && !a.members.length ? <li className="adm-muted">Nobody 🎉</li> : null}
-          </ul>
-        </section>
-        <section className="adm-card">
-          <h3>Most matched words</h3>
-          <div className="am-terms">
-            {(a?.terms ?? []).map((t) => (
-              <button key={t.term} type="button" className={reveal[`t:${t.term}`] ? "is-shown" : undefined} onClick={() => setReveal((r) => ({ ...r, [`t:${t.term}`]: !r[`t:${t.term}`] }))} title="Click to show">
-                <span>{t.term}</span> <b>{t.n}</b>
-              </button>
-            ))}
-            {a && !a.terms.length ? <p className="adm-muted">None matched.</p> : null}
-          </div>
-        </section>
-      </div>
-
-      <section className="adm-card am-feed">
-        <h3>
-          Latest catches <LiveBadge updatedAt={live.updatedAt} loading={live.loading} />
-        </h3>
-        {a?.rows.length ? (
-          <ol>
-            {a.rows.map((e) => {
-              const badge = actionBadge(e);
-              return (
-                <li key={e.id} className={fresh.has(e.id) ? "is-new" : undefined}>
-                  <time dateTime={e.at} title={formatDate(e.at)}>
-                    {timeAgo(e.at)}
-                  </time>
-                  <div className="am-feed-who">
-                    {e.userId ? <PersonLink id={e.userId} people={a.people} onOpen={onOpenMember} compact /> : <b>Server</b>}
-                  </div>
-                  <div className="am-feed-what">
-                    <b>{e.label}</b>
-                    <span className={`am-badge am-badge--${badge.tone}`}>{badge.text}</span>
-                    <small>{e.reason.replace(/`([^`]+)`/g, "“$1”").replace(/Inappropriate language: “[^”]+”/, "Blocked word")}</small>
-                    {e.content ? (
-                      <button type="button" className={`am-spoiler${reveal[e.id] ? " is-shown" : ""}`} onClick={() => setReveal((r) => ({ ...r, [e.id]: !r[e.id] }))}>
-                        {reveal[e.id] ? e.content : "Show message"}
-                      </button>
-                    ) : null}
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-        ) : (
-          <p className="adm-empty">{a ? "Nothing caught with these filters." : "Loading…"}</p>
-        )}
-        {a && a.total > 25 ? <Pager page={page} total={a.total} pageSize={25} onPage={setPage} /> : null}
-      </section>
     </div>
   );
 }
