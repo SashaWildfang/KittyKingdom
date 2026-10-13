@@ -8,7 +8,8 @@ import { getMongoClient } from "./mongodb";
 
 export const LOG_CHANNEL_ID = "1360344042705256660";
 
-// Channels mirrored into the Bot Logs tab
+// Channels mirrored into the Bot Logs tab. VC logs had their own channel until October 2026 and now go to the bot
+// logs; the old channel stays here for its history (once it's deleted, syncing it stops by itself).
 export const LOG_CHANNELS = [
   { key: "bot", id: LOG_CHANNEL_ID, label: "Bot logs", meta: "sync" },
   { key: "vc", id: "1503203701580365974", label: "VC logs", meta: "sync:vc" },
@@ -69,16 +70,40 @@ async function db() {
 // Emojis and symbols before the first letter or number
 const LEADING_SYMBOLS = new RegExp("^[^\\p{L}\\p{N}]+", "u");
 
-// Titles that carry a name or detail get folded into one clean type
+// Titles that carry a name, number or channel get folded into one clean type
+// (otherwise every "xyz changed their avatar" or "Cleaned up 161 messages" is a type of its own)
 const TYPE_RULES: [RegExp, string | ((m: RegExpMatchArray) => string)][] = [
   // "🎙️ VC Event: Joined VC" -> "Joined VC"
   [/^vc event:\s*(.+)$/i, (m) => m[1].trim()],
-  [/^avatar changed/i, "Avatar Changed"],
+  [/^state changed/i, "Voice State Changed"],
+  [/^avatar changed|changed their avatar/i, "Avatar Changed"],
+  [/^username changed|changed their username/i, "Username Changed"],
+  [/^nickname changed|changed their (nickname|display name|server nickname)/i, "Nickname Changed"],
   [/^gift sent/i, "Gift Sent"],
   [/^ticket action:?\s*(\w+)/i, (m) => `Ticket ${({ OPEN: "Opened", CLAIM: "Claimed", CLOSE: "Closed", DELETE: "Deleted", REOPEN: "Reopened" } as Record<string, string>)[m[1].toUpperCase()] ?? m[1].toLowerCase()}`],
+  [/^(nsfw )?ticket deleted from the website/i, "Ticket Deleted (Website)"],
+  [/^ticket escalate/i, "Ticket Escalated"],
+  [/^message deleted from the website/i, "Message Deleted (Website)"],
+  [/^items (added|removed) from the website/i, (m) => `Items ${m[1].toLowerCase() === "added" ? "Added" : "Removed"} (Website)`],
+  [/^cleaned up [\d,]+ messages?/i, "Messages Cleaned Up"],
+  [/^media chunk/i, "Archived Media"],
+  [/^mass clear summary/i, "Mass Clear Summary"],
+  [/^bulk clear transcript/i, "Bulk Clear Transcript"],
+  [/^starting scan in|^scanning\b/i, "Scan Started"],
   [/^operations concluded/i, "Operations Concluded"],
+  [/^zeo has restarted|^zeo bot online|bot online|restarted successfully/i, "Bot Started"],
+  [/^manual restart initiated/i, "Restart Requested"],
+  [/^lockdown mode \W*enabled/i, "Lockdown Enabled"],
+  [/^lockdown mode \W*disabled/i, "Lockdown Disabled"],
   [/^(channel )?locked\b/i, "Channel Locked"],
-  [/^auto-?unlocked|^(channel )?unlocked\b/i, "Channel Unlocked"],
+  [/^auto-?unlocked|^(channel |manually )?unlocked\b/i, "Channel Unlocked"],
+  [/^mass (unverified )?kick/i, "Mass Kick"],
+  [/^force unverify/i, "Force Unverify"],
+  [/^new punishment appeal/i, "Appeal Submitted"],
+  [/^appeal accepted/i, "Appeal Accepted"],
+  [/^crab shower/i, "Crab Shower"],
+  [/^butterflies (added|removed)/i, (m) => `Butterflies ${m[1].toLowerCase() === "added" ? "Added" : "Removed"}`],
+  [/^cucumber role enforced|^unauthorized pickling/i, "Cucumber Role"],
   [/^disboard/i, "Disboard Bump"],
   [/^new level tier/i, "New Level Tier Reached"],
   [/^server boosted/i, "Server Boosted"],
@@ -92,7 +117,7 @@ export function logType(title: string | null | undefined, content: string | null
     const m = raw.match(pattern);
     if (m) return typeof result === "string" ? result : result(m);
   }
-  const cleaned = raw.split(/\s[•|—-]\s|:\s/)[0].replace(/[!.`]+$/, "").trim();
+  const cleaned = raw.replace(/\*+/g, "").split(/\s[•|—-]\s|:\s/)[0].replace(/[!.`]+$/, "").replace(/\s+(by|for)$/i, "").trim();
   return cleaned.slice(0, 60) || "Other";
 }
 
@@ -101,27 +126,31 @@ export const LOG_CATEGORIES = [
   { key: "messages", label: "Messages", icon: "💬" },
   { key: "members", label: "Member updates", icon: "👤" },
   { key: "moderation", label: "Moderation", icon: "🛡️" },
+  { key: "cleanup", label: "Cleanup & archives", icon: "🧹" },
   { key: "tickets", label: "Tickets", icon: "🎫" },
   { key: "economy", label: "Levels & economy", icon: "📈" },
+  { key: "fun", label: "Games & fun", icon: "🎲" },
   { key: "boosts", label: "Boosts & bumps", icon: "💎" },
-  { key: "system", label: "Scans & system", icon: "🔍" },
+  { key: "system", label: "Bot status & scans", icon: "🔍" },
   { key: "other", label: "Other", icon: "📦" },
 ] as const;
 
 export function logCategory(type: string) {
   const t = type.toLowerCase();
   if (/\bvc\b|afk|voice/.test(t)) return "voice";
+  if (/^(message found for deletion|message deleted & archived|archived media|messages cleaned up|channel cleanup summary|mass clear summary|batch cleared|bulk clear transcript|member data wiped)/.test(t)) return "cleanup";
   if (/^message /.test(t)) return "messages";
-  if (/avatar|nickname|username|roles updated|display name/.test(t)) return "members";
-  if (/^ticket/.test(t)) return "tickets";
-  if (/timed out|timeout|kick|ban|mute|muzzle|warn|lock|wipe|verification|verif|purge|clear|slowmode|automod|punish/.test(t)) return "moderation";
-  if (/level|xp|economy|gift|leaf|store|shop|daily|wordle|qotd|role (added|removed)/.test(t)) return "economy";
+  if (/avatar|nickname|username|roles updated|display name|member (left|joined)/.test(t)) return "members";
+  if (/ticket/.test(t)) return "tickets";
+  if (/appeal|timed out|timeout|kick|ban|mute|muzzle|warn|lock|wipe|unverif|verification|verif|purge|clear|slowmode|automod|punish|infraction/.test(t)) return "moderation";
+  if (/butterfl|frenzy|cucumber|pickl|crab shower|giveaway|gambling/.test(t)) return "fun";
+  if (/level|xp|economy|gift|leaf|store|shop|daily|wordle|qotd|role (added|removed)|items (added|removed)|multiplier/.test(t)) return "economy";
   if (/boost|bump|disboard/.test(t)) return "boosts";
-  if (/operations concluded|scan|sync|restart|console|backup|update/.test(t)) return "system";
+  if (/bot started|restart|scan|operations concluded|sync|console|backup|update|season/.test(t)) return "system";
   return "other";
 }
 
-const TYPE_VERSION = 4;
+const TYPE_VERSION = 5;
 
 function toEntry(m: DiscordMessage, channel: LogChannelKey) {
   const embed = m.embeds[0];
@@ -166,6 +195,8 @@ function toEntry(m: DiscordMessage, channel: LogChannelKey) {
   };
 }
 
+class ChannelGone extends Error {}
+
 async function fetchPage(channelId: string, params: string): Promise<DiscordMessage[] | null> {
   const token = botToken();
   if (!token) return null;
@@ -174,6 +205,7 @@ async function fetchPage(channelId: string, params: string): Promise<DiscordMess
     cache: "no-store",
   });
   if (response.status === 429) return [];
+  if (response.status === 404) throw new ChannelGone();
   return response.ok ? ((await response.json()) as DiscordMessage[]) : null;
 }
 
@@ -194,7 +226,7 @@ export async function syncLogChannel(key: LogChannelKey) {
 async function syncChannel(channel: (typeof LOG_CHANNELS)[number]) {
   const d = await db();
   const logs = d.collection("bot_logs");
-  const meta = d.collection<{ _id: string; newestId?: string; oldestId?: string; backfillDone?: boolean; syncedAt?: Date; lockedUntil?: Date }>("bot_logs_meta");
+  const meta = d.collection<{ _id: string; newestId?: string; oldestId?: string; backfillDone?: boolean; syncedAt?: Date; lockedUntil?: Date; gone?: boolean }>("bot_logs_meta");
   const now = new Date();
   await meta.updateOne({ _id: channel.meta }, { $setOnInsert: { syncedAt: new Date(0) } }, { upsert: true });
   const state = await meta.findOneAndUpdate(
@@ -206,6 +238,10 @@ async function syncChannel(channel: (typeof LOG_CHANNELS)[number]) {
     { $set: { lockedUntil: new Date(now.getTime() + 20_000) } },
   );
   if (!state) return;
+  if (state.gone) {
+    await meta.updateOne({ _id: channel.meta }, { $set: { syncedAt: new Date() }, $unset: { lockedUntil: "" } });
+    return;
+  }
 
   // Older copies were typed with the first version of the rules: re-type them once
   const stateVersion = (state as { typeVersion?: number }).typeVersion ?? 1;
@@ -219,16 +255,17 @@ async function syncChannel(channel: (typeof LOG_CHANNELS)[number]) {
   if (channel.key === "bot" && stateVersion < TYPE_VERSION) {
     // Logs mirrored before channels were tracked all came from the bot log channel
     await logs.updateMany({ channel: { $exists: false } }, { $set: { channel: "bot" } });
-    const old = await logs.find({}, { projection: { title: 1, content: 1 } }).toArray();
-    if (old.length) {
-      await logs.bulkWrite(
-        old.map((d) => {
-          const type = logType(d.title as string | null, d.content as string | null);
-          return { updateOne: { filter: { _id: d._id }, update: { $set: { type, category: logCategory(type) } } } };
-        }),
-        { ordered: false },
-      );
-    }
+    // New rules: re-label what's already stored. Types come from titles, so running the rules on each distinct
+    // stored type gives the same result as on every log, in a few hundred updates instead of tens of thousands
+    const stored = (await logs.aggregate([{ $group: { _id: { type: "$type", category: "$category" } } }]).toArray()) as { _id: { type?: string; category?: string } }[];
+    const ops = stored
+      .map(({ _id }) => {
+        const type = logType(_id.type ?? null, null);
+        const category = logCategory(type);
+        return type === _id.type && category === _id.category ? null : { updateMany: { filter: { type: _id.type ?? null, category: _id.category ?? null }, update: { $set: { type, category } } } };
+      })
+      .filter(Boolean);
+    if (ops.length) await logs.bulkWrite(ops as never, { ordered: false });
     await meta.updateOne({ _id: channel.meta }, { $set: { typeVersion: TYPE_VERSION } });
   }
 
@@ -260,6 +297,14 @@ async function syncChannel(channel: (typeof LOG_CHANNELS)[number]) {
       if (!page) break;
       await save(page);
       if (page.length < 100) backfillDone = true;
+    }
+  } catch (e) {
+    // The channel was deleted (e.g. the old vc-logs channel): keep its history here and stop asking for it
+    if (!(e instanceof ChannelGone)) throw e;
+    // Never give up on the main bot log channel (a 404 there is a setup problem to fix, not a retired channel)
+    if (channel.key !== "bot") {
+      await meta.updateOne({ _id: channel.meta }, { $set: { gone: true } });
+      backfillDone = true;
     }
   } finally {
     await meta.updateOne({ _id: channel.meta }, { $set: { newestId, oldestId, backfillDone, syncedAt: new Date() }, $unset: { lockedUntil: "" } });
@@ -297,7 +342,12 @@ export async function queryLogs(q: {
   }
   if (q.hideAdminOnly) match.type = { $not: ADMIN_ONLY_LOG_TYPES };
   if (q.userId) match.userIds = q.userId;
-  if (q.channels?.length) match.channel = { $in: q.channels };
+  // VC logs used to have their own channel and now go to the bot logs: "VC logs" means voice logs from either
+  const and: Document[] = [];
+  if (q.channels?.length === 1 && q.channels[0] === "vc") and.push({ $or: [{ channel: "vc" }, { category: "voice" }] });
+  else if (q.channels?.length === 1 && q.channels[0] === "bot") and.push({ channel: "bot", category: { $ne: "voice" } });
+  else if (q.channels?.length) match.channel = { $in: q.channels };
+  if (and.length) match.$and = and;
   if (q.search?.trim()) match.text = { $regex: escapeRegex(q.search.trim().toLowerCase().slice(0, 100)) };
   if (q.from || q.to) match.ts = { ...(q.from ? { $gte: q.from } : {}), ...(q.to ? { $lte: q.to } : {}) };
 
