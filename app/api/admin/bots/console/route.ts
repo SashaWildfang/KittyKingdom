@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requirePanel } from "../../../../../lib/admin";
 import { allStatuses, consoleConfigured } from "../../../../../lib/bot-console";
+import { listIssues } from "../../../../../lib/bot-health";
 import { getMongoClient } from "../../../../../lib/mongodb";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,10 @@ export async function GET(request: Request) {
     .toArray()
     .catch(() => []);
   const actions = recent.map((d) => ({ at: d.at instanceof Date ? d.at.toISOString() : null, server: String(d.server ?? ""), signal: String(d.signal ?? ""), by: String(d.adminName ?? ""), ok: d.ok !== false, error: d.error ? String(d.error) : null }));
-  if (!consoleConfigured()) return NextResponse.json({ ok: true, configured: false, servers: [], actions }, { headers: { "Cache-Control": "no-store" } });
-  return NextResponse.json({ ok: true, configured: true, servers: await allStatuses(), actions }, { headers: { "Cache-Control": "no-store" } });
+  // Open issues per bot, for the badges on each bot (works even before SparkedHost is connected)
+  const open = await listIssues({ open: true, limit: 0 })
+    .then((d) => d.open)
+    .catch(() => ({}));
+  if (!consoleConfigured()) return NextResponse.json({ ok: true, configured: false, servers: [], actions, open }, { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json({ ok: true, configured: true, servers: await allStatuses(), actions, open }, { headers: { "Cache-Control": "no-store" } });
 }

@@ -35,7 +35,6 @@ export const BOT_SERVERS: BotServer[] = [
   { key: "moderation", name: "Moderation Bot", id: "92f5ea45" },
   { key: "economy", name: "Economy Bot", id: "068f9699" },
   { key: "ticketing", name: "Ticket Bot", id: "e7d5b99c" },
-  { key: "dating", name: "Dating Bot", id: "d39e3b3e" },
 ];
 
 export const POWER_SIGNALS: PowerSignal[] = ["start", "stop", "restart", "kill"];
