@@ -14,6 +14,7 @@ type Overview = {
   error?: string;
   configured: boolean;
   servers: ServerStatus[];
+  open?: Record<string, { errors: number; warnings: number }>;
   actions: { at: string | null; server: string; signal: string; by: string; ok: boolean; error: string | null }[];
 };
 type Logs = { ok: boolean; error?: string; lines: string[]; at: string };
@@ -81,19 +82,46 @@ function tone(text: string) {
   return "";
 }
 
+// The bots (the same list as lib/bot-console.ts BOT_SERVERS, kept here so the browser doesn't load server code)
+const BOTS = [
+  { key: "main", name: "Main Bot" },
+  { key: "moderation", name: "Moderation Bot" },
+  { key: "economy", name: "Economy Bot" },
+  { key: "ticketing", name: "Ticket Bot" },
+];
+type View = "console" | "issues" | "resources";
+
 export function ConsoleTab() {
   const { data, error, reload } = useLive<Overview>("/api/admin/bots/console", 5_000);
   const [selected, setSelected] = useState("main");
+  const [view, setView] = useState<View>("console");
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
+  // A bell alert links here with ?bot=…: open that bot's issues
+  useEffect(() => {
+    const bot = new URL(window.location.href).searchParams.get("bot");
+    if (bot && BOTS.some((b) => b.key === bot)) {
+      setSelected(bot);
+      setView("issues");
+    }
+  }, []);
+
   if (!data && error) return <p className="adm-error">Couldn&apos;t load the bot servers: {error}</p>;
   if (!data) return <div className="adm-skeleton" style={{ height: 480 }} />;
-  if (!data.configured) return <SetupCard />;
 
-  const server = data.servers.find((s) => s.key === selected) ?? data.servers[0];
+  const open = data.open ?? {};
+  const status = (key: string) => data.servers.find((s) => s.key === key) ?? null;
+  const server = status(selected);
+  const bot = BOTS.find((b) => b.key === selected) ?? BOTS[0];
+  const views: { key: View; label: string; badge?: number }[] = [
+    { key: "console", label: "Console" },
+    { key: "issues", label: "Issues", badge: (open[bot.key]?.errors ?? 0) + (open[bot.key]?.warnings ?? 0) },
+    { key: "resources", label: "Resources" },
+  ];
 
   const power = async (signal: "start" | "stop" | "restart" | "kill") => {
+    if (!server) return;
     const warn: Record<string, string> = {
       stop: `Stop the ${server.name}? It stays offline until someone starts it again.`,
       restart: `Restart the ${server.name}? It's offline for a few seconds.`,
@@ -111,89 +139,330 @@ export function ConsoleTab() {
   };
 
   return (
-    <section className="bc">
-      <div className="bc-servers" role="tablist" aria-label="Bots">
-        {data.servers.map((s) => (
-          <button key={s.key} type="button" role="tab" aria-selected={s.key === server.key} className={`bc-server${s.key === server.key ? " is-on" : ""}`} onClick={() => (setSelected(s.key), setMsg(null))}>
-            <span className="bc-server-top">
-              <b>{s.name}</b>
-              <StateBadge s={s} />
-            </span>
-            {s.error ? (
-              <small className="bc-server-err">{s.error}</small>
+    <>
+      {!data.configured ? <SetupCard /> : null}
+      <section className="bc">
+        <div className="bc-servers" role="tablist" aria-label="Bots">
+          {BOTS.map((b) => {
+            const s = status(b.key);
+            const errors = open[b.key]?.errors ?? 0;
+            return (
+              <button key={b.key} type="button" role="tab" aria-selected={b.key === bot.key} className={`bc-server${b.key === bot.key ? " is-on" : ""}`} onClick={() => (setSelected(b.key), setMsg(null))}>
+                <span className="bc-server-top">
+                  <b>{b.name}</b>
+                  {s ? <StateBadge s={s} /> : null}
+                </span>
+                {errors ? (
+                  <span className="bc-issue-pill" title="Open errors">
+                    {errors} error{errors === 1 ? "" : "s"}
+                  </span>
+                ) : null}
+                {!s ? null : s.error ? (
+                  <small className="bc-server-err">{s.error}</small>
+                ) : (
+                  <>
+                    <Meter label="CPU" value={s.cpu} max={s.cpuLimit ?? 100} text={s.cpu === null ? "—" : `${s.cpu.toFixed(1)}%`} />
+                    <Meter label="RAM" value={s.memory} max={s.memoryLimit} text={bytes(s.memory)} />
+                    <small className="bc-server-up">{s.state === "running" ? `Up ${uptime(s.uptimeMs)}` : STATE_TEXT[s.state]}</small>
+                  </>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="bc-main">
+          <div className="adm-card bc-head">
+            <div className="bc-head-title">
+              <span className={`bc-head-icon is-${server?.state ?? "unknown"}`}>
+                <Terminal size={20} />
+              </span>
+              <div>
+                <h3>{bot.name}</h3>
+                {server ? (
+                  <small>
+                    <StateBadge s={server} /> {server.state === "running" ? `· up ${uptime(server.uptimeMs)}` : ""} · RAM {bytes(server.memory)}
+                    {server.memoryLimit ? ` of ${bytes(server.memoryLimit)}` : ""} · disk {bytes(server.disk)}
+                  </small>
+                ) : (
+                  <small>Connect SparkedHost to see its state and control it.</small>
+                )}
+              </div>
+            </div>
+            {server ? (
+              <div className="bc-actions">
+                <button type="button" className="adm-btn adm-btn--small bc-start" disabled={Boolean(busy) || server.state !== "offline"} onClick={() => void power("start")}>
+                  <Play size={14} /> {busy === "start" ? "Starting…" : "Start"}
+                </button>
+                <button type="button" className="adm-btn adm-btn--small adm-btn--ghost" disabled={Boolean(busy) || server.state === "offline" || server.state === "stopping"} onClick={() => void power("restart")}>
+                  <RotateCw size={14} /> {busy === "restart" ? "Restarting…" : "Restart"}
+                </button>
+                {server.state === "stopping" || server.state === "starting" ? (
+                  <button type="button" className="adm-btn adm-btn--small adm-btn--ghost bc-danger" disabled={Boolean(busy)} onClick={() => void power("kill")}>
+                    <Skull size={14} /> Force stop
+                  </button>
+                ) : (
+                  <button type="button" className="adm-btn adm-btn--small adm-btn--ghost bc-danger" disabled={Boolean(busy) || server.state === "offline"} onClick={() => void power("stop")}>
+                    <Square size={14} /> {busy === "stop" ? "Stopping…" : "Stop"}
+                  </button>
+                )}
+              </div>
+            ) : null}
+          </div>
+          {msg ? (
+            <p className={msg.ok ? "bc-msg is-ok" : "bc-msg is-err"} role="status">
+              {msg.text}
+            </p>
+          ) : null}
+
+          <nav className="adm-seg bc-views" role="tablist" aria-label="What to show">
+            {views.map((v) => (
+              <button key={v.key} type="button" role="tab" aria-selected={view === v.key} className={view === v.key ? "is-active" : undefined} onClick={() => setView(v.key)}>
+                {v.label}
+                {v.badge ? <span className={`bc-view-badge${open[bot.key]?.errors ? " is-error" : ""}`}>{v.badge}</span> : null}
+              </button>
+            ))}
+          </nav>
+
+          {view === "console" ? (
+            server ? (
+              <ConsoleView key={bot.key} serverKey={bot.key} name={bot.name} state={server.state} />
             ) : (
-              <>
-                <Meter label="CPU" value={s.cpu} max={s.cpuLimit ?? 100} text={s.cpu === null ? "—" : `${s.cpu.toFixed(1)}%`} />
-                <Meter label="RAM" value={s.memory} max={s.memoryLimit} text={bytes(s.memory)} />
-                <small className="bc-server-up">{s.state === "running" ? `Up ${uptime(s.uptimeMs)}` : STATE_TEXT[s.state]}</small>
-              </>
-            )}
-          </button>
+              <p className="adm-muted">The console needs SparkedHost connected (see above).</p>
+            )
+          ) : null}
+          {view === "issues" ? <IssuesView key={bot.key} bot={bot.key} name={bot.name} onChange={() => void reload()} /> : null}
+          {view === "resources" ? <ResourcesView bot={bot.key} /> : null}
+
+          {data.configured ? (
+            <div className="adm-card bc-history">
+              <h3>
+                <Power size={15} aria-hidden="true" /> Recent start / stop / restart
+              </h3>
+              {data.actions.length ? (
+                <ol>
+                  {data.actions.map((a, i) => (
+                    <li key={i}>
+                      <time>{a.at ? timeAgo(a.at) : ""}</time>
+                      <span>
+                        <b>{a.by || "Someone"}</b> {a.ok ? SIGNAL_TEXT[a.signal]?.toLowerCase() ?? a.signal : `tried to ${a.signal}`} the <b>{BOTS.find((b) => b.key === a.server)?.name ?? a.server}</b>
+                      </span>
+                      {a.ok ? null : <small className="bc-msg is-err">{a.error}</small>}
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="adm-muted">Nothing yet. Actions from here are listed with who did them.</p>
+              )}
+            </div>
+          ) : null}
+        </div>
+      </section>
+    </>
+  );
+}
+
+// ---------- Issues ----------
+type Issue = { id: string; bot: string; level: "error" | "warning"; title: string; detail: string; count: number; firstAt: string | null; lastAt: string | null; resolved: boolean; resolvedBy: string | null };
+
+function IssuesView({ bot, name, onChange }: { bot: string; name: string; onChange: () => void }) {
+  const [showFixed, setShowFixed] = useState(false);
+  const { data, error, reload } = useLive<{ ok: boolean; issues: Issue[] }>(`/api/admin/bots/issues?bot=${bot}${showFixed ? "" : "&open=1"}`, 10_000);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const resolve = async (body: Record<string, string>) => {
+    setBusy(true);
+    await fetch("/api/admin/bots/issues", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);
+    setBusy(false);
+    await reload();
+    onChange();
+  };
+  const issues = data?.issues ?? [];
+  const openCount = issues.filter((i) => !i.resolved).length;
+  return (
+    <div className="adm-card bc-issues">
+      <div className="bc-issues-head">
+        <div>
+          <h3>Problems in the console</h3>
+          <p className="adm-muted">
+            Errors and warnings the {name} printed, grouped when they repeat. New errors alert admins in the bell. Marking one fixed hides it until it happens again.
+          </p>
+        </div>
+        <div className="bc-issues-tools">
+          <label className="bc-check">
+            <input type="checkbox" checked={showFixed} onChange={(e) => setShowFixed(e.target.checked)} /> Show fixed
+          </label>
+          {openCount ? (
+            <button type="button" className="adm-btn adm-btn--small adm-btn--ghost" disabled={busy} onClick={() => window.confirm(`Mark all ${openCount} open problems for the ${name} as fixed?`) && void resolve({ bot })}>
+              Mark all fixed
+            </button>
+          ) : null}
+        </div>
+      </div>
+      {error && !data ? <p className="adm-error">{error}</p> : null}
+      {!data ? <div className="adm-skeleton" style={{ height: 160 }} /> : null}
+      {data && !issues.length ? <p className="bc-all-clear">✓ No problems{showFixed ? "" : " open"}. Errors show up here as soon as the bot prints them (with the new events/health.py).</p> : null}
+      <ul className="bc-issue-list">
+        {issues.map((i) => (
+          <li key={i.id} className={`bc-issue is-${i.level}${i.resolved ? " is-fixed" : ""}`}>
+            <button type="button" className="bc-issue-main" onClick={() => setOpenId(openId === i.id ? null : i.id)} aria-expanded={openId === i.id}>
+              <span className={`bc-issue-level is-${i.level}`}>{i.level === "error" ? "Error" : "Warning"}</span>
+              <span className="bc-issue-title">{i.title}</span>
+              <span className="bc-issue-meta">
+                {i.count > 1 ? <b>×{i.count.toLocaleString()}</b> : null} {i.lastAt ? timeAgo(i.lastAt) : ""}
+              </span>
+            </button>
+            {openId === i.id ? (
+              <div className="bc-issue-body">
+                <p className="adm-muted">
+                  First seen {i.firstAt ? new Date(i.firstAt).toLocaleString() : "—"} · last {i.lastAt ? new Date(i.lastAt).toLocaleString() : "—"}
+                  {i.resolved ? ` · marked fixed${i.resolvedBy ? ` by ${i.resolvedBy}` : ""}` : ""}
+                </p>
+                {i.detail ? <pre className="bc-trace">{i.detail}</pre> : null}
+                {!i.resolved ? (
+                  <button type="button" className="adm-btn adm-btn--small" disabled={busy} onClick={() => void resolve({ id: i.id })}>
+                    Mark fixed
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// ---------- Resources ----------
+type Advice = { tone: "bad" | "warn" | "good" | "info"; title: string; text: string };
+type HealthPoint = { t: string; rss: number | null; rssMax: number | null; cpu: number | null; cpuMax: number | null; lag: number | null; latency: number | null };
+type BotHealth = {
+  key: string;
+  name: string;
+  samples: number;
+  points: HealthPoint[];
+  memPeak: number | null;
+  memAvg: number | null;
+  memLimit: number | null;
+  cpuP95: number | null;
+  cpuAvg: number | null;
+  cpuLimit: number | null;
+  lagP95: number | null;
+  latencyAvg: number | null;
+  restarts: number;
+  suggestedMemory: number | null;
+  advice: Advice[];
+};
+
+function ResourcesView({ bot }: { bot: string }) {
+  const [range, setRange] = useState<"24h" | "7d">("24h");
+  const { data, error } = useLive<{ ok: boolean; bots: BotHealth[]; plan: Advice[] }>(`/api/admin/bots/health?range=${range}`, 60_000);
+  if (error && !data) return <p className="adm-error">{error}</p>;
+  if (!data) return <div className="adm-skeleton" style={{ height: 360 }} />;
+  const h = data.bots.find((b) => b.key === bot);
+  return (
+    <div className="bc-res">
+      <div className="adm-card bc-plan">
+        <div className="bc-issues-head">
+          <h3>Where the RAM should go</h3>
+          <div className="adm-seg" role="tablist" aria-label="Range">
+            {(["24h", "7d"] as const).map((r) => (
+              <button key={r} type="button" className={range === r ? "is-active" : undefined} onClick={() => setRange(r)}>
+                {r === "24h" ? "Last 24 hours" : "Last 7 days"}
+              </button>
+            ))}
+          </div>
+        </div>
+        <table className="bc-table">
+          <thead>
+            <tr>
+              <th>Bot</th>
+              <th>RAM peak</th>
+              <th>Limit</th>
+              <th>Suggested</th>
+              <th>CPU (busy)</th>
+              <th>Restarts</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.bots.map((b) => (
+              <tr key={b.key} className={b.key === bot ? "is-on" : undefined}>
+                <td>{b.name}</td>
+                <td>{bytes(b.memPeak)}</td>
+                <td>{bytes(b.memLimit)}</td>
+                <td className={b.suggestedMemory && b.memLimit ? (b.suggestedMemory > b.memLimit ? "is-up" : "is-down") : undefined}>{b.suggestedMemory ? bytes(b.suggestedMemory) : b.samples >= 30 ? "keep" : "—"}</td>
+                <td>{b.cpuP95 === null ? "—" : `${Math.round(b.cpuP95)}%${b.cpuLimit ? ` of ${b.cpuLimit}%` : ""}`}</td>
+                <td>{b.samples ? b.restarts : "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {data.plan.map((a, i) => (
+          <AdviceRow key={i} a={a} />
         ))}
       </div>
 
-      <div className="bc-main">
-        <div className="adm-card bc-head">
-          <div className="bc-head-title">
-            <span className={`bc-head-icon is-${server.state}`}>
-              <Terminal size={20} />
-            </span>
-            <div>
-              <h3>{server.name}</h3>
-              <small>
-                <StateBadge s={server} /> {server.state === "running" ? `· up ${uptime(server.uptimeMs)}` : ""} · RAM {bytes(server.memory)}
-                {server.memoryLimit ? ` of ${bytes(server.memoryLimit)}` : ""} · disk {bytes(server.disk)}
-              </small>
+      {h ? (
+        <div className="adm-card bc-res-bot">
+          <h3>{h.name}</h3>
+          {h.advice.map((a, i) => (
+            <AdviceRow key={i} a={a} />
+          ))}
+          {h.points.length > 1 ? (
+            <div className="bc-charts">
+              <LineChart title="RAM" points={h.points} value={(p) => p.rss} peak={(p) => p.rssMax} limit={h.memLimit} format={(v) => bytes(v)} color="#22c55e" />
+              <LineChart title="CPU" points={h.points} value={(p) => p.cpu} peak={(p) => p.cpuMax} limit={h.cpuLimit} format={(v) => `${Math.round(v)}%`} color="#60a5fa" />
+              <LineChart title="Freezes (event-loop delay)" points={h.points} value={(p) => p.lag} format={(v) => `${Math.round(v)} ms`} color="#f59e0b" />
+              <LineChart title="Discord latency" points={h.points} value={(p) => p.latency} format={(v) => `${Math.round(v)} ms`} color="#a78bfa" />
             </div>
-          </div>
-          <div className="bc-actions">
-            <button type="button" className="adm-btn adm-btn--small bc-start" disabled={Boolean(busy) || server.state !== "offline"} onClick={() => void power("start")}>
-              <Play size={14} /> {busy === "start" ? "Starting…" : "Start"}
-            </button>
-            <button type="button" className="adm-btn adm-btn--small adm-btn--ghost" disabled={Boolean(busy) || server.state === "offline" || server.state === "stopping"} onClick={() => void power("restart")}>
-              <RotateCw size={14} /> {busy === "restart" ? "Restarting…" : "Restart"}
-            </button>
-            {server.state === "stopping" || server.state === "starting" ? (
-              <button type="button" className="adm-btn adm-btn--small adm-btn--ghost bc-danger" disabled={Boolean(busy)} onClick={() => void power("kill")}>
-                <Skull size={14} /> Force stop
-              </button>
-            ) : (
-              <button type="button" className="adm-btn adm-btn--small adm-btn--ghost bc-danger" disabled={Boolean(busy) || server.state === "offline"} onClick={() => void power("stop")}>
-                <Square size={14} /> {busy === "stop" ? "Stopping…" : "Stop"}
-              </button>
-            )}
-          </div>
+          ) : null}
         </div>
-        {msg ? (
-          <p className={msg.ok ? "bc-msg is-ok" : "bc-msg is-err"} role="status">
-            {msg.text}
-          </p>
-        ) : null}
+      ) : null}
+    </div>
+  );
+}
 
-        <ConsoleView key={server.key} serverKey={server.key} name={server.name} state={server.state} />
+function AdviceRow({ a }: { a: Advice }) {
+  return (
+    <p className={`bc-advice is-${a.tone}`}>
+      <b>{a.title}</b> {a.text}
+    </p>
+  );
+}
 
-        <div className="adm-card bc-history">
-          <h3>
-            <Power size={15} aria-hidden="true" /> Recent start / stop / restart
-          </h3>
-          {data.actions.length ? (
-            <ol>
-              {data.actions.map((a, i) => (
-                <li key={i}>
-                  <time>{a.at ? timeAgo(a.at) : ""}</time>
-                  <span>
-                    <b>{a.by || "Someone"}</b> {a.ok ? SIGNAL_TEXT[a.signal]?.toLowerCase() ?? a.signal : `tried to ${a.signal}`} the <b>{data.servers.find((s) => s.key === a.server)?.name ?? a.server}</b>
-                  </span>
-                  {a.ok ? null : <small className="bc-msg is-err">{a.error}</small>}
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <p className="adm-muted">Nothing yet. Actions from here are listed with who did them.</p>
-          )}
-        </div>
+/** A small line chart: the average, a faint band up to the peak, and the limit as a dashed line. */
+function LineChart({ title, points, value, peak, limit, format, color }: { title: string; points: HealthPoint[]; value: (p: HealthPoint) => number | null; peak?: (p: HealthPoint) => number | null; limit?: number | null; format: (v: number) => string; color: string }) {
+  const W = 600;
+  const H = 120;
+  const vals = points.map(value);
+  const peaks = peak ? points.map(peak) : vals;
+  const all = [...vals, ...peaks].filter((v): v is number => typeof v === "number");
+  if (!all.length) return null;
+  const max = Math.max(...all, limit ?? 0) * 1.08 || 1;
+  const x = (i: number) => (i / Math.max(1, points.length - 1)) * W;
+  const y = (v: number) => H - (v / max) * H;
+  const path = (list: (number | null)[]) => list.map((v, i) => (v === null ? "" : `${i === 0 || list[i - 1] === null ? "M" : "L"}${x(i).toFixed(1)},${y(v).toFixed(1)}`)).join("");
+  const latest = [...vals].reverse().find((v) => v !== null) ?? null;
+  const highest = Math.max(...all);
+  return (
+    <figure className="bc-chart">
+      <figcaption>
+        <b>{title}</b>
+        <span>
+          now {latest === null ? "—" : format(latest)} · peak {format(highest)}
+          {limit ? ` · limit ${format(limit)}` : ""}
+        </span>
+      </figcaption>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label={`${title} over time`}>
+        {peak ? <path d={path(peaks)} fill="none" stroke={color} strokeOpacity="0.3" strokeWidth="1.5" vectorEffect="non-scaling-stroke" /> : null}
+        <path d={path(vals)} fill="none" stroke={color} strokeWidth="2" vectorEffect="non-scaling-stroke" />
+        {limit && limit <= max ? <line x1="0" x2={W} y1={y(limit)} y2={y(limit)} stroke="#ef4444" strokeDasharray="6 5" strokeWidth="1.5" vectorEffect="non-scaling-stroke" /> : null}
+      </svg>
+      <div className="bc-chart-axis">
+        <span>{new Date(points[0].t).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric" })}</span>
+        <span>{new Date(points[points.length - 1].t).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric" })}</span>
       </div>
-    </section>
+    </figure>
   );
 }
 
@@ -315,7 +584,7 @@ function SetupCard() {
       </span>
       <div>
         <h3>Connect SparkedHost</h3>
-        <p className="adm-muted">The consoles and power buttons use SparkedHost&apos;s panel API. This tab replaces the Discord console channel and /restartsystem. To turn it on:</p>
+        <p className="adm-muted">The live consoles and the start / restart / stop buttons use SparkedHost&apos;s panel API (Issues and Resources below already work: the bots report those themselves). To turn it on:</p>
         <ol>
           <li>
             On <b>control.sparkedhost.us</b>, open <b>Account → API Credentials</b> and create a new key (description e.g. “Website consoles”).
