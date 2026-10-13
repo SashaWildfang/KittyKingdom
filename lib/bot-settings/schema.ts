@@ -337,7 +337,7 @@ const ECONOMY: BotDef = {
         { key: "voice.leavesPerMinute", label: "Leaves per minute", help: "Before multipliers.", type: "number", default: 4, min: 0, max: 1000 },
         { key: "voice.xpPerMinute", label: "XP per minute", help: "Before multipliers.", type: "number", default: 5, min: 0, max: 1000 },
         { key: "voice.notifyChannel", label: "Earnings channel", help: "Where members are told what a voice session earned.", type: "channel", default: "1358485891361804358" },
-        { key: "voice.logChannel", label: "Voice log channel", help: "Staff log of joins, leaves and moves.", type: "channel", default: "1503203701580365974" },
+        { key: "voice.logChannel", label: "Voice log channel", help: "Staff log of joins, leaves and moves. Goes to the bot logs; the website's Logs tab sorts them under VC logs.", type: "channel", default: "1360344042705256660" },
         { key: "voice.afkChannel", label: "AFK channel", help: "Muted or deafened members are moved here.", type: "channel", channelKind: "voice", default: "1503213751862820984" },
         { key: "voice.afkMinutes", label: "Move to AFK after", help: "How long someone can stay muted or deafened first.", type: "number", default: 5, min: 1, max: 240, unit: "minutes" },
         {
