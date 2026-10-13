@@ -20,6 +20,8 @@ const frameProtection = [
 
 const nextConfig = {
   poweredByHeader: false,
+  // The bot consoles (lib/bot-console.ts) use ws on the server; keep it out of the bundle (its optional native add-ons)
+  experimental: { serverComponentsExternalPackages: ["ws"] },
   // Dating became "Social" (dates and friends): old links keep working
   async redirects() {
     return [
