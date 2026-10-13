@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Crown } from "lucide-react";
+import "./store.css";
 import { supporterDiscount } from "../../lib/store";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "../../lib/auth";
@@ -90,16 +90,7 @@ export default async function StorePage() {
         </section>
       ) : (
         <>
-          {discount ? (
-            <p className="store-supporter-discount">
-              <Crown size={16} aria-hidden="true" /> <b>Supporter discount: {Math.round(discount * 100)}% off</b> everything, taken off automatically when you buy. Thank you for supporting Kitty Kingdom!
-            </p>
-          ) : (
-            <p className="store-supporter-discount is-upsell">
-              <Crown size={16} aria-hidden="true" /> Patreon supporters save <b>5–15%</b> on everything in the Store. <a href="/patreon">See the perks</a>
-            </p>
-          )}
-          <StoreClient initialState={state} />
+          <StoreClient initialState={state} discount={discount} />
         </>
       )}
     </main>
