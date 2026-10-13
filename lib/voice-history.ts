@@ -145,11 +145,12 @@ const cache = new Map<string, { at: number; value: VoiceHistory }>();
 export async function voiceHistory(userId: string): Promise<VoiceHistory> {
   const hit = cache.get(userId);
   if (hit && Date.now() - hit.at < 20_000) return hit.value;
-  await Promise.all([syncLogChannel("vc").catch(() => undefined), syncVcRewards().catch(() => undefined)]);
+  await Promise.all([syncLogChannel("bot").catch(() => undefined), syncVcRewards().catch(() => undefined)]);
 
   const d = await db();
   const [logs, mine, withMe] = await Promise.all([
-    d.collection("bot_logs").find({ channel: "vc", subjectId: userId }, { projection: { ts: 1, type: 1, description: 1 } }).sort({ ts: 1 }).toArray(),
+    // Voice logs: the old vc-logs channel, and the bot logs channel since October 2026
+    d.collection("bot_logs").find({ $or: [{ channel: "vc" }, { category: "voice" }], subjectId: userId }, { projection: { ts: 1, type: 1, description: 1 } }).sort({ ts: 1 }).toArray(),
     d.collection<Reward>("vc_rewards").find({ userId }).toArray(),
     d.collection<Reward>("vc_rewards").find({ with: userId }).toArray(),
   ]);

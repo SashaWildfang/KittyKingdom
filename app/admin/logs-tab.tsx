@@ -1,7 +1,7 @@
 "use client";
 
-import { ArrowRight, Bot, Gem, MessageCircle, Mic, Package, Paperclip, ScanSearch, ScrollText, Search, Shield, Ticket, TrendingUp, User, UserRound, X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Activity, ArrowRight, Bot, Brush, ChevronDown, Dices, Gem, MessageCircle, Mic, Package, Paperclip, ScrollText, Search, Shield, Ticket, TrendingUp, User, UserRound, X } from "lucide-react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LiveBadge, MemberSearch, PersonLink, RANGES, RichText, formatDate, timeAgo, useStored, type Mentions, type People } from "./admin-shared";
 
 type LogEntry = {
@@ -37,12 +37,37 @@ const CATEGORIES = [
   { key: "messages", label: "Messages", icon: MessageCircle },
   { key: "members", label: "Member updates", icon: UserRound },
   { key: "moderation", label: "Moderation", icon: Shield },
+  { key: "cleanup", label: "Cleanup & archives", icon: Brush },
   { key: "tickets", label: "Tickets", icon: Ticket },
   { key: "economy", label: "Levels & economy", icon: TrendingUp },
+  { key: "fun", label: "Games & fun", icon: Dices },
   { key: "boosts", label: "Boosts & bumps", icon: Gem },
-  { key: "system", label: "Scans & system", icon: ScanSearch },
+  { key: "system", label: "Bot status & scans", icon: Activity },
   { key: "other", label: "Other", icon: Package },
 ];
+
+// Back-to-back logs of the same kind about the same member (a burst of role changes, avatar swaps, VC hops)
+// fold into one card with "+N more"
+const GROUP_GAP_MS = 15 * 60_000;
+type LogGroup = { head: LogEntry; rest: LogEntry[] };
+function groupRuns(items: LogEntry[]): LogGroup[] {
+  const out: LogGroup[] = [];
+  for (const log of items) {
+    const last = out[out.length - 1];
+    const prev = last ? (last.rest.length ? last.rest[last.rest.length - 1] : last.head) : null;
+    if (
+      last &&
+      prev &&
+      log.type === last.head.type &&
+      log.subjectId &&
+      log.subjectId === last.head.subjectId &&
+      Math.abs(new Date(prev.ts).getTime() - new Date(log.ts).getTime()) <= GROUP_GAP_MS
+    )
+      last.rest.push(log);
+    else out.push({ head: log, rest: [] });
+  }
+  return out;
+}
 
 function attachmentKind(a: { kind?: string; image: boolean; filename: string }) {
   if (a.kind) return a.kind;
@@ -104,6 +129,7 @@ export function LogsTab({ onOpenMember }: { onOpenMember: (id: string) => void }
   const [openCats, setOpenCats] = useStored<string[]>("logs-open-cats", []);
   const [showRare, setShowRare] = useState<string[]>([]);
   const [hasMore, setHasMore] = useState(true);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const request = useRef(0);
   const itemsRef = useRef<LogEntry[]>([]);
   itemsRef.current = items;
@@ -206,6 +232,7 @@ export function LogsTab({ onOpenMember }: { onOpenMember: (id: string) => void }
     const list = types.filter((t) => (t.category || "other") === c.key);
     return { ...c, list, total: list.reduce((n, t) => n + t.count, 0) };
   }).filter((c) => c.list.length);
+  const groups = useMemo(() => groupRuns(items), [items]);
   const activeCount = filters.types.length + (filters.categories?.length ?? 0) + (filters.member ? 1 : 0) + (filters.search ? 1 : 0) + (filters.range !== "all" ? 1 : 0);
 
   return (
@@ -372,9 +399,38 @@ export function LogsTab({ onOpenMember }: { onOpenMember: (id: string) => void }
         {error ? <p className="adm-error">{error}</p> : null}
 
         <ol className="adm-logfeed">
-          {items.map((log) => (
-            <LogCard key={log.id} log={log} people={people} mentions={mentions} fresh={fresh.has(log.id)} onOpenMember={onOpenMember} onType={(t) => setFilters((f) => ({ ...f, types: [t] }))} />
-          ))}
+          {groups.map(({ head, rest }) => {
+            const open = expanded.has(head.id);
+            const card = (log: LogEntry) => (
+              <LogCard key={log.id} log={log} people={people} mentions={mentions} fresh={fresh.has(log.id)} onOpenMember={onOpenMember} onType={(t) => setFilters((f) => ({ ...f, types: [t] }))} />
+            );
+            return (
+              <Fragment key={head.id}>
+                {card(head)}
+                {rest.length ? (
+                  <li className="adm-log-more">
+                    <button
+                      type="button"
+                      aria-expanded={open}
+                      onClick={() =>
+                        setExpanded((set) => {
+                          const next = new Set(set);
+                          if (next.has(head.id)) next.delete(head.id);
+                          else next.add(head.id);
+                          return next;
+                        })
+                      }
+                    >
+                      <ChevronDown size={14} aria-hidden="true" className={open ? "is-open" : undefined} />
+                      {open ? "Hide" : `+${rest.length} more`} {head.type.toLowerCase()} for {people[head.subjectId ?? ""]?.name ?? "this member"}
+                      <small>within {Math.max(1, Math.round((new Date(head.ts).getTime() - new Date(rest[rest.length - 1].ts).getTime()) / 60_000))} min</small>
+                    </button>
+                  </li>
+                ) : null}
+                {open ? rest.map(card) : null}
+              </Fragment>
+            );
+          })}
           {loading && !items.length
             ? Array.from({ length: 5 }, (_, i) => <li key={i} className="adm-log adm-log--skeleton" aria-hidden="true" />)
             : null}
@@ -417,7 +473,7 @@ function LogCard({
     <li className={`adm-log${fresh ? " is-fresh" : ""}`} style={{ "--c": log.color ?? "#8b8d98" } as React.CSSProperties}>
       <div className="adm-log-head">
         <button type="button" className="adm-log-type" onClick={() => onType(log.type)} title="Show only this type">
-          {log.channel === "vc" ? <Mic size={12} aria-hidden="true" /> : null}
+          {log.channel === "vc" || log.category === "voice" ? <Mic size={12} aria-hidden="true" /> : null}
           {log.type}
         </button>
         {log.subjectId ? <PersonLink id={log.subjectId} people={people} onOpen={onOpenMember} compact /> : null}

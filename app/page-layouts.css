@@ -189,3 +189,25 @@ html body .adm-date-range { display: inline-flex; flex-wrap: wrap; align-items: 
 html body .adm-date-range label { display: inline-flex; align-items: center; gap: 0.35rem; color: var(--muted); font-size: 0.82rem; font-weight: 700; }
 html body .adm-date-range input { color-scheme: dark; }
 :root[data-theme="light"] body .adm-date-range input { color-scheme: light; }
+
+/* Admin → Logs: "+N more" under a burst of the same log about the same member */
+html body .adm-log-more { margin-top: -0.35rem; list-style: none; }
+html body .adm-log-more button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: 1.1rem;
+  border: 1px dashed var(--line);
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.3rem 0.8rem;
+}
+html body .adm-log-more button:hover { border-color: var(--ember); color: var(--text); }
+html body .adm-log-more small { font-weight: 500; opacity: 0.75; }
+html body .adm-log-more svg { transition: transform 0.15s ease; }
+html body .adm-log-more svg.is-open { transform: rotate(180deg); }
