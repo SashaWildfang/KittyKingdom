@@ -209,6 +209,9 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false }: { admin
     // The Staff Guide keeps its section in the link
     const section = new URLSearchParams(window.location.search).get("section");
     if (tab === "guide" && section) params.set("section", section);
+    // A bell alert's link to one bot's console issues
+    const bot = new URLSearchParams(window.location.search).get("bot");
+    if (tab === "bot-console" && bot) params.set("bot", bot);
     window.history.replaceState(null, "", `/admin?${params}`);
   }, [tab, member, transcript, urlRead, chat]);
 
