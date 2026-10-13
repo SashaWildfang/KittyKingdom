@@ -514,12 +514,11 @@ export const COMMAND_GROUPS: CommandGroup[] = [
     key: "setup",
     title: "Server setup",
     icon: "settings",
-    about: "Reposting the server's panels and keeping the bots running.",
+    about: "Reposting the server's panels and cleaning up messages. To restart a bot or read its console, use Admin → Bots → Consoles on the website.",
     commands: [
       { cmd: "/deploy_roles · /deploy_nsfw_roles", what: "Repost the role selector galleries.", min: "Admin", examples: ["/deploy_roles"] },
       { cmd: "/discord create_support_panel · create_staff_panel · create_nsfw_panel", what: "Repost the ticket panels.", min: "Admin", examples: ["/discord create_support_panel"] },
       { cmd: "/qotd_post", what: "Post a Question of the Day now.", min: "Admin", examples: ["/qotd_post"] },
-      { cmd: "/restartsystem bot_name [reason]", what: "Restart one of the bots on the host.", min: "Admin", examples: ["/restartsystem bot_name:Moderation System reason:Not responding"] },
       { cmd: "/wipe user_id", what: "Delete every message from a user (in the server or not). Runs in the background and posts a log with an archive of their messages and media.", min: "Admin", examples: ["/wipe user_id:123456789012345678"] },
       { cmd: "/cleanup status", what: "Progress of the leaver cleanup: how much history is scanned, what's queued and what's been cleaned.", min: "Admin", examples: ["/cleanup status"] },
       { cmd: "/cleanup deleted", what: "Clean up every Deleted User account's messages now.", min: "Admin", examples: ["/cleanup deleted"] },

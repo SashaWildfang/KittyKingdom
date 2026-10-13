@@ -1,5 +1,6 @@
-// Admin → Bots → Consoles: the bots' SparkedHost servers through the panel's client API (Pterodactyl), the same API
-// the bots use for the Discord console channel and /restartsystem. Needs PTERO_API_KEY (a client key, "ptlc_…",
+// Admin → Bots → Consoles: the bots' SparkedHost servers through the panel's client API (Pterodactyl). This is the
+// only place to read the consoles and start/stop the bots (the Discord console channel and /restartsystem were
+// retired in October 2026). Needs PTERO_API_KEY (a client key, "ptlc_…",
 // from control.sparkedhost.us → Account → API Credentials) in the site's environment; PTERO_PANEL_URL is optional.
 //
 // Server-only.
@@ -28,7 +29,7 @@ export type ServerStatus = {
   error: string | null;
 };
 
-// Server ids from Moderation/cmds/restart_bot.py (not secret: they're useless without the key)
+// SparkedHost server ids (not secret: they're useless without the key)
 export const BOT_SERVERS: BotServer[] = [
   { key: "main", name: "Main Bot", id: "2b11eee5" },
   { key: "moderation", name: "Moderation Bot", id: "92f5ea45" },

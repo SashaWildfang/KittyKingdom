@@ -315,7 +315,7 @@ function SetupCard() {
       </span>
       <div>
         <h3>Connect SparkedHost</h3>
-        <p className="adm-muted">The consoles and power buttons use SparkedHost&apos;s panel API, the same one the bots use for the console channel and /restartsystem. To turn them on:</p>
+        <p className="adm-muted">The consoles and power buttons use SparkedHost&apos;s panel API. This tab replaces the Discord console channel and /restartsystem. To turn it on:</p>
         <ol>
           <li>
             On <b>control.sparkedhost.us</b>, open <b>Account → API Credentials</b> and create a new key (description e.g. “Website consoles”).
