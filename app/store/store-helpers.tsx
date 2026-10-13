@@ -28,6 +28,11 @@ export function maxFor(item: StoreItem) {
   return Math.max(0, Math.min(MAX_BUY, item.stock ?? MAX_BUY, dailyLeft));
 }
 
+/** What a line really costs: Patreon supporters' discount, rounded down per line (the same as lib/store.ts). */
+export function priceFor(price: number, amount: number, discount: number) {
+  return Math.floor(price * amount * (1 - (discount || 0)));
+}
+
 export function Leaf({ size = 18 }: { size?: number }) {
   return <LeafEmote size={size} className="store-leaf" />;
 }

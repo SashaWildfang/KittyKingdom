@@ -7,7 +7,7 @@ import type { InventoryEntry, StoreItem, StoreState } from "../../lib/store";
 import { StoreItemIcon } from "../ui-icons";
 import { Locker } from "./locker";
 import { ItemDrawer, ShopView, type ShopViewKey } from "./shop-view";
-import { ItemVisual, Leaf, formatCountdown, formatDuration, maxFor, swatchStyle, useNow } from "./store-helpers";
+import { ItemVisual, Leaf, formatCountdown, formatDuration, maxFor, priceFor, swatchStyle, useNow } from "./store-helpers";
 import { TradesView } from "./trades";
 import { Celebrate, CountUp } from "./store-fx";
 import { CurrencyName } from "../season-context";
@@ -153,7 +153,7 @@ export function StoreClient({ initialState, inventoryOnly = false, discount = 0 
     .map(([itemId, amount]) => ({ item: itemById.get(itemId), amount }))
     .filter((l): l is { item: StoreItem; amount: number } => Boolean(l.item) && l.amount > 0);
   const cartCount = cartLines.reduce((n, l) => n + l.amount, 0);
-  const cartTotal = cartLines.reduce((n, l) => n + l.item.price * l.amount, 0);
+  const cartTotal = cartLines.reduce((n, l) => n + priceFor(l.item.price, l.amount, discount), 0);
   const setQty = (item: StoreItem, amount: number) =>
     setCart((c) => {
       const next = { ...c };
@@ -261,6 +261,7 @@ export function StoreClient({ initialState, inventoryOnly = false, discount = 0 
       {tab === "shop" ? (
         <ShopView
           state={state}
+          discount={discount}
           now={now}
           cart={cart}
           view={view}
@@ -302,6 +303,7 @@ export function StoreClient({ initialState, inventoryOnly = false, discount = 0 
           now={now}
           busy={busy}
           inCart={cart[modal.item.itemId] ?? 0}
+          discount={discount}
           onClose={() => setModal(null)}
           onBuy={(amount) => void act("/api/store/buy", { itemId: modal.item.itemId, amount })}
           onAddToCart={(amount) => {
@@ -338,7 +340,7 @@ export function StoreClient({ initialState, inventoryOnly = false, discount = 0 
       ) : null}
 
       {cartOpen ? (
-        <CartDrawer lines={cartLines} balance={state.balance} total={cartTotal} busy={busy} onClose={() => setCartOpen(false)} onQty={setQty} onCheckout={() => void checkoutCart()} />
+        <CartDrawer lines={cartLines} balance={state.balance} total={cartTotal} discount={discount} busy={busy} onClose={() => setCartOpen(false)} onQty={setQty} onCheckout={() => void checkoutCart()} />
       ) : null}
 
       <div className="store-toasts" aria-live="polite">
@@ -614,8 +616,9 @@ function GiftModal({ entry, cooldownEndsAt, now, busy, onClose, onSend }: {
 // ==========================================
 // CART
 // ==========================================
-function CartDrawer({ lines, balance, total, busy, onClose, onQty, onCheckout }: {
+function CartDrawer({ lines, balance, total, discount, busy, onClose, onQty, onCheckout }: {
   lines: { item: StoreItem; amount: number }[];
+  discount: number;
   balance: number;
   total: number;
   busy: boolean;
@@ -663,7 +666,7 @@ function CartDrawer({ lines, balance, total, busy, onClose, onQty, onCheckout }:
                     <div className="store-cart-info">
                       <strong>{item.name}</strong>
                       <span className="store-cart-each">
-                        <Leaf size={14} /> {item.price.toLocaleString()} {item.stackable ? "each" : ""}
+                        <Leaf size={14} /> {priceFor(item.price, 1, discount).toLocaleString()} {item.stackable ? "each" : ""}
                       </span>
                       {item.stackable ? (
                         <div className="store-qty-control store-qty-control--small">
@@ -679,7 +682,7 @@ function CartDrawer({ lines, balance, total, busy, onClose, onQty, onCheckout }:
                     </div>
                     <div className="store-cart-side">
                       <b>
-                        <Leaf size={15} /> {(item.price * amount).toLocaleString()}
+                        <Leaf size={15} /> {priceFor(item.price, amount, discount).toLocaleString()}
                       </b>
                       <button type="button" className="store-cart-remove" onClick={() => onQty(item, 0)} aria-label={`Remove ${item.name}`}>
                         <Trash2 size={15} />

@@ -9,7 +9,7 @@ import { Check, ChevronLeft, ChevronRight, Crown, Eye, Flame, Hourglass, LayoutG
 import { RARITY, SLOTS, SLOT_HINT, SLOT_LABELS, SLOT_PLURAL, type CosmeticSlot, type Flair } from "../../lib/cosmetics";
 import type { StoreItem, StoreState } from "../../lib/store";
 import { CosmeticPreview } from "../cosmetic-flair";
-import { CATEGORY_ICONS, CATEGORY_ORDER, ItemVisual, Leaf, MAX_BUY, formatCountdown, maxFor, swatchStyle } from "./store-helpers";
+import { CATEGORY_ICONS, CATEGORY_ORDER, ItemVisual, Leaf, MAX_BUY, formatCountdown, maxFor, priceFor, swatchStyle } from "./store-helpers";
 import { SocialMini } from "./store-fx";
 import { useCurrency } from "../season-context";
 
@@ -23,6 +23,8 @@ const ownedOut = (i: StoreItem) => (isRoleItem(i) || !i.stackable) && i.owned > 
 
 type ShopProps = {
   state: StoreState;
+  /** Patreon supporters' Store discount (0–0.15) */
+  discount: number;
   now: number;
   cart: Record<string, number>;
   view: ShopViewKey;
@@ -31,7 +33,7 @@ type ShopProps = {
   onAdd: (item: StoreItem) => void;
 };
 
-export function ShopView({ state, now, cart, view, onView, onOpen, onAdd }: ShopProps) {
+export function ShopView({ state, discount, now, cart, view, onView, onOpen, onAdd }: ShopProps) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<ShopSort>("featured");
   const [slot, setSlot] = useState<CosmeticSlot | "all">("all");
@@ -47,7 +49,7 @@ export function ShopView({ state, now, cart, view, onView, onOpen, onAdd }: Shop
     if (el && el.getBoundingClientRect().top < 0) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 90, behavior: "smooth" });
   }, [view]);
 
-  const pass = (i: StoreItem) => (!hideOwned || !ownedOut(i)) && (!affordable || i.price <= state.balance);
+  const pass = (i: StoreItem) => (!hideOwned || !ownedOut(i)) && (!affordable || priceFor(i.price, 1, discount) <= state.balance);
   const items = state.items.filter(pass);
   const q = query.trim().toLowerCase();
 
@@ -112,7 +114,7 @@ export function ShopView({ state, now, cart, view, onView, onOpen, onAdd }: Shop
   ];
 
   const card = (item: StoreItem) => (
-    <ShopCard key={item.itemId} item={item} me={state.me} balance={state.balance} now={item.availableUntil && now ? Math.floor(now / 60_000) * 60_000 : 0} inCart={cart[item.itemId] ?? 0} onOpen={() => onOpen(item)} onAdd={() => onAdd(item)} />
+    <ShopCard key={item.itemId} item={item} me={state.me} balance={state.balance} discount={discount} now={item.availableUntil && now ? Math.floor(now / 60_000) * 60_000 : 0} inCart={cart[item.itemId] ?? 0} onOpen={() => onOpen(item)} onAdd={() => onAdd(item)} />
   );
 
   return (
@@ -196,7 +198,7 @@ export function ShopView({ state, now, cart, view, onView, onOpen, onAdd }: Shop
           </>
         ) : (
           <>
-            {drops.length ? <Spotlight items={drops} now={now} me={state.me} flair={state.flair} onOpen={onOpen} /> : null}
+            {drops.length ? <Spotlight items={drops} now={now} me={state.me} flair={state.flair} discount={discount} onOpen={onOpen} /> : null}
             {rails.map((r) =>
               r.items.length ? (
                 <Rail key={r.key} title={r.title} icon={r.icon} sub={r.ends && now ? `New items in ${formatCountdown(new Date(r.ends).getTime() - now)}` : r.sub} onAll={() => onView(r.key)} count={listFor(r.key).length}>
@@ -267,9 +269,9 @@ function Rail({ title, icon, sub, count, onAll, children }: { title: string; ico
 }
 
 // ---------- Item card ----------
-type CardProps = { item: StoreItem; me: StoreState["me"]; balance: number; now: number; inCart: number; onOpen: () => void; onAdd: () => void };
+type CardProps = { item: StoreItem; me: StoreState["me"]; balance: number; discount: number; now: number; inCart: number; onOpen: () => void; onAdd: () => void };
 
-function ShopCardInner({ item, me, balance, now, inCart, onOpen, onAdd }: CardProps) {
+function ShopCardInner({ item, me, balance, discount, now, inCart, onOpen, onAdd }: CardProps) {
   const cur = useCurrency();
   const rarity = RARITY[item.rarity];
   const isRole = isRoleItem(item);
@@ -277,7 +279,8 @@ function ShopCardInner({ item, me, balance, now, inCart, onOpen, onAdd }: CardPr
   const soldOut = item.stock === 0;
   const capped = item.maxOwned !== null && item.owned >= item.maxOwned;
   const limit = Boolean(item.dailyLimit && item.boughtToday >= item.dailyLimit);
-  const short = item.price - balance;
+  const pay = priceFor(item.price, 1, discount);
+  const short = pay - balance;
   const full = inCart > 0 && inCart >= maxFor(item);
   const endsIn = item.availableUntil && now ? new Date(item.availableUntil).getTime() - now : null;
   const ribbon = item.edition ? `${item.stock ?? 0}/${item.edition} left` : item.season ? item.season : item.isNew ? "New" : null;
@@ -290,7 +293,7 @@ function ShopCardInner({ item, me, balance, now, inCart, onOpen, onAdd }: CardPr
 
   return (
     <article className={`sv3-card rarity-${item.rarity}${owned ? " is-owned" : ""}${item.cosmetic ? " is-cosmetic" : ""}`} style={{ "--rarity": rarity.color } as CSSProperties}>
-      <button type="button" className="sv3-card-hit" onClick={onOpen} aria-label={`${item.name}, ${rarity.label}, ${cur.amount(item.price)}. View details`} />
+      <button type="button" className="sv3-card-hit" onClick={onOpen} aria-label={`${item.name}, ${rarity.label}, ${cur.amount(pay)}. View details`} />
       <div className="sv3-card-art" style={isRole ? swatchStyle(item.roleColors) : undefined}>
         {item.cosmetic ? (
           <CosmeticPreview slot={item.cosmetic.slot} cosKey={item.cosmetic.key} me={me} />
@@ -324,7 +327,8 @@ function ShopCardInner({ item, me, balance, now, inCart, onOpen, onAdd }: CardPr
         <div className="sv3-card-foot">
           <span className={`sv3-price${short > 0 && !owned ? " is-short" : ""}`} title={short > 0 && !owned ? `You need ${short.toLocaleString()} more` : undefined}>
             <Leaf size={17} />
-            {item.price.toLocaleString()}
+            {pay.toLocaleString()}
+            {pay < item.price ? <s>{item.price.toLocaleString()}</s> : null}
           </span>
           {status ?? (
             <button
@@ -359,6 +363,7 @@ const ShopCard = memo(ShopCardInner, (a, b) => {
     x.availableUntil === y.availableUntil &&
     a.inCart === b.inCart &&
     a.balance === b.balance &&
+    a.discount === b.discount &&
     a.now === b.now &&
     a.me.name === b.me.name &&
     a.me.avatar === b.me.avatar
@@ -366,7 +371,7 @@ const ShopCard = memo(ShopCardInner, (a, b) => {
 });
 
 // ---------- Spotlight (limited & seasonal) ----------
-function Spotlight({ items, now, me, flair, onOpen }: { items: StoreItem[]; now: number; me: StoreState["me"]; flair: Flair; onOpen: (item: StoreItem) => void }) {
+function Spotlight({ items, now, me, flair, discount, onOpen }: { items: StoreItem[]; now: number; me: StoreState["me"]; flair: Flair; discount: number; onOpen: (item: StoreItem) => void }) {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   useEffect(() => {
@@ -410,7 +415,8 @@ function Spotlight({ items, now, me, flair, onOpen }: { items: StoreItem[]; now:
           </button>
           <span className="sv3-price is-big">
             <Leaf size={22} />
-            {item.price.toLocaleString()}
+            {priceFor(item.price, 1, discount).toLocaleString()}
+            {discount ? <s>{item.price.toLocaleString()}</s> : null}
           </span>
         </div>
       </div>
@@ -435,7 +441,7 @@ function Spotlight({ items, now, me, flair, onOpen }: { items: StoreItem[]; now:
 }
 
 // ---------- Item drawer ----------
-export function ItemDrawer({ item, state, now, busy, inCart, onClose, onBuy, onAddToCart }: { item: StoreItem; state: StoreState; now: number; busy: boolean; inCart: number; onClose: () => void; onBuy: (amount: number) => void; onAddToCart: (amount: number) => void }) {
+export function ItemDrawer({ item, state, now, busy, inCart, discount, onClose, onBuy, onAddToCart }: { item: StoreItem; state: StoreState; now: number; busy: boolean; inCart: number; discount: number; onClose: () => void; onBuy: (amount: number) => void; onAddToCart: (amount: number) => void }) {
   const cur = useCurrency();
   const rarity = RARITY[item.rarity];
   const isRole = isRoleItem(item);
@@ -444,10 +450,12 @@ export function ItemDrawer({ item, state, now, busy, inCart, onClose, onBuy, onA
   const capped = item.maxOwned !== null && item.owned >= item.maxOwned;
   const dailyLeft = item.dailyLimit ? Math.max(item.dailyLimit - item.boughtToday, 0) : MAX_BUY;
   const room = Math.max(0, maxFor(item) - inCart);
-  const maxAmount = item.stackable ? Math.max(1, Math.min(MAX_BUY, item.stock ?? MAX_BUY, dailyLeft, Math.floor(state.balance / Math.max(item.price, 1)) || 1)) : 1;
+  const each = priceFor(item.price, 1, discount);
+  const maxAmount = item.stackable ? Math.max(1, Math.min(MAX_BUY, item.stock ?? MAX_BUY, dailyLeft, Math.floor(state.balance / Math.max(each, 1)) || 1)) : 1;
   const [amount, setAmount] = useState(1);
   const [compare, setCompare] = useState(false);
-  const total = item.price * amount;
+  const listTotal = item.price * amount;
+  const total = priceFor(item.price, amount, discount);
   const short = total - state.balance;
   const endsIn = item.availableUntil && now ? new Date(item.availableUntil).getTime() - now : null;
   const blocked = owned ? "You already own this." : soldOut ? "Sold out." : capped ? "You have the most you can own." : dailyLeft <= 0 ? "You've bought the most you can today." : null;
@@ -547,9 +555,17 @@ export function ItemDrawer({ item, state, now, busy, inCart, onClose, onBuy, onA
             <div>
               <dt>Price{amount > 1 ? ` (${amount} × ${item.price.toLocaleString()})` : ""}</dt>
               <dd>
-                − {total.toLocaleString()} <Leaf size={15} />
+                − {listTotal.toLocaleString()} <Leaf size={15} />
               </dd>
             </div>
+            {total < listTotal ? (
+              <div className="is-saving">
+                <dt>Supporter discount ({Math.round(discount * 100)}%)</dt>
+                <dd>
+                  + {(listTotal - total).toLocaleString()} <Leaf size={15} />
+                </dd>
+              </div>
+            ) : null}
             <div className={short > 0 ? "is-short" : "is-total"}>
               <dt>{short > 0 ? "You need" : "Left after"}</dt>
               <dd>

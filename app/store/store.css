@@ -404,3 +404,8 @@ html body .sv3-drawer-body h2 { max-width: none; margin: 0; font-size: 1.55rem; 
   .sv3-spot-copy,
   .sv3-spot-stage { animation: none; transition: none; }
 }
+
+/* Supporter discount: the price they pay, with the list price struck through */
+.sv3-price s { color: var(--muted); font-size: 0.75em; font-weight: 700; opacity: 0.8; }
+.sv3-receipt .is-saving { color: #22c55e; }
+.sv3-receipt .is-saving dt { color: #22c55e; }
