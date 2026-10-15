@@ -6,6 +6,7 @@
 //                              status pending|posted|ended|failed, messageId, channelId, postedAt, expiresAt,
 //                              results[{text, votes, voters[]}], totalVotes, endRequested, deleted, error}
 //   Member polls from #polls (Maple Grove) are copied in by the bot too: source "community", authorId, authorName.
+//   Polls staff post straight in the event polls channel in Discord are copied in as event polls (discordMade: true).
 //   zeo_bot.event_poll_votes  {pollId, discordId, answers[index], at}, one per member voting on the website
 
 import { ObjectId, type Document } from "mongodb";
@@ -20,8 +21,10 @@ export type EventPoll = {
   answers: { text: string; emoji: string | null; emojiUrl: string | null; votes: number }[];
   hours: number;
   multiple: boolean;
-  /** "event": written in Admin → Events. "community": a member's poll from #polls */
+  /** "event": written in Admin → Events, or posted straight in the event polls channel. "community": a member's poll from #polls */
   source: "event" | "community";
+  /** Posted in Discord by a person (not through the website): only they can end it early */
+  discordMade: boolean;
   authorName: string | null;
   eventId: string | null;
   ping: boolean;
@@ -114,6 +117,7 @@ function toPoll(d: Document, web: WebVote[] = []): EventPoll {
     hours: Number(d.hours ?? 24),
     multiple: Boolean(d.multiple),
     source: d.source === "community" ? "community" : "event",
+    discordMade: Boolean(d.discordMade),
     authorName: d.authorName ? String(d.authorName) : null,
     eventId: d.eventId ? String(d.eventId) : null,
     ping: Boolean(d.ping),
@@ -159,6 +163,7 @@ export async function publicPolls(discordId: string | null): Promise<PublicPoll[
       answers: p.answers,
       multiple: p.multiple,
       source: p.source,
+      discordMade: p.discordMade,
       authorName: p.authorName,
       eventId: p.eventId,
       totalVotes: p.totalVotes,
@@ -220,8 +225,8 @@ export async function createPoll(raw: Record<string, unknown>, by: string) {
 
 export async function endPoll(id: string) {
   if (!ObjectId.isValid(id)) throw new EventError("Unknown poll.", 404);
-  const res = await (await pollsCol()).updateOne({ _id: new ObjectId(id), status: "posted", source: { $ne: "community" } }, { $set: { endRequested: true } });
-  if (!res.matchedCount) throw new EventError("That poll isn't running (member polls can only be ended by whoever made them).");
+  const res = await (await pollsCol()).updateOne({ _id: new ObjectId(id), status: "posted", source: { $ne: "community" }, discordMade: { $ne: true } }, { $set: { endRequested: true } });
+  if (!res.matchedCount) throw new EventError("That poll isn't running, or it was posted in Discord by someone (Discord only lets whoever posted it end it early).");
 }
 
 export async function deletePoll(id: string) {
@@ -229,8 +234,9 @@ export async function deletePoll(id: string) {
   const col = await pollsCol();
   const doc = await col.findOne({ _id: new ObjectId(id) });
   if (!doc) return;
-  // A member's poll stays in Discord; it's just taken off the website
-  if (doc.source === "community") {
+  // A poll someone posted in Discord (a member's in #polls, or staff's in the event polls channel) stays there; it's just
+  // taken off the website
+  if (doc.source === "community" || doc.discordMade) {
     await col.updateOne({ _id: doc._id }, { $set: { hidden: true } });
     return;
   }
