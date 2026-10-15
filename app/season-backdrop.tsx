@@ -1,30 +1,22 @@
 "use client";
 
-// The page backdrop behind every page: soft glows in the season's colors, a faint pattern of Bear Nation
-// motifs (paws, crowns, sparkles and the season's own shape) and drifting particles for the season
-// (leaves in autumn, snow in winter, butterflies and petals in spring, bubbles in summer).
+// The page backdrop behind every page: a folded-tile geometric pattern in the season's colors (app/fold-pattern.tsx),
+// soft glows over it, and drifting particles for the season (fireflies by default, snow in winter, butterflies and
+// petals in spring, bubbles in summer).
 // Colors and pattern come from app/seasons.css + app/glass.css; Admin → Overview → Seasons turns the particles down or off.
 
 import "./seasons.css";
 import { useEffect, useRef } from "react";
 import { useSeason } from "./season-context";
+import { FoldPattern } from "./fold-pattern";
 import type { SeasonKey } from "../lib/seasons";
 
 // ---------------------------------------------------------------- particles (one canvas)
-/** Path2D only exists in the browser, so the leaf shapes are built on first use. */
-function lazyPath(d: string) {
-  let p: Path2D | null = null;
-  return { get: () => (p ??= new Path2D(d)) };
-}
-const MAPLE = lazyPath(
-  "M50 4 L57 21 L68 15 L64 37 L80 29 L76 41 L96 45 L82 55 L88 63 L64 63 L66 76 L53 69 L52 94 L48 94 L47 69 L34 76 L36 63 L12 63 L18 55 L4 45 L24 41 L20 29 L36 37 L32 15 L43 21 Z",
-);
-const OAK = lazyPath("M50 5 C74 22 80 52 53 82 L52 95 L48 95 L47 82 C20 52 26 22 50 5 Z");
-
 type P = { x: number; y: number; vx: number; vy: number; size: number; rot: number; vr: number; phase: number; color: string; kind: number; life?: number };
 
 const PALETTES: Record<SeasonKey, string[]> = {
-  fall: ["#c0392b", "#e25822", "#f39c12", "#d35400", "#b5651d", "#e1a33b", "#9b2d1a", "#f5b041"],
+  // Fireflies in the bear flag's warm tones
+  fall: ["#fedd63", "#ffe9a3", "#f5a623", "#fee6b8"],
   winter: ["#ffffff", "#eaf6ff", "#d6ecff", "#ffffff"],
   spring: ["#f9a8d4", "#f472b6", "#c4b5fd", "#fde68a", "#93c5fd", "#fbcfe8"],
   summer: ["#bdf2ff", "#e0fbff", "#ffffff", "#ffe08a"],
@@ -34,7 +26,8 @@ function spawn(season: SeasonKey, w: number, h: number, initial: boolean): P {
   const r = Math.random;
   const colors = PALETTES[season];
   const base: P = { x: r() * w, y: initial ? r() * h : -30, vx: 0, vy: 0, size: 0, rot: r() * Math.PI * 2, vr: 0, phase: r() * Math.PI * 2, color: colors[Math.floor(r() * colors.length)], kind: 0 };
-  if (season === "fall") return { ...base, vx: -0.2 + r() * 0.4, vy: 0.5 + r() * 0.7, size: 14 + r() * 16, vr: (r() - 0.5) * 0.03, kind: r() < 0.6 ? 0 : 1 };
+  // Fireflies: drift slowly in the lower part of the screen, glowing on and off
+  if (season === "fall") return { ...base, y: initial ? h * (0.25 + r() * 0.75) : h + 10, vx: (r() - 0.5) * 0.35, vy: -(0.05 + r() * 0.22), size: 1.6 + r() * 2.2, kind: 0 };
   if (season === "winter") return { ...base, vx: -0.15 + r() * 0.3, vy: 0.3 + r() * 0.8, size: 1.5 + r() * 3.5, vr: (r() - 0.5) * 0.01, kind: r() < 0.12 ? 1 : 0 };
   if (season === "spring") {
     const butterfly = r() < 0.3;
@@ -53,13 +46,17 @@ function draw(ctx: CanvasRenderingContext2D, season: SeasonKey, p: P, t: number)
   ctx.save();
   ctx.translate(p.x, p.y);
   if (season === "fall") {
-    ctx.rotate(p.rot);
-    const s = p.size / 100;
-    ctx.scale(s * Math.cos(t * 0.002 + p.phase), s);
-    ctx.translate(-50, -50);
-    ctx.fillStyle = p.color;
-    ctx.globalAlpha = 0.85;
-    ctx.fill((p.kind ? OAK : MAPLE).get());
+    // A firefly: a soft glow that pulses
+    const pulse = 0.35 + 0.65 * Math.max(0, Math.sin(t * 0.0016 + p.phase * 3));
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, p.size * 4);
+    g.addColorStop(0, p.color);
+    g.addColorStop(0.25, p.color);
+    g.addColorStop(1, "rgba(254,221,99,0)");
+    ctx.globalAlpha = pulse * 0.9;
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(0, 0, p.size * 4, 0, Math.PI * 2);
+    ctx.fill();
   } else if (season === "winter") {
     ctx.globalAlpha = 0.85;
     if (p.kind) {
@@ -165,7 +162,7 @@ function Particles({ season, amount }: { season: SeasonKey; amount: "full" | "li
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
     resize();
-    const perArea = { fall: 26, winter: 90, spring: 30, summer: 34 }[season];
+    const perArea = { fall: 34, winter: 90, spring: 30, summer: 34 }[season];
     const count = Math.round(perArea * Math.min(1.4, (w * h) / (1440 * 900)) * (amount === "light" ? 0.45 : 1));
     const ps: P[] = Array.from({ length: count }, () => spawn(season, w, h, true));
     let frame = 0;
@@ -178,7 +175,7 @@ function Particles({ season, amount }: { season: SeasonKey; amount: "full" | "li
         const p = ps[i];
         if (!still) {
           const sway = Math.sin(now * 0.001 + p.phase);
-          p.x += (p.vx + (season === "fall" || season === "winter" ? sway * 0.35 : 0)) * dt;
+          p.x += (p.vx + (season === "winter" ? sway * 0.35 : season === "fall" ? sway * 0.25 : 0)) * dt;
           p.y += (p.vy + (season === "spring" && p.kind ? Math.sin(now * 0.003 + p.phase) * 0.6 : 0)) * dt;
           p.rot += p.vr * dt;
           if (p.life !== undefined) p.life += dt;
@@ -213,8 +210,8 @@ export function SeasonBackdrop() {
   const season = useSeason();
   return (
     <div className="sb" data-season-backdrop={season.key} aria-hidden="true">
+      <FoldPattern />
       <div className="sb-mesh" />
-      <div className="sb-pattern" />
       {season.particles !== "off" ? <Particles season={season.key} amount={season.particles} /> : null}
     </div>
   );
