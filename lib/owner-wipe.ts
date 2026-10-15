@@ -19,64 +19,77 @@ export class WipeError extends Error {
   }
 }
 
-type Step = { db: "website" | "bot"; collection: string; label: string; filter: Filter<Document> };
+export type Step = { db: "website" | "bot"; collection: string; label: string; filter: Filter<Document> };
+/** What kind of data a step holds (the Database manager's cleanup lets you pick) */
+export type StepKind = "economy" | "history" | "activity" | "social" | "website" | "directory";
+export type MemberStep = Step & { kind: StepKind };
 
-/** Every form the id is stored in (text in some collections, a 64-bit number in others). */
-function idForms(discordId: string) {
-  return { $in: [discordId, Long.fromString(discordId)] } as unknown as Document;
+/** Every form the ids are stored in (text in some collections, a 64-bit number in others). */
+export function idForms(discordIds: string | string[]) {
+  const list = Array.isArray(discordIds) ? discordIds : [discordIds];
+  return { $in: [...list, ...list.map((id) => Long.fromString(id))] } as unknown as Document;
 }
 
 async function website() {
   return (await getMongoClient()).db(process.env.MONGODB_DB ?? "website");
 }
 
+/** Everything stored about these members outside their website account (which needs its own steps). */
+export function memberSteps(discordIds: string[]): MemberStep[] {
+  const ids = idForms(discordIds);
+  const text = { $in: discordIds } as Document;
+  return [
+    // Website
+    { kind: "website", db: "website", collection: "notifications", label: "Notifications", filter: { $or: [{ to: text }, { actor: text }] } },
+    { kind: "website", db: "website", collection: "badge_history", label: "Badge history", filter: { _id: text } as Document },
+    { kind: "website", db: "website", collection: "news_reads", label: "News read marks", filter: { _id: text } as Document },
+    { kind: "social", db: "website", collection: "dating_settings", label: "Social settings", filter: { _id: text } as Document },
+    { kind: "social", db: "website", collection: "dating_profile_views", label: "Profile views", filter: { $or: [{ viewer: text }, { viewed: text }] } },
+    { kind: "social", db: "website", collection: "dating_partners", label: "Partner links", filter: { users: text } },
+    { kind: "social", db: "website", collection: "dating_conversations", label: "Social chats", filter: { users: text } },
+    { kind: "social", db: "website", collection: "dating_media.files", label: "Social photos", filter: { "metadata.owner": text } },
+    { kind: "website", db: "website", collection: "admin_prefs", label: "Admin panel preferences", filter: { _id: text } as Document },
+    { kind: "history", db: "website", collection: "vc_rewards", label: "Voice reward history", filter: { userId: text } },
+    { kind: "directory", db: "website", collection: "member_directory", label: "Cached name", filter: { _id: text } as Document },
+    // Bots
+    { kind: "economy", db: "bot", collection: "user_inventory", label: "Inventory", filter: { discordId: ids } },
+    { kind: "history", db: "bot", collection: "store_sales", label: "Store purchases", filter: { buyerId: ids } },
+    { kind: "history", db: "bot", collection: "gift_log", label: "Gifts sent and received", filter: { $or: [{ sender_id: ids }, { recipient_id: ids }] } },
+    { kind: "economy", db: "bot", collection: "gift_cooldowns", label: "Gift cooldown", filter: { _id: ids } },
+    { kind: "economy", db: "bot", collection: "gambling", label: "Gambling stats", filter: { discordId: ids } },
+    { kind: "history", db: "bot", collection: "gambling_logs", label: "Gambling history", filter: { discordId: ids } },
+    { kind: "economy", db: "bot", collection: "wordle", label: "Wordle", filter: { discordId: ids } },
+    { kind: "economy", db: "bot", collection: "qotd", label: "Question of the Day stats", filter: { user_id: ids } },
+    { kind: "history", db: "bot", collection: "qotdAnswers", label: "Question of the Day answers", filter: { user_id: ids } },
+    { kind: "activity", db: "bot", collection: "member_activity", label: "Activity stats", filter: { _id: ids } },
+    { kind: "economy", db: "bot", collection: "temporary_boosters", label: "Active boosters", filter: { $or: [{ discordId: ids }, { user_id: ids }] } },
+    { kind: "social", db: "bot", collection: "profile_drafts", label: "Profile drafts", filter: { _id: ids } },
+    { kind: "social", db: "bot", collection: "dating_profiles", label: "Social profile", filter: { _id: ids } },
+    { kind: "social", db: "bot", collection: "dating_vectors", label: "Matching data", filter: { _id: ids } },
+    { kind: "social", db: "bot", collection: "dating_activity", label: "Like counter", filter: { _id: ids } },
+    { kind: "social", db: "bot", collection: "profile_likes", label: "Likes they received", filter: { _id: ids } },
+    { kind: "social", db: "bot", collection: "profile_passes", label: "Profiles they passed", filter: { _id: ids } },
+    { kind: "social", db: "bot", collection: "dating_matches", label: "Matches", filter: { users: ids } },
+    { kind: "social", db: "bot", collection: "dating_friends", label: "Friends", filter: { users: ids } },
+    { kind: "social", db: "bot", collection: "dating_blocks", label: "Blocks", filter: { $or: [{ blocker: ids }, { blocked: ids }] } },
+  ];
+}
+
 async function plan(discordId: string) {
-  const ids = idForms(discordId);
   const site = await website();
   const account = await site.collection("users").findOne({ discordId }, { projection: { _id: 1 } });
   const accountId = account?._id ?? null;
   const accountIdText = accountId ? String(accountId) : "__none__";
   const steps: Step[] = [
-    // Website
     { db: "website", collection: "users", label: "Website account", filter: { discordId } },
     ...(accountId
       ? ([
           { db: "website", collection: "sessions", label: "Signed-in devices", filter: { userId: accountId } },
           { db: "website", collection: "link_codes", label: "Discord link codes", filter: { userId: accountId } },
+          { db: "website", collection: "news_reads", label: "News read marks (account)", filter: { _id: accountIdText } as Document },
         ] as Step[])
       : []),
-    { db: "website", collection: "notifications", label: "Notifications", filter: { $or: [{ to: discordId }, { actor: discordId }] } },
-    { db: "website", collection: "badge_history", label: "Badge history", filter: { _id: discordId } as Document },
-    { db: "website", collection: "news_reads", label: "News read marks", filter: { _id: { $in: [discordId, accountIdText] } } as Document },
-    { db: "website", collection: "dating_settings", label: "Social settings", filter: { _id: discordId } as Document },
-    { db: "website", collection: "dating_profile_views", label: "Profile views", filter: { $or: [{ viewer: discordId }, { viewed: discordId }] } },
-    { db: "website", collection: "dating_partners", label: "Partner links", filter: { users: discordId } },
-    { db: "website", collection: "dating_conversations", label: "Social chats", filter: { users: discordId } },
-    { db: "website", collection: "dating_media.files", label: "Social photos", filter: { "metadata.owner": { $in: [discordId] } } },
-    { db: "website", collection: "admin_prefs", label: "Admin panel preferences", filter: { _id: discordId } as Document },
-    { db: "website", collection: "vc_rewards", label: "Voice reward history", filter: { userId: discordId } },
-    { db: "website", collection: "member_directory", label: "Cached name", filter: { _id: discordId } as Document },
-    // Bots
-    { db: "bot", collection: "user_inventory", label: "Inventory", filter: { discordId: ids } },
-    { db: "bot", collection: "store_sales", label: "Store purchases", filter: { buyerId: ids } },
-    { db: "bot", collection: "gift_log", label: "Gifts sent and received", filter: { $or: [{ sender_id: ids }, { recipient_id: ids }] } },
-    { db: "bot", collection: "gift_cooldowns", label: "Gift cooldown", filter: { _id: ids } },
-    { db: "bot", collection: "gambling", label: "Gambling stats", filter: { discordId: ids } },
-    { db: "bot", collection: "gambling_logs", label: "Gambling history", filter: { discordId: ids } },
-    { db: "bot", collection: "wordle", label: "Wordle", filter: { discordId: ids } },
-    { db: "bot", collection: "qotd", label: "Question of the Day stats", filter: { user_id: ids } },
-    { db: "bot", collection: "qotdAnswers", label: "Question of the Day answers", filter: { user_id: ids } },
-    { db: "bot", collection: "member_activity", label: "Activity stats", filter: { _id: ids } },
-    { db: "bot", collection: "temporary_boosters", label: "Active boosters", filter: { $or: [{ discordId: ids }, { user_id: ids }] } },
-    { db: "bot", collection: "profile_drafts", label: "Profile drafts", filter: { _id: ids } },
-    { db: "bot", collection: "dating_profiles", label: "Social profile", filter: { _id: ids } },
-    { db: "bot", collection: "dating_vectors", label: "Matching data", filter: { _id: ids } },
-    { db: "bot", collection: "dating_activity", label: "Like counter", filter: { _id: ids } },
-    { db: "bot", collection: "profile_likes", label: "Likes they received", filter: { _id: ids } },
-    { db: "bot", collection: "profile_passes", label: "Profiles they passed", filter: { _id: ids } },
-    { db: "bot", collection: "dating_matches", label: "Matches", filter: { users: ids } },
-    { db: "bot", collection: "dating_friends", label: "Friends", filter: { users: ids } },
-    { db: "bot", collection: "dating_blocks", label: "Blocks", filter: { $or: [{ blocker: ids }, { blocked: ids }] } },
+    ...memberSteps([discordId]),
   ];
   return { steps, accountId };
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { TicketDeletePermissions } from "./delete-ticket-button";
-import { Activity, Archive, AtSign, CalendarDays, Gift, SunSnow, BarChart3, Bot, Coins, History, Megaphone, Server, Shield as ShieldIcon, BookOpen, Crown, Hammer, ClipboardCheck, ListChecks, TerminalSquare, Dices, Gavel, Globe, HeartHandshake, Mail, MessagesSquare, Newspaper, Scale, ScrollText, ShieldCheck, Ticket, Users, type LucideIcon } from "lucide-react";
+import { Activity, Archive, AtSign, Database, CalendarDays, Gift, SunSnow, BarChart3, Bot, Coins, History, Megaphone, Server, Shield as ShieldIcon, BookOpen, Crown, Hammer, ClipboardCheck, ListChecks, TerminalSquare, Dices, Gavel, Globe, HeartHandshake, Mail, MessagesSquare, Newspaper, Scale, ScrollText, ShieldCheck, Ticket, Users, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AccountsTab } from "./accounts-tab";
@@ -20,6 +20,7 @@ import { GuideTab } from "./guide-tab";
 import { BanRequestsTab } from "./ban-requests-tab";
 import { NewsTab } from "./news-tab";
 import { PatreonTab } from "./patreon-tab";
+import { DatabaseTab } from "./database-tab";
 import { EmailsTab } from "./emails-tab";
 import { AdsTab } from "./ads-tab";
 import { TabBoundary } from "./tab-boundary";
@@ -39,7 +40,7 @@ import { DEFAULT_PUNISHMENT_FILTERS, PunishmentsTab, type PunishmentFilters } fr
 import { TicketsTab } from "./tickets-tab";
 import { TranscriptViewer } from "./transcript-viewer";
 
-type Tab = "overview" | "punishments" | "automod" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live" | "join" | "dating" | "appeals" | "messages" | "games" | "guide" | "banrequests" | "patreon" | "emails" | "ads" | "bot-main" | "bot-economy" | "bot-moderation" | "bot-ticketing" | "server" | "bot-history" | "removed" | "giveaways" | "seasons" | "status" | "events" | "rules" | "bot-console";
+type Tab = "overview" | "punishments" | "automod" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live" | "join" | "dating" | "appeals" | "messages" | "games" | "guide" | "banrequests" | "patreon" | "emails" | "ads" | "bot-main" | "bot-economy" | "bot-moderation" | "bot-ticketing" | "server" | "bot-history" | "removed" | "giveaways" | "seasons" | "status" | "events" | "rules" | "bot-console" | "database";
 type Level = "admin" | "staff";
 
 // Tabs are grouped so the bar stays short: pick a group, then one of its tabs
@@ -48,7 +49,7 @@ const GROUPS: { key: Group; label: string; icon: LucideIcon; tabs: Tab[] }[] = [
   { key: "overview", label: "Overview", icon: BarChart3, tabs: ["overview", "seasons", "status", "guide"] },
   { key: "moderation", label: "Moderation", icon: Gavel, tabs: ["punishments", "banrequests", "appeals", "automod", "rules", "logs", "live", "removed"] },
   { key: "members", label: "Members", icon: Users, tabs: ["join", "tickets", "events", "dating", "messages", "games", "giveaways", "patreon"] },
-  { key: "website", label: "Website", icon: Globe, tabs: ["accounts", "emails", "news", "ads", "traffic"] },
+  { key: "website", label: "Website", icon: Globe, tabs: ["accounts", "emails", "news", "ads", "traffic", "database"] },
   { key: "bots", label: "Bots", icon: Bot, tabs: ["bot-console", "bot-main", "bot-economy", "bot-moderation", "bot-ticketing", "server", "bot-history"] },
 ];
 
@@ -85,6 +86,7 @@ const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean }[] = [
   { key: "server", label: "Discord Server", icon: Server, admin: true },
   { key: "bot-history", label: "History", icon: History, admin: true },
   { key: "traffic", label: "Traffic", icon: Activity, admin: true },
+  { key: "database", label: "Database", icon: Database, admin: true },
 ];
 
 // Clicking a headline number opens the punishments list filtered to that kind
@@ -318,6 +320,7 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false }: { admin
       {isAdmin && tab === "accounts" ? <AccountsTab onOpenMember={openMember} /> : null}
       {isAdmin && tab === "patreon" ? <PatreonTab onOpenMember={openMember} /> : null}
       {isAdmin && tab === "emails" ? <EmailsTab /> : null}
+      {isAdmin && tab === "database" ? <DatabaseTab onOpenMember={openMember} /> : null}
       {isAdmin && tab === "news" ? <NewsTab /> : null}
       {isAdmin && tab === "ads" ? <AdsTab /> : null}
       {isAdmin && tab === "removed" ? <RemovedTab /> : null}
