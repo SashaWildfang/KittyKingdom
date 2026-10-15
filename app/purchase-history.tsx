@@ -45,7 +45,7 @@ function Details({ e }: { e: HistoryEntry }) {
   } else {
     rows.push([e.kind === "gift-sent" ? "Sent to" : "From", e.otherName ?? "Someone who left the server"]);
   }
-  rows.push(["Where", e.source === "website" ? "Kitty Kingdom website" : "Discord (bot command)"]);
+  rows.push(["Where", e.source === "website" ? "Bear Nation website" : "Discord (bot command)"]);
   if (!e.stillSold) rows.push(["Status", "No longer sold in the shop"]);
   return (
     <div className="ph-details">

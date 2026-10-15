@@ -5,7 +5,7 @@ import { datingAccess } from "./access";
 const MESSAGES = {
   "signed-out": "Log in to use Dating.",
   unlinked: "Link your Discord account to use Dating.",
-  "not-member": "You need to be in the Kitty Kingdom Discord to use Dating.",
+  "not-member": "You need to be in the Bear Nation Discord to use Dating.",
   "not-adult": "Dating is for 18+ Verified members. Open a verification ticket in the server to get verified.",
 } as const;
 

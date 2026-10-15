@@ -651,7 +651,7 @@ export function StatsView({ onBack }: { onBack: () => void }) {
     ...(m.longestStreak ? [{ icon: Flame, text: <>Your longest chat streak is <b>{fmt(m.longestStreak)} days</b></>, tab: "activity" as Tab }] : []),
     ...(favoriteVc ? [{ icon: Headphones, text: <>You spend the most voice time in <b>{favoriteVc.name}</b></>, tab: "voice" as Tab }] : []),
     ...(s.emojis.top[0] ? [{ icon: Smile, text: <>Your favorite emoji is <Emoji e={s.emojis.top[0]} /></>, tab: "social" as Tab }] : []),
-    ...(joinedDays !== null ? [{ icon: CalendarDays, text: <>You&apos;ve been in the kingdom for <b>{fmt(joinedDays)} days</b></>, tab: "badges" as Tab }] : []),
+    ...(joinedDays !== null ? [{ icon: CalendarDays, text: <>You&apos;ve been in the Nation for <b>{fmt(joinedDays)} days</b></>, tab: "badges" as Tab }] : []),
     ...(s.activity.pagesWritten ? [{ icon: MessageCircle, text: <>You&apos;ve written about <b>{fmt(s.activity.pagesWritten)} pages</b> of chat (~{duration(s.activity.typingMinutes * 60)} of typing)</>, tab: "activity" as Tab }] : []),
     ...(s.social.mutual ? [{ icon: Users, text: <><b>{fmt(s.social.mutual)}</b> mutual friendships, and you started <b>{fmt(s.social.starts)}</b> conversations</>, tab: "social" as Tab }] : []),
     ...(s.compare && s.voice.totalSeconds ? [{ icon: Headphones, text: <>You&apos;ve spent <b>{(s.voice.totalSeconds / Math.max(1, s.compare.voiceSeconds)).toFixed(1)}×</b> the average member&apos;s time in voice</>, tab: "voice" as Tab }] : []),
@@ -742,7 +742,7 @@ export function StatsView({ onBack }: { onBack: () => void }) {
                 <div><dt>Joined the server</dt><dd>{dateLabel(s.profile.joinedServer)}</dd></div>
                 <div><dt>Discord account made</dt><dd>{dateLabel(s.profile.discordCreated)}</dd></div>
                 {s.profile.boostingSince ? <div><dt>Boosting since</dt><dd>{dateLabel(s.profile.boostingSince)}</dd></div> : null}
-                <div><dt>Days in the kingdom</dt><dd>{joinedDays !== null ? fmt(joinedDays) : "—"}</dd></div>
+                <div><dt>Days in the Nation</dt><dd>{joinedDays !== null ? fmt(joinedDays) : "—"}</dd></div>
                 <div><dt>Last message</dt><dd>{since(m.last)}</dd></div>
                 <div>
                   <dt>Busiest month</dt>

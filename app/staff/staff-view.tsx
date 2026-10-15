@@ -81,7 +81,7 @@ export function StaffView({ directory, nav }: { directory: StaffDirectory; nav: 
               <Shield size={14} aria-hidden="true" /> Our team
             </p>
             <h1>Meet the staff</h1>
-            <p className="sf-lead">The people keeping the kingdom safe, active and welcoming. Say hi any time, we don&apos;t bite (much).</p>
+            <p className="sf-lead">The people keeping the Nation safe, active and welcoming. Say hi any time, we don&apos;t bite (much).</p>
             <div className="sf-stats">
               <span>
                 <b>{directory.total}</b> staff
@@ -174,7 +174,7 @@ export function StaffView({ directory, nav }: { directory: StaffDirectory; nav: 
         <section className="sf-join">
           <div>
             <p className="sf-eyebrow">Join the team</p>
-            <h2>Want to help run the kingdom?</h2>
+            <h2>Want to help run the Nation?</h2>
             <p>Staff start as Helpers, answering questions and helping with verifications. Applications are open to verified 18+ members who have been in the server for at least 30 days.</p>
           </div>
           <a className="sf-join-btn" href="https://discord.com/invite/M9XKHFdYQV">

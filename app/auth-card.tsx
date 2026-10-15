@@ -277,7 +277,7 @@ function RegisterForm({ active }: { active: boolean }) {
           <MessageCircle size={16} />
         </span>
         <p>
-          <strong>Members only.</strong> Accounts are for verified members of the Kitty Kingdom Discord. Next, you&apos;ll confirm your email, then get a code to use with{" "}
+          <strong>Members only.</strong> Accounts are for verified members of the Bear Nation Discord. Next, you&apos;ll confirm your email, then get a code to use with{" "}
           <code>/link</code> in the server.
         </p>
       </div>
@@ -341,10 +341,10 @@ export function AuthCard({
 
   return (
     <section className="auth-card minehut-card kk-card" aria-label={mode === "login" ? "Login" : "Sign up"}>
-      <Link className="auth-logo" href="/" aria-label="Kitty Kingdom home">
-        <SiteLogo className="auth-logo-img" alt="Kitty Kingdom logo" />
+      <Link className="auth-logo" href="/" aria-label="Bear Nation home">
+        <SiteLogo className="auth-logo-img" alt="Bear Nation logo" />
       </Link>
-      <h1>Kitty Kingdom</h1>
+      <h1>Bear Nation</h1>
 
       <div className="kk-tabs" role="tablist" aria-label="Log in or sign up">
         <button type="button" role="tab" aria-selected={mode === "login"} className={mode === "login" ? "is-active" : undefined} onClick={() => switchTo("login")}>
@@ -359,7 +359,7 @@ export function AuthCard({
       <div className="kk-viewport" style={height ? { height } : undefined}>
         <div className="kk-track" style={{ transform: `translateX(${mode === "login" ? "0" : "-50%"})` }}>
           <div className="kk-panel" ref={(el) => void (panels.current.login = el)} aria-hidden={mode !== "login"}>
-            <p className="kk-intro">Welcome back! Log in to your Kitty Kingdom account.</p>
+            <p className="kk-intro">Welcome back! Log in to your Bear Nation account.</p>
             <StatusBox status={loginStatus} identifier={identifier} />
             <LoginForm identifier={identifier} active={mode === "login"} next={next} />
             <p className="kk-switch">

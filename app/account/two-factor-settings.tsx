@@ -17,7 +17,7 @@ async function call(action: string, extra: Record<string, string> = {}) {
 function BackupCodes({ codes, onDone }: { codes: string[]; onDone: () => void }) {
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
-  const text = `Kitty Kingdom backup codes\nGenerated ${new Date().toLocaleString()}\nEach code works once. Keep them somewhere safe.\n\n${codes.join("\n")}\n`;
+  const text = `Bear Nation backup codes\nGenerated ${new Date().toLocaleString()}\nEach code works once. Keep them somewhere safe.\n\n${codes.join("\n")}\n`;
   return (
     <div className="tfa-codes">
       <p className="tfa-warn">
@@ -49,7 +49,7 @@ function BackupCodes({ codes, onDone }: { codes: string[]; onDone: () => void })
           onClick={() => {
             const a = document.createElement("a");
             a.href = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
-            a.download = "kitty-kingdom-backup-codes.txt";
+            a.download = "bear-nation-backup-codes.txt";
             a.click();
             URL.revokeObjectURL(a.href);
           }}

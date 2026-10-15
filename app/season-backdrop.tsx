@@ -1,6 +1,6 @@
 "use client";
 
-// The page backdrop behind every page: soft glows in the season's colors, a faint pattern of Kitty Kingdom
+// The page backdrop behind every page: soft glows in the season's colors, a faint pattern of Bear Nation
 // motifs (paws, crowns, sparkles and the season's own shape) and drifting particles for the season
 // (leaves in autumn, snow in winter, butterflies and petals in spring, bubbles in summer).
 // Colors and pattern come from app/seasons.css + app/glass.css; Admin → Overview → Seasons turns the particles down or off.

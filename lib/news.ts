@@ -41,7 +41,7 @@ export type NewsPost = {
 
 // The first three posts the site shipped with; copied into the database once so admins can edit them
 const STARTER_POSTS = [
-  { title: "Fall Update", body: "We permanently moved Kitty Kingdom over to a cozy fall theme.", tag: "Update", daysAgo: 60 },
+  { title: "Fall Update", body: "We permanently moved Bear Nation over to a cozy fall theme.", tag: "Update", daysAgo: 60 },
   { title: "Discord Website", body: "We started work on the Discord website and account portal.", tag: "Website", daysAgo: 45 },
   { title: "Leaves Currency", body: "We changed the server currency to leaves.", tag: "Economy", daysAgo: 30 },
 ];
@@ -69,7 +69,7 @@ async function collection() {
           publishedAt: new Date(Date.now() - p.daysAgo * 86_400_000),
           createdAt: new Date(),
           updatedAt: null,
-          authorName: "Kitty Kingdom",
+          authorName: "Bear Nation",
         })),
       );
     }

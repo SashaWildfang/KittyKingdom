@@ -8,7 +8,7 @@ import { SiteNav } from "../site-nav";
 import { NewsBrowser, type NewsItem } from "./news-browser";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "News | Kitty Kingdom", description: "Updates, events and announcements from the Kitty Kingdom team." };
+export const metadata = { title: "News | Bear Nation", description: "Updates, events and announcements from the Bear Nation team." };
 
 export default async function NewsPage({ searchParams }: { searchParams: { tag?: string; month?: string; q?: string } }) {
   const tz = userTimeZone();
@@ -43,8 +43,8 @@ export default async function NewsPage({ searchParams }: { searchParams: { tag?:
       <div className="nw nw--v2">
         <header className="nw-head">
           <p className="home-eyebrow">News</p>
-          <h1>What&apos;s happening in the kingdom</h1>
-          <p>Updates, events and announcements from the Kitty Kingdom team.{user ? " What you've read is saved to your account." : ""}</p>
+          <h1>What&apos;s happening in the Nation</h1>
+          <p>Updates, events and announcements from the Bear Nation team.{user ? " What you've read is saved to your account." : ""}</p>
         </header>
         <NewsBrowser posts={posts} tags={tags.map((t) => ({ name: t.name, color: t.color }))} initial={{ tag, month, q: (searchParams.q ?? "").slice(0, 80) }} />
       </div>

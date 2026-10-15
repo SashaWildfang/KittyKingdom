@@ -1,4 +1,4 @@
-// Punishment appeals (kittykingdom.net/appeals). Anyone can appeal, even if they're banned and can't
+// Punishment appeals (bear-nation.net/appeals). Anyone can appeal, even if they're banned and can't
 // link a website account: they find their account by name, then prove it's theirs by signing in with
 // Discord (identify only). Only then do they see their punishments and can appeal one. Admins review
 // appeals in Admin → Moderation → Appeals; every step is kept in the appeal's history, and members
@@ -28,7 +28,7 @@ export class AppealError extends Error {
   }
 }
 
-// via: "account" = their signed-in Kitty Kingdom account with Discord linked; "discord" = Discord sign-in on the appeals page
+// via: "account" = their signed-in Bear Nation account with Discord linked; "discord" = Discord sign-in on the appeals page
 export type AppealIdentity = { discordId: string; username: string; name: string; avatar: string | null; via?: "account" | "discord" };
 export type AppealStatus = "pending" | "accepted" | "denied";
 export type HistoryEntry = { at: string; action: "submitted" | "accepted" | "denied" | "lifted" | "note"; byName: string | null; note: string | null };
@@ -86,7 +86,7 @@ export async function searchAppealAccounts(query: string) {
 // ---------- Proving it's you (Discord sign-in, identify only) ----------
 function siteOrigin(request: Request) {
   const url = new URL(request.url);
-  return url.hostname === "www.kittykingdom.net" ? "https://kittykingdom.net" : url.origin;
+  return url.hostname === "bear-nation.net" ? "https://bear-nation.net" : url.origin;
 }
 
 /** Where to send them to sign in with Discord (null when Discord sign-in isn't set up). */

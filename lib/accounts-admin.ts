@@ -310,7 +310,7 @@ export async function accountAction(id: string, action: AccountAction, admin: Pa
       deleteBadgeHistory(target.discordId).catch(() => undefined),
     ]);
     result = { message: `Deleted the website account for ${target.email}. Their Discord and bot data are untouched.` };
-    notice = ["Your website account was deleted", "A staff member deleted your kittykingdom.net account. Your Discord account and your server progress (levels, Leaves and so on) are untouched.", "You can make a new website account any time at kittykingdom.net/register."];
+    notice = ["Your website account was deleted", "A staff member deleted your bear-nation.net account. Your Discord account and your server progress (levels, Leaves and so on) are untouched.", "You can make a new website account any time at bear-nation.net/register."];
   } else if (action === "remind-verify" || action === "remind-link") {
     // Reminders: at most one of each per day, so nobody gets spammed
     const kind = action === "remind-verify" ? "verify" : "link";

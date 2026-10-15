@@ -128,7 +128,7 @@ export function LevelLadder({ compact = false }: { compact?: boolean }) {
   );
 }
 
-/** "This season in the kingdom": name, currency, countdown and the level ladder. */
+/** "This season in the Nation": name, currency, countdown and the level ladder. */
 export function SeasonFeature() {
   const s = useSeason();
   const info = SEASONS[s.key];
@@ -143,7 +143,7 @@ export function SeasonFeature() {
       <div className="lp-season-copy">
         <p className="lp-eyebrow">This season</p>
         <h2>
-          <span aria-hidden="true">{info.icon}</span> {info.name} in the kingdom
+          <span aria-hidden="true">{info.icon}</span> {info.name} in the Nation
         </h2>
         <p className="lp-lead">{info.blurb}. The whole server dresses up for it: the website, the currency, channel emojis and the level roles all change with the seasons.</p>
         <ul className="lp-season-facts">

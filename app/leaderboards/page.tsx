@@ -6,7 +6,7 @@ import { SiteNav } from "../site-nav";
 import { LeaderboardsClient } from "./leaderboards-client";
 import { CurrencyName } from "../season-context";
 
-export const metadata: Metadata = { title: "Leaderboards | Kitty Kingdom" };
+export const metadata: Metadata = { title: "Leaderboards | Bear Nation" };
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +27,7 @@ export default async function LeaderboardsPage() {
         <p className="eyebrow">Community stats</p>
         <h1>Leaderboards</h1>
         <p>
-          See who&apos;s on top in Kitty Kingdom. Rankings update live, so watch the <CurrencyName lower /> roll in.
+          See who&apos;s on top in Bear Nation. Rankings update live, so watch the <CurrencyName lower /> roll in.
         </p>
         <p>
           <a className="lb-wall-link" href="/achievements">

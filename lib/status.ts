@@ -1,4 +1,4 @@
-// status.kittykingdom.net: is everything working, 90 days of uptime, and incidents.
+// status.bear-nation.net: is everything working, 90 days of uptime, and incidents.
 //   Live:     the bots' heartbeats (zeo_bot.bot_settings, about once a minute), a database ping, Discord's
 //             own status page (discordstatus.com)
 //   History:  zeo_bot.status_days, one doc per part per day with the minutes it was up/down, written by
@@ -12,7 +12,7 @@ export type PartKey = "website" | "database" | "main" | "economy" | "moderation"
 export type Health = "up" | "degraded" | "down" | "unknown";
 
 export const PARTS: { key: PartKey; name: string; about: string; group: string }[] = [
-  { key: "website", name: "Website", about: "kittykingdom.net, accounts and logins", group: "Website" },
+  { key: "website", name: "Website", about: "bear-nation.net, accounts and logins", group: "Website" },
   { key: "database", name: "Database", about: "Accounts, store, levels and everything saved", group: "Website" },
   { key: "main", name: "Zeo (Main Bot)", about: "Store, giveaways, server logs, roles, Patreon", group: "Discord bots" },
   { key: "economy", name: "Economy Bot", about: "Leveling, daily rewards, games and events", group: "Discord bots" },

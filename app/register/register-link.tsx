@@ -167,7 +167,7 @@ export function RegisterLink() {
           return (
             <div className="reg-card">
               <p className="reg-lead">
-                <b>Email confirmed.</b> Only members of the Kitty Kingdom Discord can make an account. Use your code with <code>/link</code> <b>in the server</b> to prove it&apos;s you,
+                <b>Email confirmed.</b> Only members of the Bear Nation Discord can make an account. Use your code with <code>/link</code> <b>in the server</b> to prove it&apos;s you,
                 and this page will move on by itself.
               </p>
 
@@ -224,7 +224,7 @@ export function RegisterLink() {
                 <summary>Not in the server yet?</summary>
                 <p>
                   <a href={DISCORD_INVITE} target="_blank" rel="noreferrer">
-                    Join Kitty Kingdom
+                    Join Bear Nation
                   </a>
                   , fill in the verification form and wait for staff to accept it. Then come back here (your sign-up is saved for a day) and run the command.
                 </p>
@@ -240,7 +240,7 @@ export function RegisterLink() {
             <Check size={30} strokeWidth={3} />
           </span>
           <p className="reg-lead">
-            Linked to <b>{data.discordName}</b> and your email is confirmed. Welcome to Kitty Kingdom!
+            Linked to <b>{data.discordName}</b> and your email is confirmed. Welcome to Bear Nation!
           </p>
           <div className="reg-actions">
             {data.signedIn ? (

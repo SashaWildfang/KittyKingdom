@@ -1,4 +1,4 @@
-// Reviews from the Kitty Kingdom DISBOARD page. DISBOARD sits behind Cloudflare's bot check, so the
+// Reviews from the Bear Nation DISBOARD page. DISBOARD sits behind Cloudflare's bot check, so the
 // site can't fetch them live; these are the fallback when the staff-managed `reviews` collection is empty.
 // Staff can add new ones from Discord with /sitereviews add.
 export type Review = {

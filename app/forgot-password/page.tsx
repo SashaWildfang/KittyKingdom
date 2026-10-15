@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteLogo } from "../ui-icons";
 
-export const metadata: Metadata = { title: "Forgot password | Kitty Kingdom" };
+export const metadata: Metadata = { title: "Forgot password | Bear Nation" };
 
 const CODE_STATUS: Record<string, string> = {
   failed: "That didn't work. Check your email or username and the code. Codes only work if two-factor is turned on for the account.",
@@ -20,8 +20,8 @@ export default function ForgotPasswordPage({ searchParams }: { searchParams: { s
     <main className="auth-screen">
       <div className="auth-backdrop" />
       <section className="auth-card minehut-card">
-        <Link className="auth-logo" href="/" aria-label="Kitty Kingdom home">
-          <SiteLogo className="auth-logo-img" alt="Kitty Kingdom logo" />
+        <Link className="auth-logo" href="/" aria-label="Bear Nation home">
+          <SiteLogo className="auth-logo-img" alt="Bear Nation logo" />
         </Link>
         <h1>Password Reset</h1>
 

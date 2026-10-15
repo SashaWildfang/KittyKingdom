@@ -5,7 +5,7 @@
 import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from "crypto";
 import QRCode from "qrcode";
 
-const ISSUER = "Kitty Kingdom";
+const ISSUER = "Bear Nation";
 const STEP_SECONDS = 30;
 const DIGITS = 6;
 const BACKUP_COUNT = 10;

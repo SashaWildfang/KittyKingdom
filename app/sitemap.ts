@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { publishedNews } from "../lib/news";
 
-const SITE = "https://www.kittykingdom.net";
+const SITE = "https://bear-nation.net";
 
 export const dynamic = "force-dynamic";
 

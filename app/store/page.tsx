@@ -8,7 +8,7 @@ import { getStoreState, type StoreState } from "../../lib/store";
 import { SiteNav } from "../site-nav";
 import { StoreClient } from "./store-client";
 
-export const metadata: Metadata = { title: "Store | Kitty Kingdom" };
+export const metadata: Metadata = { title: "Store | Bear Nation" };
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 10;
@@ -80,10 +80,10 @@ export default async function StorePage() {
           <div className="store-gate-card">
             <p className="eyebrow">Store</p>
             <h1>Join the server to shop</h1>
-            <p>Your linked Discord account isn&apos;t in the Kitty Kingdom server. Join it to use the store.</p>
+            <p>Your linked Discord account isn&apos;t in the Bear Nation server. Join it to use the store.</p>
             <div className="store-gate-actions">
               <a className="discord-link-button" href="https://discord.com/invite/M9XKHFdYQV">
-                <DiscordIcon /> Join Kitty Kingdom
+                <DiscordIcon /> Join Bear Nation
               </a>
             </div>
           </div>

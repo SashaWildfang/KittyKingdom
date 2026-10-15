@@ -12,7 +12,7 @@ export async function getDiscordInviteSummary(): Promise<DiscordInviteSummary> {
       {
         headers: {
           Accept: "application/json",
-          "User-Agent": "KittyKingdomBot/1.0 (+https://kittykingdom.net)",
+          "User-Agent": "BearNationBot/1.0 (+https://bear-nation.net)",
         },
         cache: "no-store",
       },

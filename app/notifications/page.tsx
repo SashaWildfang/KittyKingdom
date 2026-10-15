@@ -6,7 +6,7 @@ import { SiteNav } from "../site-nav";
 import { NotificationsList } from "./notifications-list";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Notifications | Kitty Kingdom", robots: { index: false } };
+export const metadata: Metadata = { title: "Notifications | Bear Nation", robots: { index: false } };
 
 /** Every notification from the last 60 days (the bell only shows the newest). */
 export default async function NotificationsPage() {

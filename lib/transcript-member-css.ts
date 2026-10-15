@@ -2,7 +2,7 @@
 // new) with it, and the ticket bot writes the same file into each transcript zip
 // (TIcketing/ticketing/ticket_controls.py CSS_CONTENT, byte for byte), so downloads look the same.
 // The accent colour comes from --accent (Admin → Bots → Ticket Bot → Transcripts).
-export const TRANSCRIPT_CSS = `/* Kitty Kingdom ticket transcript */
+export const TRANSCRIPT_CSS = `/* Bear Nation ticket transcript */
 :root {
   --accent: #ff8b3d;
   --radius: 16px;

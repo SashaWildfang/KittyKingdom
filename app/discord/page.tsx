@@ -4,8 +4,8 @@ import { getDiscordInviteSummary } from "../../lib/discord";
 import { SiteLogo } from "../ui-icons";
 
 export const metadata: Metadata = {
-  title: "Join the Discord | Kitty Kingdom",
-  description: "Join Kitty Kingdom, a cozy 18+ furry Discord server with events, games, Social profiles and a friendly community.",
+  title: "Join the Discord | Bear Nation",
+  description: "Join Bear Nation, a cozy 18+ furry Discord server with events, games, Social profiles and a friendly community.",
 };
 
 export const dynamic = "force-dynamic";
@@ -23,15 +23,15 @@ export default async function DiscordPage() {
         <Link
           className="auth-logo"
           href="/home"
-          aria-label="Kitty Kingdom home"
+          aria-label="Bear Nation home"
         >
           <SiteLogo
             className="auth-logo-img"
-            alt="Kitty Kingdom logo"
+            alt="Bear Nation logo"
           />
         </Link>
         <p className="eyebrow">Discord</p>
-        <h1>Join the Kitty Kingdom Discord</h1>
+        <h1>Join the Bear Nation Discord</h1>
         <p>
           <span className="online-status">
             <span aria-hidden="true" />

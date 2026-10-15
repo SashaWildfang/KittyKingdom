@@ -46,7 +46,7 @@ export type SupporterStatus = {
 };
 
 const HEX = /^#?([0-9a-f]{6})$/i;
-const RESERVED = ["admin", "administrator", "mod", "moderator", "staff", "owner", "helper", "everyone", "here", "discord", "kitty kingdom", "bot"];
+const RESERVED = ["admin", "administrator", "mod", "moderator", "staff", "owner", "helper", "everyone", "here", "discord", "bear nation", "bot"];
 // One emoji (with optional skin tone / variation selector / ZWJ sequence)
 const EMOJI = new RegExp("^(\\p{Extended_Pictographic}|\\p{Regional_Indicator}{2})(\\p{Emoji_Modifier}|\\uFE0F|\\u200D(\\p{Extended_Pictographic}|\\uFE0F|\\p{Emoji_Modifier}))*$", "u");
 

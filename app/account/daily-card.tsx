@@ -205,7 +205,7 @@ export function DailyCard({ initial, guildId }: { initial: DailyStatus | null; g
           <div>
             <strong>Unlock streak bonuses with Nitro</strong>
             <p>
-              Boost Kitty Kingdom with Discord Nitro to get the <b>🍂 Golden Leaf (Nitro)</b> role. Boosters earn a streak bonus on top of the daily {status.base}: +{status.step} on
+              Boost Bear Nation with Discord Nitro to get the <b>🍂 Golden Leaf (Nitro)</b> role. Boosters earn a streak bonus on top of the daily {status.base}: +{status.step} on
               day 1, up to +{status.step * 7} on day 7, then the week starts again. That&apos;s up to <b>{(status.base * 7 + status.step * 28).toLocaleString()}</b> <CurrencyName lower /> a
               week instead of {(status.base * 7).toLocaleString()}.
             </p>

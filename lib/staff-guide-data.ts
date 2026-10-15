@@ -83,7 +83,7 @@ export const ROLES: RoleInfo[] = [
   },
   {
     rank: "Owner",
-    summary: "The Owner has the final say on everything in Kitty Kingdom.",
+    summary: "The Owner has the final say on everything in Bear Nation.",
     duties: ["The only rank that can mute, ban or discipline staff members", "Final decisions on rules, staff and server direction"],
   },
 ];
@@ -97,7 +97,7 @@ export const STAFF_RULES: RuleGroup[] = [
     title: "Conduct",
     icon: "heart",
     rules: [
-      "Be kind, patient and professional. You represent Kitty Kingdom in every message.",
+      "Be kind, patient and professional. You represent Bear Nation in every message.",
       "Follow the server rules yourself. Staff are held to a higher standard than members.",
       "Never use your role or bot commands for jokes, favours or personal arguments.",
       "Don't moderate a situation you're personally involved in. Hand it to another staff member.",

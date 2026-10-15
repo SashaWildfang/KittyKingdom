@@ -404,7 +404,7 @@ export function ScratchOffs({
             </div>
             <div className="sc-ticket-foot">
               <span>No. {play.serial}-{play.ticket.id.toUpperCase()}</span>
-              <span>Kitty Kingdom Lottery</span>
+              <span>Bear Nation Lottery</span>
             </div>
             <Confetti burst={burst} big={!!play.winSymbol && play.payout >= play.ticket.cost * 10} />
           </div>

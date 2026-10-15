@@ -608,7 +608,7 @@ export async function equipRole(discordId: string, itemId: string) {
     throw new StoreError("Your Patreon custom role is your color now, so shop color roles can't be equipped with it. Remove your custom role on My Account → Supporter perks (or /myrole remove) to wear this one.");
   }
   const memberRoles = await getMemberRoleIds(discordId);
-  if (!memberRoles) throw new StoreError("You need to be in the Kitty Kingdom Discord server to equip roles.");
+  if (!memberRoles) throw new StoreError("You need to be in the Bear Nation Discord server to equip roles.");
   if (memberRoles.includes(roleId)) throw new StoreError("That role is already equipped.");
 
   // Only one shop role at a time, like the bot
@@ -630,7 +630,7 @@ export async function equipRole(discordId: string, itemId: string) {
 export async function unequipRole(discordId: string, itemId: string) {
   const roleId = await ownedRoleId(discordId, itemId);
   const memberRoles = await getMemberRoleIds(discordId);
-  if (!memberRoles) throw new StoreError("You need to be in the Kitty Kingdom Discord server to manage roles.");
+  if (!memberRoles) throw new StoreError("You need to be in the Bear Nation Discord server to manage roles.");
   if (!memberRoles.includes(roleId)) throw new StoreError("That role isn't equipped.");
   if (!(await removeMemberRole(discordId, roleId))) {
     throw new StoreError("The bot couldn't remove that role. Please contact staff.", 502);
