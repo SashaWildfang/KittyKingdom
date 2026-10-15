@@ -8,8 +8,8 @@ import { DISCORD_INVITE } from "./content";
 import { FaqClient } from "./faq-client";
 
 export const metadata: Metadata = {
-  title: "FAQ & Guide | Kitty Kingdom",
-  description: "Answers and guides for Kitty Kingdom: getting started, the server currency and economy, levels, casino games, boosting and Patreon perks, dating and the website.",
+  title: "FAQ & Guide | Bear Nation",
+  description: "Answers and guides for Bear Nation: getting started, the server currency and economy, levels, casino games, boosting and Patreon perks, dating and the website.",
 };
 
 export default async function FaqPage() {
@@ -22,7 +22,7 @@ export default async function FaqPage() {
         <section className="kb-hero">
           <p className="eyebrow">Help center</p>
           <h1>FAQ &amp; Guide</h1>
-          <p>Everything about Kitty Kingdom in one place: how the economy works, levels and perks, games, dating and the website.</p>
+          <p>Everything about Bear Nation in one place: how the economy works, levels and perks, games, dating and the website.</p>
         </section>
         <FaqClient />
         <aside className="kb-cta">

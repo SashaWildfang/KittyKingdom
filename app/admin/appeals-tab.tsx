@@ -189,7 +189,7 @@ function AppealCard({ appeal, onDone, onOpenMember }: { appeal: AdminAppeal; onD
   );
 }
 
-/** Admin → Moderation → Appeals: punishment appeals sent from kittykingdom.net/appeals (admins only). */
+/** Admin → Moderation → Appeals: punishment appeals sent from bear-nation.net/appeals (admins only). */
 export function AppealsTab({ onOpenMember }: { onOpenMember: (id: string) => void }) {
   const [status, setStatus] = useState("pending");
   const [page, setPage] = useState(1);

@@ -127,7 +127,7 @@ export async function getRoleState(discordId: string): Promise<RoleState> {
 export async function setSelfRole(discordId: string, roleId: string, add: boolean) {
   if (!SELF_ROLE_IDS.has(roleId)) throw new RoleError("That role can't be changed from the website.", 403);
   const memberRoles = await getMemberRoleIds(discordId);
-  if (!memberRoles) throw new RoleError("Join the Kitty Kingdom Discord server to pick roles.", 403);
+  if (!memberRoles) throw new RoleError("Join the Bear Nation Discord server to pick roles.", 403);
   if (ADULT_ROLE_IDS.has(roleId) && !memberRoles.includes(ADULT_VERIFIED_ID)) {
     throw new RoleError("18+ roles are available once you're ID verified in the Discord server.", 403);
   }

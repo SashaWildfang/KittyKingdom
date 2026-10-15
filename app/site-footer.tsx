@@ -27,10 +27,10 @@ export async function SiteFooter() {
     <footer className="site-footer ft" aria-label="Footer">
       <div className="ft-inner">
         <div className="ft-brand">
-          <a className="ft-logo" href="/home" aria-label="Kitty Kingdom home">
+          <a className="ft-logo" href="/home" aria-label="Bear Nation home">
             <SiteLogo alt="" width="48" height="48" />
             <span>
-              <strong>Kitty Kingdom</strong>
+              <strong>Bear Nation</strong>
               <small>A cozy 18+ furry community</small>
             </span>
           </a>
@@ -44,7 +44,7 @@ export async function SiteFooter() {
                 <SiteSocialIcon name="patreon" size={15} />
               </a>
               {SITE_SOCIALS.map((s) => (
-                <a key={s.key} className={`ft-icon ft-icon--${s.key}`} href={s.href} target="_blank" rel="noopener noreferrer" aria-label={`Kitty Kingdom on ${s.label}`} title={s.label}>
+                <a key={s.key} className={`ft-icon ft-icon--${s.key}`} href={s.href} target="_blank" rel="noopener noreferrer" aria-label={`Bear Nation on ${s.label}`} title={s.label}>
                   <SiteSocialIcon name={s.key} size={15} />
                 </a>
               ))}
@@ -84,7 +84,7 @@ export async function SiteFooter() {
       </div>
 
       <div className="ft-bottom">
-        <p>© {year} Kitty Kingdom</p>
+        <p>© {year} Bear Nation</p>
         <span className="ft-legal">
           <a href="/privacy">Privacy</a>
           <a href="/terms">Terms</a>

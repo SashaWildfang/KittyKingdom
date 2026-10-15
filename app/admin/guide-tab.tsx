@@ -339,7 +339,7 @@ export function GuideTab() {
           {/* ------------------------------------------------ Start here */}
           {section === "start" ? (
             <>
-              <SectionHead icon={BookOpen} title="Start here" intro="Everything you need as Kitty Kingdom staff, in one place. Pick a section on the left, or jump in below." />
+              <SectionHead icon={BookOpen} title="Start here" intro="Everything you need as Bear Nation staff, in one place. Pick a section on the left, or jump in below." />
               <div className="sg-quick">
                 {[
                   { s: "roles" as Section, t: "Your role & duties", d: `What a ${rank} is responsible for.` },

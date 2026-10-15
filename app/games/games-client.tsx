@@ -193,7 +193,7 @@ export function GamesClient({
             <Dices size={26} aria-hidden="true" />
           </span>
           <div>
-            <p className="eyebrow">Kitty Kingdom Casino</p>
+            <p className="eyebrow">Bear Nation Casino</p>
             <h1>Games</h1>
             <p className="gm-sub">Play with the same <CurrencyName lower /> you earn in the server. Same tables, same odds as the bot.</p>
           </div>

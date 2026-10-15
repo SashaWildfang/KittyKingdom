@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { LegalShell, type LegalSection } from "../legal/legal-shell";
 
-export const metadata = { title: "Terms of Service | Kitty Kingdom" };
+export const metadata = { title: "Terms of Service | Bear Nation" };
 
 const UPDATED = "September 28, 2026";
 
@@ -12,8 +12,8 @@ const sections: LegalSection[] = [
     body: (
       <>
         <p>
-          These Terms of Service (the &quot;<b>Terms</b>&quot;) are a binding agreement between you and Kitty Kingdom (&quot;<b>Kitty Kingdom</b>&quot;,
-          &quot;<b>we</b>&quot;, &quot;<b>us</b>&quot;). They govern your use of the website at kittykingdom.net (the &quot;<b>Site</b>&quot;), the Kitty Kingdom
+          These Terms of Service (the &quot;<b>Terms</b>&quot;) are a binding agreement between you and Bear Nation (&quot;<b>Bear Nation</b>&quot;,
+          &quot;<b>we</b>&quot;, &quot;<b>us</b>&quot;). They govern your use of the website at bear-nation.net (the &quot;<b>Site</b>&quot;), the Bear Nation
           Discord server (the &quot;<b>Server</b>&quot;), and the Discord bots we operate (the &quot;<b>Bots</b>&quot;), together the &quot;<b>Services</b>&quot;.
         </p>
         <p>
@@ -92,7 +92,7 @@ const sections: LegalSection[] = [
           confirm you have the rights to post it.
         </p>
         <p>
-          You grant Kitty Kingdom a worldwide, non-exclusive, royalty-free licence to host, store, copy, display and process Your Content as needed to run,
+          You grant Bear Nation a worldwide, non-exclusive, royalty-free licence to host, store, copy, display and process Your Content as needed to run,
           moderate, secure and improve the Services, including keeping it in logs and ticket transcripts as described in our Privacy Policy. This licence
           continues for content we are allowed to keep after you leave, such as moderation records.
         </p>
@@ -144,7 +144,7 @@ const sections: LegalSection[] = [
     title: "Patreon, boosting and supporter perks",
     body: (
       <p>
-        Supporting Kitty Kingdom through Patreon or Discord Server Boosts is optional and does not buy an exemption from the Rules. Payments are handled by
+        Supporting Bear Nation through Patreon or Discord Server Boosts is optional and does not buy an exemption from the Rules. Payments are handled by
         Patreon or Discord under their own terms, and refunds are governed by those terms. Supporter perks (such as roles and XP or currency bonuses) are provided
         while your support is active, may change over time, and may be removed if you break the Rules or reverse a payment.
       </p>
@@ -178,7 +178,7 @@ const sections: LegalSection[] = [
     title: "Our content and trademarks",
     body: (
       <p>
-        The Services, including the Site&apos;s design, code, text, graphics, logos, artwork and the Kitty Kingdom name, belong to Kitty Kingdom or its
+        The Services, including the Site&apos;s design, code, text, graphics, logos, artwork and the Bear Nation name, belong to Bear Nation or its
         licensors and are protected by law. You may not copy, modify, distribute, sell or create derivative works from them, or scrape or reverse engineer the
         Services, without our written permission.
       </p>
@@ -232,7 +232,7 @@ const sections: LegalSection[] = [
     title: "Limitation of liability",
     body: (
       <p className="legal-caps">
-        To the fullest extent permitted by law, Kitty Kingdom and its owner, administrators, staff and volunteers will not be liable for any indirect,
+        To the fullest extent permitted by law, Bear Nation and its owner, administrators, staff and volunteers will not be liable for any indirect,
         incidental, special, consequential, exemplary or punitive damages, or for any loss of data, Virtual Items, goodwill or profits, arising from or
         related to the Services or these Terms, even if advised of the possibility. Our total liability for any claim relating to the Services will not
         exceed the greater of the amount you paid us directly in the 12 months before the claim or US $50. Nothing in these Terms limits liability that cannot
@@ -245,7 +245,7 @@ const sections: LegalSection[] = [
     title: "Indemnity",
     body: (
       <p>
-        You agree to defend, indemnify and hold harmless Kitty Kingdom and its owner, administrators, staff and volunteers from any claims, damages, losses and
+        You agree to defend, indemnify and hold harmless Bear Nation and its owner, administrators, staff and volunteers from any claims, damages, losses and
         expenses (including reasonable legal fees) arising from Your Content, your use of the Services, or your breach of these Terms or the law.
       </p>
     ),
@@ -256,7 +256,7 @@ const sections: LegalSection[] = [
     body: (
       <p>
         If you have a concern, please contact us first through a support ticket so we can try to resolve it informally. These Terms are governed by the laws
-        of the United States and the state in which Kitty Kingdom&apos;s owner resides, without regard to conflict-of-law rules, except where the law of the
+        of the United States and the state in which Bear Nation&apos;s owner resides, without regard to conflict-of-law rules, except where the law of the
         country you live in gives you mandatory consumer protections that cannot be waived.
       </p>
     ),
@@ -269,7 +269,7 @@ const sections: LegalSection[] = [
         <li>These Terms, the Privacy Policy and the Server rules are the entire agreement between you and us about the Services.</li>
         <li>If any part of these Terms is found unenforceable, the rest stays in effect.</li>
         <li>If we don&apos;t enforce a part of these Terms, that is not a waiver of our right to do so later.</li>
-        <li>You may not transfer your rights under these Terms. We may transfer ours, for example if Kitty Kingdom changes ownership.</li>
+        <li>You may not transfer your rights under these Terms. We may transfer ours, for example if Bear Nation changes ownership.</li>
         <li>Headings are for convenience only.</li>
       </ul>
     ),
@@ -289,7 +289,7 @@ const sections: LegalSection[] = [
     title: "Contact us",
     body: (
       <p>
-        Questions about these Terms? Open a support ticket in the Kitty Kingdom Discord server or message an administrator. You can find the team on the{" "}
+        Questions about these Terms? Open a support ticket in the Bear Nation Discord server or message an administrator. You can find the team on the{" "}
         <Link href="/staff">Staff page</Link>.
       </p>
     ),
@@ -310,7 +310,7 @@ export default function TermsPage() {
       ]}
       intro={
         <p>
-          These are the rules for using the Kitty Kingdom website, Discord server and bots. Please read them. By using Kitty Kingdom you agree to them.
+          These are the rules for using the Bear Nation website, Discord server and bots. Please read them. By using Bear Nation you agree to them.
         </p>
       }
       summary={

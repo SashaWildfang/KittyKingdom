@@ -24,7 +24,7 @@ export function isBlockedEmailDomain(email: string) {
   return BLOCKED_DOMAINS.some((d) => domain === d || domain.endsWith(`.${d}`));
 }
 
-export const BLOCKED_EMAIL_MESSAGE = "Proton email addresses (proton.me, protonmail.com, pm.me) can't be used for Kitty Kingdom accounts. Please use another email provider.";
+export const BLOCKED_EMAIL_MESSAGE = "Proton email addresses (proton.me, protonmail.com, pm.me) can't be used for Bear Nation accounts. Please use another email provider.";
 
 /** Email or username for logging in / resets. */
 export function cleanIdentifier(value: unknown): string | null {

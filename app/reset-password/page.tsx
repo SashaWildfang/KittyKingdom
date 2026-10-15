@@ -4,7 +4,7 @@ import { findResetUser } from "../../lib/password-reset";
 import { PasswordField } from "../password-field";
 import { SiteLogo } from "../ui-icons";
 
-export const metadata: Metadata = { title: "Reset password | Kitty Kingdom" };
+export const metadata: Metadata = { title: "Reset password | Bear Nation" };
 
 export const dynamic = "force-dynamic";
 
@@ -21,8 +21,8 @@ export default async function ResetPasswordPage({ searchParams }: { searchParams
     <main className="auth-screen">
       <div className="auth-backdrop" />
       <section className="auth-card minehut-card">
-        <Link className="auth-logo" href="/" aria-label="Kitty Kingdom home">
-          <SiteLogo className="auth-logo-img" alt="Kitty Kingdom logo" />
+        <Link className="auth-logo" href="/" aria-label="Bear Nation home">
+          <SiteLogo className="auth-logo-img" alt="Bear Nation logo" />
         </Link>
         <h1>Choose a new password</h1>
         {valid ? (

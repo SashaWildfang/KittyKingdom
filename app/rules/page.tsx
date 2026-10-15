@@ -40,8 +40,8 @@ import { seasonal } from "../../lib/season-store";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Server Rules | Kitty Kingdom",
-  description: "The Kitty Kingdom rules: respect, 18+ only, SFW channels, dating on Social, asking before you DM, the 18+ area, safety, voice chats and how punishments work.",
+  title: "Server Rules | Bear Nation",
+  description: "The Bear Nation rules: respect, 18+ only, SFW channels, dating on Social, asking before you DM, the 18+ area, safety, voice chats and how punishments work.",
 };
 
 // Icons instead of the emoji the Discord version uses
@@ -83,8 +83,8 @@ function Md({ text: raw }: { text: string }) {
     else if (m[4] !== undefined) out.push(<code key={m.index}>{m[4]}</code>);
     else if (!/^(https?:\/\/|\/)/.test(m[3])) out.push(m[2]);
     else {
-      const external = /^https?:/.test(m[3]) && !m[3].includes("kittykingdom.net");
-      const href = m[3].replace(/^https:\/\/www\.kittykingdom\.net/, "") || "/";
+      const external = /^https?:/.test(m[3]) && !/(kittykingdom|bear-nation)\.net/.test(m[3]);
+      const href = m[3].replace(/^https:\/\/(www\.)?(kittykingdom|bear-nation)\.net/, "") || "/";
       out.push(
         <a key={m.index} href={href} {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}>
           {m[2]}
@@ -106,10 +106,10 @@ export default async function RulesPage() {
       <SiteNav signedIn={Boolean(user)} discordOnline={discord.online} />
       <div className="kb-container rl">
         <section className="kb-hero">
-          <p className="eyebrow">Kitty Kingdom</p>
+          <p className="eyebrow">Bear Nation</p>
           <h1>Server Rules</h1>
           <p>
-            {total} rules that keep the kingdom cozy. They apply in every channel, voice chats, the website, Social and your DMs with members.
+            {total} rules that keep the Nation cozy. They apply in every channel, voice chats, the website, Social and your DMs with members.
           </p>
         </section>
 

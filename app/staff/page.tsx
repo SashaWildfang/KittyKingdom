@@ -6,7 +6,7 @@ import { getStaffDirectory } from "../../lib/staff";
 import { SiteNav } from "../site-nav";
 import { StaffView } from "./staff-view";
 
-export const metadata: Metadata = { title: "Staff Team | Kitty Kingdom" };
+export const metadata: Metadata = { title: "Staff Team | Bear Nation" };
 
 export const dynamic = "force-dynamic";
 

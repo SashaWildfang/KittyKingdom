@@ -313,7 +313,7 @@ export function SettingsPanel({ social }: { social: boolean }) {
     const allDm = types.length > 0 && types.every((t) => s.dm[t.key] === true || t.key === "view");
     pane = (
       <>
-        <Group intro="Pick where you hear about each thing: in the bell on the site, as a Discord DM from the Kitty Kingdom bot, or both.">
+        <Group intro="Pick where you hear about each thing: in the bell on the site, as a Discord DM from the Bear Nation bot, or both.">
           <div className="set-matrix" role="table" aria-label="Notification settings">
             <div className="set-matrix-head" role="row">
               <span role="columnheader">Notify me about</span>

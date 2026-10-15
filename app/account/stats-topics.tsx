@@ -119,7 +119,7 @@ function vibe(list: Topic[]) {
   const tone =
     lead.group === "games" ? "a gamer at heart" :
     lead.group === "social" ? "the heart of the conversation" :
-    lead.group === "community" ? "a true regular of the kingdom" :
+    lead.group === "community" ? "a true regular of the Nation" :
     lead.group === "creative" ? "a creative soul" :
     lead.group === "entertainment" ? "always up on the latest" :
     lead.group === "mind" ? "a curious mind" :

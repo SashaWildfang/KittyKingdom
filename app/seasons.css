@@ -4,41 +4,42 @@
    --bark / --soil: warm darks for lines and shadows · --night: the deepest background tones
    --sb-*: the backdrop scenery (app/season-backdrop.tsx) */
 
-/* ---------- Autumn (the default) ---------- */
+/* ---------- Bear Nation (the default, and fall): the bear pride flag ----------
+   Flag: #623804 brown · #D56300 orange · #FEDD63 yellow · #FEE6B8 tan · #FFFFFF · #555555 · #000000 */
 :root {
-  --ember-rgb: 245, 155, 42;
-  --maple-rgb: 200, 95, 24;
-  --gold-rgb: 255, 210, 122;
-  --cream-rgb: 255, 242, 215;
-  --bark-rgb: 109, 55, 22;
-  --soil-rgb: 58, 29, 18;
-  --night-rgb: 29, 11, 5;
-  --night2-rgb: 36, 16, 6;
-  --sb-sky-top: #1a0a06;
-  --sb-sky-mid: #3a160b;
-  --sb-sky-low: #8a3512;
-  --sb-glow: rgba(255, 150, 60, 0.55);
-  --sb-sun: #ffb35c;
-  --sb-far: #4a1f10;
-  --sb-mid: #2f130a;
-  --sb-near: #1c0b06;
-  --sb-accent-1: #9c3d16;
-  --sb-accent-2: #b8691f;
-  --sb-accent-3: #7a2a12;
-  --sb-mist: rgba(255, 190, 120, 0.08);
+  --ember-rgb: 213, 99, 0;
+  --maple-rgb: 98, 56, 4;
+  --gold-rgb: 254, 221, 99;
+  --cream-rgb: 254, 230, 184;
+  --bark-rgb: 98, 56, 4;
+  --soil-rgb: 44, 26, 4;
+  --night-rgb: 14, 10, 6;
+  --night2-rgb: 22, 15, 8;
+  --sb-sky-top: #0b0806;
+  --sb-sky-mid: #2c1a05;
+  --sb-sky-low: #623804;
+  --sb-glow: rgba(213, 99, 0, 0.5);
+  --sb-sun: #fedd63;
+  --sb-far: #3a2509;
+  --sb-mid: #241608;
+  --sb-near: #110b05;
+  --sb-accent-1: #d56300;
+  --sb-accent-2: #fedd63;
+  --sb-accent-3: #623804;
+  --sb-mist: rgba(254, 230, 184, 0.08);
 }
 :root[data-theme="light"] {
-  --sb-sky-top: #ffe7c4;
-  --sb-sky-mid: #ffd29a;
-  --sb-sky-low: #ffb070;
-  --sb-glow: rgba(255, 170, 80, 0.55);
-  --sb-sun: #ffcf7a;
-  --sb-far: #f2b679;
-  --sb-mid: #e59a5a;
-  --sb-near: #c9713a;
-  --sb-accent-1: #e0662a;
-  --sb-accent-2: #f5b13f;
-  --sb-accent-3: #c2441f;
+  --sb-sky-top: #fff8ea;
+  --sb-sky-mid: #fee6b8;
+  --sb-sky-low: #fedd63;
+  --sb-glow: rgba(213, 99, 0, 0.4);
+  --sb-sun: #fedd63;
+  --sb-far: #f3cf92;
+  --sb-mid: #e08b3a;
+  --sb-near: #9a5512;
+  --sb-accent-1: #d56300;
+  --sb-accent-2: #fedd63;
+  --sb-accent-3: #623804;
   --sb-mist: rgba(255, 255, 255, 0.25);
 }
 

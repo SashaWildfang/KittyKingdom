@@ -6,13 +6,13 @@ function getCanonicalOrigin(request: Request) {
   if (configured) {
     const candidates = configured.split(/[|,\s]+/).filter(Boolean);
     const preferred =
-      candidates.find((value) => value.includes("kittykingdom.net")) ?? candidates[0];
+      candidates.find((value) => value.includes("bear-nation.net")) ?? candidates[0];
     const match = preferred?.match(/https?:\/\/[^\s)\]]+/);
     const clean = (match?.[0] ?? preferred ?? "").replace(/\/$/, "");
 
     try {
       const parsed = new URL(clean);
-      if (parsed.hostname === "www.kittykingdom.net") return "https://kittykingdom.net";
+      if (parsed.hostname === "www.bear-nation.net") return "https://bear-nation.net";
       return parsed.origin;
     } catch {
       // Fall through to the request origin.
@@ -20,7 +20,7 @@ function getCanonicalOrigin(request: Request) {
   }
 
   const url = new URL(request.url);
-  if (url.hostname === "www.kittykingdom.net") return "https://kittykingdom.net";
+  if (url.hostname === "www.bear-nation.net") return "https://bear-nation.net";
   return url.origin.replace(/\/$/, "");
 }
 

@@ -30,7 +30,7 @@ const JOIN_STEPS = [
 ];
 
 const FAQ = [
-  { q: "Is Kitty Kingdom 18+ only?", a: "Yes. Everyone has to be 18 or older, and the NSFW areas need an extra ID check by staff." },
+  { q: "Is Bear Nation 18+ only?", a: "Yes. Everyone has to be 18 or older, and the NSFW areas need an extra ID check by staff." },
   { q: "Do I need to be a furry to join?", a: "Nope. Furries, friends of furries and the furry-curious are all welcome. Just be kind." },
   { q: "Is it free?", a: "Completely. Patreon and server boosts are optional and only add cosmetic perks and bonuses." },
   { q: "What's the website for?", a: "Your account links to Discord: the store, casino games, Social profiles, stats, leaderboards and more." },
@@ -153,7 +153,7 @@ export default async function Home({ searchParams }: { searchParams?: { register
             <i aria-hidden="true" /> {discord.online !== null ? `${discord.online.toLocaleString()} members online now` : "Members online now"}
           </a>
           <h1>
-            Find your <RotatingWord words={["people", "pack", "place", "home"]} /> in <span className="hm-glow">Kitty Kingdom</span>
+            Find your <RotatingWord words={["people", "pack", "place", "home"]} /> in <span className="hm-glow">Bear Nation</span>
           </h1>
           <p className="hm-lead">
             <SeasonCopy part="subtitle" /> for adults. Make friends, join weekly events, play games and earn rewards, all connected to a website that grows with
@@ -233,7 +233,7 @@ export default async function Home({ searchParams }: { searchParams?: { register
       {/* ============ What you get ============ */}
       <section className="hm-section" data-reveal>
         <header className="hm-head">
-          <p className="hm-eyebrow">Why Kitty Kingdom</p>
+          <p className="hm-eyebrow">Why Bear Nation</p>
           <h2>More than a chat server</h2>
           <p>A custom bot, a real website and a community that actually talks. Here&apos;s what&apos;s waiting for you.</p>
         </header>
@@ -395,7 +395,7 @@ export default async function Home({ searchParams }: { searchParams?: { register
           <h2>
             <SeasonCopy part="cta" />
           </h2>
-          <p>Meet the community, join an event and find your place in the kingdom. It only takes a minute.</p>
+          <p>Meet the community, join an event and find your place in the Nation. It only takes a minute.</p>
           <div className="hm-actions">
             <a className="hm-btn hm-btn--primary" href="/join?via=website" data-leaf-burst>
               <DiscordLogo size={20} /> Join the Discord
@@ -418,21 +418,21 @@ export default async function Home({ searchParams }: { searchParams?: { register
             "@graph": [
               {
                 "@type": "Organization",
-                "@id": "https://www.kittykingdom.net/#org",
-                name: "Kitty Kingdom",
-                alternateName: ["Kitty Kingdom Discord", "Kitty Kingdom Furry Community", "kittykingdom.net"],
-                url: "https://www.kittykingdom.net",
-                logo: "https://www.kittykingdom.net/logo.png",
+                "@id": "https://bear-nation.net/#org",
+                name: "Bear Nation",
+                alternateName: ["Bear Nation Discord", "Bear Nation Furry Community", "bear-nation.net"],
+                url: "https://bear-nation.net",
+                logo: "https://bear-nation.net/logo.png",
                 description: "A cozy, seasonal 18+ furry Discord server and community website.",
                 sameAs: [DISCORD_INVITE, "https://www.patreon.com/c/thekittykingdom", "https://disboard.org/server/1358452494128250940", ...SITE_SOCIALS.map((s) => s.href)],
               },
               {
                 "@type": "WebSite",
-                "@id": "https://www.kittykingdom.net/#website",
-                name: "Kitty Kingdom",
-                alternateName: "Kitty Kingdom Furry Discord",
-                url: "https://www.kittykingdom.net",
-                publisher: { "@id": "https://www.kittykingdom.net/#org" },
+                "@id": "https://bear-nation.net/#website",
+                name: "Bear Nation",
+                alternateName: "Bear Nation Furry Discord",
+                url: "https://bear-nation.net",
+                publisher: { "@id": "https://bear-nation.net/#org" },
                 description: "A cozy 18+ furry Discord community with Social profiles, events and an economy.",
               },
             ],

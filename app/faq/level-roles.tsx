@@ -5,7 +5,7 @@
 import { useSeason } from "../season-context";
 
 const PERKS: Record<number, string> = {
-  0: "Welcome to the kingdom!",
+  0: "Welcome to the Nation!",
   1: "Unlocks Media Perms (pictures, GIFs & reactions)",
 };
 

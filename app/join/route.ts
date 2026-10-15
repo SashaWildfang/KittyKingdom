@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 const INVITE = "https://discord.com/invite/M9XKHFdYQV";
 
 /**
- * kittykingdom.net/join?src=reddit → counts the click for that source, then opens the Discord
+ * bear-nation.net/join?src=reddit → counts the click for that source, then opens the Discord
  * invite. Share this instead of the raw invite so Admin → Traffic shows which ads work.
  */
 export async function GET(request: Request) {

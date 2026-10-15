@@ -26,30 +26,30 @@ export type StaffGroup = {
 
 // How ranks are grouped on the page (rank order comes from the bot)
 const GROUPS: { title: string; description: string; icon: string; roles: string[] }[] = [
-  { title: "Administration", description: "Leads the kingdom and keeps everything running.", icon: "crown", roles: ["Owner", "Sr Admin", "Admin"] },
+  { title: "Administration", description: "Leads the Nation and keeps everything running.", icon: "crown", roles: ["Owner", "Sr Admin", "Admin"] },
   { title: "Moderation", description: "Keeps channels safe, friendly, and fun.", icon: "shield", roles: ["Sr Mod", "Mod", "Jr Mod"] },
-  { title: "Community", description: "Runs events and announcements and keeps the kingdom buzzing.", icon: "megaphone", roles: ["Community Manager"] },
+  { title: "Community", description: "Runs events and announcements and keeps the Nation buzzing.", icon: "megaphone", roles: ["Community Manager"] },
   { title: "Helper Team", description: "Your first stop for questions and verification.", icon: "leaf", roles: ["Helper"] },
-  { title: "Staff", description: "Members of the Kitty Kingdom staff team.", icon: "sparkles", roles: ["Staff"] },
-  { title: "Content Creators", description: "Make videos, art and posts about Kitty Kingdom. Go show them some love!", icon: "video", roles: ["Content Creator"] },
+  { title: "Staff", description: "Members of the Bear Nation staff team.", icon: "sparkles", roles: ["Staff"] },
+  { title: "Content Creators", description: "Make videos, art and posts about Bear Nation. Go show them some love!", icon: "video", roles: ["Content Creator"] },
 ];
 
 const ROLE_BIOS: Record<string, string> = {
-  Owner: "Leads Kitty Kingdom and keeps the community moving forward.",
+  Owner: "Leads Bear Nation and keeps the community moving forward.",
   "Sr Admin": "Supports moderation, community safety, and server operations.",
   Admin: "Helps manage the community and keeps things running smoothly.",
   "Sr Mod": "Guides the moderation team and keeps the community safe.",
   Mod: "Moderates channels and supports members day to day.",
   "Community Manager": "Plans events, posts announcements and keeps the community buzzing.",
-  "Content Creator": "Creates videos, art and posts for Kitty Kingdom and its socials.",
+  "Content Creator": "Creates videos, art and posts for Bear Nation and its socials.",
   "Jr Mod": "Helps welcome members and keep the community safe.",
-  Helper: "Helps members, answers questions, and keeps the kingdom welcoming.",
-  Staff: "Part of the team keeping the kingdom safe and welcoming.",
+  Helper: "Helps members, answers questions, and keeps the Nation welcoming.",
+  Staff: "Part of the team keeping the Nation safe and welcoming.",
 };
 
 // Personal bios written before the page went live. A "bio" field on a staff document overrides these.
 const PERSONAL_BIOS: Record<string, string> = {
-  "164577223162986498": "Leads Kitty Kingdom and keeps the community moving forward.",
+  "164577223162986498": "Leads Bear Nation and keeps the community moving forward.",
   "128584992115785728": "Supports moderation, community safety, and server operations.",
   "507882987023761438": "Helps manage the community and keeps things running smoothly.",
   "790250289382162442": "Moderates channels and supports members day to day.",
@@ -57,7 +57,7 @@ const PERSONAL_BIOS: Record<string, string> = {
   "178046006640902144": "Supports verification, events, and community moderation.",
   "847578158420852746": "Helps maintain a friendly and active community space.",
   "468613389401194506": "Assists members and supports the moderation team.",
-  "553778537459613709": "Helps members, answers questions, and keeps the kingdom welcoming.",
+  "553778537459613709": "Helps members, answers questions, and keeps the Nation welcoming.",
 };
 
 // Shown only if the live list can't be loaded, so the page is never empty

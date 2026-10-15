@@ -2,14 +2,14 @@
 
 const LINES: Record<string, string[]> = {
   morning: [
-    "Coffee's on and the kingdom is waking up. Here's everything in one place.",
+    "Coffee's on and the Nation is waking up. Here's everything in one place.",
     "Fresh start! Don't forget your Daily Reward today.",
     "The leaves are crisp this morning. Your account is ready when you are.",
   ],
   afternoon: [
-    "Hope your day's going well. Here's your corner of the kingdom.",
+    "Hope your day's going well. Here's your corner of the Nation.",
     "Perfect time for a snack break and a quick look at your stats.",
-    "The afternoon sun is out over the kingdom. Everything's right where you left it.",
+    "The afternoon sun is out over the Nation. Everything's right where you left it.",
   ],
   evening: [
     "Cozy evening vibes. Grab a blanket and settle in.",
@@ -17,7 +17,7 @@ const LINES: Record<string, string[]> = {
     "Winding down? Your profile, roles and rewards are all here.",
   ],
   night: [
-    "The kingdom never sleeps, and apparently neither do you. 🌙",
+    "The Nation never sleeps, and apparently neither do you. 🌙",
     "Late-night crew, we see you. Remember to rest those paws.",
     "The stars are out and the chat is cozy. Welcome in.",
   ],

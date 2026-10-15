@@ -235,7 +235,7 @@ export function EventsBoard({ initial, signedIn, linked, canManage = false, poll
           <p className="evp-eyebrow">
             <CalendarDays size={14} aria-hidden="true" /> Events
           </p>
-          <h1>What&apos;s happening in the kingdom</h1>
+          <h1>What&apos;s happening in the Nation</h1>
           <p className="evp-lead">Game nights, movie nights, voice hangouts and contests. Tap Remind me and the bot will DM you before it starts.</p>
           {canManage ? (
             <a className="evp-manage" href="/admin?tab=events">

@@ -9,7 +9,7 @@ import { DatingNav } from "./dating-nav";
 import "./dating.css";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Social | Kitty Kingdom", robots: { index: false } };
+export const metadata: Metadata = { title: "Social | Bear Nation", robots: { index: false } };
 
 /** Every Social page: 18+ Verified members only, with the Dating tabs on top. */
 export default async function DatingLayout({ children }: { children: ReactNode }) {
@@ -33,9 +33,9 @@ export default async function DatingLayout({ children }: { children: ReactNode }
 
 function Gate({ reason }: { reason: "signed-out" | "unlinked" | "not-adult" | "not-member" }) {
   const copy = {
-    "signed-out": { icon: <Heart size={34} />, title: "Find your someone in the kingdom", text: "Log in to browse profiles, match and chat with other 18+ verified members.", cta: { href: "/login", label: "Log in" } },
+    "signed-out": { icon: <Heart size={34} />, title: "Find your someone in the Nation", text: "Log in to browse profiles, match and chat with other 18+ verified members.", cta: { href: "/login", label: "Log in" } },
     unlinked: { icon: <Link2 size={34} />, title: "Link your Discord first", text: "Social is tied to your Discord account so everyone here is a real, verified member. Grab a code on My Account and run /link in the server.", cta: { href: "/account#discord-account", label: "Link Discord" } },
-    "not-member": { icon: <Link2 size={34} />, title: "Join the server first", text: "Social is for members of the Kitty Kingdom Discord.", cta: { href: "/join?via=dating", label: "Join the Discord" } },
+    "not-member": { icon: <Link2 size={34} />, title: "Join the server first", text: "Social is for members of the Bear Nation Discord.", cta: { href: "/join?via=dating", label: "Join the Discord" } },
     "not-adult": { icon: <ShieldCheck size={34} />, title: "18+ Verified members only", text: "To keep everyone safe, Social (dating and friends) is only open to members with the 18+ Verified role. Open a verification ticket in #nsfw-verify in the server, then come back here.", cta: { href: "/faq#start", label: "How to get verified" } },
   }[reason];
   return (

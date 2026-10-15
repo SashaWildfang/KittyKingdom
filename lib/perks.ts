@@ -56,7 +56,7 @@ export const TIERS: Tier[] = [
   },
   {
     key: "monarch", name: "King / Queen", titles: ["King", "Queen"], emoji: "👑", price: 20, roleId: "1362502871639396362", color: "#f5b83d",
-    tagline: "Everything, maxed out: rule the kingdom.",
+    tagline: "Everything, maxed out: rule the Nation.",
     monthly: 20000, xp: 1, leaf: 0.35, weight: 3, daily: 300, items: [shield(3), { id: "booster_balance", name: "2x Leaf Booster (24h)", count: 1 }],
     customRole: true, roleExtras: true, premiumGames: true,
     chest: 4000, chestItems: ["2x XP Booster (24h)"], wheelMult: 2, discount: 0.15,

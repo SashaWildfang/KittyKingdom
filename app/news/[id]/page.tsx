@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const post = await publishedPost(params.id).catch(() => null);
-  return post ? { title: `${post.title} | Kitty Kingdom News`, description: newsExcerpt(post.body, 160).text } : { title: "News | Kitty Kingdom" };
+  return post ? { title: `${post.title} | Bear Nation News`, description: newsExcerpt(post.body, 160).text } : { title: "News | Bear Nation" };
 }
 
 export default async function NewsArticle({ params }: { params: { id: string } }) {

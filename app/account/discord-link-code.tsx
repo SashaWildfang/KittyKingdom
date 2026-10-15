@@ -112,7 +112,7 @@ export function DiscordLinkCode() {
           <ol className="link-code-steps">
             <li>Press <strong>Get code</strong>.</li>
             <li>
-              In the Kitty Kingdom Discord, type <code>/link</code> and paste your code.
+              In the Bear Nation Discord, type <code>/link</code> and paste your code.
             </li>
             <li>This page updates by itself once you&apos;re linked.</li>
           </ol>

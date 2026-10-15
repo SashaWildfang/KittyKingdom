@@ -12,8 +12,8 @@ import "./events.css";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Events | Kitty Kingdom",
-  description: "Game nights, movie nights, voice hangouts and contests in the Kitty Kingdom Discord. See what's coming up and get a reminder.",
+  title: "Events | Bear Nation",
+  description: "Game nights, movie nights, voice hangouts and contests in the Bear Nation Discord. See what's coming up and get a reminder.",
 };
 
 export default async function EventsPage() {

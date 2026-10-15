@@ -6,7 +6,7 @@ export type RulePartSource = { key: string; title: string; emoji: string; color:
 export type RulesSource = { intro: string; tldr: string[]; parts: RulePartSource[] };
 
 export const RULES_SOURCE: RulesSource = {
-  "intro": "Welcome to Kitty Kingdom! We're a cozy **18+ furry community**, and these rules keep it that way.\n\n**They apply everywhere:** every channel, voice chats, threads, the bots, the website, **Social**, and **your DMs with members you met here**. Read them all. By staying in the server, you agree to them.\n\nStaff use their judgement: something that isn't written down can still get you punished if it harms the community, and \"it wasn't in the rules\" isn't a loophole. Discord's [Terms of Service](https://discord.com/terms) and [Community Guidelines](https://discord.com/guidelines) apply too.",
+  "intro": "Welcome to Bear Nation! We're a cozy **18+ furry community**, and these rules keep it that way.\n\n**They apply everywhere:** every channel, voice chats, threads, the bots, the website, **Social**, and **your DMs with members you met here**. Read them all. By staying in the server, you agree to them.\n\nStaff use their judgement: something that isn't written down can still get you punished if it harms the community, and \"it wasn't in the rules\" isn't a loophole. Discord's [Terms of Service](https://discord.com/terms) and [Community Guidelines](https://discord.com/guidelines) apply too.",
   "tldr": [
     "Be kind. No hate, harassment or drama.",
     "18+ only. Lying about your age is a permanent ban.",
@@ -23,9 +23,9 @@ export const RULES_SOURCE: RulesSource = {
       "title": "Part 1 · The Basics",
       "emoji": "🌿",
       "color": [
-        232,
-        124,
-        45
+        213,
+        99,
+        0
       ],
       "intro": "",
       "rules": [
@@ -144,8 +144,8 @@ export const RULES_SOURCE: RulesSource = {
           "title": "Looking for a partner? Use Social, not the chat",
           "points": [
             "**Don't** post dating requests or advertise your relationship status in chat. That includes \"single and looking for a bf/gf\", \"who wants to date me?\", \"anyone single?\" and listing your age, sexuality or what you're looking for.",
-            "Dating and partner-hunting happen on **[Social](https://www.kittykingdom.net/social)** on the website, where people choose to see it.",
-            "**Dating is only for [[role:verified18]] members.** You get it by verifying your ID in [[ch:nsfw_verify]]. If you aren't ID verified, you can't look for a partner anywhere in Kitty Kingdom.",
+            "Dating and partner-hunting happen on **[Social](https://bear-nation.net/social)** on the website, where people choose to see it.",
+            "**Dating is only for [[role:verified18]] members.** You get it by verifying your ID in [[ch:nsfw_verify]]. If you aren't ID verified, you can't look for a partner anywhere in Bear Nation.",
             "Being single, or talking about your partner, is fine. Advertising yourself is what isn't allowed."
           ],
           "bad": [
@@ -222,7 +222,7 @@ export const RULES_SOURCE: RulesSource = {
         89,
         182
       ],
-      "intro": "The NSFW side of Kitty Kingdom is for adults who've verified their age. Everything in Parts 1 to 3 still applies here, plus these.",
+      "intro": "The NSFW side of Bear Nation is for adults who've verified their age. Everything in Parts 1 to 3 still applies here, plus these.",
       "rules": [
         {
           "title": "Access: 18+ Verified only",
@@ -395,7 +395,7 @@ export const RULES_SOURCE: RulesSource = {
         ],
         [
           "📋 Your record and appeals",
-          "Type `/punishments` to see your record. Think a punishment was wrong? Appeal at **[kittykingdom.net/appeals](https://www.kittykingdom.net/appeals)**. Banned members are emailed how to appeal."
+          "Type `/punishments` to see your record. Think a punishment was wrong? Appeal at **[bear-nation.net/appeals](https://bear-nation.net/appeals)**. Banned members are emailed how to appeal."
         ],
         [
           "🔄 Rule changes",

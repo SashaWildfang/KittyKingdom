@@ -223,18 +223,18 @@ export async function eventIcs(id: string) {
   const [e] = await withPlaces([toEvent(d)]);
   const stamp = (v: string | Date) => new Date(v).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
   const esc = (t: string) => t.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/[,;]/g, (m) => `\\${m}`);
-  const where = e.channelName ? `#${e.channelName} on the Kitty Kingdom Discord` : e.place ?? "Kitty Kingdom";
+  const where = e.channelName ? `#${e.channelName} on the Bear Nation Discord` : e.place ?? "Bear Nation";
   return [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Kitty Kingdom//Events//EN",
+    "PRODID:-//Bear Nation//Events//EN",
     "BEGIN:VEVENT",
-    `UID:${e.id}@kittykingdom.net`,
+    `UID:${e.id}@bear-nation.net`,
     `DTSTAMP:${stamp(new Date())}`,
     `DTSTART:${stamp(e.startAt)}`,
     `DTEND:${stamp(e.endAt ?? new Date(new Date(e.startAt).getTime() + 2 * 3600_000))}`,
     `SUMMARY:${esc(e.title)}`,
-    `DESCRIPTION:${esc(`${e.description}\n\nhttps://www.kittykingdom.net/events`)}`,
+    `DESCRIPTION:${esc(`${e.description}\n\nhttps://bear-nation.net/events`)}`,
     `LOCATION:${esc(where)}`,
     ...(e.cancelled ? ["STATUS:CANCELLED"] : []),
     "END:VEVENT",

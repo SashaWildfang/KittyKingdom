@@ -125,15 +125,15 @@ export function StatusBoard({ initial }: { initial: StatusView | null }) {
   return (
     <div className="st">
       <header className="sp-top">
-        <a className="sp-brand" href="https://www.kittykingdom.net">
+        <a className="sp-brand" href="https://bear-nation.net">
           <SiteLogo className="sp-logo" alt="" />
           <span>
-            <b>Kitty Kingdom</b>
+            <b>Bear Nation</b>
             <small>Status</small>
           </span>
         </a>
-        <a className="sp-home" href="https://www.kittykingdom.net">
-          Go to kittykingdom.net <ArrowUpRight size={14} aria-hidden="true" />
+        <a className="sp-home" href="https://bear-nation.net">
+          Go to bear-nation.net <ArrowUpRight size={14} aria-hidden="true" />
         </a>
       </header>
 

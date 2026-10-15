@@ -9,7 +9,7 @@ import "./achievements.css";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = { title: "Achievements | Kitty Kingdom" };
+export const metadata: Metadata = { title: "Achievements | Bear Nation" };
 
 export default async function AchievementsPage() {
   const [discord, user] = await Promise.all([getDiscordInviteSummary(), getCurrentUser()]);

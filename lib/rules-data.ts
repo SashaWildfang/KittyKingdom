@@ -6,7 +6,7 @@ export type Rule = { n: number; title: string; points: string[]; bad: string[]; 
 export type RulePart = { key: string; title: string; label: string; emoji: string; color: string; intro: string; rules: Rule[]; info: { title: string; body: string }[] };
 
 export const RULES: { intro: string; tldr: string[]; parts: RulePart[] } = {
-  "intro": "Welcome to Kitty Kingdom! We're a cozy **18+ furry community**, and these rules keep it that way.\n\n**They apply everywhere:** every channel, voice chats, threads, the bots, the website, **Social**, and **your DMs with members you met here**. Read them all. By staying in the server, you agree to them.\n\nStaff use their judgement: something that isn't written down can still get you punished if it harms the community, and \"it wasn't in the rules\" isn't a loophole. Discord's [Terms of Service](https://discord.com/terms) and [Community Guidelines](https://discord.com/guidelines) apply too.",
+  "intro": "Welcome to Bear Nation! We're a cozy **18+ furry community**, and these rules keep it that way.\n\n**They apply everywhere:** every channel, voice chats, threads, the bots, the website, **Social**, and **your DMs with members you met here**. Read them all. By staying in the server, you agree to them.\n\nStaff use their judgement: something that isn't written down can still get you punished if it harms the community, and \"it wasn't in the rules\" isn't a loophole. Discord's [Terms of Service](https://discord.com/terms) and [Community Guidelines](https://discord.com/guidelines) apply too.",
   "tldr": [
     "Be kind. No hate, harassment or drama.",
     "18+ only. Lying about your age is a permanent ban.",
@@ -23,7 +23,7 @@ export const RULES: { intro: string; tldr: string[]; parts: RulePart[] } = {
       "title": "The Basics",
       "label": "Part 1",
       "emoji": "🌿",
-      "color": "#e87c2d",
+      "color": "#d56300",
       "intro": "",
       "rules": [
         {
@@ -143,8 +143,8 @@ export const RULES: { intro: string; tldr: string[]; parts: RulePart[] } = {
           "title": "Looking for a partner? Use Social, not the chat",
           "points": [
             "**Don't** post dating requests or advertise your relationship status in chat. That includes \"single and looking for a bf/gf\", \"who wants to date me?\", \"anyone single?\" and listing your age, sexuality or what you're looking for.",
-            "Dating and partner-hunting happen on **[Social](https://www.kittykingdom.net/social)** on the website, where people choose to see it.",
-            "**Dating is only for 18+ Verified members.** You get it by verifying your ID in the NSFW verification channel. If you aren't ID verified, you can't look for a partner anywhere in Kitty Kingdom.",
+            "Dating and partner-hunting happen on **[Social](https://bear-nation.net/social)** on the website, where people choose to see it.",
+            "**Dating is only for 18+ Verified members.** You get it by verifying your ID in the NSFW verification channel. If you aren't ID verified, you can't look for a partner anywhere in Bear Nation.",
             "Being single, or talking about your partner, is fine. Advertising yourself is what isn't allowed."
           ],
           "bad": [
@@ -222,7 +222,7 @@ export const RULES: { intro: string; tldr: string[]; parts: RulePart[] } = {
       "label": "Part 4",
       "emoji": "🥀",
       "color": "#9b59b6",
-      "intro": "The NSFW side of Kitty Kingdom is for adults who've verified their age. Everything in Parts 1 to 3 still applies here, plus these.",
+      "intro": "The NSFW side of Bear Nation is for adults who've verified their age. Everything in Parts 1 to 3 still applies here, plus these.",
       "rules": [
         {
           "n": 14,
@@ -397,7 +397,7 @@ export const RULES: { intro: string; tldr: string[]; parts: RulePart[] } = {
         },
         {
           "title": "📋 Your record and appeals",
-          "body": "Type `/punishments` to see your record. Think a punishment was wrong? Appeal at **[kittykingdom.net/appeals](https://www.kittykingdom.net/appeals)**. Banned members are emailed how to appeal."
+          "body": "Type `/punishments` to see your record. Think a punishment was wrong? Appeal at **[bear-nation.net/appeals](https://bear-nation.net/appeals)**. Banned members are emailed how to appeal."
         },
         {
           "title": "🔄 Rule changes",

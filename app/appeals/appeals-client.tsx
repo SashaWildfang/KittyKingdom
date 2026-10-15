@@ -102,7 +102,7 @@ function FindAccount() {
           <h2>Confirm it&apos;s you</h2>
           <p>
             To keep everyone&apos;s record private, sign in with Discord as <b>@{picked.username}</b>. We only ask Discord for your username and avatar. You
-            don&apos;t need a Kitty Kingdom account, and it works even if you&apos;re banned.
+            don&apos;t need a Bear Nation account, and it works even if you&apos;re banned.
           </p>
           <a
             className="kb-btn kb-btn--primary apl-discord"
@@ -405,7 +405,7 @@ export function AppealsClient({ error }: { error: string | null }) {
       {data && !data.me ? <FindAccount /> : null}
       {data?.me ? <MyRecord me={data.me} punishments={data.punishments ?? []} appeals={data.appeals ?? []} reload={() => void load()} initialOpen={initialOpen} /> : null}
       <p className="apl-fine">
-        Appeals are reviewed by Kitty Kingdom admins only. Be respectful and honest; abusive or spam appeals are denied. If an appeal is denied, you can appeal the same
+        Appeals are reviewed by Bear Nation admins only. Be respectful and honest; abusive or spam appeals are denied. If an appeal is denied, you can appeal the same
         punishment again after 30 days. See our <a href="/privacy">Privacy Policy</a> for how appeal information is stored.
       </p>
     </div>

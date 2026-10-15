@@ -121,7 +121,7 @@ export function RoleManager({ initial }: { initial: RoleState | null }) {
   if (!state.inServer) {
     return (
       <div className="roles-empty">
-        <p>Join the Kitty Kingdom Discord server to pick your roles here.</p>
+        <p>Join the Bear Nation Discord server to pick your roles here.</p>
         <a className="acct-button" href="https://discord.com/invite/M9XKHFdYQV">
           Join the server
         </a>

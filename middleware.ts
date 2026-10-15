@@ -3,12 +3,20 @@ import { NextResponse, type NextRequest } from "next/server";
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
-  // status.kittykingdom.net shows the status page; anything else there goes to the main site
-  const host = (request.headers.get("host") ?? "").toLowerCase();
+  const host = (request.headers.get("host") ?? "").toLowerCase().replace(/:\d+$/, "");
+
+  // Kitty Kingdom became Bear Nation (October 2026): the old addresses (and www) go to the same page on the new one.
+  // Vercel's domain settings do this too; this is the fallback while an old domain is still pointed at the site.
+  if (host === "kittykingdom.net" || host === "www.kittykingdom.net" || host === "www.bear-nation.net") {
+    return NextResponse.redirect(`https://bear-nation.net${pathname}${search}`, 308);
+  }
+  if (host === "status.kittykingdom.net") return NextResponse.redirect(`https://status.bear-nation.net${pathname}${search}`, 308);
+
+  // status.bear-nation.net shows the status page; anything else there goes to the main site
   if (host.startsWith("status.")) {
     if (pathname === "/") return NextResponse.rewrite(new URL("/status", request.url));
     const own = pathname.startsWith("/status") || pathname.startsWith("/api/status") || pathname.startsWith("/_next") || pathname.startsWith("/season/") || /\.[a-z0-9]+$/i.test(pathname);
-    if (!own) return NextResponse.redirect(`https://www.kittykingdom.net${pathname}${search}`, 308);
+    if (!own) return NextResponse.redirect(`https://bear-nation.net${pathname}${search}`, 308);
   }
 
   if (

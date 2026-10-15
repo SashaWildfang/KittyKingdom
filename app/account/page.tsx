@@ -44,7 +44,7 @@ import type { BadgeShowcase } from "../../lib/badges";
 import { accountName } from "../../lib/names";
 import { seasonal } from "../../lib/season-store";
 
-export const metadata: Metadata = { title: "My Account | Kitty Kingdom" };
+export const metadata: Metadata = { title: "My Account | Bear Nation" };
 
 const statusMessages: Record<string, string> = {
   "contact-saved": "Phone number saved.",
@@ -68,7 +68,7 @@ const statusMessages: Record<string, string> = {
     "Type DELETE MY ACCOUNT exactly before deleting your account.",
   "delete-password-invalid": "Password was not correct, so the account was not deleted.",
   "service-unavailable": "Account settings are temporarily unavailable.",
-  success: "Email verified. Welcome to Kitty Kingdom — finish your account details here.",
+  success: "Email verified. Welcome to Bear Nation — finish your account details here.",
   linked:
     "Discord account linked. Your Discord ID and application details were synced.",
   invalid:
@@ -84,7 +84,7 @@ const statusMessages: Record<string, string> = {
     "Discord rejected the login callback. Please try linking Discord again.",
   "user-failed":
     "Discord connected, but your profile could not be loaded. Please try again.",
-  "guild-required": "Join the Kitty Kingdom Discord before linking your account.",
+  "guild-required": "Join the Bear Nation Discord before linking your account.",
   unlinked: "Discord account unlinked. Discord-only features are disabled until you link again.",
 };
 
@@ -298,7 +298,7 @@ export default async function AccountPage({
               <section className="acct3-hero" aria-label="Welcome">
                 <div className="acct3-hero-copy">
                   <p className="acct3-eyebrow">{displayName || user.discordId ? greeting.eyebrow : "Member portal"}</p>
-                  <h2>{displayName || user.discordId ? greeting.line : "Manage your Kitty Kingdom profile, Discord link, and account security, all in one place."}</h2>
+                  <h2>{displayName || user.discordId ? greeting.line : "Manage your Bear Nation profile, Discord link, and account security, all in one place."}</h2>
                 </div>
                 {discordLinked ? (
                   <div className="acct3-showcase">

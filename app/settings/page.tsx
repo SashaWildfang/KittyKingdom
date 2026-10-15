@@ -8,7 +8,7 @@ import { SettingsPanel } from "./settings-panel";
 import "./settings.css";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Settings | Kitty Kingdom", robots: { index: false } };
+export const metadata: Metadata = { title: "Settings | Bear Nation", robots: { index: false } };
 
 /** All your settings in one place (the gear next to the bell). */
 export default async function SettingsPage() {

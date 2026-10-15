@@ -11,7 +11,7 @@ import { accentFor, display } from "./schema";
 import { bigAvatar } from "./text";
 import type { DatingSettings } from "./settings";
 
-const SITE = process.env.SITE_URL ?? "https://www.kittykingdom.net";
+const SITE = process.env.SITE_URL ?? "https://bear-nation.net";
 
 const STYLE: Partial<Record<NotificationType, { emoji: string; button: string }>> = {
   view: { emoji: "👀", button: "View their profile" },
@@ -70,7 +70,7 @@ export async function sendDatingDm(to: string, settings: DatingSettings, n: { ty
           color,
           fields,
           thumbnail: who?.avatar ? { url: bigAvatar(who.avatar, 256)! } : undefined,
-          footer: { text: "Kitty Kingdom Social · change these DMs in Settings → Notifications" },
+          footer: { text: "Bear Nation Social · change these DMs in Settings → Notifications" },
           timestamp: new Date().toISOString(),
         },
       ],

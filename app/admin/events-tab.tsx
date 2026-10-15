@@ -47,7 +47,7 @@ export function EventsTab() {
       <div className="ev-top">
         <div>
           <h2>Events</h2>
-          <p className="adm-muted">Shown on kittykingdom.net/events and in Discord&apos;s Events tab. Members can ask for a DM reminder 15 minutes before.</p>
+          <p className="adm-muted">Shown on bear-nation.net/events and in Discord&apos;s Events tab. Members can ask for a DM reminder 15 minutes before.</p>
         </div>
         <button type="button" className="adm-btn" onClick={() => (setCopyFrom(null), setEditing("new"))}>
           <CalendarPlus size={16} aria-hidden="true" /> New event

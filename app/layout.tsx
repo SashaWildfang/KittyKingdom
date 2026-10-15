@@ -16,19 +16,19 @@ import { getAllSeasonViews, getSeason } from "../lib/season-store";
 // The site font (self-hosted by Next at build time)
 const sans = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
 
-const SITE = "https://www.kittykingdom.net";
+const SITE = "https://bear-nation.net";
 const DESCRIPTION =
-  "Kitty Kingdom is a cozy, seasonal 18+ furry Discord server and community website: make friends, meet people through Social profiles, earn the server currency, level up and join events.";
-// "Kitty Kingdom" alone is shared with cat cafés and games, so the title says what we are
-const TITLE = "Kitty Kingdom | 18+ Furry Discord Server & Community";
+  "Bear Nation is a cozy, seasonal 18+ furry Discord server and community website: make friends, meet people through Social profiles, earn the server currency, level up and join events.";
+// "Bear Nation" alone is shared with cat cafés and games, so the title says what we are
+const TITLE = "Bear Nation | 18+ Furry Discord Server & Community";
 
 // Search engines and link previews (Discord, X, iMessage…) read these
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),
   title: TITLE,
   description: DESCRIPTION,
-  applicationName: "Kitty Kingdom",
-  keywords: ["Kitty Kingdom", "Kitty Kingdom Discord", "Kitty Kingdom furry", "kittykingdom.net", "furry discord", "furry discord server", "furry community", "18+ furry server", "furry friends", "fursona", "LGBTQ furry", "furry social"],
+  applicationName: "Bear Nation",
+  keywords: ["Bear Nation", "Bear Nation Discord", "Bear Nation furry", "bear-nation.net", "furry discord", "furry discord server", "furry community", "18+ furry server", "furry friends", "fursona", "LGBTQ furry", "furry social"],
   // Search Console / Bing Webmaster ownership checks (set the codes in Vercel's environment variables)
   verification: {
     ...(process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : {}),
@@ -38,10 +38,10 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: SITE,
-    siteName: "Kitty Kingdom",
+    siteName: "Bear Nation",
     title: TITLE,
     description: DESCRIPTION,
-    images: [{ url: "/banner.jpg", alt: "Kitty Kingdom: a cozy furry community" }],
+    images: [{ url: "/banner.jpg", alt: "Bear Nation: a cozy furry community" }],
     locale: "en_US",
   },
   twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION, images: ["/banner.jpg"] },

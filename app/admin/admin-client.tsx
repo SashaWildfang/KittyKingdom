@@ -236,7 +236,7 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false }: { admin
     <div className="adm">
       <header className="adm-head">
         <div className="adm-head-copy">
-          <p className="eyebrow">{isAdmin ? "Kitty Kingdom Admin" : "Kitty Kingdom Staff"}</p>
+          <p className="eyebrow">{isAdmin ? "Bear Nation Admin" : "Bear Nation Staff"}</p>
           <h1>Moderation center</h1>
           <p className="adm-sub">
             Welcome back, {adminName}. Everything here updates live.

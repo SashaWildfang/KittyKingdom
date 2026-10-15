@@ -3,7 +3,7 @@ import { pendingTwoFactorUser } from "../../../lib/two-factor-login";
 import { TwoFactorForm } from "./two-factor-form";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Two-factor sign in | Kitty Kingdom" };
+export const metadata = { title: "Two-factor sign in | Bear Nation" };
 
 const ERRORS: Record<string, string> = {
   wrong: "That code didn't work. Check your authenticator app and try the newest code.",

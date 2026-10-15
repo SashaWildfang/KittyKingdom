@@ -1,10 +1,10 @@
-# Kitty Kingdom
+# Bear Nation
 
 **A full-stack community platform: a Next.js web app, background services and a shared cloud database.**
 
-Live at **[kittykingdom.net](https://www.kittykingdom.net)** · Created and maintained by **[Sasha Wildfang](https://github.com/SashaWildfang)**
+Live at **[bear-nation.net](https://bear-nation.net)** · Created and maintained by **[Sasha Wildfang](https://github.com/SashaWildfang)**
 
-Kitty Kingdom is a cozy, autumn-themed online community. This repository is its website. It works hand in hand with a set of Python services (Discord bots) that run the community's economy, games and moderation. Both sides share one MongoDB database, which is also how they pass work to each other.
+Bear Nation is a cozy, autumn-themed online community. This repository is its website. It works hand in hand with a set of Python services (Discord bots) that run the community's economy, games and moderation. Both sides share one MongoDB database, which is also how they pass work to each other.
 
 ---
 
@@ -113,11 +113,11 @@ Secrets live in environment variables only. Never commit them.
 
 ## Author
 
-**Sasha Wildfang**: founder, designer and developer of Kitty Kingdom.
+**Sasha Wildfang**: founder, designer and developer of Bear Nation.
 B.S. Computer Science, Clemson University · Missoula, MT
 
 ---
 
 ## License
 
-Released under the [MIT License](LICENSE). The Kitty Kingdom name, logo and artwork are not covered by the license.
+Released under the [MIT License](LICENSE). The Bear Nation name, logo and artwork are not covered by the license.

@@ -115,7 +115,7 @@ async function discordRequest<T>(method: string, path: string, body?: unknown): 
         headers: {
           Authorization: `Bot ${token}`,
           "Content-Type": "application/json",
-          "X-Audit-Log-Reason": "Kitty Kingdom website store",
+          "X-Audit-Log-Reason": "Bear Nation website store",
         },
         body: body === undefined ? undefined : JSON.stringify(body),
         cache: "no-store",

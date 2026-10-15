@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 export const revalidate = 86400;
 
-const fallback = new URL("/logo.png", "https://kittykingdom.net");
+const fallback = new URL("/logo.png", "https://bear-nation.net");
 const cacheHeaders = {
   "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800",
 };
@@ -39,7 +39,7 @@ async function discordFetch(path: string, token: string) {
   return fetch(`https://discord.com/api/v10${path}`, {
     headers: {
       Authorization: `Bot ${token}`,
-      "User-Agent": "KittyKingdomBot/1.0 (+https://kittykingdom.net)",
+      "User-Agent": "BearNationBot/1.0 (+https://bear-nation.net)",
     },
     next: { revalidate: 86400 },
   });

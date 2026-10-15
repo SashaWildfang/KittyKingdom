@@ -4,7 +4,7 @@ import type { PatronGroup } from "../lib/patrons";
 import { TIERS } from "../lib/perks";
 import { TierIcon } from "./tier-icon";
 
-/** Homepage thank-you to everyone supporting Kitty Kingdom on Patreon. */
+/** Homepage thank-you to everyone supporting Bear Nation on Patreon. */
 export function HomePatrons({ groups }: { groups: PatronGroup[] }) {
   const total = groups.reduce((n, g) => n + g.patrons.length, 0);
   return (
@@ -17,8 +17,8 @@ export function HomePatrons({ groups }: { groups: PatronGroup[] }) {
           <h2>The Royal Court</h2>
           <p>
             {total
-              ? `Kitty Kingdom stays free for everyone thanks to these ${total} wonderful supporter${total === 1 ? "" : "s"}. Thank you for keeping the kingdom cozy.`
-              : "Kitty Kingdom stays free for everyone thanks to our supporters. The court is waiting for its first royals."}
+              ? `Bear Nation stays free for everyone thanks to these ${total} wonderful supporter${total === 1 ? "" : "s"}. Thank you for keeping the Nation cozy.`
+              : "Bear Nation stays free for everyone thanks to our supporters. The court is waiting for its first royals."}
           </p>
         </div>
 
