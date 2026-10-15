@@ -24,9 +24,9 @@ const LEVEL_ROLES: [number, string][] = [
   [81, "1361680852064407683"], [91, "1361681482946576504"],
 ];
 const PATREON = [
-  { id: "1362502871639396362", name: "Legendary Neko", bonus: 0.4 },
-  { id: "1362502662721114245", name: "Kitten Guardian", bonus: 0.2 },
-  { id: "1362102163693633818", name: "Royal Kitten", bonus: 0.1 },
+  { id: "1362502871639396362", name: "King / Queen", bonus: 0.4 },
+  { id: "1362502662721114245", name: "Prince / Princess", bonus: 0.2 },
+  { id: "1362102163693633818", name: "Duke / Duchess", bonus: 0.1 },
 ];
 const BOOSTER_ROLE = "1360260086500561237";
 const STAFF_TEAM_ROLE = "1358470109965979859";

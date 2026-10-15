@@ -49,7 +49,7 @@ html body {
 html body :is(h1, h2, h3) { letter-spacing: -0.025em; }
 html body button, html body input, html body select, html body textarea { font-family: inherit; }
 
-/* ---------- Background: a calm base, the folded-tile pattern (app/fold-pattern.tsx) and soft glows in the season's colors ---------- */
+/* ---------- Background: a calm base, topographic lines (app/topo-pattern.tsx) and soft glows in the season's colors ---------- */
 html:root[data-season] body,
 html:root body {
   background: linear-gradient(165deg, var(--bg) 0%, rgb(var(--night-rgb)) 100%);

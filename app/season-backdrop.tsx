@@ -1,6 +1,6 @@
 "use client";
 
-// The page backdrop behind every page: a folded-tile geometric pattern in the season's colors (app/fold-pattern.tsx),
+// The page backdrop behind every page: faint topographic contour lines in the season's colors (app/topo-pattern.tsx),
 // soft glows over it, and drifting particles for the season (fireflies by default, snow in winter, butterflies and
 // petals in spring, bubbles in summer).
 // Colors and pattern come from app/seasons.css + app/glass.css; Admin → Overview → Seasons turns the particles down or off.
@@ -8,7 +8,7 @@
 import "./seasons.css";
 import { useEffect, useRef } from "react";
 import { useSeason } from "./season-context";
-import { FoldPattern } from "./fold-pattern";
+import { TopoPattern } from "./topo-pattern";
 import type { SeasonKey } from "../lib/seasons";
 
 // ---------------------------------------------------------------- particles (one canvas)
@@ -210,7 +210,7 @@ export function SeasonBackdrop() {
   const season = useSeason();
   return (
     <div className="sb" data-season-backdrop={season.key} aria-hidden="true">
-      <FoldPattern />
+      <TopoPattern />
       <div className="sb-mesh" />
       {season.particles !== "off" ? <Particles season={season.key} amount={season.particles} /> : null}
     </div>
