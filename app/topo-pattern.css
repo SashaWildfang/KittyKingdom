@@ -1,0 +1,26 @@
+/* Topographic background (app/topo-pattern.tsx) */
+.tp-wrap { position: absolute; inset: 0; overflow: hidden; }
+.tp {
+  position: absolute;
+  top: -720px;
+  left: -720px;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(var(--gold-rgb), 0.18);
+  -webkit-mask: url("/topo.svg") 0 0 / 720px 720px repeat;
+  mask: url("/topo.svg") 0 0 / 720px 720px repeat;
+  /* A very slow drift (one tile every 3 minutes) so it feels alive without drawing the eye; moved with transform,
+     which the GPU does without repainting */
+  animation: tp-drift 180s linear infinite;
+  will-change: transform;
+}
+:root[data-theme="light"] .tp { background-color: rgba(var(--maple-rgb), 0.2); }
+@keyframes tp-drift {
+  to { transform: translate3d(720px, 720px, 0); }
+}
+@media (max-width: 700px) {
+  .tp { -webkit-mask-size: 520px 520px; mask-size: 520px 520px; animation: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tp { animation: none; }
+}
