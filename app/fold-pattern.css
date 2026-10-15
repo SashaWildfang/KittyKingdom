@@ -1,0 +1,16 @@
+/* Folded-tile background (app/fold-pattern.tsx). Uses the theme channels from app/seasons.css. */
+.fp { position: absolute; inset: 0; display: block; }
+
+/* Dark: deep brown faces with a darker crease */
+.fp-a { fill: rgba(var(--maple-rgb), 0.55); }
+.fp-b { fill: rgba(var(--maple-rgb), 0.3); }
+.fp-shade-on { stop-color: #000; stop-opacity: 0.55; }
+.fp-shade-off { stop-color: #000; stop-opacity: 0; }
+.fp-edge { fill: none; stroke: rgba(var(--ember-rgb), 0.22); stroke-width: 1; }
+
+/* Light: warm tan and gold faces with a soft brown crease */
+:root[data-theme="light"] .fp-a { fill: rgba(var(--gold-rgb), 0.42); }
+:root[data-theme="light"] .fp-b { fill: rgba(var(--ember-rgb), 0.16); }
+:root[data-theme="light"] .fp-shade-on { stop-color: rgb(var(--bark-rgb)); stop-opacity: 0.26; }
+:root[data-theme="light"] .fp-shade-off { stop-color: rgb(var(--bark-rgb)); stop-opacity: 0; }
+:root[data-theme="light"] .fp-edge { stroke: rgba(255, 255, 255, 0.55); }
