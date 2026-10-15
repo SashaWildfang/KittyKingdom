@@ -9,8 +9,8 @@ import "./giveaways.css";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Giveaways | Kitty Kingdom",
-  description: "Win currency, store items and more in Kitty Kingdom giveaways. Enter right here or in the Discord.",
+  title: "Giveaways | Bear Nation",
+  description: "Win currency, store items and more in Bear Nation giveaways. Enter right here or in the Discord.",
 };
 
 export default async function GiveawaysPage() {

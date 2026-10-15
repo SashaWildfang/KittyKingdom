@@ -12,7 +12,7 @@ import { GamesClient } from "./games-client";
 export const dynamic = "force-dynamic";
 export const maxDuration = 10;
 
-export const metadata = { title: "Games | Kitty Kingdom" };
+export const metadata = { title: "Games | Bear Nation" };
 
 /** Blackjack, roulette, slots, mines and scratch-offs with your leaves (signed-in members with Discord linked). */
 export default async function GamesPage({ searchParams }: { searchParams: { game?: string; watch?: string } }) {

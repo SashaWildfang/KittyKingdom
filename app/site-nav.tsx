@@ -50,10 +50,10 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
   ];
   return (
     <nav className="topbar" aria-label="Main navigation">
-      <a className="brand" href="/home" aria-label="Kitty Kingdom home">
-        <SiteLogo className="brand-logo-img" alt="Kitty Kingdom logo" />
+      <a className="brand" href="/home" aria-label="Bear Nation home">
+        <SiteLogo className="brand-logo-img" alt="Bear Nation logo" />
         <span className="brand-copy">
-          <strong>Kitty Kingdom</strong>
+          <strong>Bear Nation</strong>
           <OnlineStatus initialOnline={discordOnline} visitorsHref={panel?.level === "admin" ? "/admin?tab=accounts#online" : null} />
         </span>
       </a>

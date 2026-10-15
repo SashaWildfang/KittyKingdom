@@ -41,7 +41,7 @@ export const DEFAULT_LEVEL_ROLES: Record<SeasonKey, LevelRole[]> = {
 
 /** Colors handed to the bot roles (Zeo, Economy, Moderation, Tickets…) in order, unless set per role. */
 export const DEFAULT_BOT_COLORS: Record<SeasonKey, string[]> = {
-  fall: ["#f59b2a", "#e25822", "#ffd27a", "#c85f18"],
+  fall: ["#d56300", "#fedd63", "#fee6b8", "#8a4a08"], // bear pride flag
   winter: ["#7cc4ff", "#a5b4fc", "#67e8f9", "#e0f2ff"],
   spring: ["#f9a8d4", "#c4b5fd", "#86efac", "#fde68a"],
   summer: ["#ff7a59", "#22b8cf", "#ffd166", "#34d399"],

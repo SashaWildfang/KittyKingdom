@@ -6,8 +6,8 @@ import { SiteNav } from "../site-nav";
 import { AppealsClient } from "./appeals-client";
 
 export const metadata: Metadata = {
-  title: "Appeal a Punishment | Kitty Kingdom",
-  description: "Banned, muted, kicked or warned in Kitty Kingdom? Find your account, confirm it's you with Discord and send an appeal to the admin team.",
+  title: "Appeal a Punishment | Bear Nation",
+  description: "Banned, muted, kicked or warned in Bear Nation? Find your account, confirm it's you with Discord and send an appeal to the admin team.",
 };
 
 export const dynamic = "force-dynamic";

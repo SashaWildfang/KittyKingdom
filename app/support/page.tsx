@@ -11,8 +11,8 @@ import { seasonal } from "../../lib/season-store";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
-  title: "Support | Kitty Kingdom",
-  description: "Get help with your Kitty Kingdom account, Discord linking, the Store, moderation and more.",
+  title: "Support | Bear Nation",
+  description: "Get help with your Bear Nation account, Discord linking, the Store, moderation and more.",
 };
 
 const FIXES: Fix[] = [
@@ -32,7 +32,7 @@ const FIXES: Fix[] = [
     title: "I never got my confirmation email",
     tags: "verify email confirm confirmation spam resend",
     steps: [
-      <>Check your spam or promotions folder for an email from Kitty Kingdom.</>,
+      <>Check your spam or promotions folder for an email from Bear Nation.</>,
       <>On the <a href="/login">login page</a>, try to log in and press <b>Resend</b> when it asks you to confirm your email.</>,
       <>Only the newest few links work, so use the most recent email.</>,
       <>Signed up but never linked Discord? The confirmation email only comes after you finish the Discord step on the sign-up page.</>,
@@ -44,7 +44,7 @@ const FIXES: Fix[] = [
     tags: "link discord code /link expired",
     steps: [
       <>Codes only last <b>10 minutes</b>. Press <b>Get code</b> again on <a href="/account">My Account</a> for a fresh one.</>,
-      <>Type <code className="kb-cmd">/link</code> in the Kitty Kingdom server and paste the whole code.</>,
+      <>Type <code className="kb-cmd">/link</code> in the Bear Nation server and paste the whole code.</>,
       <>You need to be a verified member of the server to link.</>,
       <>Each Discord account can only be linked to one website account. Linked the wrong one? Unlink it from My Account first.</>,
     ],

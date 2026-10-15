@@ -31,7 +31,7 @@ async function send(url: string, method: string, body?: unknown) {
   return r;
 }
 
-/** Admin → Overview → Status: what status.kittykingdom.net shows, and posting incidents/maintenance. */
+/** Admin → Overview → Status: what status.bear-nation.net shows, and posting incidents/maintenance. */
 export function StatusTab() {
   const { data: live } = useLive<StatusView & { ok: boolean }>("/api/status", 30_000);
   const { data, error, reload } = useLive<{ ok: boolean; incidents: Incident[] }>("/api/admin/status", 0);
@@ -68,7 +68,7 @@ export function StatusTab() {
       <div className="adm-card stt-live">
         <div className="stt-live-head">
           <h3>Right now</h3>
-          <a className="adm-btn adm-btn--ghost adm-btn--small" href="https://status.kittykingdom.net" target="_blank" rel="noreferrer">
+          <a className="adm-btn adm-btn--ghost adm-btn--small" href="https://status.bear-nation.net" target="_blank" rel="noreferrer">
             Open the status page <ArrowUpRight size={13} aria-hidden="true" />
           </a>
         </div>

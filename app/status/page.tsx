@@ -6,12 +6,12 @@ import "./status.css";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Status | Kitty Kingdom",
-  description: "Live status of the Kitty Kingdom website, database and Discord bots, with 90 days of uptime and incident history.",
-  alternates: { canonical: "https://status.kittykingdom.net" },
+  title: "Status | Bear Nation",
+  description: "Live status of the Bear Nation website, database and Discord bots, with 90 days of uptime and incident history.",
+  alternates: { canonical: "https://status.bear-nation.net" },
 };
 
-/** status.kittykingdom.net (also /status on the main site). */
+/** status.bear-nation.net (also /status on the main site). */
 export default async function StatusPage() {
   let initial: StatusView | null = null;
   try {

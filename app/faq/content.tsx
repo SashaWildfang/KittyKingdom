@@ -64,12 +64,12 @@ export const TOPICS: Topic[] = [
     ],
     faqs: [
       {
-        q: "What is Kitty Kingdom?",
+        q: "What is Bear Nation?",
         a: "A warm, cozy furry community for adults: friends, dating profiles, events, games, an economy with its own currency (it changes with the seasons) and a website that syncs with Discord.",
       },
       {
         q: "Do I have to be 18?",
-        a: "Yes. Kitty Kingdom is 18+ only. Members verify their age with staff, and the 18+ Verified role unlocks the adult areas and the dating system.",
+        a: "Yes. Bear Nation is 18+ only. Members verify their age with staff, and the 18+ Verified role unlocks the adult areas and the dating system.",
         keywords: "age adult verify verification",
       },
       {
@@ -280,7 +280,7 @@ export const TOPICS: Topic[] = [
     id: "nitro",
     title: "Server boosting perks",
     icon: "Gem",
-    blurb: "What you get for boosting Kitty Kingdom with Nitro.",
+    blurb: "What you get for boosting Bear Nation with Nitro.",
     guides: [
       {
         title: "Golden Leaf 🍂 perks",
@@ -331,7 +331,7 @@ export const TOPICS: Topic[] = [
     id: "patreon",
     title: "Patreon perks",
     icon: "Heart",
-    blurb: "Support the kingdom and get monthly rewards.",
+    blurb: "Support the Nation and get monthly rewards.",
     guides: [
       {
         title: "Patreon tiers",

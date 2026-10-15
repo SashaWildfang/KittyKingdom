@@ -5,12 +5,12 @@
 import { getMongoClient } from "./mongodb";
 import { userTimeZone, zoneLabel } from "./timezone";
 
-const SITE = "https://www.kittykingdom.net";
+const SITE = "https://bear-nation.net";
 const LOGO = `${SITE}/logo.png`;
-const ACCENT = "#e0701e";
-const INK = "#231a14";
+const ACCENT = "#d56300";
+const INK = "#2a1904";
 const MUTED = "#6b5e53";
-const LINE = "#eadfd4";
+const LINE = "#f3e2c3";
 
 const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
@@ -87,7 +87,7 @@ function layout(o: {
             <td style="padding:0 4px 16px;">
               <table role="presentation" cellspacing="0" cellpadding="0"><tr>
                 <td style="padding-right:10px;"><img src="${LOGO}" alt="" width="40" height="40" style="display:block;border-radius:10px;" /></td>
-                <td style="font-size:16px;font-weight:800;letter-spacing:0.02em;color:${INK};">Kitty Kingdom</td>
+                <td style="font-size:16px;font-weight:800;letter-spacing:0.02em;color:${INK};">Bear Nation</td>
               </tr></table>
             </td>
           </tr>
@@ -136,12 +136,12 @@ function layout(o: {
             <td style="padding:20px 8px 0;text-align:center;font-size:12px;line-height:1.6;color:${MUTED};">
               <p style="margin:0 0 6px;">${escapeHtml(o.reason)}</p>
               <p style="margin:0 0 6px;">
-                <a href="${SITE}" style="color:${MUTED};">kittykingdom.net</a> &nbsp;·&nbsp;
+                <a href="${SITE}" style="color:${MUTED};">bear-nation.net</a> &nbsp;·&nbsp;
                 <a href="${SITE}/support" style="color:${MUTED};">Support</a> &nbsp;·&nbsp;
                 <a href="${SITE}/privacy" style="color:${MUTED};">Privacy</a> &nbsp;·&nbsp;
                 <a href="${SITE}/terms" style="color:${MUTED};">Terms</a>
               </p>
-              <p style="margin:0;">© ${new Date().getFullYear()} Kitty Kingdom. This is an automated message; replies aren't monitored.</p>
+              <p style="margin:0;">© ${new Date().getFullYear()} Bear Nation. This is an automated message; replies aren't monitored.</p>
             </td>
           </tr>
         </table>
@@ -216,12 +216,12 @@ export function verificationEmail(email: string, verifyUrl: string, details: { d
   // New sign-ups confirm their email first, then link Discord in the server
   const signup = Boolean(details.newAccount && !discord);
   const intro = signup
-    ? "Confirm this email address, then link your Discord with <strong>/link</strong> in the server to finish setting up your Kitty Kingdom account."
+    ? "Confirm this email address, then link your Discord with <strong>/link</strong> in the server to finish setting up your Bear Nation account."
     : discord
-      ? `Your Discord account <strong style="color:${INK};">${escapeHtml(discord)}</strong> is linked. Confirm this email address to finish setting up your Kitty Kingdom account, then you can log in.`
-      : "Confirm this email address to finish setting up your Kitty Kingdom account, then you can log in.";
+      ? `Your Discord account <strong style="color:${INK};">${escapeHtml(discord)}</strong> is linked. Confirm this email address to finish setting up your Bear Nation account, then you can log in.`
+      : "Confirm this email address to finish setting up your Bear Nation account, then you can log in.";
   const html = layout({
-    preheader: signup ? "Confirm your email, then link your Discord to finish your Kitty Kingdom account." : "One last step: confirm your email to finish your Kitty Kingdom account.",
+    preheader: signup ? "Confirm your email, then link your Discord to finish your Bear Nation account." : "One last step: confirm your email to finish your Bear Nation account.",
     eyebrow: "Account verification",
     title: "Confirm your email address",
     intro,
@@ -243,25 +243,25 @@ export function verificationEmail(email: string, verifyUrl: string, details: { d
     ],
     button: { label: "Confirm email address", url: verifyUrl },
     expiry: "This link expires in 72 hours.",
-    security: "Kitty Kingdom staff will never ask for your password or this link. If you didn't create this account, you can safely ignore this email and nothing will happen.",
-    reason: "You're receiving this because this address was used to create an account on kittykingdom.net.",
+    security: "Bear Nation staff will never ask for your password or this link. If you didn't create this account, you can safely ignore this email and nothing will happen.",
+    reason: "You're receiving this because this address was used to create an account on bear-nation.net.",
   });
   const text = [
-    "Kitty Kingdom: confirm your email address",
+    "Bear Nation: confirm your email address",
     "",
     ...(discord ? [`Your Discord account ${discord} is linked.`] : []),
     signup
-      ? "Confirm this email address, then link your Discord with /link in the server to finish setting up your Kitty Kingdom account."
-      : "Confirm this email address to finish setting up your Kitty Kingdom account, then you can log in.",
+      ? "Confirm this email address, then link your Discord with /link in the server to finish setting up your Bear Nation account."
+      : "Confirm this email address to finish setting up your Bear Nation account, then you can log in.",
     "",
     `Confirm your email: ${verifyUrl}`,
     "This link expires in 72 hours.",
     "",
-    "Kitty Kingdom staff will never ask for your password or this link. If you didn't create this account, you can ignore this email.",
+    "Bear Nation staff will never ask for your password or this link. If you didn't create this account, you can ignore this email.",
     "",
     `${SITE} · Support: ${SITE}/support`,
   ].join("\n");
-  return { subject: "Confirm your email for Kitty Kingdom", html, text };
+  return { subject: "Confirm your email for Bear Nation", html, text };
 }
 
 export async function sendVerificationEmail(email: string, verifyUrl: string, details: { discordName?: string | null; newAccount?: boolean } = {}) {
@@ -271,25 +271,25 @@ export async function sendVerificationEmail(email: string, verifyUrl: string, de
 
 export function passwordResetEmail(email: string, resetUrl: string, requestedByStaff: boolean) {
   const intro = requestedByStaff
-    ? "A Kitty Kingdom staff member sent you this link so you can reset your website password."
-    : "We received a request to reset the password for your Kitty Kingdom website account.";
+    ? "A Bear Nation staff member sent you this link so you can reset your website password."
+    : "We received a request to reset the password for your Bear Nation website account.";
   const html = layout({
-    preheader: "Use this link to choose a new Kitty Kingdom password. It works once and expires in 1 hour.",
+    preheader: "Use this link to choose a new Bear Nation password. It works once and expires in 1 hour.",
     eyebrow: "Password reset",
     title: "Reset your password",
     intro,
     rows: [
       { label: "Account", value: email },
       { label: "Requested", value: stamp() },
-      { label: "Requested by", value: requestedByStaff ? "Kitty Kingdom staff" : "You (on the website)" },
+      { label: "Requested by", value: requestedByStaff ? "Bear Nation staff" : "You (on the website)" },
     ],
     button: { label: "Choose a new password", url: resetUrl },
     expiry: "This link works once and expires in 1 hour.",
     security: "Setting a new password signs you out of the website on every other device. If you didn't ask for this, ignore this email and your password won't change.",
-    reason: "You're receiving this because a password reset was requested for this address on kittykingdom.net.",
+    reason: "You're receiving this because a password reset was requested for this address on bear-nation.net.",
   });
   const text = [
-    "Kitty Kingdom: reset your password",
+    "Bear Nation: reset your password",
     "",
     intro,
     "",
@@ -300,7 +300,7 @@ export function passwordResetEmail(email: string, resetUrl: string, requestedByS
     "",
     `${SITE} · Support: ${SITE}/support`,
   ].join("\n");
-  return { subject: "Reset your Kitty Kingdom password", html, text };
+  return { subject: "Reset your Bear Nation password", html, text };
 }
 
 export async function sendPasswordResetEmail(email: string, resetUrl: string, requestedByStaff: boolean) {
@@ -321,10 +321,10 @@ export function securityNoticeEmail(email: string, title: string, message: strin
     ],
     button: { label: "Review account security", url: `${SITE}/account#security` },
     expiry: "Only you can see this page after logging in.",
-    security: "If you didn't make this change, change your password right away and contact Kitty Kingdom staff on Discord.",
-    reason: "You're receiving this because a security setting changed on your kittykingdom.net account.",
+    security: "If you didn't make this change, change your password right away and contact Bear Nation staff on Discord.",
+    reason: "You're receiving this because a security setting changed on your bear-nation.net account.",
   });
-  const text = [`Kitty Kingdom: ${title}`, "", message, "", `Review your account security: ${SITE}/account#security`, "", "If you didn't make this change, change your password right away and contact staff."].join("\n");
+  const text = [`Bear Nation: ${title}`, "", message, "", `Review your account security: ${SITE}/account#security`, "", "If you didn't make this change, change your password right away and contact staff."].join("\n");
   return { subject: `Security alert: ${title}`, html, text };
 }
 
@@ -343,15 +343,15 @@ export function staffActionEmail(email: string, title: string, message: string, 
     intro: escapeHtml(message),
     rows: [
       { label: "Account", value: email },
-      { label: "Changed by", value: "Kitty Kingdom staff" },
+      { label: "Changed by", value: "Bear Nation staff" },
       { label: "When", value: stamp() },
     ],
     button: { label: "Open My Account", url: `${SITE}/account` },
     expiry: nextStep ? escapeHtml(nextStep) : "Nothing else is needed from you.",
-    security: "Didn't ask for this? Open a ticket in the Kitty Kingdom Discord and staff will look into it.",
-    reason: "You're receiving this because a Kitty Kingdom staff member made a change to your kittykingdom.net account.",
+    security: "Didn't ask for this? Open a ticket in the Bear Nation Discord and staff will look into it.",
+    reason: "You're receiving this because a Bear Nation staff member made a change to your bear-nation.net account.",
   });
-  const text = [`Kitty Kingdom: ${title}`, "", message, ...(nextStep ? ["", nextStep] : []), "", `My Account: ${SITE}/account`, "", "Didn't ask for this? Open a ticket in the Kitty Kingdom Discord."].join("\n");
+  const text = [`Bear Nation: ${title}`, "", message, ...(nextStep ? ["", nextStep] : []), "", `My Account: ${SITE}/account`, "", "Didn't ask for this? Open a ticket in the Bear Nation Discord."].join("\n");
   return { subject: `Account update: ${title}`, html, text };
 }
 
@@ -363,23 +363,23 @@ export async function sendStaffActionEmail(email: string, title: string, message
 export function verificationReminderEmail(email: string, verifyUrl: string, name: string | null) {
   const hi = name ? `Hi ${escapeHtml(name)}! ` : "Hi! ";
   const html = layout({
-    preheader: "Your Kitty Kingdom account is almost ready: confirm your email to log in.",
+    preheader: "Your Bear Nation account is almost ready: confirm your email to log in.",
     eyebrow: "Friendly reminder",
     title: "You're one click away from logging in",
-    intro: `${hi}You made a Kitty Kingdom website account but haven't confirmed your email yet, so you can't log in. Tap the button below and you're all set: the Store, Leaderboards, your stats and more are waiting.`,
+    intro: `${hi}You made a Bear Nation website account but haven't confirmed your email yet, so you can't log in. Tap the button below and you're all set: the Store, Leaderboards, your stats and more are waiting.`,
     rows: [
       { label: "Email", value: email },
       { label: "Sent", value: stamp() },
     ],
     button: { label: "Confirm my email", url: verifyUrl },
     expiry: "This link expires in 72 hours. Any older confirmation links still work too.",
-    security: "Kitty Kingdom staff will never ask for your password or this link. If you didn't make this account, ignore this email and nothing will happen.",
-    reason: "A Kitty Kingdom staff member sent this reminder because this address has an unconfirmed account on kittykingdom.net.",
+    security: "Bear Nation staff will never ask for your password or this link. If you didn't make this account, ignore this email and nothing will happen.",
+    reason: "A Bear Nation staff member sent this reminder because this address has an unconfirmed account on bear-nation.net.",
   });
   const text = [
-    "Kitty Kingdom: you're one click away from logging in",
+    "Bear Nation: you're one click away from logging in",
     "",
-    `${name ? `Hi ${name}! ` : "Hi! "}You made a Kitty Kingdom website account but haven't confirmed your email yet, so you can't log in.`,
+    `${name ? `Hi ${name}! ` : "Hi! "}You made a Bear Nation website account but haven't confirmed your email yet, so you can't log in.`,
     "",
     `Confirm your email: ${verifyUrl}`,
     "This link expires in 72 hours.",
@@ -388,7 +388,7 @@ export function verificationReminderEmail(email: string, verifyUrl: string, name
     "",
     `${SITE} · Support: ${SITE}/support`,
   ].join("\n");
-  return { subject: "Reminder: confirm your email for Kitty Kingdom", html, text };
+  return { subject: "Reminder: confirm your email for Bear Nation", html, text };
 }
 
 export async function sendVerificationReminderEmail(email: string, verifyUrl: string, name: string | null) {
@@ -403,9 +403,9 @@ export function discordLinkReminderEmail(email: string, name: string | null) {
     preheader: "Link your Discord to unlock the Store, Leaderboards, your stats and roles on the site.",
     eyebrow: "Friendly reminder",
     title: "Link your Discord in under a minute",
-    intro: `${hi}Your Kitty Kingdom website account isn't linked to Discord yet. Linking unlocks the Store, Leaderboards, your live stats, badges and managing your server roles from the site. Here's how:`,
+    intro: `${hi}Your Bear Nation website account isn't linked to Discord yet. Linking unlocks the Store, Leaderboards, your live stats, badges and managing your server roles from the site. Here's how:`,
     rows: [
-      { label: "Step 1", value: "Log in at kittykingdom.net and open My Account." },
+      { label: "Step 1", value: "Log in at bear-nation.net and open My Account." },
       { label: "Step 2", value: "In the Discord section, press “Get code”." },
       { label: "Step 3", value: "In our Discord server, type /link and paste the code (it works for 10 minutes)." },
       { label: "Step 4", value: "That's it! The page updates by itself once it's linked." },
@@ -413,14 +413,14 @@ export function discordLinkReminderEmail(email: string, name: string | null) {
     button: { label: "Open My Account", url: `${SITE}/account#discord-account` },
     expiry: "Codes last 10 minutes; you can grab a new one anytime.",
     security: "Staff will never ask for your password. Only paste your link code into the /link command in our server, never in DMs.",
-    reason: "A Kitty Kingdom staff member sent this reminder because your kittykingdom.net account isn't linked to Discord yet.",
+    reason: "A Bear Nation staff member sent this reminder because your bear-nation.net account isn't linked to Discord yet.",
   });
   const text = [
-    "Kitty Kingdom: link your Discord in under a minute",
+    "Bear Nation: link your Discord in under a minute",
     "",
     `${name ? `Hi ${name}! ` : "Hi! "}Your website account isn't linked to Discord yet. Linking unlocks the Store, Leaderboards, your stats and roles on the site.`,
     "",
-    "1. Log in at kittykingdom.net and open My Account.",
+    "1. Log in at bear-nation.net and open My Account.",
     "2. In the Discord section, press \"Get code\".",
     "3. In our Discord server, type /link and paste the code (it works for 10 minutes).",
     "4. Done! The page updates by itself once it's linked.",
@@ -431,7 +431,7 @@ export function discordLinkReminderEmail(email: string, name: string | null) {
     "",
     `${SITE} · Support: ${SITE}/support`,
   ].join("\n");
-  return { subject: "Link your Discord to Kitty Kingdom", html, text };
+  return { subject: "Link your Discord to Bear Nation", html, text };
 }
 
 export async function sendDiscordLinkReminderEmail(email: string, name: string | null) {
@@ -459,10 +459,10 @@ export async function sendAppealReceivedEmail(email: string, a: { username: stri
     ],
     button: { label: "Check your appeal", url: `${SITE}/appeals` },
     expiry: "Most appeals are reviewed within a few days.",
-    security: "Kitty Kingdom staff will never ask for your password. If you didn't send this appeal, you can ignore this email.",
-    reason: "You're receiving this because this address was entered on an appeal at kittykingdom.net.",
+    security: "Bear Nation staff will never ask for your password. If you didn't send this appeal, you can ignore this email.",
+    reason: "You're receiving this because this address was entered on an appeal at bear-nation.net.",
   });
-  const text = [`Kitty Kingdom: we've got your appeal`, "", `An admin will review your appeal for the ${kind.toLowerCase()} on @${a.username}.`, `Reference: ${a.reference}`, "", `Check it any time: ${SITE}/appeals`].join("\n");
+  const text = [`Bear Nation: we've got your appeal`, "", `An admin will review your appeal for the ${kind.toLowerCase()} on @${a.username}.`, `Reference: ${a.reference}`, "", `Check it any time: ${SITE}/appeals`].join("\n");
   return sendEmail(email, "We've received your appeal", html, text, "appeal-received");
 }
 
@@ -485,12 +485,12 @@ export async function sendAppealDecisionEmail(email: string, a: { username: stri
       { label: "Reference", value: a.reference },
       { label: "Decided", value: stamp() },
     ],
-    button: { label: a.accepted ? "Rejoin Kitty Kingdom" : "View your appeal", url: a.accepted && a.lifted ? `${SITE}/join` : `${SITE}/appeals` },
+    button: { label: a.accepted ? "Rejoin Bear Nation" : "View your appeal", url: a.accepted && a.lifted ? `${SITE}/join` : `${SITE}/appeals` },
     expiry: a.accepted ? "Please read the rules again before you rejoin." : "You can appeal this punishment again in 30 days.",
-    security: "Kitty Kingdom staff will never ask for your password.",
-    reason: "You're receiving this because this address was entered on an appeal at kittykingdom.net.",
+    security: "Bear Nation staff will never ask for your password.",
+    reason: "You're receiving this because this address was entered on an appeal at bear-nation.net.",
   });
-  const text = [`Kitty Kingdom: ${title.toLowerCase()}`, "", a.accepted ? `Your appeal for the ${kind.toLowerCase()} on @${a.username} was accepted.` : `Your appeal for the ${kind.toLowerCase()} on @${a.username} was not accepted.`, ...(a.response ? ["", "Message from staff:", a.response] : []), "", `Reference: ${a.reference}`, `${SITE}/appeals`].join("\n");
+  const text = [`Bear Nation: ${title.toLowerCase()}`, "", a.accepted ? `Your appeal for the ${kind.toLowerCase()} on @${a.username} was accepted.` : `Your appeal for the ${kind.toLowerCase()} on @${a.username} was not accepted.`, ...(a.response ? ["", "Message from staff:", a.response] : []), "", `Reference: ${a.reference}`, `${SITE}/appeals`].join("\n");
   return sendEmail(email, title, html, text, "appeal-decision");
 }
 
@@ -498,10 +498,10 @@ export async function sendAppealDecisionEmail(email: string, a: { username: stri
 export async function sendBanAccountClosedEmail(email: string, a: { name: string | null; reason: string; caseId: string | null; appealable: boolean; bannedAt: Date | null }) {
   const hi = a.name ? `Hi ${escapeHtml(a.name)}. ` : "Hi. ";
   const html = layout({
-    preheader: "You've been banned from Kitty Kingdom, so your website account has been closed.",
+    preheader: "You've been banned from Bear Nation, so your website account has been closed.",
     eyebrow: "Account closed",
-    title: "You've been banned from Kitty Kingdom",
-    intro: `${hi}You've been banned from the Kitty Kingdom Discord server, so your kittykingdom.net account has been closed and deleted. Here's what we have on record:`,
+    title: "You've been banned from Bear Nation",
+    intro: `${hi}You've been banned from the Bear Nation Discord server, so your bear-nation.net account has been closed and deleted. Here's what we have on record:`,
     rows: [
       { label: "Reason", value: a.reason },
       ...(a.caseId ? [{ label: "Case ID", value: a.caseId }] : []),
@@ -512,13 +512,13 @@ export async function sendBanAccountClosedEmail(email: string, a: { name: string
     expiry: a.appealable
       ? "To appeal, sign in with Discord on the appeals page (it works while you're banned), pick this ban and tell the admins what happened."
       : "If you think this is a mistake, you can contact support.",
-    security: "Kitty Kingdom staff will never ask for your password. Your account and sign-ins have been removed, and nothing else is needed from you.",
-    reason: "You're receiving this because this address belonged to a kittykingdom.net account linked to a Discord account that was banned.",
+    security: "Bear Nation staff will never ask for your password. Your account and sign-ins have been removed, and nothing else is needed from you.",
+    reason: "You're receiving this because this address belonged to a bear-nation.net account linked to a Discord account that was banned.",
   });
   const text = [
-    "Kitty Kingdom: you've been banned",
+    "Bear Nation: you've been banned",
     "",
-    `${a.name ? `Hi ${a.name}. ` : "Hi. "}You've been banned from the Kitty Kingdom Discord server, so your kittykingdom.net account has been closed and deleted.`,
+    `${a.name ? `Hi ${a.name}. ` : "Hi. "}You've been banned from the Bear Nation Discord server, so your bear-nation.net account has been closed and deleted.`,
     "",
     `Reason: ${a.reason}`,
     ...(a.caseId ? [`Case ID: ${a.caseId}`] : []),
@@ -526,5 +526,5 @@ export async function sendBanAccountClosedEmail(email: string, a: { name: string
     "",
     `${SITE} · Support: ${SITE}/support`,
   ].join("\n");
-  return sendEmail(email, "You've been banned from Kitty Kingdom", html, text, "ban-closed");
+  return sendEmail(email, "You've been banned from Bear Nation", html, text, "ban-closed");
 }

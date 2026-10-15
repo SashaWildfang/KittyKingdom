@@ -108,7 +108,7 @@ export default function DatingHome() {
           </span>
           <div>
             <p className="dt-kicker">
-              <Sparkles size={13} aria-hidden="true" /> Kitty Kingdom Social
+              <Sparkles size={13} aria-hidden="true" /> Bear Nation Social
             </p>
             <h1>
               {greeting()}, {data.me.name}!

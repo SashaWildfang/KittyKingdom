@@ -89,7 +89,7 @@ export async function confirmSetup(user: Document, code: string) {
     { _id: user._id },
     { $set: { twoFactor: { enabled: true, secret: t.pending.secret, enabledAt: new Date(), lastStep: step, backupCodes: backup.stored } } },
   );
-  await sendSecurityNoticeEmail(String(user.email), "Two-factor authentication turned on", "Two-factor authentication is now on for your Kitty Kingdom account. You'll be asked for a code from your authenticator app when you log in.").catch(() => undefined);
+  await sendSecurityNoticeEmail(String(user.email), "Two-factor authentication turned on", "Two-factor authentication is now on for your Bear Nation account. You'll be asked for a code from your authenticator app when you log in.").catch(() => undefined);
   return { codes: backup.codes };
 }
 
@@ -111,5 +111,5 @@ export async function disableTwoFactor(user: Document, password: string, code: s
   }
   if (!(await checkSecondFactor(user, code))) throw new TwoFactorError("That code didn't match.");
   await (await getUsersCollection()).updateOne({ _id: user._id }, { $set: { twoFactor: { enabled: false } } });
-  await sendSecurityNoticeEmail(String(user.email), "Two-factor authentication turned off", "Two-factor authentication was turned off for your Kitty Kingdom account. If this wasn't you, change your password right away and contact staff.").catch(() => undefined);
+  await sendSecurityNoticeEmail(String(user.email), "Two-factor authentication turned off", "Two-factor authentication was turned off for your Bear Nation account. If this wasn't you, change your password right away and contact staff.").catch(() => undefined);
 }

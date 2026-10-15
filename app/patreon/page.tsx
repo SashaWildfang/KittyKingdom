@@ -11,8 +11,8 @@ import "./patreon.css";
 import { CurrencyName, Seasonal } from "../season-context";
 
 export const metadata: Metadata = {
-  title: "Patreon Supporters | Kitty Kingdom",
-  description: "Support Kitty Kingdom on Patreon: monthly currency, big XP and currency bonuses, bigger Daily Rewards, premium games and your own custom role with gradient colors.",
+  title: "Patreon Supporters | Bear Nation",
+  description: "Support Bear Nation on Patreon: monthly currency, big XP and currency bonuses, bigger Daily Rewards, premium games and your own custom role with gradient colors.",
 };
 
 type Row = { label: string; values: (string | boolean)[]; nitro: string | boolean };
@@ -67,7 +67,7 @@ export default async function PatreonPage() {
       <div className="pt">
         <section className="pt-hero">
           <span className="pt-eyebrow">
-            <Heart size={14} aria-hidden="true" /> Support Kitty Kingdom
+            <Heart size={14} aria-hidden="true" /> Support Bear Nation
           </span>
           <h1>Join the Royal Court</h1>
           <p>
@@ -217,7 +217,7 @@ export default async function PatreonPage() {
             </span>
             <h2>Boost the server, get rewarded</h2>
             <p>
-              Have Discord Nitro? Boosting Kitty Kingdom pays <b>{NITRO.perBoost.toLocaleString()}</b> <LeafEmote size={14} /> per boost, then <b>{NITRO.monthly.toLocaleString()}</b> <LeafEmote size={14} /> and a Streak Shield every month, plus <b>{pct(NITRO.xp)}</b> XP and Leaves, a daily streak bonus up to +700, the premium games and emotes and stickers from other servers.
+              Have Discord Nitro? Boosting Bear Nation pays <b>{NITRO.perBoost.toLocaleString()}</b> <LeafEmote size={14} /> per boost, then <b>{NITRO.monthly.toLocaleString()}</b> <LeafEmote size={14} /> and a Streak Shield every month, plus <b>{pct(NITRO.xp)}</b> XP and Leaves, a daily streak bonus up to +700, the premium games and emotes and stickers from other servers.
             </p>
           </div>
         </section>

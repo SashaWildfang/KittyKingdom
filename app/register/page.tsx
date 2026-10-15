@@ -5,8 +5,8 @@ import { RegisterLink } from "./register-link";
 import { BLOCKED_EMAIL_MESSAGE } from "../../lib/validate";
 
 export const metadata: Metadata = {
-  title: "Create an account | Kitty Kingdom",
-  description: "Create a free Kitty Kingdom account and link it to Discord for the store, games, Social profiles and more.",
+  title: "Create an account | Bear Nation",
+  description: "Create a free Bear Nation account and link it to Discord for the store, games, Social profiles and more.",
 };
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,7 @@ const statusMessages: Record<string, string> = {
   "password-requirements":
     "Password must be 8+ characters and include at least one number and one symbol.",
   "email-exists": "An account already exists for that email.",
-  "discord-required": "Accounts are for members of the Kitty Kingdom Discord. After confirming your email, you'll link yours with /link.",
+  "discord-required": "Accounts are for members of the Bear Nation Discord. After confirming your email, you'll link yours with /link.",
   "email-required": "Enter a valid email address.",
   "email-blocked": BLOCKED_EMAIL_MESSAGE,
   "too-many": "Too many sign-ups from your network. Please try again in an hour.",

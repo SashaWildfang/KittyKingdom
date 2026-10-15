@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { LegalShell, type LegalSection } from "../legal/legal-shell";
 
-export const metadata = { title: "Privacy Policy | Kitty Kingdom" };
+export const metadata = { title: "Privacy Policy | Bear Nation" };
 
 const UPDATED = "October 1, 2026";
 
@@ -12,14 +12,14 @@ const sections: LegalSection[] = [
     body: (
       <>
         <p>
-          Kitty Kingdom (&quot;<b>Kitty Kingdom</b>&quot;, &quot;<b>we</b>&quot;, &quot;<b>us</b>&quot; or &quot;<b>our</b>&quot;) is an online community operated by its
+          Bear Nation (&quot;<b>Bear Nation</b>&quot;, &quot;<b>we</b>&quot;, &quot;<b>us</b>&quot; or &quot;<b>our</b>&quot;) is an online community operated by its
           owner and administration team. This Privacy Policy explains what personal information we collect, why we collect it, how it is used,
           stored and shared, how long it is kept, and the choices and rights you have.
         </p>
         <p>It applies to (together, the &quot;<b>Services</b>&quot;):</p>
         <ul>
-          <li>the website at kittykingdom.net and its subdomains (the &quot;<b>Site</b>&quot;), including accounts, the Store, leaderboards, news, the staff page and My Account;</li>
-          <li>the Kitty Kingdom Discord server (the &quot;<b>Server</b>&quot;); and</li>
+          <li>the website at bear-nation.net and its subdomains (the &quot;<b>Site</b>&quot;), including accounts, the Store, leaderboards, news, the staff page and My Account;</li>
+          <li>the Bear Nation Discord server (the &quot;<b>Server</b>&quot;); and</li>
           <li>the Discord bots we operate in the Server, including the main bot, the moderation bot, the ticket system and the economy bot (the &quot;<b>Bots</b>&quot;). Dating profiles made with our former dating bot moved to Social on the Site.</li>
         </ul>
         <p>
@@ -27,7 +27,7 @@ const sections: LegalSection[] = [
           <a href="https://discord.com/privacy" target="_blank" rel="noopener noreferrer">
             Privacy Policy
           </a>
-          . We do not control what Discord collects. This policy only covers what Kitty Kingdom collects and does with information.
+          . We do not control what Discord collects. This policy only covers what Bear Nation collects and does with information.
         </p>
       </>
     ),
@@ -159,7 +159,7 @@ const sections: LegalSection[] = [
             videos, files and stickers removed, and only they and staff can open it.
           </li>
           <li>
-            <b>Punishment appeals:</b> if you appeal a punishment at kittykingdom.net/appeals, you sign in with Discord (we only ask Discord for your user ID,
+            <b>Punishment appeals:</b> if you appeal a punishment at bear-nation.net/appeals, you sign in with Discord (we only ask Discord for your user ID,
             username and avatar) so we know the appeal is really from you. We store your appeal message, the punishment it is about, the optional email address
             you give for the decision, and a history of the review (who decided, when, and their reply). Only administrators can see appeals, and they do not
             see your email address; it is only used to email you about that appeal.
@@ -311,7 +311,7 @@ const sections: LegalSection[] = [
         </ul>
         <p>
           We may also disclose information if we believe in good faith it is required by law, to respond to a valid legal request, to protect the safety of
-          any person, to investigate fraud or abuse, or to enforce our Terms of Service. If Kitty Kingdom is ever transferred to a new owner, information may
+          any person, to investigate fraud or abuse, or to enforce our Terms of Service. If Bear Nation is ever transferred to a new owner, information may
           be transferred as part of that, subject to this policy.
         </p>
       </>
@@ -426,7 +426,7 @@ const sections: LegalSection[] = [
     title: "Contact us",
     body: (
       <p>
-        Questions, requests or concerns about privacy? Open a support ticket in the Kitty Kingdom Discord server or message an administrator. You can find
+        Questions, requests or concerns about privacy? Open a support ticket in the Bear Nation Discord server or message an administrator. You can find
         the team on the <Link href="/staff">Staff page</Link>.
       </p>
     ),
@@ -446,7 +446,7 @@ export default function PrivacyPage() {
       ]}
       intro={
         <p>
-          We believe you should know exactly what we keep about you. This policy lists everything the Kitty Kingdom website, Discord server and bots store,
+          We believe you should know exactly what we keep about you. This policy lists everything the Bear Nation website, Discord server and bots store,
           why, who can see it, and how long it is kept.
         </p>
       }

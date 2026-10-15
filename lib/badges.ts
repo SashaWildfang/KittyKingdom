@@ -167,7 +167,7 @@ export const BADGES: BadgeDef[] = [
 
   // Special (one tier)
   { id: "booster", name: "Server Booster", category: "special", icon: "Gem", shape: "star", hue: "#f472b6", desc: "Boosting the server", tiers: [1], value: (s) => (s.multipliers.booster ? 1 : 0) },
-  { id: "patron", name: "Patron", category: "special", icon: "HandHeart", shape: "star", hue: "#f97316", desc: "Supporting Kitty Kingdom on Patreon", tiers: [1], value: (s) => (s.multipliers.patreon ? 1 : 0) },
+  { id: "patron", name: "Patron", category: "special", icon: "HandHeart", shape: "star", hue: "#f97316", desc: "Supporting Bear Nation on Patreon", tiers: [1], value: (s) => (s.multipliers.patreon ? 1 : 0) },
   { id: "royalguard", name: "Royal Guard", category: "special", icon: "ShieldCheck", shape: "star", hue: "#3b82f6", desc: "Part of the staff team", tiers: [1], value: (s) => (s.profile.isStaff ? 1 : 0) },
 ];
 
@@ -318,7 +318,7 @@ const ABOUT: Record<string, string> = {
   showoff: "Pin 3 badges to your profile.",
   titled: "Pick a badge title for your profile.",
   booster: "Boost the server.",
-  patron: "Support Kitty Kingdom on Patreon.",
+  patron: "Support Bear Nation on Patreon.",
   royalguard: "Be part of the staff team.",
   collector: "Earn lots of different badges.",
   diamondhands: "Get badges to Diamond tier.",

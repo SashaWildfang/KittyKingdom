@@ -36,7 +36,7 @@ export type TranscriptLook = {
 };
 
 export const DEFAULT_LOOK: TranscriptLook = {
-  title: "Kitty Kingdom Support",
+  title: "Bear Nation Support",
   accent: "#ff8b3d",
   groupMessages: true,
   dayDividers: true,

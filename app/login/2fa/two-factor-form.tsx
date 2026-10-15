@@ -32,7 +32,7 @@ export function TwoFactorForm({ account, error, startMode }: { account: string; 
       <p className="tfa-lead">
         {mode === "app" ? (
           <>
-            Open your authenticator app and enter the 6-digit code for <b>Kitty Kingdom</b> ({account}).
+            Open your authenticator app and enter the 6-digit code for <b>Bear Nation</b> ({account}).
           </>
         ) : (
           <>Enter one of the backup codes you saved when you turned on two-factor authentication. Each one works once.</>
