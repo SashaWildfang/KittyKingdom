@@ -1,0 +1,867 @@
+/* Admin → Database */
+.dbm {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.dbm-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.dbm-views {
+  flex-wrap: wrap;
+}
+
+.dbm-views button,
+.dbm-cleanup > .adm-seg button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.dbm-overview,
+.dbm-browse,
+.dbm-member,
+.dbm-cleanup,
+.dbm-backups {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.dbm .dbm-kpis {
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+}
+
+.dbm .adm-kpi.is-on {
+  border-color: var(--tone);
+}
+
+.dbm-note {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.dbm-charts .adm-card h3 {
+  margin-bottom: 0.6rem;
+}
+
+@media (max-width: 900px) {
+  .dbm .adm-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dbm .adm-card--span2 {
+    grid-column: auto;
+  }
+}
+
+.dbm-groups {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0;
+  list-style: none;
+  padding: 0;
+}
+
+.dbm-groups button {
+  display: grid;
+  gap: 0.3rem;
+  width: 100%;
+  border: 0;
+  border-radius: 0.6rem;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.86rem;
+  padding: 0.4rem 0.5rem;
+  text-align: left;
+}
+
+.dbm-groups button:hover,
+.dbm-groups button.is-on {
+  background: rgba(var(--ember-rgb), 0.08);
+}
+
+.dbm-groups-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.dbm-groups-top b {
+  font-variant-numeric: tabular-nums;
+}
+
+.dbm-share--wide {
+  width: 100%;
+  margin: 0;
+}
+
+/* Collection table */
+.dbm-colls tr.is-link {
+  cursor: pointer;
+}
+
+.dbm-colls tr.is-link:hover td {
+  background: rgba(var(--ember-rgb), 0.06);
+}
+
+.dbm-colls td small,
+.dbm .adm-table td small {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
+.dbm-colls td:first-child {
+  min-width: 15rem;
+}
+
+.dbm-colls code,
+.dbm code {
+  font-size: 0.85em;
+  overflow-wrap: anywhere;
+}
+
+.dbm-dot {
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-right: 0.45rem;
+  border-radius: 50%;
+  vertical-align: 0.05rem;
+}
+
+.dbm-num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.dbm-num.is-up {
+  color: #f76b15;
+}
+
+.dbm-share {
+  display: block;
+  width: 5rem;
+  height: 0.25rem;
+  margin-top: 0.3rem;
+  border-radius: 999px;
+  background: rgba(var(--cream-rgb), 0.08);
+  overflow: hidden;
+}
+
+.dbm-share i {
+  display: block;
+  height: 100%;
+}
+
+.dbm-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.dbm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 999px;
+  background: rgba(var(--cream-rgb), 0.1);
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 0.12rem 0.5rem;
+  white-space: nowrap;
+}
+
+.dbm-badge--safe {
+  background: rgba(70, 167, 88, 0.16);
+  color: #46a758;
+}
+
+.dbm-badge--ttl {
+  background: rgba(18, 165, 148, 0.16);
+  color: #12a594;
+}
+
+.dbm-badge--clean {
+  background: rgba(var(--ember-rgb), 0.16);
+  color: rgb(var(--ember-rgb));
+}
+
+.dbm-badge--left {
+  background: rgba(229, 72, 77, 0.16);
+  color: #e5484d;
+}
+
+/* Browse */
+.dbm-coll-pick {
+  flex: 1 1 20rem;
+  max-width: 34rem;
+}
+
+.dbm-coll-meta {
+  font-size: 0.82rem;
+}
+
+.dbm-query {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.dbm-filter {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.dbm-filter span,
+.dbm-query-side label span {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.dbm-filter textarea,
+.dbm-modal textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 0.8rem;
+  background: var(--panel);
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  padding: 0.6rem 0.75rem;
+  resize: vertical;
+}
+
+.dbm-query-side {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.dbm-query-side label {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.dbm-query-side .adm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.dbm-examples summary {
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.dbm-examples[open] {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.dbm-examples p {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.dbm-notice {
+  margin: 0;
+  border: 1px solid rgba(70, 167, 88, 0.4);
+  border-radius: 0.8rem;
+  background: rgba(70, 167, 88, 0.1);
+  padding: 0.6rem 0.8rem;
+}
+
+.dbm-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.dbm-toolbar > span:first-child {
+  margin-right: auto;
+}
+
+.dbm-toolbar .adm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.dbm-docs {
+  display: grid;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--panel);
+  list-style: none;
+  overflow: hidden;
+  padding: 0;
+}
+
+.dbm-docs li + li {
+  border-top: 1px solid var(--line);
+}
+
+.dbm-docs li.is-open {
+  background: rgba(var(--ember-rgb), 0.04);
+}
+
+.dbm-doc-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.5rem 0.25rem 0.8rem;
+}
+
+.dbm-doc-open {
+  display: flex;
+  flex: 1;
+  align-items: baseline;
+  gap: 0.6rem;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  padding: 0.5rem 0;
+  text-align: left;
+}
+
+.dbm-doc-open code {
+  flex: none;
+  color: rgb(var(--gold-rgb));
+}
+
+.dbm-doc-open span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.84rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dbm-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  flex: none;
+  border: 0;
+  border-radius: 0.6rem;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.dbm-icon:hover {
+  background: rgba(var(--cream-rgb), 0.08);
+  color: var(--text);
+}
+
+.dbm-icon--danger:hover {
+  color: #e5484d;
+}
+
+.dbm-doc-body {
+  border-top: 1px dashed var(--line);
+  padding: 0.6rem 0.9rem 0.9rem;
+  overflow-x: auto;
+}
+
+/* Record tree */
+.dbm-tree {
+  display: inline-grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.dbm-toggle {
+  justify-self: start;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0;
+}
+
+.dbm-fields {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0;
+  border-left: 1px solid var(--line);
+  padding-left: 0.75rem;
+}
+
+.dbm-fields > div {
+  display: grid;
+  grid-template-columns: minmax(6rem, max-content) minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: baseline;
+}
+
+.dbm-fields dt {
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+}
+
+.dbm-fields dd {
+  margin: 0;
+  min-width: 0;
+  font-size: 0.86rem;
+  overflow-wrap: anywhere;
+}
+
+.dbm-v--str {
+  white-space: pre-wrap;
+}
+
+.dbm-v--num {
+  color: #3e9bdd;
+  font-variant-numeric: tabular-nums;
+}
+
+.dbm-v--bool {
+  color: #d6409f;
+}
+
+.dbm-v--null,
+.dbm-v--bin {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.dbm-v--date {
+  color: #46a758;
+}
+
+.dbm-v--oid {
+  color: rgb(var(--gold-rgb));
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+}
+
+.dbm-v--hidden {
+  border-radius: 999px;
+  background: rgba(var(--cream-rgb), 0.1);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.05rem 0.45rem;
+}
+
+/* Editor */
+.dbm-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 1rem;
+}
+
+.dbm-modal-box {
+  display: grid;
+  gap: 0.6rem;
+  width: min(56rem, 100%);
+  max-height: calc(100dvh - 2rem);
+  border: 1px solid var(--line);
+  border-radius: 1.1rem;
+  background: var(--panel-strong);
+  padding: 1rem 1.1rem;
+  grid-template-rows: auto auto minmax(12rem, 1fr) auto auto;
+}
+
+.dbm-modal-box header,
+.dbm-modal-box footer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dbm-modal-box header {
+  justify-content: space-between;
+}
+
+.dbm-modal-box h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.dbm-modal-box p {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.dbm-modal textarea {
+  min-height: 20rem;
+  height: 100%;
+  resize: none;
+}
+
+/* Confirm boxes */
+.dbm-confirm {
+  display: grid;
+  gap: 0.6rem;
+  border: 1px solid rgba(229, 72, 77, 0.45);
+  border-radius: 1rem;
+  background: rgba(229, 72, 77, 0.07);
+  padding: 0.9rem 1rem;
+}
+
+.dbm-confirm p {
+  margin: 0;
+}
+
+.dbm-confirm label {
+  display: grid;
+  gap: 0.3rem;
+  max-width: 20rem;
+}
+
+.dbm-confirm label span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.dbm-confirm-actions,
+.dbm-clean-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.dbm-clean-actions .adm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Member data */
+.dbm-member-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 1.1rem;
+  background: var(--panel);
+  padding: 1rem 1.1rem;
+}
+
+.dbm-member-head img {
+  border-radius: 50%;
+}
+
+.dbm-member-head > div {
+  display: grid;
+  flex: 1 1 16rem;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.dbm-member-head h3,
+.dbm-member-head p {
+  margin: 0;
+}
+
+.dbm-member-head .adm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.dbm-member-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.9rem;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.dbm-mrows {
+  display: grid;
+  margin: 0;
+  list-style: none;
+  padding: 0;
+}
+
+.dbm-mrows li + li {
+  border-top: 1px solid var(--line);
+}
+
+.dbm-mrows button,
+.dbm-mrows li > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  padding: 0.55rem 0.2rem;
+  text-align: left;
+}
+
+.dbm-mrows button {
+  cursor: pointer;
+}
+
+.dbm-mrows button:hover {
+  background: rgba(var(--ember-rgb), 0.06);
+}
+
+.dbm-mrows span {
+  display: grid;
+  min-width: 0;
+}
+
+.dbm-mrows small {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.dbm-mrows strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.dbm-mrows--static {
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  padding: 0 0.6rem;
+}
+
+/* Cleanup */
+.dbm-cleanup > .adm-seg {
+  justify-self: start;
+  flex-wrap: wrap;
+}
+
+.dbm-clean-card {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.dbm-clean-card > * {
+  flex: none;
+}
+
+.dbm-clean-card h3 {
+  margin: 0;
+}
+
+.dbm-clean-opts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.8rem 1.4rem;
+}
+
+.dbm-clean-opts > label:first-child {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.dbm-clean-opts > label:first-child span {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.dbm-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  max-width: 26rem;
+  cursor: pointer;
+}
+
+.dbm-check input {
+  margin-top: 0.2rem;
+  accent-color: rgb(var(--ember-rgb));
+}
+
+.dbm-check span {
+  display: grid;
+  gap: 0.1rem;
+  font-weight: 700;
+}
+
+.dbm-check small {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 500;
+}
+
+.dbm-check--inline span {
+  font-weight: 600;
+}
+
+.dbm-kinds {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 0.7rem 1.2rem;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  padding: 0.8rem 1rem 0.9rem;
+}
+
+.dbm-kinds legend {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  padding: 0 0.3rem;
+  text-transform: uppercase;
+}
+
+.dbm-members-table {
+  max-height: 28rem;
+  overflow: auto;
+}
+
+.dbm .adm-table tr.is-muted td {
+  opacity: 0.55;
+}
+
+.dbm-days {
+  white-space: nowrap;
+}
+
+.dbm-days input {
+  width: 5rem;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  padding: 0.3rem 0.45rem;
+}
+
+.dbm-orphans {
+  display: grid;
+  margin: 0;
+  list-style: none;
+  padding: 0;
+}
+
+.dbm-orphans li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 5rem 4.5rem;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.6rem 0;
+}
+
+.dbm-orphans li + li {
+  border-top: 1px solid var(--line);
+}
+
+.dbm-orphans li.is-muted {
+  opacity: 0.6;
+}
+
+.dbm-orphans li > small {
+  color: var(--muted);
+  text-align: right;
+}
+
+.dbm-orphans strong {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Backups */
+.dbm-backup-list {
+  display: grid;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--panel);
+  list-style: none;
+  overflow: hidden;
+  padding: 0;
+}
+
+.dbm-backup-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  padding: 0.75rem 0.9rem;
+}
+
+.dbm-backup-list li + li {
+  border-top: 1px solid var(--line);
+}
+
+.dbm-backup-list li > div:first-child {
+  display: grid;
+  flex: 1 1 20rem;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.dbm-backup-list small {
+  color: var(--muted);
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+
+.dbm-backup-list li.is-restored {
+  opacity: 0.6;
+}
+
+.dbm-backup-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.dbm-backup-actions .adm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+@media (max-width: 640px) {
+  .dbm-orphans li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .dbm-fields > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+}
