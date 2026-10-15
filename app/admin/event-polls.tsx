@@ -100,14 +100,14 @@ function PollRow({ p, by, event, onChanged }: { p: EventPoll; by?: string; event
               <ExternalLink size={13} aria-hidden="true" />
             </a>
           ) : null}
-          {p.status === "posted" && !p.endRequested && p.source !== "community" ? (
+          {p.status === "posted" && !p.endRequested && p.source !== "community" && !p.discordMade ? (
             <button type="button" className="adm-btn adm-btn--ghost adm-btn--small" disabled={busy} onClick={() => run(() => send(`/api/admin/event-polls/${p.id}`, "PATCH", { action: "end" }))}>
               <Square size={13} aria-hidden="true" /> End now
             </button>
           ) : null}
           {confirm ? (
             <button type="button" className="adm-btn adm-btn--danger adm-btn--small" disabled={busy} onClick={() => run(() => send(`/api/admin/event-polls/${p.id}`, "DELETE"))}>
-              {p.source === "community" ? "Hide from the website?" : `Delete${p.messageUrl ? " from Discord too" : ""}?`}
+              {p.source === "community" || p.discordMade ? "Hide from the website?" : `Delete${p.messageUrl ? " from Discord too" : ""}?`}
             </button>
           ) : (
             <button type="button" className="adm-btn adm-btn--ghost adm-btn--small" onClick={() => setConfirm(true)} title="Delete">
@@ -126,9 +126,10 @@ function PollRow({ p, by, event, onChanged }: { p: EventPoll; by?: string; event
           {p.webVotes ? ` (${p.webVotes} on the website)` : ""}
         </span>
         {p.source === "community" ? <span>Member poll{p.authorName ? ` by ${p.authorName}` : ""} in #polls</span> : null}
+        {p.discordMade ? <span>Posted in Discord{p.authorName ? ` by ${p.authorName}` : ""}</span> : null}
         {p.multiple ? <span>Multiple choice</span> : null}
         {event ? <span>For {event.title}</span> : null}
-        {by && p.source !== "community" ? <span>by {by}</span> : null}
+        {by && p.source !== "community" && !p.discordMade ? <span>by {by}</span> : null}
       </small>
       <ul className="evpoll-answers">
         {p.answers.map((a, i) => (
