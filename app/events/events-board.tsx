@@ -75,7 +75,7 @@ function GiveawayCard({ e, now }: { e: PublicEvent; now: number }) {
         <h3>{e.title}</h3>
         <p className="evp-gw-prize">
           <Gift size={15} aria-hidden="true" /> <CurrencyAmount text={gw.prize} size={15} />
-          <span>·</span>
+          <span className="evp-gw-sep">·</span>
           <Trophy size={14} aria-hidden="true" /> {gw.winners} winner{gw.winners === 1 ? "" : "s"}
         </p>
         <p className="evp-when">
