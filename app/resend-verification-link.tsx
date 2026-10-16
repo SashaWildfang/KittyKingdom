@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { showNotice } from "./confirm-dialog";
 
 type ResendVerificationLinkProps = {
   identifier: string;
@@ -19,9 +20,9 @@ export function ResendVerificationLink({ identifier }: ResendVerificationLinkPro
         body: JSON.stringify({ identifier: identifier }),
       });
       const data = (await response.json()) as { message?: string };
-      window.alert(data.message ?? "Verification email resent. Check your inbox.");
+      await showNotice(data.message ?? "Verification email resent. Check your inbox.");
     } catch {
-      window.alert("Verification email resent. Check your inbox.");
+      await showNotice("Verification email resent. Check your inbox.");
     } finally {
       setSending(false);
     }

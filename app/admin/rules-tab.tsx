@@ -5,6 +5,7 @@ import { ArrowDown, ArrowUp, BookOpen, ExternalLink, Plus, RotateCcw, Save, Tras
 import { useEffect, useState } from "react";
 import type { RulePartSource, RuleSource, RulesSource } from "../../lib/rules-source";
 import { timeAgo, useLive } from "./admin-shared";
+import { askConfirm } from "../confirm-dialog";
 
 type State = {
   ok: boolean;
@@ -222,8 +223,8 @@ export function RulesTab() {
                     type="button"
                     className="adm-btn adm-btn--ghost adm-btn--small rt-danger"
                     disabled={form.parts.length <= 1}
-                    onClick={() => {
-                      if (!window.confirm(`Delete "${part.title}" and its ${part.rules.length} rules?`)) return;
+                    onClick={async () => {
+                      if (!(await askConfirm(`Delete "${part.title}" and its ${part.rules.length} rules?`, { danger: true, confirmLabel: "Delete" }))) return;
                       change({ ...form, parts: form.parts.filter((_, j) => j !== open) });
                       setOpen(Math.max(-1, open - 1));
                     }}
@@ -250,8 +251,8 @@ export function RulesTab() {
                       type="button"
                       className="rt-icon-btn rt-danger"
                       aria-label="Delete rule"
-                      onClick={() => {
-                        if (rule.title && !window.confirm(`Delete the rule "${rule.title}"?`)) return;
+                      onClick={async () => {
+                        if (rule.title && !(await askConfirm(`Delete the rule "${rule.title}"?`, { danger: true, confirmLabel: "Delete" }))) return;
                         setPart(open, { rules: part.rules.filter((_, j) => j !== ri) });
                       }}
                     >
@@ -325,7 +326,7 @@ export function RulesTab() {
               type="button"
               className="adm-btn adm-btn--ghost adm-btn--small"
               disabled={busy}
-              onClick={() => window.confirm("Go back to the original rules from the bot's code? Your edits will be gone.") && void send("DELETE")}
+              onClick={async () => (await askConfirm("Go back to the original rules from the bot's code? Your edits will be gone.", { danger: true, confirmLabel: "Use the original" })) && void send("DELETE")}
             >
               <RotateCcw size={14} /> Use the original rules
             </button>

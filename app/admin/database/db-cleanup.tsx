@@ -4,6 +4,7 @@ import { Archive, Brush, Loader2, UserMinus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { LEAVER_KINDS } from "../../../lib/db-manager/catalog";
 import { agoText, api, dateText, dbLabel, fmtBytes, type DbName } from "./db-shared";
+import { askConfirm } from "../../confirm-dialog";
 
 type Mode = "leavers" | "old" | "orphans";
 
@@ -317,7 +318,7 @@ function OldRecords({ onDone }: { onDone: () => void }) {
   const bytes = chosen.reduce((n, t) => n + t.bytes, 0);
 
   const run = async () => {
-    if (!window.confirm(`Remove ${total.toLocaleString()} old records? They're backed up for 30 days.`)) return;
+    if (!(await askConfirm(`Remove ${total.toLocaleString()} old records? They're backed up for 30 days.`, { danger: true, confirmLabel: "Remove" }))) return;
     setBusy(true);
     setError(null);
     const r = await api<{ total: number }>("/api/admin/db/cleanup", { method: "POST", json: { kind: "old", run: true, targets: chosen.map((t) => ({ key: t.key, days: t.days })) } });
@@ -430,7 +431,7 @@ function Orphans({ onDone, onBrowse }: { onDone: () => void; onBrowse: (db: DbNa
 
   const chosen = (sets ?? []).filter((s) => picked.has(s.key) && s.count > 0);
   const run = async () => {
-    if (!window.confirm(`Remove ${chosen.reduce((n, s) => n + s.count, 0).toLocaleString()} leftover records? They're backed up for 30 days.`)) return;
+    if (!(await askConfirm(`Remove ${chosen.reduce((n, s) => n + s.count, 0).toLocaleString()} leftover records? They're backed up for 30 days.`, { danger: true, confirmLabel: "Remove" }))) return;
     setBusy(true);
     setError(null);
     const r = await api<{ total: number }>("/api/admin/db/cleanup", { method: "POST", json: { kind: "orphans", run: true, keys: chosen.map((s) => s.key) } });

@@ -7,6 +7,7 @@ import type { MonthStat, PatreonOverview, PatronRow, PledgeEvent } from "../../l
 import { TIERS, type TierKey } from "../../lib/perks";
 import { TierIcon } from "../tier-icon";
 import { MemberSearch, PersonLink, timeAgo, useLive, type People } from "./admin-shared";
+import { askConfirm } from "../confirm-dialog";
 
 type Filter = "active" | "manual" | "unlinked" | "former" | "roles" | "all";
 const FILTERS: { key: Filter; label: string }[] = [
@@ -309,8 +310,8 @@ export function PatreonTab({ onOpenMember }: { onOpenMember: (id: string) => voi
                           type="button"
                           className="adm-btn adm-btn--ghost adm-btn--small"
                           disabled={busy === `role:${r.discordId}`}
-                          onClick={() =>
-                            window.confirm(`Delete ${r.name}'s custom role "${r.customRole!.name}"? They'll get a DM and can make a new one.`) &&
+                          onClick={async () =>
+                            (await askConfirm(`Delete ${r.name}'s custom role "${r.customRole!.name}"? They'll get a DM and can make a new one.`, { danger: true, confirmLabel: "Remove role" })) &&
                             act(`role:${r.discordId}`, { action: "remove-role", discordId: r.discordId! }, "Custom role removed. The bot deletes it in Discord within a few seconds.")
                           }
                         >
@@ -322,8 +323,8 @@ export function PatreonTab({ onOpenMember }: { onOpenMember: (id: string) => voi
                           type="button"
                           className="adm-btn adm-btn--ghost adm-btn--small pa-danger"
                           disabled={busy === `revoke:${r.discordId}`}
-                          onClick={() =>
-                            window.confirm(`Revoke ${r.name}'s manual ${tier?.name ?? "tier"}? If they don't pledge on Patreon, they lose the role on the next sync.`) &&
+                          onClick={async () =>
+                            (await askConfirm(`Revoke ${r.name}'s manual ${tier?.name ?? "tier"}? If they don't pledge on Patreon, they lose the role on the next sync.`, { danger: true, confirmLabel: "Revoke" })) &&
                             act(`revoke:${r.discordId}`, { action: "revoke", discordId: r.discordId! }, "Grant revoked. The next sync (started now) removes the role.")
                           }
                         >

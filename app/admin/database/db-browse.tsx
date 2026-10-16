@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Pager } from "../admin-shared";
 import { GROUP_LABELS, ValueView, api, dbLabel, fmtBytes, idText, summary, type CollRow, type DbName, type Json } from "./db-shared";
+import { askConfirm } from "../../confirm-dialog";
 
 type Doc = Record<string, Json>;
 type Page = { docs: Doc[]; total: number; skip: number; limit: number; fields: { field: string; types: string[] }[]; locked: boolean; noDelete: boolean; protected: boolean };
@@ -105,7 +106,7 @@ export function DbBrowse({
 
   const remove = async (ids: string[]) => {
     if (!target || !ids.length) return;
-    if (!window.confirm(`Delete ${ids.length} record${ids.length === 1 ? "" : "s"}? They're backed up for 30 days and can be restored.`)) return;
+    if (!(await askConfirm(`Delete ${ids.length} record${ids.length === 1 ? "" : "s"}? They're backed up for 30 days and can be restored.`, { danger: true, confirmLabel: "Delete" }))) return;
     setBusy(true);
     const r = await api<{ removed: number }>("/api/admin/db/doc", { method: "DELETE", json: { db: target.db, coll: target.name, ids } });
     setBusy(false);

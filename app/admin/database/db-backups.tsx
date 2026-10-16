@@ -3,6 +3,7 @@
 import { History, RotateCcw, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { agoText, api, dateText, fmtBytes } from "./db-shared";
+import { askConfirm } from "../../confirm-dialog";
 
 type Backup = {
   id: string;
@@ -47,7 +48,7 @@ export function DbBackups({ refresh, onDone }: { refresh: number; onDone: () => 
   }, [refresh, tick]);
 
   const restore = async (b: Backup) => {
-    if (!window.confirm(`Put back ${b.docs.toLocaleString()} record${b.docs === 1 ? "" : "s"} from "${b.label}"? Records changed since then go back to how they were.`)) return;
+    if (!(await askConfirm(`Put back ${b.docs.toLocaleString()} record${b.docs === 1 ? "" : "s"} from "${b.label}"? Records changed since then go back to how they were.`, { danger: false, confirmLabel: "Restore" }))) return;
     setBusy(b.id);
     setError(null);
     const r = await api<{ restored: number }>("/api/admin/db/backups", { method: "POST", json: { id: b.id } });
@@ -59,7 +60,7 @@ export function DbBackups({ refresh, onDone }: { refresh: number; onDone: () => 
   };
 
   const remove = async (b: Backup) => {
-    if (!window.confirm(`Delete the backup "${b.label}" now? It can't be restored after this.`)) return;
+    if (!(await askConfirm(`Delete the backup "${b.label}" now? It can't be restored after this.`, { danger: true, confirmLabel: "Delete" }))) return;
     setBusy(b.id);
     const r = await api("/api/admin/db/backups", { method: "DELETE", json: { id: b.id } });
     setBusy(null);

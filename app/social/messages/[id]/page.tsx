@@ -3,6 +3,7 @@
 import { ArrowLeft, Check, CheckCheck, EyeOff, Send, Trash2, Undo2 } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Photo, ReportButton, ago, post, useApi } from "../../ui";
+import { askConfirm } from "../../../confirm-dialog";
 
 type Msg = { id: string; from: string; text: string; deleted: boolean; at: string };
 type Thread = { me: string; id: string; state: string; incomingRequest: boolean; canSend: boolean; requestPending: boolean; theirReadAt: string | null; messages: Msg[]; more: boolean };
@@ -78,7 +79,7 @@ export default function ThreadPage({ params }: { params: { id: string } }) {
   };
   // Delete for everyone: it shows as "Message unsent" on both sides
   const unsend = async (id: string) => {
-    if (!window.confirm("Delete this message for everyone? It will show as \"Message unsent\" for both of you.")) return;
+    if (!(await askConfirm("Delete this message for everyone? It will show as \"Message unsent\" for both of you.", { danger: true, confirmLabel: "Unsend" }))) return;
     await post(`/api/dating/messages/${params.id}`, { unsend: id });
     setOlder((o) => o.map((m) => (m.id === id ? { ...m, deleted: true, text: "" } : m)));
     if (data) setData({ ...data, messages: data.messages.map((m) => (m.id === id ? { ...m, deleted: true, text: "" } : m)) });

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { BOTS } from "../../../lib/bot-settings/schema";
 import type { LogEntry } from "../../../lib/bot-settings/store";
 import { Pager, formatDate, timeAgo, useLive } from "../admin-shared";
+import { askConfirm } from "../../confirm-dialog";
 
 const BOT_NAMES: Record<string, string> = { ...Object.fromEntries(BOTS.map((b) => [b.key, b.name])), server: "Discord Server" };
 
@@ -25,7 +26,7 @@ export function ChangeLog({ bot, settingKey, onClearKey, onReverted }: { bot?: s
   const { data, reload } = useLive<{ ok: boolean; rows: LogEntry[]; total: number; page: number; pageSize: number }>(`/api/admin/bots/log?${params}`, 20_000);
 
   const undo = async (id: string) => {
-    if (!window.confirm("Put this setting back to what it was before this change?")) return;
+    if (!(await askConfirm("Put this setting back to what it was before this change?", { confirmLabel: "Undo it" }))) return;
     setBusy(id);
     setErr(null);
     const r = await fetch("/api/admin/bots/log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ revert: id }) })
