@@ -5,7 +5,6 @@ import {
   AlertTriangle,
   Bot,
   CalendarRange,
-  Crown,
   Check,
   Eye,
   EyeOff,
@@ -24,14 +23,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BOT_ROLE_NAMES,
   DEFAULT_BOT_COLORS,
-  DEFAULT_LEVEL_ROLES,
-  LEVEL_TIERS,
   SEASONS,
   SEASON_KEYS,
-  levelRoleName,
   seasonWindow,
   type AssetKind,
-  type LevelRole,
   type SeasonConfig,
   type SeasonKey,
   type SeasonView,
@@ -490,28 +485,6 @@ function SeasonEditor({
 
       <fieldset className="sn-fieldset">
         <legend>
-          <Crown size={14} aria-hidden="true" /> Level ranks
-        </legend>
-        <p className="adm-muted sn-note">The 11 rank names members see in /stats, level-ups and on their stats page. They aren&apos;t Discord roles: only the names and colors change with the season.</p>
-        <div className="sn-levels">
-          {settings.levelRoles.map((lr, i) => (
-            <LevelRow
-              key={LEVEL_TIERS[i].id}
-              index={i}
-              role={lr}
-              onChange={(next) => onChange({ levelRoles: settings.levelRoles.map((x, j) => (j === i ? next : x)) })}
-            />
-          ))}
-        </div>
-        <div className="sn-slot-actions">
-          <button type="button" className="adm-btn adm-btn--ghost adm-btn--tiny" onClick={() => onChange({ levelRoles: DEFAULT_LEVEL_ROLES[season].map((x) => ({ ...x })) })}>
-            <RotateCcw size={12} aria-hidden="true" /> Use the suggested {info.name} ranks
-          </button>
-        </div>
-      </fieldset>
-
-      <fieldset className="sn-fieldset">
-        <legend>
           <Bot size={14} aria-hidden="true" /> Bot role colors
         </legend>
         {botRoles.length ? (
@@ -537,20 +510,6 @@ function SeasonEditor({
           <p className="adm-muted sn-note">No bot roles found yet. Pick them in the Discord section below.</p>
         )}
       </fieldset>
-    </div>
-  );
-}
-
-function LevelRow({ index, role, onChange }: { index: number; role: LevelRole; onChange: (r: LevelRole) => void }) {
-  return (
-    <div className="sn-level">
-      <small className="sn-level-range">Lv {LEVEL_TIERS[index].range}</small>
-      <input type="color" value={role.color} onChange={(e) => onChange({ ...role, color: e.target.value })} aria-label={`Color for levels ${LEVEL_TIERS[index].range}`} />
-      <input className="sn-level-emoji" value={role.emoji} maxLength={16} onChange={(e) => onChange({ ...role, emoji: e.target.value })} aria-label="Emoji" />
-      <input className="sn-level-name" value={role.name} maxLength={40} onChange={(e) => onChange({ ...role, name: e.target.value })} aria-label="Name" />
-      <span className="sn-pill" style={{ color: role.color, borderColor: role.color }} title="How it looks in Discord">
-        {levelRoleName(role, index)}
-      </span>
     </div>
   );
 }

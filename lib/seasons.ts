@@ -13,32 +13,6 @@ export const SEASON_KEYS: SeasonKey[] = ["spring", "summer", "fall", "winter"];
 export type AssetKind = "logo" | "banner" | "emote";
 export const ASSET_KINDS: AssetKind[] = ["logo", "banner", "emote"];
 
-/** The 11 level ranks. They used to be Discord roles (the ids are kept only as stable keys); now they're names shown in /stats, level-ups and the stats page. */
-export const LEVEL_TIERS = [
-  { id: "1361677978421035180", range: "1-4" },
-  { id: "1361678583713759363", range: "5-10" },
-  { id: "1361678717197221968", range: "11-20" },
-  { id: "1361678760327512185", range: "21-30" },
-  { id: "1361679050632073398", range: "31-40" },
-  { id: "1361679477700038828", range: "41-50" },
-  { id: "1361680109953876049", range: "51-60" },
-  { id: "1361680599672422540", range: "61-70" },
-  { id: "1361680699563966605", range: "71-80" },
-  { id: "1361680852064407683", range: "81-90" },
-  { id: "1361681482946576504", range: "91+" },
-] as const;
-
-export type LevelRole = { emoji: string; name: string; color: string };
-
-// Keep in step with DEFAULT_LEVELS in the bots' db/season.py
-const L = (rows: [string, string, string][]): LevelRole[] => rows.map(([emoji, name, color]) => ({ emoji, name, color }));
-export const DEFAULT_LEVEL_ROLES: Record<SeasonKey, LevelRole[]> = {
-  fall: L([["🌰", "Acorn", "#c8a27a"], ["🪵", "Kindling", "#d9a066"], ["🍄", "Forager", "#c97b4a"], ["🌾", "Harvest", "#e0a030"], ["🎃", "Hallow", "#f08a24"], ["🍁", "Maple", "#e2531d"], ["✨", "Ember", "#ff9f43"], ["🌑", "Nightfall", "#7b5ea7"], ["🌲", "Ironwood", "#8b5a3c"], ["🔥", "Wildfire", "#ff4f1f"], ["🌳", "Elderwood", "#ffd27a"]]),
-  winter: L([["🌨️", "Frost", "#dbeafe"], ["🌬️", "Flurry", "#bfdbfe"], ["🧊", "Icicle", "#a5f3fc"], ["⛄", "Snowdrift", "#e0f2fe"], ["🌲", "Evergreen", "#34a37a"], ["🏔️", "Glacier", "#7dd3fc"], ["🐻‍❄️", "Polar", "#f1f5f9"], ["🌌", "Aurora", "#a78bfa"], ["🌫️", "Whiteout", "#cbd5e1"], ["🌪️", "Blizzard", "#60a5fa"], ["🥶", "Absolute Zero", "#22d3ee"]]),
-  spring: L([["🌱", "Sprout", "#86efac"], ["💧", "Dewdrop", "#93c5fd"], ["🍀", "Clover", "#4ade80"], ["🐝", "Pollen", "#fde047"], ["🌸", "Blossom", "#f9a8d4"], ["🌼", "Wildflower", "#f472b6"], ["⛈️", "Thunderhead", "#818cf8"], ["🌳", "Canopy", "#22c55e"], ["🌿", "Verdant", "#10b981"], ["🌗", "Equinox", "#c084fc"], ["🍃", "Overgrowth", "#84cc16"]]),
-  summer: L([["🐚", "Seashell", "#fde2e4"], ["🪵", "Driftwood", "#d6a77a"], ["🪸", "Coral", "#ff7f6b"], ["☀️", "Sunburn", "#ff6b4a"], ["🏄", "Riptide", "#22b8cf"], ["🌡️", "Heatwave", "#ff9f1c"], ["🌞", "Solstice", "#ffd166"], ["🏜️", "Mirage", "#f4a261"], ["🦑", "Kraken", "#9b5de5"], ["🌊", "Tsunami", "#0096c7"], ["🐋", "Leviathan", "#00f5d4"]]),
-};
-
 /** Colors handed to the bot roles (Zeo, Economy, Moderation, Tickets…) in order, unless set per role. */
 export const DEFAULT_BOT_COLORS: Record<SeasonKey, string[]> = {
   fall: ["#d56300", "#fedd63", "#fee6b8", "#8a4a08"], // bear pride flag
@@ -46,11 +20,6 @@ export const DEFAULT_BOT_COLORS: Record<SeasonKey, string[]> = {
   spring: ["#f9a8d4", "#c4b5fd", "#86efac", "#fde68a"],
   summer: ["#ff7a59", "#22b8cf", "#ffd166", "#34d399"],
 };
-
-/** "🍁 Maple [41-50]": the Discord name of a level role. */
-export function levelRoleName(role: LevelRole, tier: number) {
-  return `${role.emoji ? `${role.emoji} ` : ""}${role.name} [${LEVEL_TIERS[tier].range}]`;
-}
 
 /** What an admin can change per season. Asset ids point at zeo_bot.season_assets. */
 export type SeasonSettings = {
@@ -65,8 +34,6 @@ export type SeasonSettings = {
   siteLogo: boolean;
   /** Show the uploaded banner on the website's homepage and link previews */
   siteBanner: boolean;
-  /** The level roles' emoji, name and color this season (11, lowest first) */
-  levelRoles: LevelRole[];
   /** Bot role id → color this season (others get DEFAULT_BOT_COLORS in order) */
   botRoleColors: Record<string, string>;
 };
@@ -82,7 +49,6 @@ export type SeasonConfig = {
     renameCategories: boolean;
     swapIcon: boolean;
     swapBanner: boolean;
-    levelRoles: boolean;
     botRoleColors: boolean;
     /** Bot roles to recolor; empty: the bots' own roles named Zeo, Economy, Moderation or Tickets */
     botRoles: string[];
@@ -176,7 +142,6 @@ export function defaultSeasonSettings(key: SeasonKey): SeasonSettings {
     assets: {},
     siteLogo: true,
     siteBanner: true,
-    levelRoles: DEFAULT_LEVEL_ROLES[key].map((r) => ({ ...r })),
     botRoleColors: {},
   };
 }
@@ -188,7 +153,7 @@ export function defaultSeasonConfig(): SeasonConfig {
     timezone: "US/Mountain",
     seasons: { spring: defaultSeasonSettings("spring"), summer: defaultSeasonSettings("summer"), fall: defaultSeasonSettings("fall"), winter: defaultSeasonSettings("winter") },
     site: { particles: "full", scenery: true, bursts: true },
-    discord: { renameChannels: true, renameCategories: true, swapIcon: true, swapBanner: true, levelRoles: true, botRoleColors: true, botRoles: [] },
+    discord: { renameChannels: true, renameCategories: true, swapIcon: true, swapBanner: true, botRoleColors: true, botRoles: [] },
     version: 0,
     updatedAt: null,
     updatedBy: null,
@@ -252,8 +217,6 @@ export type SeasonView = {
   scenery: boolean;
   bursts: boolean;
   version: number;
-  /** The level roles this season, lowest first */
-  levels: { emoji: string; name: string; range: string; color: string }[];
 };
 
 export function seasonView(config: SeasonConfig, key: SeasonKey): SeasonView {
@@ -272,10 +235,6 @@ export function seasonView(config: SeasonConfig, key: SeasonKey): SeasonView {
     scenery: config.site.scenery,
     bursts: config.site.bursts,
     version: v,
-    levels: LEVEL_TIERS.map((t, i) => {
-      const r = s.levelRoles?.[i] ?? DEFAULT_LEVEL_ROLES[key][i];
-      return { emoji: r.emoji, name: r.name, range: t.range, color: r.color };
-    }),
   };
 }
 

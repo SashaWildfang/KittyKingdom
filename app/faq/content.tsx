@@ -6,7 +6,6 @@ import { NITRO, TIERS, pct } from "../../lib/perks";
 import type { ReactNode } from "react";
 import { CurrencyName } from "../season-context";
 import { CurrencyAmount, LeafEmote } from "../ui-icons";
-import { SeasonLevelRoles } from "./level-roles";
 
 export const DISCORD_INVITE = "https://discord.com/invite/M9XKHFdYQV";
 export const PATREON_URL = "https://www.patreon.com/c/thekittykingdom/membership";
@@ -197,14 +196,19 @@ export const TOPICS: Topic[] = [
     id: "levels",
     title: "Levels & XP",
     icon: "TrendingUp",
-    blurb: "Leveling up, level roles and multipliers.",
+    blurb: "Leveling up, what levels unlock and multipliers.",
     guides: [
       {
-        title: "Level roles",
+        title: "What levels unlock",
         icon: "Award",
-        keywords: "roles ranks levels media perms",
+        keywords: "levels media perms unlock perks",
         body: (
-          <SeasonLevelRoles />
+          <ul>
+            <li>
+              <b>Level 5:</b> Media Perms, so you can post pictures and GIFs and use reactions.
+            </li>
+            <li>Every level moves you up the leaderboards and shows on your stats page and profile card.</li>
+          </ul>
         ),
       },
     ],
