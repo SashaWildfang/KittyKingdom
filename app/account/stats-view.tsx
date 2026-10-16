@@ -18,7 +18,6 @@ import {
   Heart,
   HelpCircle,
   Image as ImageIcon,
-  Lock,
   MessageCircle,
   Mic,
   MonitorUp,
@@ -27,7 +26,6 @@ import {
   ShoppingBag,
   Smile,
   Sparkles,
-  Star,
   Sun,
   Terminal,
   Ticket,
@@ -212,10 +210,10 @@ function isLight(hex: string) {
 }
 
 /** The level bubble: the level role's colors and icon, a spinning halo, the XP ring and sparkles. */
-function LevelOrb({ s, onOpen }: { s: MemberStats; onOpen: () => void }) {
+function LevelOrb({ s }: { s: MemberStats }) {
   const { level } = s;
   const progress = Math.min(1, level.needed ? level.xp / level.needed : 0);
-  const stops = roleGradient(level.color);
+  const stops = roleGradient(null);
   const light = isLight(stops[0]);
   const [ring, setRing] = useState(reducedMotion() ? progress : 0);
   useEffect(() => {
@@ -225,12 +223,10 @@ function LevelOrb({ s, onOpen }: { s: MemberStats; onOpen: () => void }) {
   const R = 58;
   const C = 2 * Math.PI * R;
   return (
-    <button
-      type="button"
+    <div
       className="st-orb"
-      onClick={onOpen}
-      title="Open your level journey"
-      aria-label={`Level ${level.level}. Open your level journey`}
+      role="img"
+      aria-label={`Level ${level.level}`}
       style={{ "--c1": stops[0], "--c2": stops[1] ?? stops[0], "--c3": stops[2] ?? stops[1] ?? stops[0], "--ink": light ? "#1d0b05" : "#fff" } as CSSProperties}
     >
       <span className="st-orb-glow" aria-hidden="true" />
@@ -248,7 +244,7 @@ function LevelOrb({ s, onOpen }: { s: MemberStats; onOpen: () => void }) {
       </svg>
       <span className="st-orb-core">
         <span className="st-orb-icon" aria-hidden="true">
-          {level.icon ? <img src={level.icon} alt="" /> : level.emoji ? <span>{level.emoji}</span> : <Crown size={20} strokeWidth={2.4} />}
+          <Crown size={20} strokeWidth={2.4} />
         </span>
         <strong>
           <Count value={level.level} />
@@ -258,7 +254,7 @@ function LevelOrb({ s, onOpen }: { s: MemberStats; onOpen: () => void }) {
       {[0, 1, 2, 3].map((i) => (
         <i key={i} className="st-orb-spark" style={{ "--i": i } as CSSProperties} aria-hidden="true" />
       ))}
-    </button>
+    </div>
   );
 }
 
@@ -266,21 +262,18 @@ function LevelHero({ s }: { s: MemberStats }) {
   const { level } = s;
   const progress = Math.min(1, level.needed ? level.xp / level.needed : 0);
   const [fill, setFill] = useState(reducedMotion() ? progress : 0);
-  const [journey, setJourney] = useState(false);
   useEffect(() => {
     const t = window.setTimeout(() => setFill(progress), 60);
     return () => window.clearTimeout(t);
   }, [progress]);
   const totalNow = level.startXp + level.xp;
   return (
-    <section className="st-hero" style={{ "--lv": level.color?.[0] ?? "rgb(var(--ember-rgb))", "--lv2": level.color?.[1] ?? level.color?.[0] ?? "rgb(var(--maple-rgb))" } as CSSProperties}>
-      <LevelOrb s={s} onOpen={() => setJourney((j) => !j)} />
+    <section className="st-hero">
+      <LevelOrb s={s} />
       <div className="st-hero-main">
         <div className="st-hero-top">
           <div>
-            <p className="st-eyebrow" style={level.color?.[0] ? { color: level.color[0] } : undefined}>
-              {level.role ?? "Rank"}
-            </p>
+            <p className="st-eyebrow">Level {fmt(level.level)}</p>
             <h2>
               <Count value={level.xp} /> <small>/ {fmt(level.needed)} XP</small>
             </h2>
@@ -297,51 +290,9 @@ function LevelHero({ s }: { s: MemberStats }) {
           <span>{pct(progress)}</span>
         </div>
         <p className="st-hero-foot">
-          <b>{fmt(Math.max(0, level.needed - level.xp))} XP</b> to level {level.level + 1}
-          {level.nextRole ? (
-            <>
-              {" "}
-              · next reward <b>{level.nextRole.name}</b> at level {level.nextRole.level}
-            </>
-          ) : (
-            " · every level role unlocked"
-          )}
-          <button type="button" className="st-link" onClick={() => setJourney((j) => !j)}>
-            {journey ? "Hide" : "See"} level journey
-          </button>
+          <b>{fmt(Math.max(0, level.needed - level.xp))} XP</b> to level {level.level + 1} · {fmt(level.totalXp || totalNow)} XP earned in total
         </p>
       </div>
-      {journey ? (
-        <div className="st-journey">
-          <ol>
-            {level.journey.map((j) => {
-              const reachPct = j.reached ? 1 : Math.min(1, totalNow / Math.max(1, j.xpToReach));
-              const stops = roleGradient(j.colors.length ? j.colors : null);
-              return (
-                <li key={j.level} className={`${j.reached ? "is-reached" : ""}${j.current ? " is-current" : ""}`}>
-                  <span className="st-journey-dot" style={{ background: `linear-gradient(135deg, ${stops.join(", ")})` }}>
-                    {j.icon ? <img src={j.icon} alt="" /> : j.emoji ? j.emoji : j.reached ? <Star size={12} /> : <Lock size={11} />}
-                  </span>
-                  <div>
-                    <b style={j.colors[0] ? { color: j.colors[0] } : undefined}>{j.name}</b>
-                    <small>
-                      Level {j.level}
-                      {j.until ? `–${j.until}` : "+"} · {fmt(j.xpToReach)} total XP
-                    </small>
-                    {!j.reached ? (
-                      <span className="st-journey-bar">
-                        <i style={{ width: `${reachPct * 100}%` }} />
-                      </span>
-                    ) : null}
-                  </div>
-                  <em>{j.current ? "You're here" : j.reached ? "Unlocked" : `${compact(Math.max(0, j.xpToReach - totalNow))} XP to go`}</em>
-                </li>
-              );
-            })}
-          </ol>
-          <p className="st-note">You&apos;ve earned {fmt(level.totalXp || totalNow)} XP in total.</p>
-        </div>
-      ) : null}
     </section>
   );
 }
@@ -806,7 +757,7 @@ export function StatsView({ onBack }: { onBack: () => void }) {
                 <FriendshipMap
                   me={{ name: "You", avatar: s.profile.avatar }}
                   people={soc.everyone}
-                  color={s.level.color?.[0] ?? "#f59b2a"}
+                  color="#f59b2a"
                   picked={openPerson}
                   onPick={(id) => {
                     setOpenPerson(id);

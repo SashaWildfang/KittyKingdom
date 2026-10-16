@@ -15,11 +15,7 @@ import { TOPICS } from "./topics";
 import { voiceHistory, type VoiceHistory } from "./voice-history";
 import { getBotCollection } from "./mongodb";
 import { zoneOffsetMinutes } from "./timezone";
-import { getSeason } from "./season-store";
 
-// Level ranks (🌰 Acorn, 🪵 Kindling…), lowest level of each: names and colors come from the season (Admin →
-// Seasons). They used to be Discord roles; now they're only shown here, in /stats and in level-ups.
-const RANK_MINS = [0, 5, 11, 21, 31, 41, 51, 61, 71, 81, 91];
 const PATREON = [
   { id: "1362502871639396362", name: "King / Queen", bonus: 0.4 },
   { id: "1362502662721114245", name: "Prince / Princess", bonus: 0.2 },
@@ -158,31 +154,13 @@ export async function memberStats(discordId: string, timeZone: string) {
       .toArray()
       .then((r) => r[0] ?? null),
   ]);
-  const ranks = (await getSeason().catch(() => null))?.levels ?? [];
-  const rankAt = (i: number) => ranks[i] ?? { emoji: "", name: `Level ${Math.max(1, RANK_MINS[i])}+`, color: "", range: "" };
-  const current = RANK_MINS.reduce((at, min, i) => (level >= min ? i : at), 0);
-  const nextIndex = RANK_MINS.findIndex((min) => min > level);
   // XP from level 1 to the start of each level
   const xpToReach = (target: number) => {
     let total = 0;
     for (let l = 1; l < target; l++) total += xpForLevel(l);
     return total;
   };
-  const journey = RANK_MINS.map((min, i) => {
-    const rank = rankAt(i);
-    const next = RANK_MINS[i + 1] ?? null;
-    return {
-      level: Math.max(1, min),
-      until: next ? next - 1 : null,
-      name: rank.name,
-      colors: rank.color ? [rank.color] : ([] as string[]),
-      icon: null as string | null,
-      emoji: (rank.emoji || null) as string | null,
-      reached: level >= min,
-      current: i === current,
-      xpToReach: xpToReach(Math.max(1, min)),
-    };
-  });
+
 
   // ---------- Multipliers (same rules as the bot) ----------
   const memberRoles = new Set(profile?.roles ?? []);
@@ -412,14 +390,7 @@ export async function memberStats(discordId: string, timeZone: string) {
       totalXp: num(user?.totalXp),
       rank: levelRank + 1,
       of: ranked,
-      role: rankAt(current).name,
-      icon: null as string | null,
-      emoji: (rankAt(current).emoji || null) as string | null,
-      journey,
       startXp: xpToReach(level),
-      // The rank's color (from the season), for the level badge
-      color: (rankAt(current).color ? [rankAt(current).color] : null) as string[] | null,
-      nextRole: nextIndex >= 0 ? { name: rankAt(nextIndex).name, level: RANK_MINS[nextIndex] } : null,
     },
     multipliers: { xp: Math.round(xpMultiplier * 100) / 100, leaves: Math.round(leafMultiplier * 100) / 100, patreon: patreon?.name ?? null, booster: isBooster, xpWeekend: weekend > 1, globalBooster: globalBoost > 1, consumable },
     compare: averages
