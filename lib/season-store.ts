@@ -6,9 +6,7 @@ import { sniff } from "./news-media";
 import { getBotCollection } from "./mongodb";
 import {
   ASSET_KINDS,
-  LEVEL_TIERS,
   SEASONS,
-  levelRoleName,
   SEASON_KEYS,
   activeSeasonKey,
   defaultSeasonConfig,
@@ -39,19 +37,27 @@ let cache: { at: number; config: SeasonConfig } | null = null;
 let warned = false;
 const TTL = 20_000;
 
+/** The old "rename level roles" switch (level roles were removed) */
+function withoutLevelRoles(d: Document | undefined) {
+  const { levelRoles: _dropped, ...rest } = (d ?? {}) as Document;
+  void _dropped;
+  return rest;
+}
+
 /** Merges a stored doc over the defaults, so new settings always have a value. */
 function normalise(doc: Document | null): SeasonConfig {
   const base = defaultSeasonConfig();
   if (!doc) return base;
   const seasons = { ...base.seasons };
   for (const key of SEASON_KEYS) {
-    const saved = (doc.seasons?.[key] ?? {}) as Partial<SeasonConfig["seasons"][SeasonKey]>;
+    // Level role names used to be stored here too (levelRoles); they were removed, so they're dropped
+    const { levelRoles: _dropped, ...saved } = (doc.seasons?.[key] ?? {}) as Partial<SeasonConfig["seasons"][SeasonKey]> & { levelRoles?: unknown };
+    void _dropped;
     const base = defaultSeasonSettings(key);
     seasons[key] = {
       ...base,
       ...saved,
       assets: { ...(saved.assets ?? {}) },
-      levelRoles: base.levelRoles.map((d, i) => ({ ...d, ...((saved.levelRoles ?? [])[i] ?? {}) })),
       botRoleColors: { ...(saved.botRoleColors ?? {}) },
     };
   }
@@ -61,7 +67,7 @@ function normalise(doc: Document | null): SeasonConfig {
     timezone: typeof doc.timezone === "string" && doc.timezone ? doc.timezone : base.timezone,
     seasons,
     site: { ...base.site, ...(doc.site ?? {}) },
-    discord: { ...base.discord, ...(doc.discord ?? {}), botRoles: Array.isArray(doc.discord?.botRoles) ? doc.discord.botRoles.map(String) : [] },
+    discord: { ...base.discord, ...withoutLevelRoles(doc.discord), botRoles: Array.isArray(doc.discord?.botRoles) ? doc.discord.botRoles.map(String) : [] },
     version: Number(doc.version ?? 0),
     updatedAt: iso(doc.updatedAt),
     updatedBy: doc.updatedBy ? String(doc.updatedBy) : null,
@@ -223,20 +229,6 @@ export async function saveSeasonConfig(raw: Partial<SeasonConfig>, by: string) {
         if (/[\s#@]/.test(e)) throw new SeasonError(`${name}: the channel emoji can't have spaces, # or @.`);
         s.channelEmoji = e;
       }
-      if (r.levelRoles !== undefined) {
-        if (!Array.isArray(r.levelRoles) || r.levelRoles.length !== LEVEL_TIERS.length) throw new SeasonError(`${name}: send all ${LEVEL_TIERS.length} level roles.`);
-        s.levelRoles = r.levelRoles.map((lr, i) => {
-          const label = `${name} level role ${LEVEL_TIERS[i].range}`;
-          const roleName = text(lr?.name, `${label}: name`, 40);
-          const emoji = String(lr?.emoji ?? "").trim();
-          if (emoji.length > 16 || /[\s@#]/.test(emoji)) throw new SeasonError(`${label}: the emoji should be one emoji.`);
-          const color = String(lr?.color ?? "").trim().toLowerCase();
-          if (!HEX.test(color)) throw new SeasonError(`${label}: pick a color.`);
-          // Discord role names max out at 100 characters
-          if (levelRoleName({ emoji, name: roleName, color }, i).length > 100) throw new SeasonError(`${label}: the name is too long.`);
-          return { emoji, name: roleName, color };
-        });
-      }
       if (r.botRoleColors !== undefined) {
         const out: Record<string, string> = {};
         for (const [id, c] of Object.entries(r.botRoleColors ?? {})) {
@@ -262,7 +254,7 @@ export async function saveSeasonConfig(raw: Partial<SeasonConfig>, by: string) {
     if (raw.site.bursts !== undefined) next.site.bursts = Boolean(raw.site.bursts);
   }
   if (raw.discord) {
-    for (const k of ["renameChannels", "renameCategories", "swapIcon", "swapBanner", "levelRoles", "botRoleColors"] as const) {
+    for (const k of ["renameChannels", "renameCategories", "swapIcon", "swapBanner", "botRoleColors"] as const) {
       if (raw.discord[k] !== undefined) next.discord[k] = Boolean(raw.discord[k]);
     }
     if (raw.discord.botRoles !== undefined) {
@@ -300,8 +292,6 @@ function describeChanges(a: SeasonConfig, b: SeasonConfig) {
     if (x.currencyOne !== y.currencyOne || x.currencyMany !== y.currencyMany) out.push(`${n} currency: ${y.currencyOne} / ${y.currencyMany}`);
     if (x.discordEmoji !== y.discordEmoji) out.push(`${n} Discord emoji: ${y.discordEmoji}`);
     if (x.channelEmoji !== y.channelEmoji) out.push(`${n} channel emoji: ${y.channelEmoji}`);
-    const changedLevels = y.levelRoles.filter((lr, i) => JSON.stringify(lr) !== JSON.stringify(x.levelRoles[i])).length;
-    if (changedLevels) out.push(`${n}: changed ${changedLevels} level role${changedLevels === 1 ? "" : "s"}`);
     if (JSON.stringify(x.botRoleColors) !== JSON.stringify(y.botRoleColors)) out.push(`${n}: bot role colors`);
     if (x.siteLogo !== y.siteLogo) out.push(`${n}: ${y.siteLogo ? "show" : "hide"} the logo on the website`);
     if (x.siteBanner !== y.siteBanner) out.push(`${n}: ${y.siteBanner ? "show" : "hide"} the banner on the website`);
@@ -314,7 +304,6 @@ function describeChanges(a: SeasonConfig, b: SeasonConfig) {
   if (a.discord.renameCategories !== b.discord.renameCategories) out.push(`Category emoji swap ${onOff(b.discord.renameCategories)}`);
   if (a.discord.swapIcon !== b.discord.swapIcon) out.push(`Server icon swap ${onOff(b.discord.swapIcon)}`);
   if (a.discord.swapBanner !== b.discord.swapBanner) out.push(`Server banner swap ${onOff(b.discord.swapBanner)}`);
-  if (a.discord.levelRoles !== b.discord.levelRoles) out.push(`Seasonal level roles ${onOff(b.discord.levelRoles)}`);
   if (a.discord.botRoleColors !== b.discord.botRoleColors) out.push(`Seasonal bot role colors ${onOff(b.discord.botRoleColors)}`);
   if (JSON.stringify(a.discord.botRoles) !== JSON.stringify(b.discord.botRoles)) out.push(b.discord.botRoles.length ? `Bot roles to recolor: ${b.discord.botRoles.length}` : "Bot roles to recolor: automatic");
   return out;

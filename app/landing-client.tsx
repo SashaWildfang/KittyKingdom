@@ -3,7 +3,6 @@
 // Interactive and season-aware pieces of the homepage (app/page.tsx).
 
 import { useEffect, useRef, useState } from "react";
-import { SEASONS, nextSeason, seasonWindow } from "../lib/seasons";
 import { useSeason } from "./season-context";
 import { LeafEmote } from "./ui-icons";
 
@@ -109,69 +108,6 @@ export function StorePreview() {
   );
 }
 
-/** The level roles for this season (a few, or the whole ladder). */
-export function LevelLadder({ compact = false }: { compact?: boolean }) {
-  const { levels } = useSeason();
-  const shown = compact ? [levels[0], levels[5], levels[10]] : levels;
-  return (
-    <ol className={`lp-ladder${compact ? " is-compact" : ""}`}>
-      {shown.map((r, i) => (
-        <li key={r.range} style={{ ["--role" as string]: r.color, ["--i" as string]: i }}>
-          <span className="lp-ladder-emoji" aria-hidden="true">
-            {r.emoji}
-          </span>
-          <span className="lp-ladder-name">{r.name}</span>
-          <small>Lv {r.range}</small>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-/** "This season in the Nation": name, currency, countdown and the level ladder. */
-export function SeasonFeature() {
-  const s = useSeason();
-  const info = SEASONS[s.key];
-  const next = SEASONS[nextSeason(s.key)];
-  const [days, setDays] = useState<number | null>(null);
-  useEffect(() => {
-    const w = seasonWindow(s.key, new Date());
-    setDays(Math.max(0, Math.ceil((new Date(`${w.end}T00:00:00`).getTime() - Date.now()) / 86_400_000)));
-  }, [s.key]);
-  return (
-    <div className="lp-season">
-      <div className="lp-season-copy">
-        <p className="lp-eyebrow">This season</p>
-        <h2>
-          <span aria-hidden="true">{info.icon}</span> {info.name} in the Nation
-        </h2>
-        <p className="lp-lead">{info.blurb}. The whole server dresses up for it: the website, the currency, channel emojis and the level roles all change with the seasons.</p>
-        <ul className="lp-season-facts">
-          <li>
-            <LeafEmote size={22} />
-            <span>
-              <b>{s.many}</b>
-              <small>this season&apos;s currency</small>
-            </span>
-          </li>
-          <li>
-            <span className="lp-season-icon" aria-hidden="true">
-              {next.icon}
-            </span>
-            <span>
-              <b>{days === null ? "Soon" : `${days} days`}</b>
-              <small>until {next.name}</small>
-            </span>
-          </li>
-        </ul>
-      </div>
-      <div className="lp-season-ladder">
-        <p className="lp-eyebrow">{info.name} level roles</p>
-        <LevelLadder />
-      </div>
-    </div>
-  );
-}
 
 /** A date and time in the visitor's own time zone (rendered after load to avoid a server/browser mismatch). */
 export function LocalTime({ iso }: { iso: string }) {
