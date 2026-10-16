@@ -2,6 +2,7 @@
 
 import { NO_FLAIR, type ProfileExtras } from "../../lib/cosmetics";
 import { FlairBanner, FlairEffect, FlairName, FlairTheme, Framed, themeVars } from "../cosmetic-flair";
+import { lockTheme } from "../theme-switch";
 import {
   Activity,
   Ban,
@@ -315,6 +316,13 @@ export function ProfileScreen({ id }: { id: string }) {
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
   }, [menu]);
+  // A store theme is made for dark mode: the whole page (menus, footer) goes dark while it's open
+  const themeKey = data?.profile.extras?.flair?.theme ?? null;
+  useEffect(() => {
+    if (!themeKey) return;
+    lockTheme("dark");
+    return () => lockTheme(null);
+  }, [themeKey]);
 
   if (error)
     return (
