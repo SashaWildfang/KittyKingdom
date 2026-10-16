@@ -7,6 +7,7 @@ import { newsExcerpt } from "../../lib/news-format";
 import { NewsBody } from "../news-body";
 import { LeafEmote } from "../ui-icons";
 import { formatDate, timeAgo, useLive, useStored } from "./admin-shared";
+import { askText } from "../confirm-dialog";
 
 type Post = {
   id: string;
@@ -614,8 +615,8 @@ function FormatBar({ textRef, value, onChange }: { textRef: React.RefObject<HTML
         type="button"
         className="adm-format-media"
         onMouseDown={(e) => e.preventDefault()}
-        onClick={() => {
-          const url = window.prompt("Paste a YouTube link, or a direct https:// link to an image or video:")?.trim();
+        onClick={async () => {
+          const url = (await askText("Paste a YouTube link, or a direct https:// link to an image or video:", { title: "Add a video or image" }))?.trim();
           if (!url) return;
           if (!/^https:\/\/\S+$/.test(url)) return setMediaError("That needs to be an https:// link.");
           setMediaError(null);

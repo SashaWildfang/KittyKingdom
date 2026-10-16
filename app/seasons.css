@@ -29,6 +29,10 @@
   --sb-mist: rgba(254, 230, 184, 0.08);
 }
 :root[data-theme="light"] {
+  /* Light mode: gold and cream are text and tint colors here, so they're dark enough to read on light pages
+     (the bear flag's #fedd63 / #fee6b8 vanished on cream). Same as --gold / --text below. */
+  --gold-rgb: 168, 116, 0;
+  --cream-rgb: 42, 25, 4;
   --sb-sky-top: #fff8ea;
   --sb-sky-mid: #fee6b8;
   --sb-sky-low: #fedd63;
@@ -73,6 +77,8 @@
   --sb-mist: rgba(200, 230, 255, 0.07);
 }
 :root[data-season="winter"][data-theme="light"] {
+  --gold-rgb: 42, 108, 184;
+  --cream-rgb: 15, 29, 51;
   --bg: #f4f8ff;
   --bg-soft: #e3eefc;
   --panel: rgba(255, 255, 255, 0.88);
@@ -130,6 +136,8 @@
   --sb-mist: rgba(255, 200, 230, 0.07);
 }
 :root[data-season="spring"][data-theme="light"] {
+  --gold-rgb: 176, 122, 12;
+  --cream-rgb: 58, 21, 48;
   --bg: #fff8fc;
   --bg-soft: #fde9f3;
   --panel: rgba(255, 255, 255, 0.88);
@@ -187,6 +195,8 @@
   --sb-mist: rgba(150, 230, 255, 0.07);
 }
 :root[data-season="summer"][data-theme="light"] {
+  --gold-rgb: 183, 121, 31;
+  --cream-rgb: 16, 49, 60;
   --bg: #fffbf2;
   --bg-soft: #fff0d6;
   --panel: rgba(255, 255, 255, 0.88);

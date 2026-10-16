@@ -1,0 +1,62 @@
+/* Light mode: text colors made for dark backgrounds, darkened (same hue) so they read on light pages.
+   Gold and cream are handled in seasons.css; Social profiles in social/dating.css. Checked with a contrast
+   pass over the site in light mode. */
+
+/* Store: rarity, limited-drop kicker and countdowns */
+:root[data-theme="light"] .sv3-rarity.is-inline,
+:root[data-theme="light"] .sv3-spot-kicker {
+  color: color-mix(in oklab, var(--rarity) 58%, #1d1003);
+}
+:root[data-theme="light"] .sv3-ends,
+:root[data-theme="light"] .sv3-chip.is-timer {
+  color: #a35a00;
+}
+
+/* Server rules: each part's color, and the okay / not okay examples */
+:root[data-theme="light"] .rl-part-head small,
+:root[data-theme="light"] .rl-password {
+  color: color-mix(in oklab, var(--tone) 55%, #1d1003);
+}
+:root[data-theme="light"] .rl-ex.is-bad h4 {
+  color: #b42318;
+}
+:root[data-theme="light"] .rl-ex.is-good h4 {
+  color: #1f7a3a;
+}
+:root[data-theme="light"] .kb-btn.kb-btn--primary {
+  color: #fff;
+}
+
+/* Homepage supporters: the Patreon tier names and the "Thank you" label */
+:root[data-theme="light"] .hc-empty span,
+:root[data-theme="light"] .hc-group h3 {
+  color: color-mix(in oklab, var(--tier) 55%, #1d1003);
+}
+:root[data-theme="light"] .hc-eyebrow {
+  color: #b3164f;
+}
+
+/* Achievements: bronze / silver / gold tiers */
+:root[data-theme="light"] .aw-tier.t1 {
+  color: #8a4b12;
+}
+:root[data-theme="light"] .aw-tier.t2 {
+  color: #4f5963;
+}
+:root[data-theme="light"] .aw-tier.t3 {
+  color: #8a6300;
+}
+
+/* Blue accents (Streak Shields, Super Likes) */
+:root[data-theme="light"] .daily-shields.has-shields {
+  color: #1f5fae;
+}
+:root[data-theme="light"] .dt-btn--superlike,
+:root[data-theme="light"] .dt-btn.dt-btn--superlike-get {
+  color: #1f5fae !important;
+}
+
+/* Patreon orange on the FAQ */
+:root[data-theme="light"] .kb-tier span {
+  color: #c2412c;
+}

@@ -8,6 +8,7 @@ import { Copy, Download, KeyRound, Pause, Play, Power, RotateCw, Search, Skull, 
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import type { ServerStatus } from "../../../lib/bot-console";
 import { timeAgo, useLive } from "../admin-shared";
+import { askConfirm } from "../../confirm-dialog";
 
 type Overview = {
   ok: boolean;
@@ -123,11 +124,12 @@ export function ConsoleTab() {
   const power = async (signal: "start" | "stop" | "restart" | "kill") => {
     if (!server) return;
     const warn: Record<string, string> = {
-      stop: `Stop the ${server.name}? It stays offline until someone starts it again.`,
-      restart: `Restart the ${server.name}? It's offline for a few seconds.`,
-      kill: `Force-stop the ${server.name}? Like pulling the plug: anything it was saving may be lost. Use it only if Stop is stuck.`,
+      stop: "It stays offline until someone starts it again.",
+      restart: "It's offline for a few seconds while it restarts.",
+      kill: "Like pulling the plug: anything it was saving may be lost. Use it only if Stop is stuck.",
     };
-    if (warn[signal] && !window.confirm(warn[signal])) return;
+    // In-page confirm: the browser's own pop-up can be switched off ("don't show again"), which blocked restarts
+    if (warn[signal] && !(await askConfirm(warn[signal], { title: `${signal === "kill" ? "Force-stop" : signal[0].toUpperCase() + signal.slice(1)} the ${server.name}?`, danger: signal !== "restart", confirmLabel: signal === "kill" ? "Force stop" : signal === "stop" ? "Stop it" : "Restart" }))) return;
     setBusy(signal);
     setMsg(null);
     const r = await fetch(`/api/admin/bots/console/${server.key}/power`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ signal }) })
@@ -138,11 +140,36 @@ export function ConsoleTab() {
     await reload();
   };
 
+  // Restart every bot, a couple of seconds apart (each one is logged like a single restart)
+  const restartAll = async () => {
+    const running = data.servers.filter((s) => s.state === "running" || s.state === "starting");
+    if (!running.length) return setMsg({ ok: false, text: "None of the bots are running. Start them one at a time." });
+    if (!(await askConfirm(`This restarts ${running.map((s) => s.name).join(", ")}, a couple of seconds apart. Each one is offline for a few seconds.`, { title: "Restart all bots?", confirmLabel: "Restart all" }))) return;
+    setBusy("all");
+    setMsg(null);
+    const failed: string[] = [];
+    for (const s of running) {
+      const r = await fetch(`/api/admin/bots/console/${s.key}/power`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ signal: "restart" }) })
+        .then((x) => x.json())
+        .catch(() => null);
+      if (!r?.ok) failed.push(`${s.name}: ${r?.error ?? "couldn't send it"}`);
+      await new Promise((res) => window.setTimeout(res, 2_000));
+    }
+    setBusy(null);
+    setMsg(failed.length ? { ok: false, text: `Restarted ${running.length - failed.length} of ${running.length}. ${failed.join(" · ")}` } : { ok: true, text: `Restarting all ${running.length} bots… They're back in under a minute.` });
+    await reload();
+  };
+
   return (
     <>
       {!data.configured ? <SetupCard /> : null}
       <section className="bc">
         <div className="bc-servers" role="tablist" aria-label="Bots">
+          {data.configured ? (
+            <button type="button" className="adm-btn adm-btn--small bc-restart-all" disabled={Boolean(busy)} onClick={() => void restartAll()}>
+              <RotateCw size={14} className={busy === "all" ? "set-spin" : undefined} /> {busy === "all" ? "Restarting all…" : "Restart all bots"}
+            </button>
+          ) : null}
           {BOTS.map((b) => {
             const s = status(b.key);
             const errors = open[b.key]?.errors ?? 0;
@@ -293,7 +320,7 @@ function IssuesView({ bot, name, onChange }: { bot: string; name: string; onChan
             <input type="checkbox" checked={showFixed} onChange={(e) => setShowFixed(e.target.checked)} /> Show fixed
           </label>
           {openCount ? (
-            <button type="button" className="adm-btn adm-btn--small adm-btn--ghost" disabled={busy} onClick={() => window.confirm(`Mark all ${openCount} open problems for the ${name} as fixed?`) && void resolve({ bot })}>
+            <button type="button" className="adm-btn adm-btn--small adm-btn--ghost" disabled={busy} onClick={async () => (await askConfirm(`Mark all ${openCount} open problems for the ${name} as fixed?`, { confirmLabel: "Mark fixed" })) && void resolve({ bot })}>
               Mark all fixed
             </button>
           ) : null}
