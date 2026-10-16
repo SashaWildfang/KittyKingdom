@@ -18,6 +18,7 @@ import { SeasonArt, SeasonCopy } from "./home-season";
 import { CountUp, LocalDateBlock, LocalTime, RotatingWord } from "./landing-client";
 import { seasonal } from "../lib/season-store";
 import { SiteNav } from "./site-nav";
+import { CurrencyAmount } from "./ui-icons";
 import { SITE_SOCIALS } from "../lib/site-socials";
 
 const DISCORD_INVITE = "https://discord.com/invite/M9XKHFdYQV";
@@ -295,7 +296,7 @@ export default async function Home({ searchParams }: { searchParams?: { register
                         {e.giveaway ? (
                           <>
                             {e.giveaway.running ? "Open now · winners picked " : "Giveaway opens "}
-                            <LocalTime iso={e.giveaway.running ? (e.endAt ?? e.startAt) : e.startAt} /> · {e.giveaway.prize}
+                            <LocalTime iso={e.giveaway.running ? (e.endAt ?? e.startAt) : e.startAt} /> · <CurrencyAmount text={e.giveaway.prize} size={12} />
                           </>
                         ) : (
                           <LocalTime iso={e.startAt} />

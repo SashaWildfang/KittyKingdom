@@ -9,20 +9,17 @@
 import { Long, type Document } from "mongodb";
 import { monthlyBumps, monthlyVcSeconds } from "./bumps";
 import { people, type Person } from "./admin-people";
-import { getGuildChannelsRaw, getGuildRoles, getMemberProfile, guildId } from "./discord-member";
+import { getGuildChannelsRaw, getMemberProfile, guildId } from "./discord-member";
 import { inServerIds } from "./member-directory";
 import { TOPICS } from "./topics";
 import { voiceHistory, type VoiceHistory } from "./voice-history";
 import { getBotCollection } from "./mongodb";
 import { zoneOffsetMinutes } from "./timezone";
+import { getSeason } from "./season-store";
 
-// Level roles, lowest first (same as the bot's stats.py)
-const LEVEL_ROLES: [number, string][] = [
-  [0, "1361677978421035180"], [5, "1361678583713759363"], [11, "1361678717197221968"],
-  [21, "1361678760327512185"], [31, "1361679050632073398"], [41, "1361679477700038828"],
-  [51, "1361680109953876049"], [61, "1361680599672422540"], [71, "1361680699563966605"],
-  [81, "1361680852064407683"], [91, "1361681482946576504"],
-];
+// Level ranks (🌰 Acorn, 🪵 Kindling…), lowest level of each: names and colors come from the season (Admin →
+// Seasons). They used to be Discord roles; now they're only shown here, in /stats and in level-ups.
+const RANK_MINS = [0, 5, 11, 21, 31, 41, 51, 61, 71, 81, 91];
 const PATREON = [
   { id: "1362502871639396362", name: "King / Queen", bonus: 0.4 },
   { id: "1362502662721114245", name: "Prince / Princess", bonus: 0.2 },
@@ -37,7 +34,6 @@ export const xpForLevel = (level: number) => (level <= 1 ? 100 : Math.floor(100 
 
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : typeof v === "bigint" ? Number(v) : v instanceof Long ? v.toNumber() : 0);
 const iso = (v: unknown) => (v instanceof Date && !Number.isNaN(v.getTime()) ? v.toISOString() : null);
-const cleanRoleName = (name: string) => name.replace(/\s*\[.*?\]\s*/g, " ").trim();
 const idFilter = (discordId: string) => ({ discordId: { $in: [Long.fromString(discordId), discordId] } });
 
 function entries(map: unknown): [string, number][] {
@@ -112,7 +108,7 @@ export async function memberStats(discordId: string, timeZone: string) {
     getBotCollection("store_inventory"),
   ]);
 
-  const [user, activity, meta, gamble, salesAgg, giftsSent, giftsReceived, items, qotdCount, openTickets, closedTickets, booster, global, profile, roles, channels, inServer] =
+  const [user, activity, meta, gamble, salesAgg, giftsSent, giftsReceived, items, qotdCount, openTickets, closedTickets, booster, global, profile, channels, inServer] =
     await Promise.all([
       users.findOne(idFilter(discordId)) as Promise<Document | null>,
       activityCol.findOne({ _id: discordId } as never) as Promise<Document | null>,
@@ -128,7 +124,6 @@ export async function memberStats(discordId: string, timeZone: string) {
       boosters.find({ discordId, end_time: { $gt: new Date() } }).sort({ end_time: 1 }).toArray() as Promise<Document[]>,
       globals.findOne({}) as Promise<Document | null>,
       getMemberProfile(discordId).catch(() => null),
-      getGuildRoles().catch(() => new Map()),
       channelNames(),
       memberIdFilter(),
     ]);
@@ -163,31 +158,31 @@ export async function memberStats(discordId: string, timeZone: string) {
       .toArray()
       .then((r) => r[0] ?? null),
   ]);
-  const currentRole = [...LEVEL_ROLES].reverse().find(([min]) => level >= min);
-  const nextRole = LEVEL_ROLES.find(([min]) => min > level);
-  const roleName = (id?: string) => (id && roles.get(id) ? cleanRoleName(roles.get(id).name) : null);
+  const ranks = (await getSeason().catch(() => null))?.levels ?? [];
+  const rankAt = (i: number) => ranks[i] ?? { emoji: "", name: `Level ${Math.max(1, RANK_MINS[i])}+`, color: "", range: "" };
+  const current = RANK_MINS.reduce((at, min, i) => (level >= min ? i : at), 0);
+  const nextIndex = RANK_MINS.findIndex((min) => min > level);
   // XP from level 1 to the start of each level
   const xpToReach = (target: number) => {
     let total = 0;
     for (let l = 1; l < target; l++) total += xpForLevel(l);
     return total;
   };
-  const journey = LEVEL_ROLES.map(([min, id], i) => {
-    const role = roles.get(id);
-    const next = LEVEL_ROLES[i + 1]?.[0] ?? null;
+  const journey = RANK_MINS.map((min, i) => {
+    const rank = rankAt(i);
+    const next = RANK_MINS[i + 1] ?? null;
     return {
       level: Math.max(1, min),
       until: next ? next - 1 : null,
-      name: roleName(id) ?? `Level ${min}+`,
-      colors: (role?.colors ?? []) as string[],
-      icon: (role?.icon ?? null) as string | null,
-      emoji: (role?.emoji ?? null) as string | null,
+      name: rank.name,
+      colors: rank.color ? [rank.color] : ([] as string[]),
+      icon: null as string | null,
+      emoji: (rank.emoji || null) as string | null,
       reached: level >= min,
-      current: currentRole?.[1] === id,
+      current: i === current,
       xpToReach: xpToReach(Math.max(1, min)),
     };
   });
-  const currentLevelRole = currentRole ? roles.get(currentRole[1]) : null;
 
   // ---------- Multipliers (same rules as the bot) ----------
   const memberRoles = new Set(profile?.roles ?? []);
@@ -417,14 +412,14 @@ export async function memberStats(discordId: string, timeZone: string) {
       totalXp: num(user?.totalXp),
       rank: levelRank + 1,
       of: ranked,
-      role: roleName(currentRole?.[1]),
-      icon: (currentLevelRole?.icon ?? null) as string | null,
-      emoji: (currentLevelRole?.emoji ?? null) as string | null,
+      role: rankAt(current).name,
+      icon: null as string | null,
+      emoji: (rankAt(current).emoji || null) as string | null,
       journey,
       startXp: xpToReach(level),
-      // The level role's color (two or three stops for gradient roles), for the level badge
-      color: (currentRole && roles.get(currentRole[1])?.colors?.length ? roles.get(currentRole[1]).colors : null) as string[] | null,
-      nextRole: nextRole ? { name: roleName(nextRole[1]) ?? `Level ${nextRole[0]} role`, level: nextRole[0] } : null,
+      // The rank's color (from the season), for the level badge
+      color: (rankAt(current).color ? [rankAt(current).color] : null) as string[] | null,
+      nextRole: nextIndex >= 0 ? { name: rankAt(nextIndex).name, level: RANK_MINS[nextIndex] } : null,
     },
     multipliers: { xp: Math.round(xpMultiplier * 100) / 100, leaves: Math.round(leafMultiplier * 100) / 100, patreon: patreon?.name ?? null, booster: isBooster, xpWeekend: weekend > 1, globalBooster: globalBoost > 1, consumable },
     compare: averages

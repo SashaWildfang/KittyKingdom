@@ -3,6 +3,7 @@
 import { CalendarClock, Check, Gift, Package, PartyPopper, Repeat, Settings2, Sparkles, Trophy, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { RARITY } from "../../lib/cosmetics";
+import { compact } from "../../lib/compact";
 import type { PublicGiveaway } from "../../lib/giveaways";
 import { useCurrency } from "../season-context";
 import { LeafEmote } from "../ui-icons";
@@ -62,7 +63,7 @@ function Prize({ g }: { g: PublicGiveaway }) {
               {rar ? <span className="gwp-rarity">{rar.label}</span> : null}
               {g.prize.itemPrice !== undefined ? (
                 <span className="gwp-worth">
-                  worth {(g.prize.itemPrice * (g.prize.quantity ?? 1)).toLocaleString()} {cur.many}
+                  worth {compact(g.prize.itemPrice * (g.prize.quantity ?? 1))} <LeafEmote size={12} />
                 </span>
               ) : null}
             </small>

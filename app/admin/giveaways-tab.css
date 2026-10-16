@@ -69,7 +69,7 @@
 .gw-status.is-ended { background: rgba(var(--cream-rgb), 0.1); color: var(--muted); }
 .gw-status.is-cancelled { background: rgba(255, 107, 107, 0.15); color: #ff8a8a; }
 .gw-status.is-review { background: rgba(255, 107, 107, 0.18); color: #ff9b9b; }
-.gw-tag { display: inline-flex; align-items: center; gap: 0.2rem; border-radius: 999px; background: rgba(var(--cream-rgb), 0.08); color: var(--muted); font-size: 0.7rem; padding: 0.12rem 0.5rem; text-transform: capitalize; }
+.gw-tag { display: inline-flex; align-items: center; gap: 0.2rem; border-radius: 999px; background: rgba(var(--cream-rgb), 0.08); color: var(--muted); font-size: 0.7rem; padding: 0.12rem 0.5rem; }
 .gw-tag.is-warn { background: rgba(255, 196, 0, 0.15); color: #ffd36b; text-transform: none; }
 
 /* Drawer */

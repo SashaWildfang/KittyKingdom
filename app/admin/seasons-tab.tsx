@@ -490,9 +490,9 @@ function SeasonEditor({
 
       <fieldset className="sn-fieldset">
         <legend>
-          <Crown size={14} aria-hidden="true" /> Level roles
+          <Crown size={14} aria-hidden="true" /> Level ranks
         </legend>
-        <p className="adm-muted sn-note">The same 11 roles all year: members keep them (and their perks), only the name and color change with the season.</p>
+        <p className="adm-muted sn-note">The 11 rank names members see in /stats, level-ups and on their stats page. They aren&apos;t Discord roles: only the names and colors change with the season.</p>
         <div className="sn-levels">
           {settings.levelRoles.map((lr, i) => (
             <LevelRow
@@ -505,7 +505,7 @@ function SeasonEditor({
         </div>
         <div className="sn-slot-actions">
           <button type="button" className="adm-btn adm-btn--ghost adm-btn--tiny" onClick={() => onChange({ levelRoles: DEFAULT_LEVEL_ROLES[season].map((x) => ({ ...x })) })}>
-            <RotateCcw size={12} aria-hidden="true" /> Use the suggested {info.name} roles
+            <RotateCcw size={12} aria-hidden="true" /> Use the suggested {info.name} ranks
           </button>
         </div>
       </fieldset>
@@ -699,12 +699,6 @@ function DiscordCard({
   const botRoles = resolveBotRoles(meta, draft.discord.botRoles);
   const liveSettings = draft.seasons[liveKey];
   const roleRows = [
-    ...(draft.discord.levelRoles
-      ? LEVEL_TIERS.map((t, i) => {
-          const now = meta?.roles.find((r) => r.id === t.id);
-          return { id: t.id, from: now?.name ?? "Level role", fromColor: now?.color ?? null, to: levelRoleName(liveSettings.levelRoles[i], i), toColor: liveSettings.levelRoles[i].color };
-        })
-      : []),
     ...(draft.discord.botRoleColors
       ? botRoles.map((b, i) => ({ id: b.id, from: b.name, fromColor: b.color, to: b.name, toColor: botColor(liveSettings, liveKey, b.id, i) }))
       : []),
@@ -723,7 +717,6 @@ function DiscordCard({
         <Toggle label="Category emojis" value={draft.discord.renameCategories} onChange={(v) => set({ discord: { ...draft.discord, renameCategories: v } })} />
         <Toggle label="Server icon" value={draft.discord.swapIcon} onChange={(v) => set({ discord: { ...draft.discord, swapIcon: v } })} />
         <Toggle label="Server banner" value={draft.discord.swapBanner} onChange={(v) => set({ discord: { ...draft.discord, swapBanner: v } })} />
-        <Toggle label="Level roles" help="Names and colors" value={draft.discord.levelRoles} onChange={(v) => set({ discord: { ...draft.discord, levelRoles: v } })} />
         <Toggle label="Bot role colors" value={draft.discord.botRoleColors} onChange={(v) => set({ discord: { ...draft.discord, botRoleColors: v } })} />
       </div>
       {draft.discord.botRoleColors ? (
