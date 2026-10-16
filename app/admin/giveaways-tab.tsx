@@ -31,11 +31,13 @@ import {
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { RARITY } from "../../lib/cosmetics";
+import { compact } from "../../lib/compact";
 import type { CmLimits } from "../../lib/giveaway-access";
 import type { Giveaway, GiveawayInput, GiveawayList, Prize, Recurring, StoreItem } from "../../lib/giveaways";
 import { Pager, formatDate, timeAgo, useLive, type People } from "./admin-shared";
 import { Picker, channelOptions, roleOptions, type Meta } from "./bots/pickers";
 import { useCurrency } from "../season-context";
+import { LeafEmote } from "../ui-icons";
 
 type Filter = "review" | "running" | "scheduled" | "ended" | "cancelled" | "all";
 type ListData = GiveawayList & { ok: boolean; isAdmin: boolean; limits: CmLimits };
@@ -117,13 +119,13 @@ export function RarityChip({ rarity }: { rarity?: Prize["itemRarity"] }) {
   );
 }
 
-/** "worth 12,000 Leaves" for store items (what one winner gets, at the shop price). */
-function Worth({ prize, many }: { prize: Prize; many: string }) {
+/** "worth 22.4k 🍁" for store items (what one winner gets, at the shop price). */
+function Worth({ prize }: { prize: Prize; many?: string }) {
   if (prize.type !== "item" || prize.itemPrice === undefined) return null;
   const each = prize.itemPrice * (prize.quantity ?? 1);
   return (
-    <span className="gw-worth">
-      <Leaf size={11} aria-hidden="true" /> worth {each.toLocaleString()} {many}
+    <span className="gw-worth" title={`${each.toLocaleString()} at the shop price`}>
+      worth {compact(each)} <LeafEmote size={12} />
     </span>
   );
 }
@@ -1066,7 +1068,7 @@ function Editor({
                             <span>
                               <b>{i.name}</b>
                               <small>
-                                <span className="gw-rar-dot">{RARITY[i.rarity].label}</span> · {i.price.toLocaleString()} {cur.many}
+                                <span className="gw-rar-dot">{RARITY[i.rarity].label}</span> · {compact(i.price)} <LeafEmote size={11} />
                                 {i.category ? ` · ${i.category}` : ""}
                                 {i.active ? "" : " · not in the shop"}
                               </small>
@@ -1084,7 +1086,7 @@ function Editor({
                     <p className="gw-value">
                       <RarityChip rarity={picked.rarity} />
                       <span>
-                        Worth {(picked.price * (d.prize.quantity ?? 1)).toLocaleString()} {cur.many} each · {(picked.price * (d.prize.quantity ?? 1) * d.winners).toLocaleString()} {cur.many} in total
+                        Worth {compact(picked.price * (d.prize.quantity ?? 1))} <LeafEmote size={13} /> each · {compact(picked.price * (d.prize.quantity ?? 1) * d.winners)} <LeafEmote size={13} /> in total
                       </span>
                     </p>
                   ) : null}
@@ -1279,7 +1281,12 @@ function Editor({
                 {d.description ? <p className="gw-embed-desc">{d.description}</p> : null}
                 <p>
                   🎁 Prize: <b>{prizeText}</b>
-                  {d.prize.type === "item" && picked ? ` (${RARITY[picked.rarity].label}, worth ${(picked.price * (d.prize.quantity ?? 1)).toLocaleString()} ${cur.many})` : ""}
+                  {d.prize.type === "item" && picked ? (
+                    <>
+                      {" "}
+                      ({RARITY[picked.rarity].label}, worth {compact(picked.price * (d.prize.quantity ?? 1))} <LeafEmote size={14} />)
+                    </>
+                  ) : null}
                 </p>
                 <p>🏆 Winners: <b>{d.winners}</b></p>
                 <p>

@@ -6,6 +6,7 @@ import { EVENT_KINDS, GIVEAWAY_KIND, type PublicEvent } from "../../lib/events-s
 import type { PublicPoll } from "../../lib/event-polls";
 import { EventPollsBoard } from "./events-polls";
 import { markEventsSeen } from "../events-nav-badge";
+import { CurrencyAmount } from "../ui-icons";
 
 type Data = { events: PublicEvent[]; mine: string[]; past: PublicEvent[] };
 
@@ -73,8 +74,8 @@ function GiveawayCard({ e, now }: { e: PublicEvent; now: number }) {
         </div>
         <h3>{e.title}</h3>
         <p className="evp-gw-prize">
-          <Gift size={15} aria-hidden="true" /> {gw.prize}
-          <span>·</span>
+          <Gift size={15} aria-hidden="true" /> <CurrencyAmount text={gw.prize} size={15} />
+          <span className="evp-gw-sep">·</span>
           <Trophy size={14} aria-hidden="true" /> {gw.winners} winner{gw.winners === 1 ? "" : "s"}
         </p>
         <p className="evp-when">
