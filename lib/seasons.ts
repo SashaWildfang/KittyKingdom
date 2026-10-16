@@ -13,7 +13,7 @@ export const SEASON_KEYS: SeasonKey[] = ["spring", "summer", "fall", "winter"];
 export type AssetKind = "logo" | "banner" | "emote";
 export const ASSET_KINDS: AssetKind[] = ["logo", "banner", "emote"];
 
-/** The 11 level roles (same role ids all year; the bot renames and recolors them). */
+/** The 11 level ranks. They used to be Discord roles (the ids are kept only as stable keys); now they're names shown in /stats, level-ups and the stats page. */
 export const LEVEL_TIERS = [
   { id: "1361677978421035180", range: "1-4" },
   { id: "1361678583713759363", range: "5-10" },
