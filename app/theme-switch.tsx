@@ -24,7 +24,17 @@ export function readChoice(): ThemeChoice {
 }
 
 export function applyChoice(choice: ThemeChoice) {
-  document.documentElement.dataset.theme = choice === "system" ? systemTheme() : choice;
+  const root = document.documentElement;
+  // A page can hold one theme while it's open (a Social profile with a store theme is always dark)
+  root.dataset.theme = root.dataset.themeLock === "dark" || root.dataset.themeLock === "light" ? root.dataset.themeLock : choice === "system" ? systemTheme() : choice;
+}
+
+/** Holds the page in one theme until released (null), then goes back to the member's own choice. */
+export function lockTheme(theme: "light" | "dark" | null) {
+  const root = document.documentElement;
+  if (theme) root.dataset.themeLock = theme;
+  else delete root.dataset.themeLock;
+  applyChoice(readChoice());
 }
 
 export function setChoice(choice: ThemeChoice) {
