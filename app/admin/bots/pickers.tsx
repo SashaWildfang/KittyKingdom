@@ -115,7 +115,16 @@ export function Picker({
         )}
       </div>
       {open ? (
-        <div className="bs-picker-menu">
+        <div
+          className="bs-picker-menu"
+          onKeyDown={(e) => {
+            // Escape closes just this menu (not a dialog it sits in)
+            if (e.key === "Escape") {
+              e.stopPropagation();
+              setOpen(false);
+            }
+          }}
+        >
           <label className="bs-picker-search">
             <Search size={14} aria-hidden="true" />
             <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${kind}s`} />

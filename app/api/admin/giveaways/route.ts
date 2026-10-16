@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requirePanel } from "../../../../lib/admin";
+import { cmLimits, requireGiveawayManager } from "../../../../lib/giveaway-access";
 import { GiveawayError, createGiveaway, listGiveaways } from "../../../../lib/giveaways";
 
 export const dynamic = "force-dynamic";
@@ -10,26 +10,26 @@ function fail(error: unknown) {
   return NextResponse.json({ ok: false, error: "Something went wrong." }, { status: 500 });
 }
 
-/** Admins: giveaways by status (?status=scheduled|running|ended|cancelled|all&search=). */
+/** Admins and Community Managers: giveaways by status (?status=review|scheduled|running|ended|cancelled|all&search=). */
 export async function GET(request: Request) {
-  const panel = await requirePanel(request, "admin");
+  const panel = await requireGiveawayManager(request);
   if (panel instanceof NextResponse) return panel;
   const u = new URL(request.url);
   try {
-    const data = await listGiveaways(u.searchParams.get("status") ?? "all", u.searchParams.get("search") ?? "");
-    return NextResponse.json({ ok: true, ...data }, { headers: { "Cache-Control": "no-store" } });
+    const [data, limits] = await Promise.all([listGiveaways(u.searchParams.get("status") ?? "all", u.searchParams.get("search") ?? ""), cmLimits()]);
+    return NextResponse.json({ ok: true, ...data, isAdmin: panel.isAdmin, limits }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return fail(error);
   }
 }
 
-/** Admins: create a giveaway. */
+/** Create a giveaway (a Community Manager's goes to an admin when it's over a limit). */
 export async function POST(request: Request) {
-  const panel = await requirePanel(request, "admin");
+  const panel = await requireGiveawayManager(request);
   if (panel instanceof NextResponse) return panel;
   try {
     const body = await request.json().catch(() => ({}));
-    return NextResponse.json({ ok: true, ...(await createGiveaway(body, panel.discordId)) });
+    return NextResponse.json({ ok: true, ...(await createGiveaway(body, panel)) });
   } catch (error) {
     return fail(error);
   }

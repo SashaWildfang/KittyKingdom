@@ -131,3 +131,10 @@ button.evp-poll-opt:disabled { cursor: progress; }
 /* No polls or past events: the calendar takes the full width */
 .evp-aside:empty { display: none; }
 .evp-layout:has(> .evp-aside:empty) { grid-template-columns: minmax(0, 1fr); }
+/* Giveaways on the calendar */
+.evp-card--giveaway { border-color: rgba(var(--gold-rgb), 0.35); }
+.evp-card--giveaway .evp-card-art { background: radial-gradient(circle at 30% 20%, rgba(var(--gold-rgb), 0.3), transparent 60%), rgba(var(--ember-rgb), 0.14); }
+.evp-gw-prize { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; margin: 0; color: var(--text); font-weight: 700; }
+.evp-gw-prize svg { color: rgb(var(--gold-rgb)); }
+.evp-gw-prize > span { color: var(--muted); font-weight: 400; }
+.evp-gw-enter { text-decoration: none; }

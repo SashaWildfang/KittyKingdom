@@ -18,7 +18,9 @@ import {
   Repeat,
   Search,
   Settings,
+  ShieldCheck,
   Shuffle,
+  Sparkles,
   Square,
   Trash2,
   Trophy,
@@ -26,31 +28,40 @@ import {
   X,
   XCircle,
 } from "lucide-react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import type { Giveaway, GiveawayInput, GiveawayList, Prize, StoreItem } from "../../lib/giveaways";
+import { RARITY } from "../../lib/cosmetics";
+import type { CmLimits } from "../../lib/giveaway-access";
+import type { Giveaway, GiveawayInput, GiveawayList, Prize, Recurring, StoreItem } from "../../lib/giveaways";
 import { Pager, formatDate, timeAgo, useLive, type People } from "./admin-shared";
 import { Picker, channelOptions, roleOptions, type Meta } from "./bots/pickers";
 import { useCurrency } from "../season-context";
 
-type Filter = "running" | "scheduled" | "ended" | "cancelled" | "all";
-type Detail = { ok: boolean; error?: string; giveaway: Giveaway; handed: string[]; entrants: { userId: string; at: string | null }[]; total: number; page: number; pageSize: number; people: People };
+type Filter = "review" | "running" | "scheduled" | "ended" | "cancelled" | "all";
+type ListData = GiveawayList & { ok: boolean; isAdmin: boolean; limits: CmLimits };
+type Detail = { ok: boolean; error?: string; isAdmin: boolean; giveaway: Giveaway; handed: string[]; entrants: { userId: string; at: string | null }[]; total: number; page: number; pageSize: number; people: People };
 
 const FILTERS: [Filter, string][] = [
+  ["review", "Needs approval"],
   ["running", "Running"],
   ["scheduled", "Upcoming"],
   ["ended", "Ended"],
   ["cancelled", "Cancelled"],
   ["all", "All"],
 ];
-const STATUS: Record<string, string> = { running: "Running", scheduled: "Upcoming", ended: "Ended", cancelled: "Cancelled" };
-const RECUR: Record<string, string> = { none: "Once", daily: "Every day", weekly: "Every week", monthly: "Every month" };
+const STATUS: Record<string, string> = { review: "Needs approval", running: "Running", scheduled: "Upcoming", ended: "Ended", cancelled: "Cancelled" };
+const RECUR: Record<Recurring, string> = { none: "Once", daily: "Every day", weekly: "Every week", monthly: "Every month" };
+const PERIOD: Record<Recurring, number> = { none: Infinity, daily: 86400, weekly: 7 * 86400, monthly: 30 * 86400 };
+const UNIT: Record<Recurring, string> = { none: "", daily: "day", weekly: "week", monthly: "month" };
 const DURATIONS: [string, number][] = [
   ["1 hour", 3600],
+  ["3 hours", 3 * 3600],
   ["6 hours", 6 * 3600],
   ["12 hours", 12 * 3600],
   ["1 day", 86400],
+  ["2 days", 2 * 86400],
   ["3 days", 3 * 86400],
+  ["5 days", 5 * 86400],
   ["1 week", 7 * 86400],
   ["2 weeks", 14 * 86400],
 ];
@@ -64,16 +75,57 @@ function relative(iso: string | null, now: number) {
   return diff >= 0 ? `in ${text}` : `${text} ago`;
 }
 
+const when = (d: Date) => d.toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+
 function prizeLabel(p: Prize) {
   if (p.type === "leaves") return `${(p.amount ?? 0).toLocaleString()} Leaves`;
+  if (p.type === "xp") return `${(p.amount ?? 0).toLocaleString()} XP`;
   if (p.type === "item") return `${(p.quantity ?? 1) > 1 ? `${p.quantity}× ` : ""}${p.itemName ?? p.itemId}`;
   return p.text || "Custom prize";
 }
 
 function PrizeIcon({ prize, size = 18 }: { prize: Prize; size?: number }) {
   if (prize.type === "leaves") return <Leaf size={size} aria-hidden="true" />;
+  if (prize.type === "xp") return <Sparkles size={size} aria-hidden="true" />;
   if (prize.type === "item") return <Package size={size} aria-hidden="true" />;
   return <Gift size={size} aria-hidden="true" />;
+}
+
+/** The prize's picture: the store item's image, or an icon. */
+function PrizeArt({ prize, big = false }: { prize: Prize; big?: boolean }) {
+  if (prize.type === "item" && prize.itemImage)
+    return (
+      <span className={`gw-prize-icon is-item has-img${big ? " is-big" : ""}`} style={prize.itemRarity ? ({ "--rar": RARITY[prize.itemRarity].color } as React.CSSProperties) : undefined}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={prize.itemImage} alt="" loading="lazy" />
+      </span>
+    );
+  return (
+    <span className={`gw-prize-icon is-${prize.type}${big ? " is-big" : ""}`}>
+      <PrizeIcon prize={prize} size={big ? 26 : 20} />
+    </span>
+  );
+}
+
+export function RarityChip({ rarity }: { rarity?: Prize["itemRarity"] }) {
+  if (!rarity) return null;
+  const r = RARITY[rarity];
+  return (
+    <span className="gw-rarity" style={{ "--rar": r.color } as React.CSSProperties}>
+      {r.label}
+    </span>
+  );
+}
+
+/** "worth 12,000 Leaves" for store items (what one winner gets, at the shop price). */
+function Worth({ prize, many }: { prize: Prize; many: string }) {
+  if (prize.type !== "item" || prize.itemPrice === undefined) return null;
+  const each = prize.itemPrice * (prize.quantity ?? 1);
+  return (
+    <span className="gw-worth">
+      <Leaf size={11} aria-hidden="true" /> worth {each.toLocaleString()} {many}
+    </span>
+  );
 }
 
 async function call(url: string, method: string, body?: unknown) {
@@ -116,7 +168,7 @@ function useNow(ms = 1000) {
   return now;
 }
 
-/** Admin → Giveaways: set up, schedule and run giveaways for Leaves, store items or anything else. The Main Bot runs them. */
+/** Admin → Giveaways: set up, schedule and run giveaways for Leaves, XP, store items or anything else. The Main Bot runs them. */
 export function GiveawaysTab() {
   const cur = useCurrency();
   const [filter, setFilter] = useState<Filter>("running");
@@ -130,25 +182,37 @@ export function GiveawaysTab() {
     const t = setTimeout(() => setSearch(q), 300);
     return () => clearTimeout(t);
   }, [q]);
-  const { data, error, reload } = useLive<GiveawayList & { ok: boolean }>(`/api/admin/giveaways?${new URLSearchParams({ status: filter, search })}`, 10_000);
+  const { data, error, reload } = useLive<ListData>(`/api/admin/giveaways?${new URLSearchParams({ status: filter, search })}`, 10_000);
   const channelName = (id: string | null) => (id ? (meta?.channels.find((c) => c.id === id)?.name ?? "unknown channel") : null);
+  const isAdmin = Boolean(data?.isAdmin);
 
-  // Land on Upcoming when nothing is running
+  // Land on what needs attention: approvals for admins, then running, then upcoming
   const [landed, setLanded] = useState(false);
   useEffect(() => {
     if (!data || landed) return;
     setLanded(true);
-    if (filter === "running" && !data.counts.running && data.counts.scheduled) setFilter("scheduled");
+    if (filter !== "running") return;
+    if (data.isAdmin && data.counts.review) setFilter("review");
+    else if (!data.counts.running && data.counts.scheduled) setFilter("scheduled");
   }, [data, landed, filter]);
+
+  const filters = FILTERS.filter(([k]) => k !== "review" || (data?.counts.review ?? 0) > 0 || filter === "review");
 
   return (
     <section className="adm-panel gw">
       <div className="adm-kpis gw-kpis">
-        <div className="adm-kpi adm-kpi--orange">
+        <button type="button" className="adm-kpi is-link adm-kpi--orange" onClick={() => setFilter("running")}>
           <small>Running now</small>
           <strong>{data?.counts.running ?? "…"}</strong>
           <span>{data ? `${data.counts.scheduled} upcoming` : "…"}</span>
-        </div>
+        </button>
+        {data?.counts.review ? (
+          <button type="button" className="adm-kpi is-link adm-kpi--red" onClick={() => setFilter("review")}>
+            <small>Needs approval</small>
+            <strong>{data.counts.review}</strong>
+            <span>{isAdmin ? "from Community Managers" : "waiting for an admin"}</span>
+          </button>
+        ) : null}
         <div className="adm-kpi">
           <small>Winners</small>
           <strong>{data?.stats.winners.toLocaleString() ?? "…"}</strong>
@@ -157,19 +221,30 @@ export function GiveawaysTab() {
         <div className="adm-kpi adm-kpi--green">
           <small>{cur.many} given</small>
           <strong>{data?.stats.leaves.toLocaleString() ?? "…"}</strong>
-          <span>{data ? `${data.stats.items.toLocaleString()} store items too` : "…"}</span>
+          <span>{data ? `${data.stats.items.toLocaleString()} store items · ${data.stats.xp.toLocaleString()} XP` : "…"}</span>
         </div>
-        <div className={`adm-kpi${data?.stats.manualToDo ? " adm-kpi--red" : " adm-kpi--blue"}`}>
+        <button type="button" className={`adm-kpi is-link${data?.stats.manualToDo ? " adm-kpi--red" : " adm-kpi--blue"}`} onClick={() => setFilter("ended")}>
           <small>To hand out</small>
           <strong>{data?.stats.manualToDo ?? "…"}</strong>
           <span>custom prizes waiting on staff</span>
-        </div>
+        </button>
       </div>
+
+      {data && !isAdmin ? (
+        <p className="gw-limits">
+          <ShieldCheck size={15} aria-hidden="true" />
+          <span>
+            You can run giveaways up to <b>{data.limits.maxLeaves.toLocaleString()} {cur.many}</b>, <b>{data.limits.maxXp.toLocaleString()} XP</b> or a store item worth up to{" "}
+            <b>{data.limits.maxItemPrice.toLocaleString()} {cur.many}</b> each, for up to <b>{data.limits.maxWinners} winners</b> ({data.limits.maxTotal.toLocaleString()} {cur.many} in total, {data.limits.weeklyBudget.toLocaleString()} a week across Community Managers).
+            Anything bigger{data.limits.customNeedsApproval ? ", and custom prizes," : ""} goes to an admin to approve first.
+          </span>
+        </p>
+      ) : null}
 
       <div className="gw-toolbar">
         <div className="adm-seg" role="tablist" aria-label="Status">
-          {FILTERS.map(([k, label]) => (
-            <button key={k} type="button" role="tab" aria-selected={filter === k} className={filter === k ? "is-active" : undefined} onClick={() => setFilter(k)}>
+          {filters.map(([k, label]) => (
+            <button key={k} type="button" role="tab" aria-selected={filter === k} className={`${filter === k ? "is-active" : ""}${k === "review" ? " is-review" : ""}`} onClick={() => setFilter(k)}>
               {label}
               {k !== "all" && data ? <small className="gw-count">{data.counts[k]}</small> : null}
             </button>
@@ -179,8 +254,13 @@ export function GiveawaysTab() {
           <Search size={15} aria-hidden="true" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search giveaways" aria-label="Search giveaways" />
         </label>
-        <a className="adm-btn adm-btn--ghost adm-btn--small" href="/admin?tab=bot-main#giveaways" title="Default channel, ping, DMs and the button (Admin → Bots → Main Bot)">
-          <Settings size={14} aria-hidden="true" /> Settings
+        {isAdmin ? (
+          <a className="adm-btn adm-btn--ghost adm-btn--small" href="/admin?tab=bot-main#giveaways" title="Default channel, ping, DMs, cleanup and Community Manager limits (Admin → Bots → Main Bot)">
+            <Settings size={14} aria-hidden="true" /> Settings
+          </a>
+        ) : null}
+        <a className="adm-btn adm-btn--ghost adm-btn--small" href="/giveaways" target="_blank" rel="noreferrer" title="The public giveaways page">
+          <Gift size={14} aria-hidden="true" /> Public page
         </a>
         <button type="button" className="adm-btn adm-btn--small" onClick={() => setEditing("new")}>
           <Plus size={14} aria-hidden="true" /> New giveaway
@@ -200,53 +280,77 @@ export function GiveawaysTab() {
       ) : !data.rows.length ? (
         <div className="adm-empty gw-empty">
           <Gift size={26} aria-hidden="true" />
-          <p>{search ? "No giveaways match." : filter === "running" ? "Nothing is running right now." : filter === "scheduled" ? "Nothing is scheduled." : "None yet."}</p>
+          <p>{search ? "No giveaways match." : filter === "running" ? "Nothing is running right now." : filter === "scheduled" ? "Nothing is scheduled." : filter === "review" ? "Nothing is waiting for approval." : "None yet."}</p>
           <button type="button" className="adm-btn adm-btn--small" onClick={() => setEditing("new")}>
             <Plus size={14} aria-hidden="true" /> Set one up
           </button>
         </div>
       ) : (
         <ul className="gw-list">
-          {data.rows.map((g) => (
-            <li key={g.id}>
-              <button type="button" className={`gw-card is-${g.status}`} onClick={() => setOpen(g.id)} style={g.color ? ({ "--gw-accent": g.color } as React.CSSProperties) : undefined}>
-                <span className={`gw-prize-icon is-${g.prize.type}`}>
-                  <PrizeIcon prize={g.prize} size={20} />
-                </span>
-                <span className="gw-card-main">
-                  <b>{g.title}</b>
-                  <small>
-                    {cur.text(prizeLabel(g.prize))} · {g.winners} winner{g.winners === 1 ? "" : "s"}
-                    {channelName(g.postedChannelId ?? g.channelId) ? ` · #${channelName(g.postedChannelId ?? g.channelId)}` : ""}
-                  </small>
-                </span>
-                <span className="gw-card-tags">
-                  <span className={`gw-status is-${g.status}`}>{STATUS[g.status]}</span>
-                  {g.recurring !== "none" ? (
-                    <span className="gw-tag" title={RECUR[g.recurring]}>
-                      <Repeat size={11} aria-hidden="true" /> {g.recurring}
+          {data.rows.map((g) => {
+            const start = new Date(g.startAt ?? g.endAt).getTime();
+            const end = new Date(g.endAt).getTime();
+            const progress = g.status === "running" ? Math.min(1, Math.max(0, (now - start) / Math.max(1, end - start))) : 0;
+            return (
+              <li key={g.id}>
+                <button type="button" className={`gw-card is-${g.status}`} onClick={() => setOpen(g.id)} style={g.color ? ({ "--gw-accent": g.color } as React.CSSProperties) : undefined}>
+                  <PrizeArt prize={g.prize} />
+                  <span className="gw-card-main">
+                    <span className="gw-card-title">
+                      <b>{g.title}</b>
+                      <span className={`gw-status is-${g.status}`}>{STATUS[g.status]}</span>
                     </span>
-                  ) : null}
-                  {g.lastError ? (
-                    <span className="gw-tag is-warn" title={g.lastError}>
-                      <AlertTriangle size={11} aria-hidden="true" /> problem
+                    <span className="gw-card-prize">
+                      <span>
+                        {cur.text(prizeLabel(g.prize))} × {g.winners} winner{g.winners === 1 ? "" : "s"}
+                      </span>
+                      <RarityChip rarity={g.prize.itemRarity} />
+                      <Worth prize={g.prize} many={cur.many} />
                     </span>
-                  ) : null}
-                </span>
-                <span className="gw-card-stat">
-                  <Users size={13} aria-hidden="true" /> {g.entries.toLocaleString()}
-                </span>
-                <span className="gw-card-time" title={formatDate(g.status === "scheduled" ? g.startAt : g.endAt)}>
-                  {g.status === "scheduled" ? `Starts ${relative(g.startAt, now)}` : g.status === "running" ? `Ends ${relative(g.endAt, now)}` : g.endedAt ? `Ended ${timeAgo(g.endedAt)}` : ""}
-                </span>
-                {g.status === "ended" && g.results.length ? (
-                  <span className="gw-card-winners">
-                    <Trophy size={13} aria-hidden="true" /> {g.results.map((r) => data.people[r.userId]?.name ?? r.userId).join(", ")}
+                    <span className="gw-card-meta">
+                      {channelName(g.postedChannelId ?? g.channelId) ? (
+                        <span>
+                          <Hash size={11} aria-hidden="true" />
+                          {channelName(g.postedChannelId ?? g.channelId)}
+                        </span>
+                      ) : null}
+                      {g.recurring !== "none" ? (
+                        <span className="gw-tag" title={RECUR[g.recurring]}>
+                          <Repeat size={11} aria-hidden="true" /> {RECUR[g.recurring]} · round {g.round}
+                          {g.rounds ? ` of ${g.rounds}` : ""}
+                        </span>
+                      ) : null}
+                      {g.createdByRole === "cm" && data.people[g.createdBy ?? ""] ? <span>by {data.people[g.createdBy ?? ""]?.name}</span> : null}
+                      {g.lastError ? (
+                        <span className="gw-tag is-warn" title={g.lastError}>
+                          <AlertTriangle size={11} aria-hidden="true" /> problem
+                        </span>
+                      ) : null}
+                    </span>
+                    {g.status === "review" && g.review?.reasons.length ? <span className="gw-card-review">{g.review.reasons[0]}{g.review.reasons.length > 1 ? ` (+${g.review.reasons.length - 1} more)` : ""}</span> : null}
+                    {g.status === "ended" && g.results.length ? (
+                      <span className="gw-card-winners">
+                        <Trophy size={13} aria-hidden="true" /> {g.results.map((r) => data.people[r.userId]?.name ?? r.userId).join(", ")}
+                      </span>
+                    ) : null}
                   </span>
-                ) : null}
-              </button>
-            </li>
-          ))}
+                  <span className="gw-card-side">
+                    <span className="gw-card-stat">
+                      <Users size={13} aria-hidden="true" /> {g.entries.toLocaleString()}
+                    </span>
+                    <span className="gw-card-time" title={formatDate(g.status === "scheduled" || g.status === "review" ? g.startAt : g.endAt)}>
+                      {g.status === "scheduled" || g.status === "review" ? `Starts ${relative(g.startAt, now)}` : g.status === "running" ? `Ends ${relative(g.endAt, now)}` : g.endedAt ? `Ended ${timeAgo(g.endedAt)}` : ""}
+                    </span>
+                  </span>
+                  {g.status === "running" ? (
+                    <span className="gw-card-bar" aria-hidden="true">
+                      <i style={{ width: `${progress * 100}%` }} />
+                    </span>
+                  ) : null}
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
 
@@ -255,6 +359,8 @@ export function GiveawaysTab() {
           <Editor
             initial={editing === "new" ? null : editing}
             meta={meta}
+            isAdmin={isAdmin}
+            limits={data?.limits ?? null}
             onClose={() => setEditing(null)}
             onSaved={(id) => {
               setEditing(null);
@@ -304,8 +410,9 @@ function DetailDrawer({
   const { data, error, reload } = useLive<Detail>(`/api/admin/giveaways/${id}?page=${page}`, 5_000);
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const [confirm, setConfirm] = useState<"cancel" | "delete" | "end" | null>(null);
+  const [confirm, setConfirm] = useState<"cancel" | "delete" | "end" | "reject" | null>(null);
   const [rerollCount, setRerollCount] = useState(1);
+  const [reason, setReason] = useState("");
 
   useEffect(() => {
     const esc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -342,10 +449,12 @@ function DetailDrawer({
   };
 
   const g = data?.giveaway;
+  const isAdmin = Boolean(data?.isAdmin);
   const people = data?.people ?? {};
   const name = (uid: string | null) => (uid ? (uid === "bot" ? "Main Bot" : (people[uid]?.name ?? uid)) : "Someone");
   const channel = g ? (meta?.channels.find((c) => c.id === (g.postedChannelId ?? g.channelId))?.name ?? null) : null;
   const handed = new Set(data?.handed ?? []);
+  const canDelete = g && g.status !== "running" && (isAdmin || g.status === "review");
 
   return (
     <div className="adm-drawer-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
@@ -358,17 +467,64 @@ function DetailDrawer({
         ) : (
           <>
             <header className="gw-drawer-head" style={g.color ? ({ "--gw-accent": g.color } as React.CSSProperties) : undefined}>
-              <span className={`gw-prize-icon is-${g.prize.type} is-big`}>
-                <PrizeIcon prize={g.prize} size={26} />
-              </span>
+              <PrizeArt prize={g.prize} big />
               <div>
                 <span className={`gw-status is-${g.status}`}>{STATUS[g.status]}</span>
                 <h2>{g.title}</h2>
+                <p className="gw-drawer-prize">
+                  <span>
+                    {cur.text(prizeLabel(g.prize))} × {g.winners} winner{g.winners === 1 ? "" : "s"}
+                  </span>
+                  <RarityChip rarity={g.prize.itemRarity} />
+                  <Worth prize={g.prize} many={cur.many} />
+                </p>
                 <p className="adm-muted">
-                  {cur.text(prizeLabel(g.prize))} · {g.winners} winner{g.winners === 1 ? "" : "s"} · {RECUR[g.recurring]}
+                  {RECUR[g.recurring]}
+                  {g.recurring !== "none" ? ` · round ${g.round}${g.rounds ? ` of ${g.rounds}` : ""}` : ""}
+                  {g.value ? ` · ${g.value.toLocaleString()} ${cur.many} in total` : ""}
                 </p>
               </div>
             </header>
+
+            {g.status === "review" ? (
+              <div className="gw-approval">
+                <p>
+                  <ShieldCheck size={15} aria-hidden="true" /> <b>{name(g.review?.by ?? g.createdBy)}</b> set this up, but it&apos;s over the Community Manager limits:
+                </p>
+                <ul>
+                  {(g.review?.reasons ?? []).map((r) => (
+                    <li key={r}>{r}</li>
+                  ))}
+                </ul>
+                {isAdmin ? (
+                  confirm === "reject" ? (
+                    <div className="gw-reject">
+                      <input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={300} placeholder="Why (optional, shown in its history)" aria-label="Why" />
+                      <button type="button" className="adm-btn adm-btn--danger adm-btn--small" disabled={!!busy} onClick={() => act("reject", { reason })}>
+                        Turn it down
+                      </button>
+                      <button type="button" className="adm-btn adm-btn--ghost adm-btn--small" onClick={() => setConfirm(null)}>
+                        Back
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="gw-approval-actions">
+                      <button type="button" className="adm-btn adm-btn--small" disabled={!!busy} onClick={() => act("approve")}>
+                        <Check size={14} aria-hidden="true" /> Approve
+                      </button>
+                      <button type="button" className="adm-btn adm-btn--ghost adm-btn--small" onClick={() => onEdit(g)}>
+                        <Pencil size={14} aria-hidden="true" /> Change it first
+                      </button>
+                      <button type="button" className="adm-btn adm-btn--ghost adm-btn--small gw-danger" onClick={() => setConfirm("reject")}>
+                        <XCircle size={14} aria-hidden="true" /> Turn down
+                      </button>
+                    </div>
+                  )
+                ) : (
+                  <p className="adm-muted gw-note">An admin needs to approve it before it starts. Edit it to bring it within the limits and it can run straight away.</p>
+                )}
+              </div>
+            ) : null}
 
             {g.lastError ? (
               <p className="adm-error gw-problem">
@@ -384,19 +540,19 @@ function DetailDrawer({
 
             <div className="gw-facts">
               <div>
-                <small>{g.status === "scheduled" ? "Starts" : "Started"}</small>
+                <small>{g.status === "scheduled" || g.status === "review" ? "Starts" : "Started"}</small>
                 <b>{formatDate(g.startAt)}</b>
                 <span>{relative(g.startAt, now)}</span>
               </div>
               <div>
-                <small>{g.status === "ended" || g.status === "cancelled" ? "Ended" : "Ends"}</small>
+                <small>{g.status === "ended" || g.status === "cancelled" ? "Ended" : "Winners picked"}</small>
                 <b>{formatDate(g.endedAt ?? g.endAt)}</b>
                 <span>{relative(g.endedAt ?? g.endAt, now)}</span>
               </div>
               <div>
                 <small>Entries</small>
                 <b>{g.entries.toLocaleString()}</b>
-                <span>{g.status === "running" ? "live" : g.status === "scheduled" ? "opens at the start" : "final"}</span>
+                <span>{g.status === "running" ? "live" : g.status === "scheduled" || g.status === "review" ? "opens at the start" : "final"}</span>
               </div>
               <div>
                 <small>Channel</small>
@@ -406,7 +562,7 @@ function DetailDrawer({
             </div>
 
             <div className="gw-actions">
-              {g.status === "scheduled" || g.status === "running" ? (
+              {g.status === "scheduled" || g.status === "running" || g.status === "review" ? (
                 <button type="button" className="adm-btn adm-btn--small" onClick={() => onEdit(g)}>
                   <Pencil size={14} aria-hidden="true" /> Edit
                 </button>
@@ -445,7 +601,7 @@ function DetailDrawer({
                   </button>
                 )
               ) : null}
-              {g.status !== "running" ? (
+              {canDelete ? (
                 confirm === "delete" ? (
                   <span className="gw-confirm">
                     Delete it and its entries for good?
@@ -540,7 +696,7 @@ function DetailDrawer({
                   <Pager page={data.page} total={data.total} pageSize={data.pageSize} onPage={setPage} />
                 </>
               ) : (
-                <p className="adm-muted">{g.status === "scheduled" ? "Entries open when it starts." : "No entries."}</p>
+                <p className="adm-muted">{g.status === "scheduled" || g.status === "review" ? "Entries open when it starts." : "No entries."}</p>
               )}
             </div>
 
@@ -552,13 +708,32 @@ function DetailDrawer({
                   .reverse()
                   .map((h, i) => (
                     <li key={i}>
-                      <b>{name(h.by)}</b> {h.action === "handed" ? "handed out a prize" : h.action === "reroll" ? `rerolled ${h.detail ?? ""} winner(s)` : h.action === "end" ? "ended it early" : h.action === "start" ? "started it early" : h.action === "duplicate" ? "duplicated it" : h.action === "created" && h.detail ? `created it (${h.detail})` : `${h.action} it`}
+                      <b>{name(h.by)}</b>{" "}
+                      {h.action === "handed"
+                        ? "handed out a prize"
+                        : h.action === "reroll"
+                          ? `rerolled ${h.detail ?? ""} winner(s)`
+                          : h.action === "end"
+                            ? "ended it early"
+                            : h.action === "start"
+                              ? "started it early"
+                              : h.action === "duplicate"
+                                ? "duplicated it"
+                                : h.action === "approve"
+                                  ? "approved it"
+                                  : h.action === "reject"
+                                    ? `turned it down${h.detail ? `: ${h.detail}` : ""}`
+                                    : h.action === "sent for approval"
+                                      ? "sent it for approval"
+                                      : h.action === "created" && h.detail
+                                        ? `created it (${h.detail})`
+                                        : `${h.action} it`}
                       <time title={formatDate(h.at)}> · {timeAgo(h.at)}</time>
                     </li>
                   ))}
                 {g.previousId ? (
                   <li>
-                    Next round of a recurring giveaway ·{" "}
+                    Round {g.round} of a repeating giveaway ·{" "}
                     <button type="button" className="adm-link" onClick={() => onOpen(g.previousId!)}>
                       see the last round
                     </button>
@@ -597,6 +772,7 @@ function toDraft(g: Giveaway | null): Draft {
       image: null,
       requirements: { minLevel: 0, minDaysInServer: 0, requiredRoles: [], blockedRoles: [] },
       recurring: "none",
+      rounds: 0,
       startMode: "now",
       start: localInput(inAnHour),
       endMode: "duration",
@@ -616,17 +792,75 @@ function toDraft(g: Giveaway | null): Draft {
     image: g.image,
     requirements: g.requirements,
     recurring: g.recurring,
-    startMode: g.status === "scheduled" && start.getTime() > Date.now() ? "at" : "now",
+    rounds: g.rounds,
+    startMode: (g.status === "scheduled" || g.status === "review") && start.getTime() > Date.now() ? "at" : "now",
     start: localInput(start),
-    endMode: "at",
+    endMode: g.recurring === "none" ? "at" : "duration",
     duration: Math.max(3600, Math.round((end.getTime() - start.getTime()) / 1000)),
     end: localInput(end),
   };
 }
 
-function Editor({ initial, meta, onClose, onSaved }: { initial: Giveaway | null; meta: Meta | null; onClose: () => void; onSaved: (id?: string) => void }) {
+// Unsaved work is kept in this browser, so closing the editor (or pressing Escape) never loses it
+const draftKey = (id: string | null) => `gw-draft:${id ?? "new"}`;
+function loadDraft(id: string | null): Draft | null {
+  try {
+    const raw = window.localStorage.getItem(draftKey(id));
+    return raw ? (JSON.parse(raw) as Draft) : null;
+  } catch {
+    return null;
+  }
+}
+function storeDraft(id: string | null, d: Draft | null) {
+  try {
+    if (d) window.localStorage.setItem(draftKey(id), JSON.stringify(d));
+    else window.localStorage.removeItem(draftKey(id));
+  } catch {
+    /* storage can be full or blocked: the editor still works */
+  }
+}
+
+/** Why a Community Manager's giveaway would go to an admin (the server also counts the weekly budget). */
+function overLimits(d: Draft, limits: CmLimits | null, item: StoreItem | null, many: string) {
+  if (!limits) return [];
+  const out: string[] = [];
+  const p = d.prize;
+  const each = p.type === "leaves" ? (p.amount ?? 0) : p.type === "item" ? (item?.price ?? 0) * (p.quantity ?? 1) : 0;
+  if (p.type === "leaves" && each > limits.maxLeaves) out.push(`${each.toLocaleString()} ${many} each (limit ${limits.maxLeaves.toLocaleString()})`);
+  if (p.type === "item" && item && item.price > limits.maxItemPrice) out.push(`${item.name} costs ${item.price.toLocaleString()} ${many} (limit ${limits.maxItemPrice.toLocaleString()})`);
+  if (p.type === "xp" && (p.amount ?? 0) > limits.maxXp) out.push(`${(p.amount ?? 0).toLocaleString()} XP each (limit ${limits.maxXp.toLocaleString()})`);
+  if (p.type === "custom" && limits.customNeedsApproval) out.push("Custom prizes need an admin");
+  if (d.winners > limits.maxWinners) out.push(`${d.winners} winners (limit ${limits.maxWinners})`);
+  if (each * d.winners > limits.maxTotal) out.push(`${(each * d.winners).toLocaleString()} ${many} in total (limit ${limits.maxTotal.toLocaleString()})`);
+  return out;
+}
+
+function Editor({
+  initial,
+  meta,
+  isAdmin,
+  limits,
+  onClose,
+  onSaved,
+}: {
+  initial: Giveaway | null;
+  meta: Meta | null;
+  isAdmin: boolean;
+  limits: CmLimits | null;
+  onClose: () => void;
+  onSaved: (id?: string) => void;
+}) {
   const cur = useCurrency();
-  const [d, setD] = useState<Draft>(() => toDraft(initial));
+  const id = initial?.id ?? null;
+  const fresh = useMemo(() => toDraft(initial), [initial]);
+  const [d, setD] = useState<Draft>(() => {
+    const saved = loadDraft(id);
+    return saved ? { ...fresh, ...saved, prize: { ...fresh.prize, ...saved.prize }, requirements: { ...fresh.requirements, ...saved.requirements } } : fresh;
+  });
+  const [restored, setRestored] = useState(() => {
+    const saved = loadDraft(id);
+    return Boolean(saved && JSON.stringify(saved) !== JSON.stringify(fresh));
+  });
   const [items, setItems] = useState<StoreItem[] | null>(null);
   const [itemQ, setItemQ] = useState("");
   const [busy, setBusy] = useState(false);
@@ -635,6 +869,16 @@ function Editor({ initial, meta, onClose, onSaved }: { initial: Giveaway | null;
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((p) => ({ ...p, [k]: v }));
   const setPrize = (p: Partial<Prize>) => setD((x) => ({ ...x, prize: { ...x.prize, ...p } }));
   const setReq = (r: Partial<Draft["requirements"]>) => setD((x) => ({ ...x, requirements: { ...x.requirements, ...r } }));
+
+  // Keep the draft as it's typed (skipped until something changes)
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    storeDraft(id, JSON.stringify(d) === JSON.stringify(fresh) ? null : d);
+  }, [d, id, fresh]);
 
   useEffect(() => {
     fetch("/api/admin/giveaways/items", { cache: "no-store" })
@@ -648,13 +892,28 @@ function Editor({ initial, meta, onClose, onSaved }: { initial: Giveaway | null;
     return () => window.removeEventListener("keydown", esc);
   }, [onClose]);
 
+  const repeating = d.recurring !== "none";
   const startDate = running ? new Date(initial?.startAt ?? Date.now()) : d.startMode === "now" ? new Date() : new Date(d.start);
-  const endDate = d.endMode === "duration" ? new Date(startDate.getTime() + d.duration * 1000) : new Date(d.end);
+  const endDate = repeating || d.endMode === "duration" ? new Date(startDate.getTime() + d.duration * 1000) : new Date(d.end);
+  const lengths = DURATIONS.filter(([, s]) => s <= PERIOD[d.recurring]);
   const picked = items?.find((i) => i.id === d.prize.itemId) ?? null;
   const itemList = useMemo(
     () => (items ?? []).filter((i) => !itemQ || i.name.toLowerCase().includes(itemQ.toLowerCase()) || (i.category ?? "").toLowerCase().includes(itemQ.toLowerCase())).slice(0, 60),
     [items, itemQ],
   );
+  const problems = isAdmin ? [] : overLimits(d, limits, picked, cur.many);
+
+  // Picking a repeat: each round has to finish before the next one starts
+  const setRecurring = (r: Recurring) =>
+    setD((x) => ({ ...x, recurring: r, endMode: r === "none" ? x.endMode : "duration", duration: r === "none" ? x.duration : Math.min(x.duration, PERIOD[r]), rounds: r === "none" ? 0 : x.rounds }));
+
+  // The next few rounds, in the admin's own time
+  const schedule = useMemo(() => {
+    if (!repeating || Number.isNaN(startDate.getTime())) return [];
+    const step = PERIOD[d.recurring] * 1000;
+    const count = d.rounds ? Math.min(d.rounds, 4) : 4;
+    return Array.from({ length: count }, (_, i) => ({ start: new Date(startDate.getTime() + i * step), end: new Date(startDate.getTime() + i * step + d.duration * 1000) }));
+  }, [repeating, startDate, d.recurring, d.rounds, d.duration]);
 
   const save = async () => {
     setBusy(true);
@@ -662,7 +921,12 @@ function Editor({ initial, meta, onClose, onSaved }: { initial: Giveaway | null;
     const body: GiveawayInput = {
       title: d.title,
       description: d.description,
-      prize: d.prize.type === "item" ? { type: "item", itemId: d.prize.itemId, quantity: d.prize.quantity ?? 1 } : d.prize.type === "leaves" ? { type: "leaves", amount: d.prize.amount } : { type: "custom", text: d.prize.text },
+      prize:
+        d.prize.type === "item"
+          ? { type: "item", itemId: d.prize.itemId, quantity: d.prize.quantity ?? 1 }
+          : d.prize.type === "leaves" || d.prize.type === "xp"
+            ? { type: d.prize.type, amount: d.prize.amount }
+            : { type: "custom", text: d.prize.text },
       winners: d.winners,
       channelId: d.channelId,
       pingRoleId: d.pingRoleId,
@@ -670,11 +934,13 @@ function Editor({ initial, meta, onClose, onSaved }: { initial: Giveaway | null;
       image: d.image,
       requirements: d.requirements,
       recurring: d.recurring,
+      rounds: repeating ? d.rounds : 0,
       startAt: running || d.startMode === "now" ? null : startDate.toISOString(),
       endAt: Number.isNaN(endDate.getTime()) ? "" : endDate.toISOString(),
     };
     try {
       const r = initial ? await call(`/api/admin/giveaways/${initial.id}`, "PATCH", body) : await call("/api/admin/giveaways", "POST", body);
+      storeDraft(id, null);
       onSaved(initial ? initial.id : r.id);
     } catch (e) {
       setErr((e as Error).message);
@@ -682,9 +948,17 @@ function Editor({ initial, meta, onClose, onSaved }: { initial: Giveaway | null;
     }
   };
 
-  const prizeText = d.prize.type === "leaves" ? `${(d.prize.amount ?? 0).toLocaleString()} ${cur.many}` : d.prize.type === "item" ? `${(d.prize.quantity ?? 1) > 1 ? `${d.prize.quantity}× ` : ""}${picked?.name ?? "a store item"}` : d.prize.text || "a surprise prize";
+  const prizeText =
+    d.prize.type === "leaves"
+      ? `${(d.prize.amount ?? 0).toLocaleString()} ${cur.many}`
+      : d.prize.type === "xp"
+        ? `${(d.prize.amount ?? 0).toLocaleString()} XP`
+        : d.prize.type === "item"
+          ? `${(d.prize.quantity ?? 1) > 1 ? `${d.prize.quantity}× ` : ""}${picked?.name ?? "a store item"}`
+          : d.prize.text || "a surprise prize";
   const chan = meta?.channels.find((c) => c.id === d.channelId)?.name;
-  const roleName = (id: string) => meta?.roles.find((r) => r.id === id)?.name ?? "role";
+  const roleName = (rid: string) => meta?.roles.find((r) => r.id === rid)?.name ?? "role";
+  const saveLabel = busy ? "Saving…" : problems.length && !running ? "Send for approval" : initial ? "Save changes" : d.startMode === "now" ? "Start giveaway" : "Schedule giveaway";
 
   return (
     <div className="adm-drawer-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
@@ -692,12 +966,28 @@ function Editor({ initial, meta, onClose, onSaved }: { initial: Giveaway | null;
         <header className="gw-editor-head">
           <h2>{initial ? "Edit giveaway" : "New giveaway"}</h2>
           {running ? <span className="gw-status is-running">Running: changes update the post</span> : null}
-          <button type="button" className="adm-drawer-close" onClick={onClose} aria-label="Close">
+          <button type="button" className="adm-drawer-close" onClick={onClose} aria-label="Close (your draft is kept)">
             <X size={16} />
           </button>
         </header>
         <div className="gw-editor-body">
           <div className="gw-form">
+            {restored ? (
+              <p className="gw-restored">
+                <span>We kept your unsaved changes from last time.</span>
+                <button
+                  type="button"
+                  className="adm-btn adm-btn--ghost adm-btn--tiny"
+                  onClick={() => {
+                    storeDraft(id, null);
+                    setD(fresh);
+                    setRestored(false);
+                  }}
+                >
+                  Start over
+                </button>
+              </p>
+            ) : null}
             <fieldset>
               <legend>Basics</legend>
               <label className="gw-field">
@@ -706,9 +996,9 @@ function Editor({ initial, meta, onClose, onSaved }: { initial: Giveaway | null;
               </label>
               <label className="gw-field">
                 <span>
-                  Description <small>optional, shown in the post</small>
+                  Description <small>optional, shown in the post. Press Enter for a new line.</small>
                 </span>
-                <textarea value={d.description} maxLength={1500} rows={3} onChange={(e) => set("description", e.target.value)} placeholder="Thanks for being here! Press Enter for a chance to win." />
+                <textarea value={d.description} maxLength={1500} rows={4} onChange={(e) => set("description", e.target.value)} placeholder="Thanks for being here! Press Enter for a chance to win." />
               </label>
             </fieldset>
 
@@ -718,29 +1008,37 @@ function Editor({ initial, meta, onClose, onSaved }: { initial: Giveaway | null;
                 {(
                   [
                     ["leaves", cur.many, Leaf],
+                    ["xp", "XP", Sparkles],
                     ["item", "Store item", Package],
                     ["custom", "Something else", Gift],
                   ] as const
                 ).map(([k, label, Icon]) => (
-                  <button key={k} type="button" className={d.prize.type === k ? "is-active" : undefined} onClick={() => setPrize({ type: k })}>
+                  <button
+                    key={k}
+                    type="button"
+                    className={d.prize.type === k ? "is-active" : undefined}
+                    onClick={() => setPrize(k === "xp" && d.prize.type !== "xp" ? { type: k, amount: 500 } : k === "leaves" && d.prize.type !== "leaves" ? { type: k, amount: 1000 } : { type: k })}
+                  >
                     <Icon size={14} aria-hidden="true" /> {label}
                   </button>
                 ))}
               </div>
-              {d.prize.type === "leaves" ? (
+              {d.prize.type === "leaves" || d.prize.type === "xp" ? (
                 <>
                   <label className="gw-field">
-                    <span>{cur.many} for each winner</span>
-                    <input type="number" min={1} max={10_000_000} value={d.prize.amount ?? 0} onChange={(e) => setPrize({ amount: Math.max(0, Math.floor(Number(e.target.value) || 0)) })} />
+                    <span>{d.prize.type === "xp" ? "XP" : cur.many} for each winner</span>
+                    <input type="number" min={1} max={d.prize.type === "xp" ? 1_000_000 : 10_000_000} value={d.prize.amount ?? 0} onChange={(e) => setPrize({ amount: Math.max(0, Math.floor(Number(e.target.value) || 0)) })} />
                   </label>
                   <div className="gw-quick">
-                    {[500, 1000, 2500, 5000, 10000, 25000].map((n) => (
+                    {(d.prize.type === "xp" ? [100, 250, 500, 1000, 2500, 5000] : [500, 1000, 2500, 5000, 10000, 25000]).map((n) => (
                       <button key={n} type="button" className={d.prize.amount === n ? "is-on" : undefined} onClick={() => setPrize({ amount: n })}>
                         {n.toLocaleString()}
                       </button>
                     ))}
                   </div>
-                  <p className="adm-muted gw-note">Added to the winner&apos;s balance automatically.</p>
+                  <p className="adm-muted gw-note">
+                    {d.prize.type === "xp" ? "Added to the winner's XP automatically. If it's enough to level up, they get their new level role." : "Added to the winner's balance automatically."}
+                  </p>
                 </>
               ) : d.prize.type === "item" ? (
                 <>
@@ -756,7 +1054,7 @@ function Editor({ initial, meta, onClose, onSaved }: { initial: Giveaway | null;
                     <ul className="gw-items">
                       {itemList.map((i) => (
                         <li key={i.id}>
-                          <button type="button" className={d.prize.itemId === i.id ? "is-on" : undefined} onClick={() => setPrize({ itemId: i.id, itemName: i.name })}>
+                          <button type="button" className={d.prize.itemId === i.id ? "is-on" : undefined} onClick={() => setPrize({ itemId: i.id, itemName: i.name })} style={{ "--rar": RARITY[i.rarity].color } as React.CSSProperties}>
                             {i.image ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img src={i.image} alt="" loading="lazy" />
@@ -768,7 +1066,8 @@ function Editor({ initial, meta, onClose, onSaved }: { initial: Giveaway | null;
                             <span>
                               <b>{i.name}</b>
                               <small>
-                                {i.price.toLocaleString()} {cur.many}{i.category ? ` · ${i.category}` : ""}
+                                <span className="gw-rar-dot">{RARITY[i.rarity].label}</span> · {i.price.toLocaleString()} {cur.many}
+                                {i.category ? ` · ${i.category}` : ""}
                                 {i.active ? "" : " · not in the shop"}
                               </small>
                             </span>
@@ -781,6 +1080,14 @@ function Editor({ initial, meta, onClose, onSaved }: { initial: Giveaway | null;
                     <span>How many each</span>
                     <input type="number" min={1} max={25} value={d.prize.quantity ?? 1} onChange={(e) => setPrize({ quantity: Math.max(1, Math.min(25, Math.floor(Number(e.target.value) || 1))) })} />
                   </label>
+                  {picked ? (
+                    <p className="gw-value">
+                      <RarityChip rarity={picked.rarity} />
+                      <span>
+                        Worth {(picked.price * (d.prize.quantity ?? 1)).toLocaleString()} {cur.many} each · {(picked.price * (d.prize.quantity ?? 1) * d.winners).toLocaleString()} {cur.many} in total
+                      </span>
+                    </p>
+                  ) : null}
                   <p className="adm-muted gw-note">Goes straight into the winner&apos;s inventory, like a purchase. It doesn&apos;t use shop stock.</p>
                 </>
               ) : (
@@ -800,57 +1107,99 @@ function Editor({ initial, meta, onClose, onSaved }: { initial: Giveaway | null;
 
             <fieldset>
               <legend>When</legend>
+              <div className="gw-field">
+                <span>How often</span>
+                <div className="adm-seg gw-seg" role="tablist" aria-label="How often">
+                  {(Object.keys(RECUR) as Recurring[]).map((k) => (
+                    <button key={k} type="button" className={d.recurring === k ? "is-active" : undefined} onClick={() => setRecurring(k)}>
+                      {k !== "none" ? <Repeat size={13} aria-hidden="true" /> : null} {RECUR[k]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {running ? (
                 <p className="adm-muted gw-note">Started {formatDate(initial?.startAt ?? null)}. You can still move the end.</p>
               ) : (
-                <div className="gw-row">
-                  <div className="adm-seg gw-seg" role="tablist" aria-label="Start">
-                    <button type="button" className={d.startMode === "now" ? "is-active" : undefined} onClick={() => set("startMode", "now")}>
-                      Start right away
-                    </button>
-                    <button type="button" className={d.startMode === "at" ? "is-active" : undefined} onClick={() => set("startMode", "at")}>
-                      <CalendarClock size={14} aria-hidden="true" /> Schedule
-                    </button>
+                <div className="gw-field">
+                  <span>{repeating ? "First round starts" : "Starts"}</span>
+                  <div className="gw-row">
+                    <div className="adm-seg gw-seg" role="tablist" aria-label="Start">
+                      <button type="button" className={d.startMode === "now" ? "is-active" : undefined} onClick={() => set("startMode", "now")}>
+                        Right away
+                      </button>
+                      <button type="button" className={d.startMode === "at" ? "is-active" : undefined} onClick={() => set("startMode", "at")}>
+                        <CalendarClock size={14} aria-hidden="true" /> At a time
+                      </button>
+                    </div>
+                    {d.startMode === "at" ? <input type="datetime-local" className="gw-date" value={d.start} onChange={(e) => set("start", e.target.value)} aria-label="Start" /> : null}
                   </div>
-                  {d.startMode === "at" ? <input type="datetime-local" className="gw-date" value={d.start} onChange={(e) => set("start", e.target.value)} aria-label="Start" /> : null}
                 </div>
               )}
-              <div className="gw-row">
-                <div className="adm-seg gw-seg" role="tablist" aria-label="End">
-                  <button type="button" className={d.endMode === "duration" ? "is-active" : undefined} onClick={() => set("endMode", "duration")}>
-                    Runs for
-                  </button>
-                  <button type="button" className={d.endMode === "at" ? "is-active" : undefined} onClick={() => (set("endMode", "at"), set("end", localInput(endDate)))}>
-                    Ends at
-                  </button>
+
+              <div className="gw-field">
+                <span>{repeating ? "Each round runs for" : "Runs until"}</span>
+                <div className="gw-row">
+                  {!repeating ? (
+                    <div className="adm-seg gw-seg" role="tablist" aria-label="End">
+                      <button type="button" className={d.endMode === "duration" ? "is-active" : undefined} onClick={() => set("endMode", "duration")}>
+                        A length of time
+                      </button>
+                      <button type="button" className={d.endMode === "at" ? "is-active" : undefined} onClick={() => (set("endMode", "at"), set("end", localInput(endDate)))}>
+                        A date and time
+                      </button>
+                    </div>
+                  ) : null}
+                  {repeating || d.endMode === "duration" ? (
+                    <select className="adm-select" value={lengths.some(([, s]) => s === d.duration) ? d.duration : "custom"} onChange={(e) => e.target.value !== "custom" && set("duration", Number(e.target.value))} aria-label="How long">
+                      {lengths.map(([label, s]) => (
+                        <option key={s} value={s}>
+                          {label}
+                        </option>
+                      ))}
+                      {!lengths.some(([, s]) => s === d.duration) ? <option value="custom">{Math.round(d.duration / 3600)} hours</option> : null}
+                    </select>
+                  ) : (
+                    <input type="datetime-local" className="gw-date" value={d.end} onChange={(e) => set("end", e.target.value)} aria-label="End" />
+                  )}
                 </div>
-                {d.endMode === "duration" ? (
-                  <select className="adm-select" value={DURATIONS.some(([, s]) => s === d.duration) ? d.duration : "custom"} onChange={(e) => e.target.value !== "custom" && set("duration", Number(e.target.value))} aria-label="How long">
-                    {DURATIONS.map(([label, s]) => (
-                      <option key={s} value={s}>
-                        {label}
+              </div>
+
+              {repeating ? (
+                <label className="gw-field gw-field--short">
+                  <span>Stop after</span>
+                  <select className="adm-select" value={d.rounds} onChange={(e) => set("rounds", Number(e.target.value))}>
+                    <option value={0}>Keep going until cancelled</option>
+                    {[2, 3, 4, 5, 6, 8, 10, 12, 26, 52].map((n) => (
+                      <option key={n} value={n}>
+                        {n} rounds
                       </option>
                     ))}
-                    {!DURATIONS.some(([, s]) => s === d.duration) ? <option value="custom">{Math.round(d.duration / 3600)} hours</option> : null}
                   </select>
-                ) : (
-                  <input type="datetime-local" className="gw-date" value={d.end} onChange={(e) => set("end", e.target.value)} aria-label="End" />
-                )}
-              </div>
-              <p className="adm-muted gw-note">
-                {Number.isNaN(endDate.getTime()) ? "Pick an end." : `Ends ${endDate.toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} (your time).`}
-              </p>
-              <label className="gw-field gw-field--short">
-                <span>Repeat</span>
-                <select className="adm-select" value={d.recurring} onChange={(e) => set("recurring", e.target.value as Draft["recurring"])}>
-                  {Object.entries(RECUR).map(([k, label]) => (
-                    <option key={k} value={k}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {d.recurring !== "none" ? <p className="adm-muted gw-note">When it ends, the next round is scheduled automatically with the same settings.</p> : null}
+                </label>
+              ) : null}
+
+              {repeating ? (
+                <div className="gw-schedule">
+                  <p>
+                    <Repeat size={14} aria-hidden="true" /> A new round starts every {UNIT[d.recurring]}, runs for {DURATIONS.find(([, s]) => s === d.duration)?.[0] ?? `${Math.round(d.duration / 3600)} hours`}, and picks its winners when it ends.{" "}
+                    {d.rounds ? `It stops after ${d.rounds} rounds.` : "It keeps going until you cancel it."} Each round is its own giveaway with the same prize and settings.
+                  </p>
+                  <ol>
+                    {schedule.map((r, i) => (
+                      <li key={i}>
+                        <b>Round {(initial?.round ?? 1) + i}</b>
+                        <span>
+                          {when(r.start)} → winners {when(r.end)}
+                        </span>
+                      </li>
+                    ))}
+                    {!d.rounds || d.rounds > 4 ? <li className="gw-schedule-more">…and so on{d.rounds ? ` until round ${d.rounds}` : ""}</li> : null}
+                  </ol>
+                </div>
+              ) : (
+                <p className="adm-muted gw-note">{Number.isNaN(endDate.getTime()) ? "Pick an end." : `Winners are picked ${when(endDate)} (your time).`}</p>
+              )}
             </fieldset>
 
             <fieldset>
@@ -877,7 +1226,7 @@ function Editor({ initial, meta, onClose, onSaved }: { initial: Giveaway | null;
                 <label className="gw-field gw-color">
                   <span>Color</span>
                   <span className="gw-color-row">
-                    <input type="color" value={d.color ?? "#ff8b3d"} onChange={(e) => set("color", e.target.value)} />
+                    <input type="color" value={d.color ?? "#d56300"} onChange={(e) => set("color", e.target.value)} />
                     {d.color ? (
                       <button type="button" className="adm-btn adm-btn--ghost adm-btn--tiny" onClick={() => set("color", null)}>
                         Default
@@ -925,14 +1274,18 @@ function Editor({ initial, meta, onClose, onSaved }: { initial: Giveaway | null;
           <aside className="gw-preview" aria-label="Preview">
             <small className="gw-preview-label">Preview in {chan ? `#${chan}` : "the giveaway channel"}</small>
             <div className="gw-discord">
-              <div className="gw-embed" style={{ borderColor: d.color ?? "#ff8b3d" }}>
+              <div className="gw-embed" style={{ borderColor: d.color ?? "#d56300" }}>
                 <b className="gw-embed-title">🎉 {d.title || "Giveaway"}</b>
-                {d.description ? <p>{d.description}</p> : null}
-                <p>🎁 Prize: <b>{prizeText}</b></p>
+                {d.description ? <p className="gw-embed-desc">{d.description}</p> : null}
+                <p>
+                  🎁 Prize: <b>{prizeText}</b>
+                  {d.prize.type === "item" && picked ? ` (${RARITY[picked.rarity].label}, worth ${(picked.price * (d.prize.quantity ?? 1)).toLocaleString()} ${cur.many})` : ""}
+                </p>
                 <p>🏆 Winners: <b>{d.winners}</b></p>
                 <p>
                   ⏱️ Ends <u>{Number.isNaN(endDate.getTime()) ? "…" : relative(endDate.toISOString(), startDate.getTime())}</u>
                 </p>
+                {repeating ? <p>🔁 {RECUR[d.recurring]}{d.rounds ? ` · ${d.rounds} rounds` : ""}</p> : null}
                 {d.requirements.minLevel || d.requirements.minDaysInServer || d.requirements.requiredRoles.length || d.requirements.blockedRoles.length ? (
                   <p>
                     📋 To enter:{" "}
@@ -956,25 +1309,38 @@ function Editor({ initial, meta, onClose, onSaved }: { initial: Giveaway | null;
             </div>
             <ul className="gw-summary">
               <li>
-                <Play size={13} aria-hidden="true" /> {running ? "Already running" : d.startMode === "now" ? "Starts within seconds of saving" : `Starts ${startDate.toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`}
+                <Play size={13} aria-hidden="true" /> {running ? "Already running" : d.startMode === "now" ? "Starts within seconds of saving" : `Starts ${when(startDate)}`}
               </li>
               <li>
                 <Hash size={13} aria-hidden="true" /> {chan ? `#${chan}` : "Default channel"}
               </li>
               <li>
                 <Repeat size={13} aria-hidden="true" /> {RECUR[d.recurring]}
+                {repeating && d.rounds ? `, ${d.rounds} rounds` : ""}
               </li>
             </ul>
+            {problems.length && !running ? (
+              <div className="gw-overlimit">
+                <p>
+                  <ShieldCheck size={14} aria-hidden="true" /> <b>An admin will need to approve this</b> because it&apos;s over the Community Manager limits:
+                </p>
+                <ul>
+                  {problems.map((p) => (
+                    <li key={p}>{p}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
           </aside>
         </div>
         <footer className="gw-editor-foot">
-          {err ? <p className="adm-error">{err}</p> : <span />}
+          {err ? <p className="adm-error">{err}</p> : <small className="adm-muted">Your changes are kept as a draft if you close this.</small>}
           <div>
             <button type="button" className="adm-btn adm-btn--ghost" onClick={onClose}>
-              Cancel
+              Close
             </button>
             <button type="button" className="adm-btn" disabled={busy} onClick={save}>
-              {busy ? "Saving…" : initial ? "Save changes" : d.startMode === "now" ? "Start giveaway" : "Schedule giveaway"}
+              {saveLabel}
             </button>
           </div>
         </footer>
