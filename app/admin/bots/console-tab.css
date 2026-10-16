@@ -207,3 +207,4 @@
   .bc-actions .adm-btn { flex: 1; justify-content: center; }
   .bc-search { order: 5; flex-basis: 100%; }
 }
+.bc-restart-all { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; width: 100%; }

@@ -282,7 +282,7 @@
 .dt-headline {
   margin: 0.15rem 0;
   font-style: italic;
-  color: var(--acc, var(--ember));
+  color: var(--acc-text);
   font-weight: 600;
 }
 .is-online {
@@ -605,7 +605,8 @@ textarea.dt-input {
   place-items: center;
   font-size: 2.6rem;
   font-weight: 800;
-  color: #fff;
+  /* Dark or light letter, whichever reads on the member's color (set with --acc on profiles) */
+  color: var(--acc-ink, #fff);
   background: radial-gradient(circle at 30% 20%, color-mix(in srgb, var(--acc) 70%, #fff), var(--acc) 60%, color-mix(in srgb, var(--acc) 60%, #000));
 }
 .dt-avatar {
@@ -723,7 +724,7 @@ textarea.dt-input {
   border-top: 1px solid var(--line);
 }
 .dt-featured-card:hover h2 {
-  color: var(--acc);
+  color: var(--acc-text);
 }
 .dt-featured-recent {
   display: flex;
@@ -929,7 +930,7 @@ textarea.dt-input {
 }
 .dt-tile-body em {
   font-size: 0.82rem;
-  color: var(--acc);
+  color: var(--acc-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1356,7 +1357,8 @@ textarea.dt-input {
   place-items: center;
   font-size: 5rem;
   font-weight: 800;
-  color: #fff;
+  /* Dark or light letter, whichever reads on the member's color (set with --acc on profiles) */
+  color: var(--acc-ink, #fff);
   background: radial-gradient(circle at 30% 20%, color-mix(in srgb, var(--acc) 70%, #fff), var(--acc) 60%, color-mix(in srgb, var(--acc) 60%, #000));
 }
 .dt-gallery--empty img {
@@ -1544,7 +1546,7 @@ textarea.dt-input {
 .dt-starter svg {
   flex: none;
   margin-top: 0.2rem;
-  color: var(--acc);
+  color: var(--acc-text);
 }
 .dt-profile-head {
   margin-bottom: 0.9rem;
@@ -2175,7 +2177,7 @@ textarea.dt-input {
   background: linear-gradient(120deg, color-mix(in srgb, var(--acc) 16%, transparent), transparent);
 }
 .dt-looks-preview span {
-  color: var(--acc);
+  color: var(--acc-text);
   font-style: italic;
   font-weight: 600;
 }
@@ -3166,7 +3168,7 @@ a.dt-partner-chip:hover {
 }
 .dt-h-icon .dt-sicon,
 .dt-card h3 .dt-sicon {
-  color: var(--acc, var(--ember));
+  color: var(--acc-text);
   flex: none;
 }
 .dt-editor-nav nav a .dt-sicon {
@@ -3267,7 +3269,7 @@ a.dt-partner-chip:hover {
   gap: 0.35rem;
 }
 .dt-hero-facts svg {
-  color: var(--acc);
+  color: var(--acc-text);
 }
 .dt-hero-badges {
   display: flex;
@@ -3338,7 +3340,7 @@ a.dt-partner-chip:hover {
   gap: 0.35rem;
 }
 .dt-bar > span:first-child svg {
-  color: var(--acc);
+  color: var(--acc-text);
 }
 @media (max-width: 1000px) {
   .dt-hero-body {
@@ -3695,7 +3697,7 @@ a.dt-partner-chip:hover {
   min-height: 100%;
 }
 .dt-prompt-mark {
-  color: var(--acc);
+  color: var(--acc-text);
   opacity: 0.7;
 }
 .dt-prompt-row .dt-prompt small {
@@ -4323,12 +4325,12 @@ a.dt-partner-chip:hover {
 
 /* Header logo buttons take the profile's color */
 .dt-profile--v2 .dt-hero-side .dt-social-chip {
-  color: var(--acc);
+  color: var(--acc-text);
   background: color-mix(in srgb, var(--acc) 14%, var(--panel));
   border-color: color-mix(in srgb, var(--acc) 45%, transparent);
 }
 .dt-profile--v2 .dt-hero-side .dt-social-chip svg {
-  color: var(--acc);
+  color: var(--acc-text);
 }
 .dt-profile--v2 .dt-hero-side .dt-social-chip:hover {
   color: var(--acc-ink, #fff);
@@ -4651,4 +4653,39 @@ a.dt-partner-chip:hover {
   .dt-profile--v2 .dt-hero-actions > .dt-more { grid-column: 3; grid-row: 1 / span 2; }
   .dt-profile--v2 .dt-hero-actions > .dt-more .dt-btn--icon { height: 100%; }
   .dt-profile--v2 .dt-hero-actions .dt-btn { justify-content: center; font-size: 0.82rem; }
+}
+
+/* ---------- Light mode: store themes and accent colors ----------
+   A store profile theme always paints dark cards, so its text stays light in light mode too (it used to turn
+   dark brown and vanish). Accent-colored text is pulled toward the page's text color so pale accents can be
+   read on light pages and dark accents on dark ones. */
+/* (Declared wherever --acc is set, since a variable is worked out on the element that declares it) */
+.dt,
+.dt [style*="--acc"] {
+  --acc-text: color-mix(in oklab, var(--acc, var(--ember)) 68%, #fff);
+}
+:root[data-theme="light"] .dt,
+:root[data-theme="light"] .dt [style*="--acc"] {
+  --acc-text: color-mix(in oklab, var(--acc, var(--ember)) 55%, #1d1003);
+}
+:root[data-theme="light"] .dt-profile.has-cos-theme [style*="--acc"] {
+  --acc-text: color-mix(in oklab, var(--acc, var(--ember)) 68%, #fff);
+}
+:root[data-theme="light"] .dt-profile.has-cos-theme {
+  color-scheme: dark;
+  --cream-rgb: 254, 230, 184;
+  --gold-rgb: 254, 221, 99;
+  --text: #fff2dd;
+  --muted: rgba(255, 242, 221, 0.74);
+  --line: rgba(255, 242, 221, 0.18);
+  --panel: rgba(28, 19, 10, 0.78);
+  --panel-strong: rgba(36, 24, 12, 0.92);
+  --well: rgba(255, 242, 221, 0.07);
+  --gold: #fedd63;
+  --ember: #f08a3a;
+  --dt-pink: #ff6b9a;
+  --dt-good: #5fc46f;
+  --dt-bad: #ff6b6f;
+  --acc-text: color-mix(in oklab, var(--acc, var(--ember)) 68%, #fff);
+  color: var(--text);
 }

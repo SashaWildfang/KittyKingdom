@@ -46,7 +46,7 @@
 .aw-avatar { width: 1.5rem; height: 1.5rem; border-radius: 50%; object-fit: cover; }
 .aw-avatar.is-letter { display: inline-grid; place-items: center; background: linear-gradient(135deg, rgb(var(--ember-rgb)), rgb(var(--maple-rgb))); color: #fff; font-size: 0.72rem; font-weight: 900; }
 .aw-badge-name { color: color-mix(in srgb, var(--hue) 75%, #fff); }
-:root[data-theme="light"] .aw-badge-name { color: color-mix(in srgb, var(--hue) 75%, #000); }
+:root[data-theme="light"] .aw-badge-name { color: color-mix(in srgb, var(--hue) 58%, #000); }
 .aw-tier { border-radius: 999px; font-size: 0.72rem; font-weight: 800; padding: 0.1rem 0.5rem; }
 .aw-tier.t1 { background: rgba(205, 127, 50, 0.2); color: #e0a070; }
 .aw-tier.t2 { background: rgba(192, 192, 192, 0.2); color: #d8dde3; }

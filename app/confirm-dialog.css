@@ -1,0 +1,90 @@
+/* In-page confirm / notice / text dialogs (app/confirm-dialog.tsx) */
+.cd-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  background: rgba(10, 6, 2, 0.55);
+  padding: 1rem;
+  animation: cd-fade 0.12s ease;
+}
+
+.cd-box {
+  display: grid;
+  gap: 0.8rem;
+  width: min(26rem, 100%);
+  border: 1px solid var(--line);
+  border-radius: 1.1rem;
+  background: var(--bg-soft, var(--panel-strong));
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  color: var(--text);
+  padding: 1.1rem 1.2rem 1rem;
+  animation: cd-pop 0.14s ease;
+}
+
+.cd-box h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.cd-box p {
+  margin: 0;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.cd-box input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  padding: 0.5rem 0.7rem;
+}
+
+.cd-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.cd-btn {
+  border: 0;
+  border-radius: 999px;
+  background: rgb(var(--ember-rgb));
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.5rem 1.1rem;
+}
+
+.cd-btn--ghost {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+}
+
+.cd-btn--danger {
+  background: #e5484d;
+}
+
+.cd-btn:focus-visible {
+  outline: 2px solid rgb(var(--gold-rgb));
+  outline-offset: 2px;
+}
+
+@keyframes cd-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes cd-pop {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+}
