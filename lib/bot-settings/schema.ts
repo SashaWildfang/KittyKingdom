@@ -489,6 +489,8 @@ const MODERATION: BotDef = {
         { key: "join.passwordRetryMinutes", label: "Wait after a wrong password", help: "How long before someone with a near-miss password can submit again.", type: "number", default: 5, min: 0, max: 1440, unit: "minutes" },
         { key: "join.denyHours", label: "Wait after a staff denial", help: "How long before someone denied by staff can submit a new form.", type: "number", default: 24, min: 0, max: 720, unit: "hours" },
         { key: "join.unverifiedReminder", label: "Daily reminder for unverified members", help: "Ping unverified members once a day to finish their join form.", type: "toggle", default: true },
+        { key: "join.autoKickUnverified", label: "Remove members who don't verify", help: "Kicks members who still only have the Unverified role after the time below, and DMs them a link to rejoin from the website. Members whose join form is waiting for staff are kept. It doesn't go on their record.", type: "toggle", default: true },
+        { key: "join.autoKickHours", label: "…after", help: "How long new members have to get verified before they're removed. The welcome message and the daily reminder say this too.", type: "number", default: 24, min: 1, max: 720, unit: "hours" },
         { key: "join.purgeUnverifiedChat", label: "Clear the unverified chat daily", help: "Wipe the unverified chat channel once a day, at the time below.", type: "toggle", default: true },
         { key: "join.purgeTime", label: "…at", help: "Applies within a minute, no restart needed. If the bot was offline at that time, it clears as soon as it's back.", type: "select", default: "00:00", options: PURGE_TIMES },
         { key: "join.purgeTimezone", label: "…in time zone", help: "", type: "timezone", default: "UTC" },
