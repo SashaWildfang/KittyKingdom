@@ -21,7 +21,7 @@
 .gwp-card h2 { margin: 0; font-size: 1.3rem; }
 .gwp-prize { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text); font-size: 1.05rem; }
 .gwp-prize b { font-size: 1.35rem; }
-.gwp-desc { margin: 0; color: var(--muted); font-size: 0.92rem; line-height: 1.5; }
+.gwp-desc { margin: 0; color: var(--muted); font-size: 0.92rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
 .gwp-facts { display: flex; flex-wrap: wrap; gap: 0.9rem; margin: 0; padding: 0; color: var(--muted); font-size: 0.86rem; list-style: none; }
 .gwp-facts li { display: inline-flex; align-items: center; gap: 0.3rem; }
 .gwp-needs { margin: 0; border-radius: 0.7rem; background: var(--panel-strong); color: var(--muted); font-size: 0.82rem; padding: 0.45rem 0.65rem; }
@@ -52,3 +52,15 @@
 .gwp-card { display: flex; flex-direction: column; }
 .gwp-card-body { display: flex; flex: 1; flex-direction: column; align-items: flex-start; }
 .gwp-card-body > .gwp-enter, .gwp-card-body > a.gwp-enter { align-self: stretch; margin-top: auto; }
+/* Store item prizes: picture, rarity and what it's worth */
+.gwp-prize--item { --rar: var(--line); align-items: center; }
+.gwp-item-img { width: 3rem; height: 3rem; flex: none; border: 2px solid var(--rar); border-radius: 0.7rem; object-fit: cover; }
+.gwp-item-text { display: grid; gap: 0.15rem; min-width: 0; }
+.gwp-item-text small { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.gwp-rarity { border: 1px solid color-mix(in srgb, var(--rar) 55%, transparent); border-radius: 999px; background: color-mix(in srgb, var(--rar) 16%, transparent); color: var(--rar); font-size: 0.68rem; font-weight: 800; letter-spacing: 0.04em; padding: 0.05rem 0.5rem; text-transform: uppercase; }
+.gwp-worth { border-radius: 999px; background: rgba(110, 190, 90, 0.14); color: #6fbf58; font-size: 0.72rem; font-weight: 700; padding: 0.05rem 0.5rem; }
+.gwp-list .gwp-item-img { width: 2.2rem; height: 2.2rem; }
+.gwp-list .gwp-item-text small { display: none; }
+.gwp-manage { display: inline-flex; align-items: center; gap: 0.4rem; margin-top: 1rem; border: 1px solid var(--line); border-radius: 999px; background: var(--panel-strong); color: var(--text); font-size: 0.88rem; font-weight: 700; padding: 0.45rem 0.95rem; text-decoration: none; }
+.gwp-manage:hover { border-color: rgb(var(--ember-rgb)); }
+.gwp-card:target, .gwp-list li:target { outline: 2px solid rgb(var(--gold-rgb)); outline-offset: 3px; }

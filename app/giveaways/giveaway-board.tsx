@@ -1,7 +1,8 @@
 "use client";
 
-import { CalendarClock, Check, Gift, Package, PartyPopper, Trophy, Users } from "lucide-react";
+import { CalendarClock, Check, Gift, Package, PartyPopper, Repeat, Settings2, Sparkles, Trophy, Users } from "lucide-react";
 import { useEffect, useState } from "react";
+import { RARITY } from "../../lib/cosmetics";
 import type { PublicGiveaway } from "../../lib/giveaways";
 import { useCurrency } from "../season-context";
 import { LeafEmote } from "../ui-icons";
@@ -35,12 +36,41 @@ function Prize({ g }: { g: PublicGiveaway }) {
         <LeafEmote size={28} /> <b>{(g.prize.amount ?? 0).toLocaleString()}</b> {cur.many}
       </span>
     );
-  if (g.prize.type === "item")
+  if (g.prize.type === "xp")
     return (
       <span className="gwp-prize">
-        <Package size={26} aria-hidden="true" /> <b>{(g.prize.quantity ?? 1) > 1 ? `${g.prize.quantity}× ` : ""}{g.prize.itemName}</b>
+        <Sparkles size={26} aria-hidden="true" /> <b>{(g.prize.amount ?? 0).toLocaleString()}</b> XP
       </span>
     );
+  if (g.prize.type === "item") {
+    const rar = g.prize.itemRarity ? RARITY[g.prize.itemRarity] : null;
+    return (
+      <span className="gwp-prize gwp-prize--item" style={rar ? ({ ["--rar" as string]: rar.color } as React.CSSProperties) : undefined}>
+        {g.prize.itemImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img className="gwp-item-img" src={g.prize.itemImage} alt="" loading="lazy" />
+        ) : (
+          <Package size={26} aria-hidden="true" />
+        )}
+        <span className="gwp-item-text">
+          <b>
+            {(g.prize.quantity ?? 1) > 1 ? `${g.prize.quantity}× ` : ""}
+            {g.prize.itemName}
+          </b>
+          {rar || g.prize.itemPrice !== undefined ? (
+            <small>
+              {rar ? <span className="gwp-rarity">{rar.label}</span> : null}
+              {g.prize.itemPrice !== undefined ? (
+                <span className="gwp-worth">
+                  worth {(g.prize.itemPrice * (g.prize.quantity ?? 1)).toLocaleString()} {cur.many}
+                </span>
+              ) : null}
+            </small>
+          ) : null}
+        </span>
+      </span>
+    );
+  }
   return (
     <span className="gwp-prize">
       <Gift size={26} aria-hidden="true" /> <b>{g.prize.text}</b>
@@ -48,7 +78,7 @@ function Prize({ g }: { g: PublicGiveaway }) {
   );
 }
 
-export function GiveawayBoard({ initial, signedIn, linked }: { initial: Data | null; signedIn: boolean; linked: boolean }) {
+export function GiveawayBoard({ initial, signedIn, linked, canManage = false }: { initial: Data | null; signedIn: boolean; linked: boolean; canManage?: boolean }) {
   const [data, setData] = useState<Data | null>(initial);
   const [entered, setEntered] = useState<Set<string>>(new Set(initial?.entered ?? []));
   const [busy, setBusy] = useState<string | null>(null);
@@ -57,6 +87,11 @@ export function GiveawayBoard({ initial, signedIn, linked }: { initial: Data | n
   // Countdowns depend on the visitor's clock, so they're drawn in the browser only
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+  // Links from the events calendar (/giveaways#gw-<id>) scroll to that giveaway once it's drawn
+  useEffect(() => {
+    if (!mounted || !window.location.hash.startsWith("#gw-")) return;
+    window.setTimeout(() => document.getElementById(window.location.hash.slice(1))?.scrollIntoView({ behavior: "smooth", block: "center" }), 60);
+  }, [mounted]);
 
   useEffect(() => {
     const t = window.setInterval(() => {
@@ -106,7 +141,12 @@ export function GiveawayBoard({ initial, signedIn, linked }: { initial: Data | n
           <Gift size={14} aria-hidden="true" /> Giveaways
         </p>
         <h1>Win something nice</h1>
-        <p className="gwp-lead">Currency, store items and surprises. Enter here or with the button in Discord; winners are picked by the bot and paid automatically.</p>
+        <p className="gwp-lead">Currency, XP, store items and surprises. Enter here or with the button in Discord; winners are picked by the bot and paid automatically.</p>
+        {canManage ? (
+          <a className="gwp-manage" href="/admin?tab=giveaways">
+            <Settings2 size={15} aria-hidden="true" /> Manage giveaways
+          </a>
+        ) : null}
       </header>
 
       {!data ? (
@@ -122,14 +162,14 @@ export function GiveawayBoard({ initial, signedIn, linked }: { initial: Data | n
                     const ms = new Date(g.endAt).getTime() - now;
                     const isIn = entered.has(g.id);
                     return (
-                      <article key={g.id} className={`gwp-card${isIn ? " is-in" : ""}`} style={g.color ? ({ ["--gw" as string]: g.color } as React.CSSProperties) : undefined}>
+                      <article key={g.id} id={`gw-${g.id}`} className={`gwp-card${isIn ? " is-in" : ""}`} style={g.color ? ({ ["--gw" as string]: g.color } as React.CSSProperties) : undefined}>
                         {g.image ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img className="gwp-img" src={g.image} alt="" loading="lazy" />
                         ) : null}
                         <div className="gwp-card-body">
                           <span className="gwp-timer">
-                            <CalendarClock size={14} aria-hidden="true" /> Ends in {left(ms)}
+                            <CalendarClock size={14} aria-hidden="true" /> {ms > 0 ? `Ends in ${left(ms)}` : "Picking winners…"}
                           </span>
                           <h2>{g.title}</h2>
                           <Prize g={g} />
@@ -141,6 +181,11 @@ export function GiveawayBoard({ initial, signedIn, linked }: { initial: Data | n
                             <li>
                               <Users size={14} aria-hidden="true" /> {g.entries.toLocaleString()} entered
                             </li>
+                            {g.recurring !== "none" ? (
+                              <li>
+                                <Repeat size={14} aria-hidden="true" /> Every {g.recurring === "daily" ? "day" : g.recurring === "weekly" ? "week" : "month"}
+                              </li>
+                            ) : null}
                           </ul>
                           {g.needs.length ? (
                             <p className="gwp-needs">
@@ -183,11 +228,11 @@ export function GiveawayBoard({ initial, signedIn, linked }: { initial: Data | n
                   <h2>Coming up</h2>
                   <ul className="gwp-list">
                     {data.upcoming.map((g) => (
-                      <li key={g.id}>
+                      <li key={g.id} id={`gw-${g.id}`}>
                         <Prize g={g} />
                         <span>
                           <b>{g.title}</b>
-                          <small>Starts in {left(new Date(g.startAt ?? g.endAt).getTime() - now)}</small>
+                          <small>{new Date(g.startAt ?? g.endAt).getTime() > now ? `Starts in ${left(new Date(g.startAt ?? g.endAt).getTime() - now)}` : "Starting now"}</small>
                         </span>
                       </li>
                     ))}

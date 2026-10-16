@@ -214,7 +214,7 @@ const MAIN: BotDef = {
       key: "giveaways",
       title: "Giveaways",
       icon: "gift",
-      about: "How giveaways run. The giveaways themselves are set up in Admin → Giveaways.",
+      about: "How giveaways run, and the limits for Community Managers. The giveaways themselves are set up in Admin → Giveaways.",
       link: { href: "/admin?tab=giveaways", label: "Open Giveaways" },
       fields: [
         { key: "giveaways.enabled", label: "Start giveaways", help: "Turn off to pause scheduled giveaways from starting. Running ones still end and pay out.", type: "toggle", default: true },
@@ -226,6 +226,14 @@ const MAIN: BotDef = {
         { key: "giveaways.color", label: "Embed color", help: "The color of giveaway posts (a giveaway can pick its own).", type: "color", default: "#ff8b3d" },
         { key: "giveaways.buttonLabel", label: "Button label", help: "The text on the button members press to enter.", type: "text", default: "Enter", maxLength: 40 },
         { key: "giveaways.buttonEmoji", label: "Button emoji", help: "The emoji on that button.", type: "text", default: "🎉", maxLength: 8 },
+        { key: "giveaways.cleanupDays", label: "Clear old posts after", help: "Deletes a finished giveaway's post and its winner messages from the channel this long after it ends, so the channel only shows what's current. 0 keeps them. Winners stay on the website and in the log channel.", type: "number", default: 3, min: 0, max: 90, unit: "days" },
+        { key: "giveaways.cmMaxLeaves", label: "Community Managers: Leaves each", help: "The most Leaves a Community Manager can give each winner without an admin approving it.", type: "number", default: 10000, min: 0, max: 10000000 },
+        { key: "giveaways.cmMaxXp", label: "Community Managers: XP each", help: "The most XP a Community Manager can give each winner without approval.", type: "number", default: 2500, min: 0, max: 1000000 },
+        { key: "giveaways.cmMaxItemPrice", label: "Community Managers: item price", help: "The most expensive store item (by shop price) a Community Manager can give away without approval.", type: "number", default: 15000, min: 0, max: 10000000 },
+        { key: "giveaways.cmMaxWinners", label: "Community Managers: winners", help: "The most winners one of their giveaways can have without approval.", type: "number", default: 10, min: 1, max: 50 },
+        { key: "giveaways.cmMaxTotal", label: "Community Managers: total per giveaway", help: "Leaves (store items by price) one giveaway can give out in total across all its winners without approval.", type: "number", default: 25000, min: 0, max: 100000000 },
+        { key: "giveaways.cmWeeklyBudget", label: "Community Managers: weekly budget", help: "Leaves (store items by price) all Community Managers' giveaways can give out in 7 days without approval. A daily repeat counts 7 times.", type: "number", default: 75000, min: 0, max: 100000000 },
+        { key: "giveaways.cmCustomApproval", label: "Community Managers: custom prizes need approval", help: "On: \"something else\" prizes (Nitro, art, anything staff hand out) from a Community Manager wait for an admin.", type: "toggle", default: true },
       ],
     },
     {

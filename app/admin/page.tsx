@@ -5,6 +5,7 @@ import { ShieldAlert } from "lucide-react";
 import { getDiscordInviteSummary } from "../../lib/discord";
 import { SiteNav } from "../site-nav";
 import { canDeleteNsfwTickets } from "../../lib/ticket-delete";
+import { canManageGiveaways } from "../../lib/giveaway-access";
 import { AdminClient } from "./admin-client";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +31,7 @@ export default async function AdminPage() {
               </p>
             </div>
           ) : null}
-          <AdminClient adminName={panel.name} level={panel.level} canDeleteNsfw={canDeleteNsfwTickets(panel.discordId)} />
+          <AdminClient adminName={panel.name} level={panel.level} canDeleteNsfw={canDeleteNsfwTickets(panel.discordId)} canGiveaways={await canManageGiveaways(panel)} />
         </>
       ) : (
         <section className="store-gate">

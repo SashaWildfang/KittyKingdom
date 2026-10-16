@@ -53,7 +53,8 @@ const GROUPS: { key: Group; label: string; icon: LucideIcon; tabs: Tab[] }[] = [
   { key: "bots", label: "Bots", icon: Bot, tabs: ["bot-console", "bot-main", "bot-economy", "bot-moderation", "bot-ticketing", "server", "bot-history"] },
 ];
 
-const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean }[] = [
+// admin: admins only; giveaways: admins and Community Managers
+const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean; giveaways?: boolean }[] = [
   { key: "overview", label: "Overview", icon: BarChart3 },
   { key: "seasons", label: "Seasons", icon: SunSnow, admin: true },
   { key: "status", label: "Status", icon: Activity, admin: true },
@@ -69,7 +70,7 @@ const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean }[] = [
   { key: "messages", label: "Messages", icon: Mail, admin: true },
   { key: "games", label: "Games", icon: Dices },
   { key: "events", label: "Events", icon: CalendarDays },
-  { key: "giveaways", label: "Giveaways", icon: Gift, admin: true },
+  { key: "giveaways", label: "Giveaways", icon: Gift, giveaways: true },
   { key: "patreon", label: "Patreon", icon: Crown, admin: true },
   { key: "live", label: "Live Chat", icon: MessagesSquare },
   { key: "removed", label: "Removed messages", icon: Archive, admin: true },
@@ -98,9 +99,9 @@ const ACTION_GROUPS: Record<string, string[]> = {
   unban: ["unban"],
 };
 
-export function AdminClient({ adminName, level, canDeleteNsfw = false }: { adminName: string; level: Level; canDeleteNsfw?: boolean }) {
+export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaways = false }: { adminName: string; level: Level; canDeleteNsfw?: boolean; canGiveaways?: boolean }) {
   const isAdmin = level === "admin";
-  const tabs = TABS.filter((t) => isAdmin || !t.admin);
+  const tabs = TABS.filter((t) => isAdmin || (t.giveaways ? canGiveaways : !t.admin));
   const [tab, setTab] = useState<Tab>("overview");
   const [member, setMember] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<number | null>(null);
@@ -324,7 +325,7 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false }: { admin
       {isAdmin && tab === "news" ? <NewsTab /> : null}
       {isAdmin && tab === "ads" ? <AdsTab /> : null}
       {isAdmin && tab === "removed" ? <RemovedTab /> : null}
-      {isAdmin && tab === "giveaways" ? <GiveawaysTab /> : null}
+      {(isAdmin || canGiveaways) && tab === "giveaways" ? <GiveawaysTab /> : null}
       {isAdmin && tab === "seasons" ? <SeasonsTab /> : null}
       {isAdmin && tab === "status" ? <StatusTab /> : null}
       {tab === "events" ? <EventsTab /> : null}

@@ -8,7 +8,7 @@ import { getCurrentUser } from "../lib/auth";
 import { getDiscordInviteSummary } from "../lib/discord";
 import { publishedNews } from "../lib/news";
 import { nextEvents } from "../lib/events";
-import { EVENT_KINDS } from "../lib/events-shared";
+import { EVENT_KINDS, GIVEAWAY_KIND } from "../lib/events-shared";
 import { memberGrowth } from "../lib/member-directory";
 import { userTimeZone, zoneOffsetMinutes } from "../lib/timezone";
 import { newsExcerpt } from "../lib/news-format";
@@ -133,7 +133,7 @@ export default async function Home({ searchParams }: { searchParams?: { register
   const signedIn = Boolean(user);
   // Three reviews that read well side by side: best rated first, not too long
   const shownReviews = [...reviews.reviews].sort((a, b) => b.rating - a.rating || Math.abs(a.text.length - 180) - Math.abs(b.text.length - 180)).slice(0, 3);
-  const kind = (k: string) => EVENT_KINDS.find((e) => e.key === k);
+  const kind = (k: string) => [...EVENT_KINDS, GIVEAWAY_KIND].find((e) => e.key === k);
 
   return (
     <main className="site-shell home hm">
@@ -285,15 +285,22 @@ export default async function Home({ searchParams }: { searchParams?: { register
             <ul className="hm-events">
               {upcoming.map((e) => (
                 <li key={e.id}>
-                  <a href={`/events#event-${e.id}`}>
-                    <LocalDateBlock iso={e.startAt} />
+                  <a href={e.giveaway ? `/giveaways#${e.id}` : `/events#event-${e.id}`}>
+                    <LocalDateBlock iso={e.giveaway?.running ? (e.endAt ?? e.startAt) : e.startAt} />
                     <span>
                       <b>
                         <span className="emo" aria-hidden="true">{kind(e.kind)?.emoji}</span>{e.title}
                       </b>
                       <small>
-                        <LocalTime iso={e.startAt} />
-                        {e.place || e.channelName ? (
+                        {e.giveaway ? (
+                          <>
+                            {e.giveaway.running ? "Open now · winners picked " : "Giveaway opens "}
+                            <LocalTime iso={e.giveaway.running ? (e.endAt ?? e.startAt) : e.startAt} /> · {e.giveaway.prize}
+                          </>
+                        ) : (
+                          <LocalTime iso={e.startAt} />
+                        )}
+                        {!e.giveaway && (e.place || e.channelName) ? (
                           <>
                             {" · "}
                             <MapPin size={12} aria-hidden="true" /> {e.channelName ? `#${e.channelName}` : e.place}
