@@ -7,6 +7,8 @@
 import { ObjectId, type Document } from "mongodb";
 import { getBotCollection } from "./mongodb";
 import { guildPickers } from "./bot-settings/guild";
+import { calendarGiveaways, type CalendarGiveaway } from "./giveaways";
+import { seasonal } from "./season-store";
 
 export class EventError extends Error {
   constructor(message: string, public status = 400) {
@@ -16,7 +18,7 @@ export class EventError extends Error {
 
 export { EVENT_KINDS } from "./events-shared";
 export type { EventKind, ServerEvent, PublicEvent } from "./events-shared";
-import { EVENT_KINDS, type EventKind, type ServerEvent } from "./events-shared";
+import { EVENT_KINDS, GIVEAWAY_KIND, type EventKind, type PublicEvent, type ServerEvent } from "./events-shared";
 
 export type EventInput = Omit<ServerEvent, "id" | "going" | "createdBy" | "cancelled" | "hostName"> & { hostName?: string | null };
 
@@ -82,6 +84,43 @@ export async function withPlaces<T extends ServerEvent>(events: T[]) {
   });
 }
 
+function prizeText(g: CalendarGiveaway) {
+  const p = g.prize;
+  if (p.type === "leaves") return seasonal(`${Number(p.amount ?? 0).toLocaleString()} Leaves`);
+  if (p.type === "xp") return `${Number(p.amount ?? 0).toLocaleString()} XP`;
+  if (p.type === "item") return `${Number(p.quantity ?? 1) > 1 ? `${p.quantity}× ` : ""}${p.itemName ?? "a store item"}${p.itemPrice !== undefined ? seasonal(` (worth ${(p.itemPrice * Number(p.quantity ?? 1)).toLocaleString()} Leaves)`) : ""}`;
+  return p.text || "A surprise prize";
+}
+
+/** Giveaways as calendar entries: from when they open until winners are picked. */
+async function giveawayEntries(from: Date, until: Date): Promise<PublicEvent[]> {
+  const list = await calendarGiveaways(from, until).catch(() => []);
+  return list.map((g) => ({
+    id: `gw-${g.id}`,
+    title: g.title,
+    description: g.description,
+    kind: GIVEAWAY_KIND.key,
+    startAt: g.startAt,
+    endAt: g.endAt,
+    channelId: null,
+    place: "Giveaways",
+    hostId: null,
+    hostName: null,
+    image: g.image,
+    weekly: g.recurring === "weekly",
+    discord: false,
+    post: false,
+    cancelled: false,
+    going: 0,
+    createdBy: null,
+    channelName: null,
+    voice: false,
+    giveaway: { prize: prizeText(g), winners: g.winners, entries: g.entries, running: g.status === "running" },
+  }));
+}
+
+const byStart = (a: { startAt: string }, b: { startAt: string }) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime();
+
 /** Upcoming and recent events for the public page (and which ones this member asked to be reminded about). */
 export async function listEvents(opts: { discordId?: string | null; from?: Date; days?: number; includePast?: boolean } = {}) {
   const now = new Date();
@@ -99,18 +138,25 @@ export async function listEvents(opts: { discordId?: string | null; from?: Date;
   const past = opts.includePast
     ? (await col.find({ startAt: { $lt: from, $gte: new Date(from.getTime() - 30 * 86_400_000) }, cancelled: { $ne: true }, deleted: { $ne: true } }).sort({ startAt: -1 }).limit(12).toArray()).map((d) => toEvent(d))
     : [];
-  return { events: await withPlaces(docs.map((d) => toEvent(d, counts.get(String(d._id)) ?? 0))), mine: Array.from(mine), past: await withPlaces(past) };
+  const events: PublicEvent[] = [...(await withPlaces(docs.map((d) => toEvent(d, counts.get(String(d._id)) ?? 0)))), ...(await giveawayEntries(from, until))].sort(byStart);
+  return { events, mine: Array.from(mine), past: await withPlaces(past) };
 }
 
-/** The next few events (for the homepage). */
-export async function nextEvents(limit = 3) {
+/** The next few events and giveaways (for the homepage). */
+export async function nextEvents(limit = 3): Promise<PublicEvent[]> {
   const docs = await (await eventsCol())
     .find({ startAt: { $gte: new Date(Date.now() - 2 * 3600_000) }, cancelled: { $ne: true }, deleted: { $ne: true } })
     .sort({ startAt: 1 })
     .limit(limit)
     .toArray();
   const counts = await goingCounts(docs.map((d) => String(d._id)));
-  return withPlaces(docs.filter((d) => (d.endAt ? new Date(d.endAt) : new Date(new Date(d.startAt).getTime() + 2 * 3600_000)) > new Date()).map((d) => toEvent(d, counts.get(String(d._id)) ?? 0)));
+  const events = await withPlaces(docs.filter((d) => (d.endAt ? new Date(d.endAt) : new Date(new Date(d.startAt).getTime() + 2 * 3600_000)) > new Date()).map((d) => toEvent(d, counts.get(String(d._id)) ?? 0)));
+  const now = new Date();
+  const giveaways = await giveawayEntries(now, new Date(now.getTime() + 30 * 86_400_000));
+  const merged: PublicEvent[] = [...events, ...giveaways].sort(byStart).slice(0, limit);
+  // Giveaways never push every real event off the homepage: the next event keeps the last spot
+  if (events.length && !merged.some((e) => !e.giveaway)) merged[merged.length - 1] = events[0];
+  return merged.sort(byStart);
 }
 
 /** "Remind me" on or off for a member. */

@@ -34,4 +34,14 @@ export type ServerEvent = {
   createdBy: string | null;
 };
 
-export type PublicEvent = ServerEvent & { channelName: string | null; voice: boolean };
+/** Giveaways show on the calendar too (from lib/giveaways.ts); they link to /giveaways instead of reminders */
+export const GIVEAWAY_KIND = { key: "giveaway", label: "Giveaway", emoji: "🎁" } as const;
+export type CalendarKind = EventKind | typeof GIVEAWAY_KIND.key;
+
+export type PublicEvent = Omit<ServerEvent, "kind"> & {
+  kind: CalendarKind;
+  channelName: string | null;
+  voice: boolean;
+  /** Set for giveaways: what's up for grabs */
+  giveaway?: { prize: string; winners: number; entries: number; running: boolean };
+};

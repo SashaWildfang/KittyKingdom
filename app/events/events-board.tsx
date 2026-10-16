@@ -1,15 +1,16 @@
 "use client";
 
-import { Bell, BellRing, CalendarCog, CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, Hash, List, MapPin, Mic, Repeat, UserRound } from "lucide-react";
+import { Bell, BellRing, CalendarCog, CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, Gift, Hash, List, MapPin, Mic, PartyPopper, Repeat, Trophy, UserRound } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { EVENT_KINDS, type PublicEvent } from "../../lib/events-shared";
+import { EVENT_KINDS, GIVEAWAY_KIND, type PublicEvent } from "../../lib/events-shared";
 import type { PublicPoll } from "../../lib/event-polls";
 import { EventPollsBoard } from "./events-polls";
 import { markEventsSeen } from "../events-nav-badge";
 
 type Data = { events: PublicEvent[]; mine: string[]; past: PublicEvent[] };
 
-const KIND = Object.fromEntries(EVENT_KINDS.map((k) => [k.key, k]));
+const KINDS = [...EVENT_KINDS, GIVEAWAY_KIND];
+const KIND: Record<string, (typeof KINDS)[number]> = Object.fromEntries(KINDS.map((k) => [k.key, k]));
 const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 const time = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
@@ -39,7 +40,68 @@ function countdown(ms: number) {
   return `in ${d} day${d === 1 ? "" : "s"}`;
 }
 
+/** A giveaway on the calendar: open from its start until winners are picked; entering happens on /giveaways. */
+function GiveawayCard({ e, now }: { e: PublicEvent; now: number }) {
+  const start = new Date(e.startAt).getTime();
+  const end = new Date(e.endAt ?? e.startAt).getTime();
+  const open = now >= start && now < end;
+  const gw = e.giveaway!;
+  const href = `/giveaways#${e.id}`;
+  const day = (iso: string) => new Date(iso).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+  return (
+    <article className={`evp-card evp-card--giveaway${open ? " is-live" : ""}`} id={`event-${e.id}`}>
+      {e.image ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img className="evp-card-img" src={e.image} alt="" loading="lazy" />
+      ) : (
+        <div className="evp-card-art" aria-hidden="true">
+          {GIVEAWAY_KIND.emoji}
+        </div>
+      )}
+      <div className="evp-card-body">
+        <div className="evp-card-tags">
+          <span className="evp-kind">
+            <span className="emo" aria-hidden="true">{GIVEAWAY_KIND.emoji}</span>
+            {GIVEAWAY_KIND.label}
+          </span>
+          {open ? <span className="evp-live">Open now</span> : <span className="evp-soon">{start > now ? `Opens ${countdown(start - now)}` : "Ended"}</span>}
+          {e.weekly ? (
+            <span className="evp-tag">
+              <Repeat size={11} aria-hidden="true" /> Weekly
+            </span>
+          ) : null}
+        </div>
+        <h3>{e.title}</h3>
+        <p className="evp-gw-prize">
+          <Gift size={15} aria-hidden="true" /> {gw.prize}
+          <span>·</span>
+          <Trophy size={14} aria-hidden="true" /> {gw.winners} winner{gw.winners === 1 ? "" : "s"}
+        </p>
+        <p className="evp-when">
+          {open ? null : (
+            <>
+              Opens {day(e.startAt)}, {time(e.startAt)}
+              <span>·</span>
+            </>
+          )}
+          Winners picked {day(e.endAt ?? e.startAt)}, {time(e.endAt ?? e.startAt)}
+        </p>
+        {e.description ? <p className="evp-desc">{e.description}</p> : null}
+        {end > now ? (
+          <div className="evp-card-actions">
+            <a className="evp-remind evp-gw-enter" href={href}>
+              {open ? <PartyPopper size={15} aria-hidden="true" /> : <Gift size={15} aria-hidden="true" />} {open ? "Enter giveaway" : "See giveaway"}
+            </a>
+            {open && gw.entries ? <span className="evp-going">{gw.entries.toLocaleString()} entered</span> : null}
+          </div>
+        ) : null}
+      </div>
+    </article>
+  );
+}
+
 function EventCard({ e, reminded, onRemind, busy, signedIn, linked, now }: { e: PublicEvent; reminded: boolean; onRemind: () => void; busy: boolean; signedIn: boolean; linked: boolean; now: number }) {
+  if (e.giveaway) return <GiveawayCard e={e} now={now} />;
   const start = new Date(e.startAt).getTime();
   const end = e.endAt ? new Date(e.endAt).getTime() : start + 2 * 3600_000;
   const live = !e.cancelled && now >= start && now < end;
@@ -194,12 +256,13 @@ export function EventsBoard({ initial, signedIn, linked, canManage = false, poll
   const days = useMemo(() => {
     const out = new Map<string, { date: Date; list: PublicEvent[] }>();
     for (const e of shown) {
-      const d = new Date(e.startAt);
+      // An open giveaway that started on an earlier day sits under today
+      const d = e.giveaway?.running && new Date(e.startAt).getTime() < now ? new Date(now) : new Date(e.startAt);
       const k = dayKey(d);
       out.set(k, { date: d, list: [...(out.get(k)?.list ?? []), e] });
     }
-    return Array.from(out.entries());
-  }, [shown]);
+    return Array.from(out.entries()).sort((a, b) => a[1].date.getTime() - b[1].date.getTime());
+  }, [shown, now]);
 
   const remind = async (e: PublicEvent) => {
     setBusy(e.id);
@@ -219,7 +282,7 @@ export function EventsBoard({ initial, signedIn, linked, canManage = false, poll
     setData((d) => (d ? { ...d, events: d.events.map((x) => (x.id === e.id ? { ...x, going: r.going } : x)) } : d));
   };
 
-  const next = (data?.events ?? []).find((e) => !e.cancelled && new Date(e.startAt).getTime() > now);
+  const next = (data?.events ?? []).find((e) => !e.cancelled && !e.giveaway && new Date(e.startAt).getTime() > now);
 
   if (!mounted)
     return (
@@ -272,7 +335,7 @@ export function EventsBoard({ initial, signedIn, linked, canManage = false, poll
               <button type="button" className={kind === "all" ? "is-on" : undefined} onClick={() => setKind("all")}>
                 All
               </button>
-              {EVENT_KINDS.filter((k) => (data?.events ?? []).some((e) => e.kind === k.key)).map((k) => (
+              {KINDS.filter((k) => (data?.events ?? []).some((e) => e.kind === k.key)).map((k) => (
                 <button key={k.key} type="button" className={kind === k.key ? "is-on" : undefined} onClick={() => setKind(k.key)}>
                   <span className="emo" aria-hidden="true">{k.emoji}</span>{k.label}
                 </button>
