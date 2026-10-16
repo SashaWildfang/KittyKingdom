@@ -167,13 +167,23 @@ const ARTS: Record<string, Art> = {
     </>
   ),
   filigree: (t, id) => {
+    // Royal Gold: a soft spotlight, a light scatter of tiny crowns and sparkles, two fine gold sweeps and
+    // slim corner filigree (it used to be a diamond lattice, which grew into big lines across the page)
     const corner = (tr: string, k: number) => (
-      <g key={k} transform={tr} fill="none" stroke={u(`${id}g`)} strokeWidth="1.6" strokeLinecap="round">
+      <g key={k} transform={`${tr} scale(0.72)`} fill="none" stroke={u(`${id}g`)} strokeWidth="1.2" strokeLinecap="round" opacity="0.75">
         <path d="M0 0 C30 4 50 20 56 50 M0 0 C4 30 20 50 50 56" />
         <path d="M14 4 C30 14 34 30 30 40 C24 32 18 30 10 30 M4 14 C14 30 30 34 40 30" />
-        <circle cx="48" cy="48" r="4" />
-        <path d="M24 24 l6 -10 l6 10 l-6 10 Z" fill={u(`${id}g`)} />
+        <circle cx="48" cy="48" r="3" />
+        <path d="M24 24 l5 -8 l5 8 l-5 8 Z" fill={u(`${id}g`)} />
       </g>
+    );
+    const crown = (x: number, y: number, size: number, k: number, o: number) => (
+      <path
+        key={k}
+        d={`M${x - size} ${y + size * 0.6} L${x - size} ${y - size * 0.2} L${x - size * 0.5} ${y + size * 0.2} L${x} ${y - size * 0.6} L${x + size * 0.5} ${y + size * 0.2} L${x + size} ${y - size * 0.2} L${x + size} ${y + size * 0.6} Z`}
+        fill={t.accent}
+        opacity={o}
+      />
     );
     return (
       <>
@@ -183,11 +193,22 @@ const ARTS: Record<string, Art> = {
             <stop offset="0.5" stopColor={t.accent} />
             <stop offset="1" stopColor={dk(t.accent, 0.4)} />
           </linearGradient>
-          <pattern id={`${id}p`} width="24" height="24" patternUnits="userSpaceOnUse">
-            <path d="M12 0 L24 12 L12 24 L0 12 Z" fill="none" stroke={t.accent} strokeWidth="0.4" opacity="0.3" />
-          </pattern>
+          <radialGradient id={`${id}s`} cx="0.5" cy="0" r="0.75">
+            <stop offset="0" stopColor={t.accent} stopOpacity="0.22" />
+            <stop offset="0.6" stopColor={t.accent} stopOpacity="0.05" />
+            <stop offset="1" stopColor={t.accent} stopOpacity="0" />
+          </radialGradient>
+          <linearGradient id={`${id}w`} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor={t.accent} stopOpacity="0" />
+            <stop offset="0.5" stopColor={t.accent} stopOpacity="0.5" />
+            <stop offset="1" stopColor={t.accent} stopOpacity="0" />
+          </linearGradient>
         </defs>
-        <rect width={VW} height={VH} fill={u(`${id}p`)} />
+        <rect width={VW} height={VH} fill={u(`${id}s`)} />
+        {Array.from({ length: 12 }, (_, i) => crown(20 + R(i, 71) * (VW - 40), 30 + R(i, 72) * (VH - 70), 3 + R(i, 73) * 3, i, 0.08 + R(i, 74) * 0.12))}
+        {dots(46, 75, lt(t.accent, 0.35), 0.9)}
+        <path d={`M-10 ${VH - 46} C110 ${VH - 78} 290 ${VH - 14} ${VW + 10} ${VH - 52}`} fill="none" stroke={u(`${id}w`)} strokeWidth="0.8" />
+        <path d={`M-10 ${VH - 34} C130 ${VH - 62} 270 ${VH - 4} ${VW + 10} ${VH - 38}`} fill="none" stroke={u(`${id}w`)} strokeWidth="0.5" />
         {corner("translate(8 8)", 0)}
         {corner(`translate(${VW - 8} 8) scale(-1 1)`, 1)}
         {corner(`translate(8 ${VH - 8}) scale(1 -1)`, 2)}
@@ -260,13 +281,20 @@ const ARTS: Record<string, Art> = {
     </>
   ),
   harvest: (t) => {
-    const maple = (x: number, y: number, s: number, r: number, c: string, k: number) => (
-      <g key={k} transform={`translate(${x} ${y}) rotate(${r}) scale(${s})`}>
-        <path d="M0 -12 L3 -5 L9 -8 L6 -1 L12 1 L5 4 L6 10 L0 6 L-6 10 L-5 4 L-12 1 L-6 -1 L-9 -8 L-3 -5 Z" fill={c} opacity="0.7" />
-        <path d="M0 -12 L0 12" stroke={dk(c, 0.4)} strokeWidth="0.7" opacity="0.7" />
+    const maple = (x: number, y: number, s: number, r: number, c: string, o: number, k: number) => (
+      <g key={k} transform={`translate(${x} ${y}) rotate(${r}) scale(${s})`} opacity={o}>
+        <path d="M0 -12 L3 -5 L9 -8 L6 -1 L12 1 L5 4 L6 10 L0 6 L-6 10 L-5 4 L-12 1 L-6 -1 L-9 -8 L-3 -5 Z" fill={c} />
+        <path d="M0 -12 L0 12" stroke={dk(c, 0.4)} strokeWidth="0.7" />
       </g>
     );
-    return <>{Array.from({ length: 22 }, (_, i) => maple(R(i, 3) * VW, R(i, 4) * VH, 0.6 + R(i, 5) * 0.9, R(i, 6) * 360, [t.accent, "#e85d04", "#c84b14", "#ffcf6a"][i % 4], i))}</>;
+    const colors = [t.accent, "#e85d04", "#c84b14", "#ffcf6a"];
+    // A few small leaves drifting down the sides and a soft drift along the bottom, so the middle stays calm behind text
+    const drifting = Array.from({ length: 12 }, (_, i) => {
+      const side = i % 2 ? VW - R(i, 3) * 70 : R(i, 3) * 70;
+      return maple(side, 10 + R(i, 4) * (VH - 60), 0.35 + R(i, 5) * 0.3, R(i, 6) * 360, colors[i % 4], 0.3 + R(i, 7) * 0.25, i);
+    });
+    const pile = Array.from({ length: 16 }, (_, i) => maple(R(i, 8) * VW, VH - 4 - R(i, 9) * 14, 0.3 + R(i, 10) * 0.25, R(i, 11) * 360, colors[(i + 1) % 4], 0.35, 100 + i));
+    return <>{drifting}{pile}</>;
   },
   frost: (t, id) => {
     const flake = (x: number, y: number, s: number, k: number) => (
