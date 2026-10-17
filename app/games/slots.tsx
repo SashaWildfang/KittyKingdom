@@ -239,9 +239,11 @@ export function Slots({ balance, onBalance, initialStatus, viewers = 0 }: { bala
     if (jackpotAfter.current !== null) setStatus((s) => ({ ...s, jackpot: jackpotAfter.current! }));
   }, [onBalance]);
 
-  // Space or Enter pulls the lever
+  // Space or Enter pulls the lever (only while Slots is the game on screen)
+  const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (!root.current?.offsetParent) return;
       if ((e.target as HTMLElement)?.tagName === "INPUT" || (e.target as HTMLElement)?.tagName === "BUTTON" || e.metaKey || e.ctrlKey) return;
       if (e.key === " " || e.key === "Enter") {
         e.preventDefault();
@@ -267,7 +269,7 @@ export function Slots({ balance, onBalance, initialStatus, viewers = 0 }: { bala
   const many = (batch?.results.length ?? 0) > 1;
 
   return (
-    <div className="sl">
+    <div className="sl" ref={root}>
       <div className="sl-stage">
         {viewers > 0 ? (
           <span className="gm-watching" title={`${viewers} watching`}>

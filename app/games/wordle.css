@@ -1,0 +1,171 @@
+/* Daily Wordle (app/games/wordle.tsx): Games tab and My Account */
+.wd {
+  --wd-correct: #3f9c52;
+  --wd-present: #c9a227;
+  --wd-absent: #3d3a44;
+  --wd-tile: clamp(2.9rem, 11vw, 3.6rem);
+  display: grid;
+  gap: 1.1rem;
+}
+:root[data-theme="light"] .wd { --wd-absent: #8a8592; }
+.wd-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem 1.2rem;
+}
+.wd-head h2 { display: flex; align-items: center; gap: 0.45rem; max-width: none; margin: 0 0 0.25rem; font-size: 1.35rem; }
+.wd-head p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+.wd-reward {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  font-size: 0.85rem;
+  padding: 0.45rem 0.9rem;
+}
+.wd-reward b { color: rgb(var(--gold-rgb)); }
+
+.wd-play {
+  display: grid;
+  justify-items: center;
+  gap: 1.1rem;
+  border: 1px solid var(--glass-border, var(--line));
+  border-radius: 1.5rem;
+  background: var(--glass, var(--panel));
+  padding: clamp(1rem, 3vw, 1.8rem) 0.8rem;
+}
+.wd-board { position: relative; display: grid; gap: 0.38rem; }
+.wd-row { display: grid; grid-template-columns: repeat(5, var(--wd-tile)); gap: 0.38rem; }
+.wd-tile {
+  display: grid;
+  place-items: center;
+  width: var(--wd-tile);
+  height: var(--wd-tile);
+  border: 2px solid var(--line);
+  border-radius: 0.55rem;
+  background: rgba(var(--cream-rgb), 0.03);
+  color: var(--text);
+  font-size: calc(var(--wd-tile) * 0.5);
+  font-weight: 800;
+  text-transform: uppercase;
+  user-select: none;
+}
+.wd-tile.is-filled { border-color: rgba(var(--cream-rgb), 0.45); animation: wd-pop 0.1s ease; }
+:root[data-theme="light"] .wd-tile.is-filled { border-color: rgba(var(--bark-rgb), 0.5); }
+.wd-tile.is-correct, .wd-tile.is-present, .wd-tile.is-absent { border-color: transparent; color: #fff; }
+.wd-tile.is-correct { background: var(--wd-correct); }
+.wd-tile.is-present { background: var(--wd-present); }
+.wd-tile.is-absent { background: var(--wd-absent); }
+/* A new row flips one tile at a time, showing its colour half way */
+.wd-tile.is-flip { animation: wd-flip 0.6s ease both; animation-delay: var(--d); }
+.wd-tile.is-flip.is-correct, .wd-tile.is-flip.is-present, .wd-tile.is-flip.is-absent { animation-name: wd-flip-color; }
+.wd-row.is-win .wd-tile { animation: wd-bounce 0.5s ease both; animation-delay: var(--w); }
+.wd-board.is-shake .wd-row.is-shake, .wd-row.is-shake { animation: wd-shake 0.45s ease; }
+
+@keyframes wd-pop { 50% { transform: scale(1.1); } }
+@keyframes wd-flip-color {
+  0% { transform: rotateX(0); background: transparent; border-color: rgba(var(--cream-rgb), 0.45); color: var(--text); }
+  49% { transform: rotateX(90deg); background: transparent; border-color: rgba(var(--cream-rgb), 0.45); color: var(--text); }
+  50% { transform: rotateX(90deg); }
+  100% { transform: rotateX(0); }
+}
+@keyframes wd-bounce { 40% { transform: translateY(-30%); } 70% { transform: translateY(6%); } }
+@keyframes wd-shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+
+.wd-toast {
+  position: absolute;
+  top: -0.4rem;
+  left: 50%;
+  z-index: 3;
+  margin: 0;
+  border-radius: 0.7rem;
+  background: var(--text);
+  color: var(--bg, #111);
+  font-size: 0.9rem;
+  font-weight: 800;
+  padding: 0.55rem 0.9rem;
+  transform: translate(-50%, -100%);
+  white-space: nowrap;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
+}
+
+.wd-keys { display: grid; justify-items: center; gap: 0.4rem; width: min(32rem, 100%); }
+.wd-keyrow { display: flex; justify-content: center; gap: 0.32rem; width: 100%; }
+.wd-key {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 2.75rem;
+  height: 3.3rem;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 0.5rem;
+  background: rgba(var(--cream-rgb), 0.14);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 800;
+  transition: transform 0.08s ease, filter 0.15s ease;
+}
+:root[data-theme="light"] .wd-key { background: rgba(var(--bark-rgb), 0.12); }
+.wd-key:hover:not(:disabled) { filter: brightness(1.15); }
+.wd-key:active:not(:disabled) { transform: scale(0.94); }
+.wd-key.is-wide { flex: 1.6 1 0; max-width: 4.4rem; font-size: 0.78rem; text-transform: uppercase; }
+.wd-key.is-correct { background: var(--wd-correct); color: #fff; }
+.wd-key.is-present { background: var(--wd-present); color: #fff; }
+.wd-key.is-absent { background: var(--wd-absent); color: rgba(255, 255, 255, 0.75); }
+.wd-giveup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.3rem;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+}
+.wd-giveup:hover { color: #e5484d; }
+
+.wd-result {
+  display: grid;
+  justify-items: center;
+  gap: 0.45rem;
+  text-align: center;
+}
+.wd-result strong { font-size: 1.35rem; }
+.wd-result.is-won strong { color: var(--wd-correct); }
+.wd-result span { display: inline-flex; align-items: center; gap: 0.3rem; color: var(--muted); }
+.wd-next { font-variant-numeric: tabular-nums; }
+.wd-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.3rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 700;
+  padding: 0.5rem 1rem;
+}
+.wd-note { margin: 0; color: var(--muted); font-size: 0.82rem; text-align: center; }
+
+/* My Account: smaller tiles, no outer card */
+.wd.is-compact { --wd-tile: clamp(2.4rem, 9vw, 2.9rem); gap: 0.6rem; }
+.wd.is-compact .wd-play { border: 0; background: none; padding: 0.4rem 0 0; }
+.wd.is-compact .wd-key { height: 2.9rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .wd-tile.is-flip, .wd-row.is-win .wd-tile { animation: none; }
+}
+.acct-wordle-link { display: block; margin-top: 0.8rem; color: var(--ember); font-size: 0.86rem; font-weight: 700; text-align: center; }

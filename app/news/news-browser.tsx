@@ -140,8 +140,12 @@ export function NewsBrowser({ posts, tags, initial }: { posts: NewsItem[]; tags:
       ) : null}
 
       {rest.length ? (
-        <ul className="nw2-list">
-          {rest.map((p) => (
+        <div className="nw2-months">
+          {groupByMonth(rest, filtered).map((g) => (
+            <section key={g.key} className="nw2-month">
+              {g.label ? <h2 className="nw2-month-head">{g.label}</h2> : null}
+              <ul className="nw2-list">
+                {g.posts.map((p) => (
             <li key={p.id}>
               <Link href={`/news/${p.id}`} className={`nw2-row${reads && read(p) ? " is-read" : ""}`} id={p.id}>
                 {p.cover ? (
@@ -159,8 +163,11 @@ export function NewsBrowser({ posts, tags, initial }: { posts: NewsItem[]; tags:
                 </div>
               </Link>
             </li>
+                ))}
+              </ul>
+            </section>
           ))}
-        </ul>
+        </div>
       ) : !featured ? (
         <div className="news-empty">
           <Megaphone size={28} aria-hidden="true" />
@@ -169,6 +176,26 @@ export function NewsBrowser({ posts, tags, initial }: { posts: NewsItem[]; tags:
       ) : null}
     </div>
   );
+}
+
+/**
+ * Pinned posts first, then the rest under month headings, newest month first (no headings while filtering,
+ * where the list is short and mixed). Pinned posts come first from the server whatever their month, so
+ * months are grouped with a map rather than by neighbours.
+ */
+function groupByMonth(posts: NewsItem[], filtered: boolean) {
+  type G = { key: string; label: string | null; posts: NewsItem[] };
+  if (filtered) return [{ key: "all", label: null, posts }] as G[];
+  const pinned = posts.filter((p) => p.pinned);
+  const byMonth = new Map<string, G>();
+  for (const p of posts) {
+    if (p.pinned) continue;
+    const g = byMonth.get(p.month);
+    if (g) g.posts.push(p);
+    else byMonth.set(p.month, { key: p.month, label: p.monthLabel, posts: [p] });
+  }
+  const months = Array.from(byMonth.values()).sort((a, b) => b.key.localeCompare(a.key));
+  return pinned.length ? [{ key: "pinned", label: "Pinned", posts: pinned }, ...months] : months;
 }
 
 function Meta({ p, read, latest }: { p: NewsItem; read: boolean | null; latest?: boolean }) {

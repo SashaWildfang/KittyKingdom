@@ -31977,3 +31977,23 @@ a.apl-chip {
 .mobile-sheet-links a .nav-live-dot {
   margin-left: auto;
 }
+
+/* News: month groups in one column */
+.nw2-months { display: grid; gap: 1.4rem; }
+.nw2-month { display: grid; gap: 0.6rem; }
+.nw2-month-head {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  max-width: none;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.nw2-month-head::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+/* Posts without a cover image get a small tag-coloured icon instead of an empty picture box */
+.nw2-row:has(.nw2-icon) { grid-template-columns: 3.2rem minmax(0, 1fr); }
+.nw2-row .nw2-icon { width: 3.2rem; height: 3.2rem; border-radius: 0.9rem; }

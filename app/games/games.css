@@ -1233,12 +1233,12 @@
    Live games, spectating and viewer counts
    ========================================== */
 .gm-tabs {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  width: min(920px, 100%);
+  grid-template-columns: repeat(var(--gm-tabs, 8), minmax(0, 1fr));
+  width: min(1100px, 100%);
 }
 
 .gm-tab-ink {
-  width: calc(16.666% - 1.34px);
+  width: calc((100% - 8px) / var(--gm-tabs, 8));
 }
 
 .gm-tab-short { display: none; }
@@ -3115,10 +3115,24 @@
   }
 }
 
-/* Six games: on phones the tab bar becomes a 3×2 grid and the active tab is filled in directly */
-@media (max-width: 640px) {
+/* The daily Wordle tab gets a small dot while today's word is waiting */
+.gm-tab-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #3ddc84;
+  box-shadow: 0 0 0 3px rgba(61, 220, 132, 0.25);
+}
+
+@media (max-width: 1180px) {
+  .gm-tab-long { display: none; }
+  .gm-tab-short { display: inline; }
+}
+
+/* Eight games: on tablets and phones the tab bar becomes a 4×2 grid and the active tab is filled in directly */
+@media (max-width: 860px) {
   .gm-tabs:not(.adm-games-tabs) {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 3px;
   }
   .gm-tabs:not(.adm-games-tabs) .gm-tab-ink {
