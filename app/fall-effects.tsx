@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { useSeason } from "./season-context";
+import { effectsOff, prefersLessMotion } from "./device-prefs";
 import type { SeasonKey } from "../lib/seasons";
 
 // ==========================================
@@ -123,7 +124,8 @@ export function Embers({ count = 14 }: { count?: number }) {
 }
 
 function reducedMotion() {
-  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+  // Settings → Appearance can turn motion or the season's effects off for this browser
+  return prefersLessMotion() || effectsOff();
 }
 
 /**

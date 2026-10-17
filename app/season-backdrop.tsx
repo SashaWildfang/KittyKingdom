@@ -6,7 +6,8 @@
 // Colors and pattern come from app/seasons.css + app/glass.css; Admin → Overview → Seasons turns the particles down or off.
 
 import "./seasons.css";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { effectsOff, onDevicePrefsChange, prefersLessMotion } from "./device-prefs";
 import { useSeason } from "./season-context";
 import { TopoPattern } from "./topo-pattern";
 import type { SeasonKey } from "../lib/seasons";
@@ -143,14 +144,13 @@ function draw(ctx: CanvasRenderingContext2D, season: SeasonKey, p: P, t: number)
   ctx.restore();
 }
 
-function Particles({ season, amount }: { season: SeasonKey; amount: "full" | "light" }) {
+function Particles({ season, amount, still }: { season: SeasonKey; amount: "full" | "light"; still: boolean }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     let w = 0;
     let h = 0;
     const resize = () => {
@@ -201,18 +201,25 @@ function Particles({ season, amount }: { season: SeasonKey; amount: "full" | "li
       window.removeEventListener("resize", resize);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [season, amount]);
+  }, [season, amount, still]);
   return <canvas ref={ref} className="sb-canvas" aria-hidden="true" />;
 }
 
 /** The whole-site backdrop. */
 export function SeasonBackdrop() {
   const season = useSeason();
+  // Settings → Appearance: seasonal effects and motion for this browser (changes apply straight away)
+  const [fx, setFx] = useState({ on: true, still: false });
+  useEffect(() => {
+    const sync = () => setFx({ on: !effectsOff(), still: prefersLessMotion() });
+    sync();
+    return onDevicePrefsChange(sync);
+  }, []);
   return (
     <div className="sb" data-season-backdrop={season.key} aria-hidden="true">
       <TopoPattern />
       <div className="sb-mesh" />
-      {season.particles !== "off" ? <Particles season={season.key} amount={season.particles} /> : null}
+      {season.particles !== "off" && fx.on ? <Particles season={season.key} amount={season.particles} still={fx.still} /> : null}
     </div>
   );
 }

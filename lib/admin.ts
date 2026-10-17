@@ -10,7 +10,7 @@ export const ADMIN_ROLE_IDS = [
   "1358472511133585564", // Admin
   "1358473248534167663", // Owner
 ];
-// The rest of the staff team see the overview and punishments (no tickets, transcripts or accounts)
+// The rest of the staff team see the overview, punishments and tickets (view only, never NSFW tickets), but not accounts
 export const STAFF_TEAM_ROLE_ID = "1358470109965979859";
 // Community Managers count as staff (Mod level) even without the Staff Team role
 export const COMMUNITY_MANAGER_ROLE_ID = "1558568175191203931";

@@ -29,8 +29,8 @@ export async function GET(request: Request, { params }: { params: { userId: stri
     const users = await getBotCollection("users");
     const [punishments, tickets, roleIds, guildRoles, bans, stats] = await Promise.all([
       queryPunishments({ userId, pageSize: 100 }),
-      // Tickets are admin-only
-      isAdmin ? queryTickets({ userId, pageSize: 100 }) : Promise.resolve({ rows: [], total: 0 }),
+      // All staff see a member's tickets, except NSFW verification tickets (admins only)
+      queryTickets({ userId, pageSize: 100, excludeNsfw: !isAdmin }),
       getMemberRoleIds(userId),
       getGuildRoles(),
       getCurrentBans(),
@@ -67,10 +67,10 @@ export async function GET(request: Request, { params }: { params: { userId: stri
         : null,
       punishments: punishments.rows,
       punishmentTotal: punishments.total,
-      tickets: isAdmin ? tickets.rows : null,
+      tickets: tickets.rows,
       // Admins can view the site as members who linked Discord and verified their email
       canViewAs: isAdmin ? await canViewAs(userId) : false,
-      ticketTotal: isAdmin ? tickets.total : null,
+      ticketTotal: tickets.total,
       people: who,
       mentions,
     });

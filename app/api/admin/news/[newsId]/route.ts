@@ -3,9 +3,11 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "../../../../../lib/admin";
 import { cleanNewsInput, deleteNews, updateNews } from "../../../../../lib/news";
 import { getMongoClient } from "../../../../../lib/mongodb";
+import { runEmailJobs } from "../../../../../lib/email-jobs";
 import { hasOperatorKeys } from "../../../../../lib/validate";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
 async function audit(action: string, id: string, admin: { discordId: string; name: string }, title?: string) {
   const client = await getMongoClient();
@@ -21,6 +23,7 @@ export async function PATCH(request: Request, { params }: { params: { newsId: st
   if (typeof input === "string") return NextResponse.json({ ok: false, error: input }, { status: 400 });
   if (!(await updateNews(params.newsId, input))) return NextResponse.json({ ok: false, error: "Post not found." }, { status: 404 });
   await audit(input.status === "published" ? "news-publish" : "news-edit", params.newsId, admin, input.title);
+  if (input.status === "published") await runEmailJobs(15_000).catch(() => undefined);
   return NextResponse.json({ ok: true, message: input.status === "published" ? "Post saved and live." : input.status === "pending" ? "Saved. It's waiting for review." : "Draft saved." });
 }
 

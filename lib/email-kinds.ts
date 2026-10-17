@@ -10,6 +10,11 @@ export const EMAIL_KINDS: Record<string, string> = {
   "appeal-received": "Appeal received",
   "appeal-decision": "Appeal decision",
   "ban-closed": "Ban: account closed",
+  "notify-news": "News post",
+  "notify-event": "New event",
+  "notify-event-reminder": "Event reminder",
+  "notify-giveaway": "New giveaway",
+  "notify-social": "Social activity",
   other: "Other",
 };
 

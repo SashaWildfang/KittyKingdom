@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "../../../../lib/admin";
 import { adminNews, cleanNewsInput, createNews, pendingNewsCount } from "../../../../lib/news";
 import { getMongoClient } from "../../../../lib/mongodb";
+import { runEmailJobs } from "../../../../lib/email-jobs";
 import { hasOperatorKeys } from "../../../../lib/validate";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
 export async function GET(request: Request) {
   const admin = await requireAdmin(request);
@@ -24,5 +26,7 @@ export async function POST(request: Request) {
   const id = await createNews(input, { name: admin.name, discordId: admin.discordId });
   const client = await getMongoClient();
   await client.db(process.env.MONGODB_DB ?? "website").collection("admin_audit").insertOne({ at: new Date(), action: "news-create", newsId: id, title: input.title, adminDiscordId: admin.discordId, adminName: admin.name });
+  // Members who turned on news emails hear about it now (scheduled posts go out when their time comes)
+  if (input.status === "published") await runEmailJobs(15_000).catch(() => undefined);
   return NextResponse.json({ ok: true, id, message: input.status === "published" ? "Post published." : input.status === "pending" ? "Sent for review. An admin can approve it from the Pending list." : "Draft saved." });
 }

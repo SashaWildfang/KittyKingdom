@@ -9240,6 +9240,15 @@ button.adm-mention:hover {
   padding: 0.6rem 0.9rem;
 }
 
+.adm-tickets-readonly {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  border-color: rgba(62, 155, 255, 0.4);
+  background: rgba(62, 155, 255, 0.1);
+}
+
 .adm-temp {
   margin-bottom: 0.8rem;
   border: 1px dashed var(--ember);

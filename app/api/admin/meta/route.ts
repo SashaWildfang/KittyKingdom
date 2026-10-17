@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   if (panel instanceof NextResponse) return panel;
   const [actions, types] = await Promise.all([
     punishmentActions().catch(() => []),
-    panel.level === "admin" ? ticketTypes().catch(() => []) : Promise.resolve([]),
+    ticketTypes(panel.level !== "admin").catch(() => []),
   ]);
   return NextResponse.json({ ok: true, level: panel.level, actions, ticketTypes: types });
 }

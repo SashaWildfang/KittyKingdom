@@ -17,8 +17,8 @@ export type OpenTicket = {
   channelId: string | null;
 };
 
-export async function openTickets(): Promise<OpenTicket[]> {
-  const docs = await (await getBotCollection("activeTickets")).find({}).sort({ created: -1 }).limit(100).toArray();
+export async function openTickets(excludeNsfw = false): Promise<OpenTicket[]> {
+  const docs = await (await getBotCollection("activeTickets")).find(excludeNsfw ? { ticket_type: { $not: /nsfw/i } } : {}).sort({ created: -1 }).limit(100).toArray();
   return docs.map((d) => ({
     ticketId: Number(d.ticket_id),
     type: String(d.ticket_type ?? "support"),
@@ -57,9 +57,11 @@ export type TicketLiveMessage = {
   reactions: { emoji: string; count: number }[];
 };
 
-export async function ticketLive(ticketId: number, after: string | null) {
+export async function ticketLive(ticketId: number, after: string | null, excludeNsfw = false) {
   const doc = await (await getBotCollection("activeTickets")).findOne({ ticket_id: { $in: [ticketId, String(ticketId)] } } as never);
   if (!doc?.channel_id) return null;
+  // Staff who aren't admins can't open NSFW verification tickets (it looks like it doesn't exist)
+  if (excludeNsfw && /nsfw/i.test(String(doc.ticket_type ?? ""))) return null;
   const channelId = String(doc.channel_id);
   const token = botToken();
   if (!token) throw new Error("The bot token isn't set up on the website.");

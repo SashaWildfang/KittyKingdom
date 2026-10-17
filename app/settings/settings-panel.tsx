@@ -5,27 +5,26 @@ import {
   Ban,
   Bell,
   Check,
-  ChevronRight,
   Compass,
   Eye,
   HeartHandshake,
-  KeyRound,
-  Gavel,
   Loader2,
   Lock,
   Mail,
   MessageCircle,
   Palette,
   PenLine,
+  Search,
   ShieldCheck,
   Trash2,
-  TriangleAlert,
   UserRound,
+  X,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useApi } from "../social/ui";
-import { ThemeSwitch } from "../theme-switch";
+import { AccountPane, AppearancePane, EmailPane, LevelUpSetting, SecurityPane, type AccountSummary } from "./settings-panes";
+import { ChoiceRow, Group, LinkRow, Switch, ToggleRow, slug } from "./settings-ui";
 
 type Settings = {
   notify: Record<string, boolean>;
@@ -47,178 +46,73 @@ type Settings = {
 type Web = { accent?: string; headline?: string; paused?: boolean; pausedByStaff?: boolean; hideAge?: boolean; showOnline?: boolean };
 type NotifyType = { key: string; label: string; hint?: string };
 
-type Category = "account" | "notifications" | "privacy" | "messages" | "discover" | "profile";
-const CATEGORIES: { key: Category; label: string; blurb: string; icon: LucideIcon; social?: boolean }[] = [
-  { key: "account", label: "Account", blurb: "Appearance, Discord level-ups and your account", icon: UserRound },
-  { key: "notifications", label: "Notifications", blurb: "What you're told about, and where", icon: Bell, social: true },
-  { key: "privacy", label: "Privacy", blurb: "What others can see", icon: Lock, social: true },
-  { key: "messages", label: "Messages", blurb: "Who can reach you", icon: MessageCircle, social: true },
-  { key: "discover", label: "Discover & Browse", blurb: "How profiles are shown to you", icon: Compass, social: true },
-  { key: "profile", label: "Social profile", blurb: "Edit, hidden profiles and more", icon: HeartHandshake, social: true },
+type Category = "account" | "security" | "appearance" | "email" | "notifications" | "privacy" | "messages" | "discover" | "profile";
+type Section = "You" | "Notifications" | "Social";
+const CATEGORIES: { key: Category; label: string; blurb: string; icon: LucideIcon; section: Section; social?: boolean }[] = [
+  { key: "account", label: "Account", blurb: "Your profile, email and Discord link", icon: UserRound, section: "You" },
+  { key: "security", label: "Security", blurb: "Two-factor, password and devices", icon: ShieldCheck, section: "You" },
+  { key: "appearance", label: "Appearance", blurb: "Theme, text size and motion", icon: Palette, section: "You" },
+  { key: "email", label: "Email", blurb: "News, events and other emails", icon: Mail, section: "Notifications" },
+  { key: "notifications", label: "Site & Discord", blurb: "The bell, Discord DMs and level-ups", icon: Bell, section: "Notifications" },
+  { key: "privacy", label: "Privacy", blurb: "What others can see", icon: Lock, section: "Social", social: true },
+  { key: "messages", label: "Messages", blurb: "Who can reach you", icon: MessageCircle, section: "Social", social: true },
+  { key: "discover", label: "Discover & Browse", blurb: "How profiles are shown to you", icon: Compass, section: "Social", social: true },
+  { key: "profile", label: "Social profile", blurb: "Edit, hidden profiles and more", icon: HeartHandshake, section: "Social", social: true },
 ];
 // Old links (#dms, #general…) still land in the right place
-const ALIASES: Record<string, Category> = { general: "account", dms: "notifications", social: "profile" };
+const ALIASES: Record<string, Category> = { general: "account", dms: "notifications", social: "profile", theme: "appearance", emails: "email" };
 
-function Switch({ checked, disabled, onChange, label }: { checked: boolean; disabled?: boolean; onChange: (v: boolean) => void; label: string }) {
-  return (
-    <button type="button" role="switch" aria-checked={checked} aria-label={label} disabled={disabled} className={`set-switch${checked ? " is-on" : ""}`} onClick={() => onChange(!checked)}>
-      <i aria-hidden="true" />
-    </button>
-  );
-}
-
-/** One setting: what it is on the left, the control on the right. */
-function Row({ title, hint, children }: { title: string; hint?: ReactNode; children: ReactNode }) {
-  return (
-    <div className="set-row">
-      <div className="set-row-text">
-        <b>{title}</b>
-        {hint ? <small>{hint}</small> : null}
-      </div>
-      <div className="set-row-control">{children}</div>
-    </div>
-  );
-}
-
-function ToggleRow({ title, hint, checked, disabled, onChange }: { title: string; hint?: string; checked: boolean; disabled?: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <Row title={title} hint={hint}>
-      <Switch checked={checked} disabled={disabled} onChange={onChange} label={title} />
-    </Row>
-  );
-}
-
-/** A question with a few answers, as selectable cards. */
-function ChoiceRow<T extends string>({ title, value, options, onChange }: { title: string; value: T; options: [T, string, string][]; onChange: (v: T) => void }) {
-  return (
-    <div className="set-choice">
-      <b>{title}</b>
-      <div className="set-choice-options" role="radiogroup" aria-label={title}>
-        {options.map(([v, label, hint]) => (
-          <button key={v} type="button" role="radio" aria-checked={value === v} className={value === v ? "is-on" : undefined} onClick={() => onChange(v)}>
-            <span className="set-choice-dot" aria-hidden="true" />
-            <span>
-              <b>{label}</b>
-              <small>{hint}</small>
-            </span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function Group({ title, intro, children }: { title?: string; intro?: string; children: ReactNode }) {
-  return (
-    <section className="set-group">
-      {title ? <h3>{title}</h3> : null}
-      {intro ? <p className="set-intro">{intro}</p> : null}
-      <div className="set-rows">{children}</div>
-    </section>
-  );
-}
-
-function LinkRow({ href, icon: Icon, title, hint, danger }: { href: string; icon: LucideIcon; title: string; hint?: string; danger?: boolean }) {
-  return (
-    <a className={`set-link${danger ? " is-danger" : ""}`} href={href}>
-      <span className="set-link-icon" aria-hidden="true">
-        <Icon size={16} />
-      </span>
-      <span className="set-row-text">
-        <b>{title}</b>
-        {hint ? <small>{hint}</small> : null}
-      </span>
-      <ChevronRight size={16} aria-hidden="true" className="set-link-chev" />
-    </a>
-  );
-}
-
-type LevelUps = "on" | "quiet" | "off";
-
-/** Discord level-up messages: with a ping, without, or none at all (needs Discord linked). */
-function LevelUpSetting({ onStatus }: { onStatus: (saving: boolean, saved: string | null) => void }) {
-  const [mode, setMode] = useState<LevelUps | null>(null);
-  const [unlinked, setUnlinked] = useState(false);
-  const [failed, setFailed] = useState(false);
-  useEffect(() => {
-    fetch("/api/account/levelups", { cache: "no-store" })
-      .then(async (r) => {
-        const body = await r.json().catch(() => null);
-        if (r.status === 403) setUnlinked(true);
-        else if (body?.ok) setMode(body.mode);
-        else setFailed(true);
-      })
-      .catch(() => setFailed(true));
-  }, []);
-  if (failed) return <p className="set-error">Couldn&apos;t load your level-up setting. Refresh the page to try again.</p>;
-  if (unlinked) {
-    return (
-      <p className="set-note">
-        <Bell size={15} aria-hidden="true" /> Link your Discord on My Account to choose how level-ups are announced.
-      </p>
-    );
-  }
-  if (!mode) return <div className="set-loading" aria-busy="true" />;
-  return (
-    <ChoiceRow
-      title="Level-up messages in Discord"
-      value={mode}
-      onChange={async (v) => {
-        const prev = mode;
-        setMode(v);
-        onStatus(true, null);
-        const res = await fetch("/api/account/levelups", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: v }) })
-          .then((r) => r.json())
-          .catch(() => null);
-        if (!res?.ok) setMode(prev);
-        onStatus(false, res?.ok ? "Saved" : res?.error ?? "Couldn't save. Try again.");
-      }}
-      options={[
-        ["on", "On", "A congrats message where you levelled up, with an @mention."],
-        ["quiet", "Quiet", "The same message, but it won't ping you."],
-        ["off", "Off", "No level-up messages. You still get your level roles and perks."],
-      ]}
-    />
-  );
-}
-
-function AccountPane({ social, onStatus }: { social: boolean; onStatus: (saving: boolean, saved: string | null) => void }) {
-  return (
-    <>
-      <Group title="Appearance">
-        <Row title="Theme" hint="Light, dark, or match your device.">
-          <ThemeSwitch />
-        </Row>
-      </Group>
-      <Group title="Discord">
-        <LevelUpSetting onStatus={onStatus} />
-      </Group>
-      <Group title="Your account" intro="These open on My Account.">
-        <LinkRow href="/account#profile" icon={PenLine} title="Name, username & phone" hint="How you appear around the site, and your private phone number" />
-        <LinkRow href="/account#punishments" icon={Gavel} title="Punishments & appeals" hint="Your moderation record, when it ends, and appeals" />
-        <LinkRow href="/account#security" icon={KeyRound} title="Password & two-factor" hint="Keep your account secure" />
-        <LinkRow href="/account#discord-account" icon={ShieldCheck} title="Discord link" hint="Link or unlink your Discord account" />
-      </Group>
-      {!social ? (
-        <Group title="Social">
-          <p className="set-note">
-            <HeartHandshake size={16} aria-hidden="true" /> Notification, privacy and message settings for Social show up here once you have the 18+ Verified role and your Discord is linked.
-          </p>
-        </Group>
-      ) : null}
-      <Group title="Danger zone">
-        <LinkRow href="/account#delete-account" icon={TriangleAlert} title="Delete account" hint="Permanently remove your website account" danger />
-      </Group>
-    </>
-  );
-}
+// What the search box looks through: each setting, where it lives, and other words people might type
+const SEARCH: { cat: Category; title: string; words?: string; social?: boolean }[] = [
+  { cat: "account", title: "Name, username & phone", words: "display name nickname phone number" },
+  { cat: "account", title: "Email address", words: "change email confirm verify" },
+  { cat: "account", title: "Discord link", words: "link unlink discord account" },
+  { cat: "account", title: "Punishments & appeals", words: "ban mute warn record appeal" },
+  { cat: "account", title: "Delete account", words: "remove close account danger" },
+  { cat: "security", title: "Two-factor authentication", words: "2fa authenticator code otp" },
+  { cat: "security", title: "Password", words: "change password" },
+  { cat: "security", title: "Devices & sessions", words: "sign out log out logged in devices" },
+  { cat: "security", title: "Security alert emails" },
+  { cat: "appearance", title: "Theme", words: "dark mode light mode colors" },
+  { cat: "appearance", title: "Text size", words: "font bigger smaller zoom accessibility" },
+  { cat: "appearance", title: "Animations", words: "reduce motion accessibility" },
+  { cat: "appearance", title: "Seasonal effects", words: "leaves snow petals particles falling" },
+  { cat: "email", title: "News posts", words: "email newsletter updates announcements" },
+  { cat: "email", title: "New events", words: "email calendar" },
+  { cat: "email", title: "Event reminders", words: "email remind" },
+  { cat: "email", title: "New giveaways", words: "email prize" },
+  { cat: "email", title: "New matches", words: "email social dating", social: true },
+  { cat: "email", title: "New messages", words: "email social chat unread", social: true },
+  { cat: "email", title: "Friend requests", words: "email social friends", social: true },
+  { cat: "email", title: "Turn off all notification emails", words: "unsubscribe stop emails" },
+  { cat: "notifications", title: "Level-up messages in Discord", words: "levelup level up ping mention xp" },
+  { cat: "notifications", title: "Notify me about", words: "bell discord dm likes matches", social: true },
+  { cat: "privacy", title: "Browse anonymously", words: "views incognito", social: true },
+  { cat: "privacy", title: "Appear in “Online now”", words: "online status", social: true },
+  { cat: "privacy", title: "Show my profile view count", social: true },
+  { cat: "privacy", title: "Show my partners on my profile", social: true },
+  { cat: "privacy", title: "Show when I was last active", words: "online last seen", social: true },
+  { cat: "privacy", title: "Hide my age", social: true },
+  { cat: "privacy", title: "Include me in Featured this hour", social: true },
+  { cat: "privacy", title: "Pause my profile", words: "hide", social: true },
+  { cat: "messages", title: "Who can message me", words: "dm requests", social: true },
+  { cat: "messages", title: "Who can send me friend requests", social: true },
+  { cat: "messages", title: "Read receipts", words: "seen", social: true },
+  { cat: "messages", title: "Press Enter to send", words: "keyboard", social: true },
+  { cat: "discover", title: "Open Discover in", words: "dating friends", social: true },
+  { cat: "discover", title: "Hide matches below", words: "score percent", social: true },
+  { cat: "discover", title: "Sort by default", words: "browse order", social: true },
+  { cat: "discover", title: "Show members who left the server", social: true },
+  { cat: "profile", title: "Edit my profile", words: "photos bio", social: true },
+  { cat: "profile", title: "Hidden profiles", words: "blocked passed", social: true },
+];
 
 /**
- * Settings (the gear next to the bell). One category at a time: Account for everyone, plus
- * Notifications, Privacy, Messages, Discover and Social profile for members who can use Social.
+ * Settings (the gear next to the bell). Grouped into You (account, security, appearance), Notifications
+ * (email, site & Discord) and Social (for members who can use Social). Search finds any setting.
  * Every change saves right away.
  */
-export function SettingsPanel({ social }: { social: boolean }) {
+export function SettingsPanel({ social, account }: { social: boolean; account: AccountSummary }) {
   const settingsApi = useApi<{ settings: Settings; types: NotifyType[] }>(social ? "/api/dating/settings" : null);
   const meApi = useApi<{ profile: { web: Web } | null }>(social ? "/api/dating/me" : null);
   const [s, setS] = useState<Settings | null>(null);
@@ -227,6 +121,8 @@ export function SettingsPanel({ social }: { social: boolean }) {
   const [saved, setSaved] = useState<string | null>(null);
   const categories = CATEGORIES.filter((c) => social || !c.social);
   const [cat, setCat] = useState<Category>("account");
+  const [query, setQuery] = useState("");
+  const pendingJump = useRef<string | null>(null);
 
   // The address bar's #section picks the category (and old links keep working)
   useEffect(() => {
@@ -251,6 +147,37 @@ export function SettingsPanel({ social }: { social: boolean }) {
     window.history.replaceState(null, "", `#${key}`);
   };
 
+  // A search result: open its category, then scroll to the setting and flash it (it may still be loading)
+  const jump = (key: Category, title: string) => {
+    setQuery("");
+    open(key);
+    pendingJump.current = slug(title);
+  };
+  useEffect(() => {
+    if (!pendingJump.current) return;
+    let tries = 0;
+    const t = window.setInterval(() => {
+      const el = pendingJump.current ? document.getElementById(pendingJump.current) : null;
+      if (el || ++tries > 20) {
+        window.clearInterval(t);
+        pendingJump.current = null;
+        if (!el) return;
+        el.scrollIntoView({ block: "center", behavior: "smooth" });
+        el.classList.remove("is-flash");
+        void el.offsetWidth;
+        el.classList.add("is-flash");
+      }
+    }, 100);
+    return () => window.clearInterval(t);
+  });
+
+  const results = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    const words = q.split(/\s+/);
+    return SEARCH.filter((r) => (social || !r.social) && words.every((w) => `${r.title} ${r.words ?? ""} ${CATEGORIES.find((c) => c.key === r.cat)?.label}`.toLowerCase().includes(w))).slice(0, 8);
+  }, [query, social]);
+
   useEffect(() => {
     if (settingsApi.data) setS(settingsApi.data.settings);
   }, [settingsApi.data]);
@@ -263,6 +190,10 @@ export function SettingsPanel({ social }: { social: boolean }) {
     return () => window.clearTimeout(t);
   }, [saved]);
 
+  const onStatus = (busy: boolean, msg: string | null) => {
+    setSaving(busy);
+    if (msg) setSaved(msg);
+  };
   const save = async (patch: Partial<Settings> | { notify: Record<string, boolean> } | { dm: Record<string, boolean> }) => {
     setSaving(true);
     const res = await fetch("/api/dating/settings", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) }).then((r) => r.json()).catch(() => null);
@@ -292,19 +223,18 @@ export function SettingsPanel({ social }: { social: boolean }) {
 
   const current = categories.find((c) => c.key === cat) ?? categories[0];
   const types = settingsApi.data?.types ?? [];
-  const needsSocial = current.social;
   const socialReady = Boolean(s && settingsApi.data);
 
   let pane: ReactNode = null;
-  if (!needsSocial)
+  if (current.key === "account") pane = <AccountPane account={account} social={social} />;
+  else if (current.key === "security") pane = <SecurityPane account={account} />;
+  else if (current.key === "appearance") pane = <AppearancePane />;
+  else if (current.key === "email") pane = <EmailPane social={social} onStatus={onStatus} />;
+  else if (current.key === "notifications" && !social)
     pane = (
-      <AccountPane
-        social={social}
-        onStatus={(busy, msg) => {
-          setSaving(busy);
-          if (msg) setSaved(msg);
-        }}
-      />
+      <Group title="Discord">
+        <LevelUpSetting onStatus={onStatus} />
+      </Group>
     );
   else if (settingsApi.error) pane = <p className="set-error">{settingsApi.error}</p>;
   else if (!socialReady || !s) pane = <div className="set-loading" aria-busy="true" />;
@@ -313,8 +243,11 @@ export function SettingsPanel({ social }: { social: boolean }) {
     const allDm = types.length > 0 && types.every((t) => s.dm[t.key] === true || t.key === "view");
     pane = (
       <>
-        <Group intro="Pick where you hear about each thing: in the bell on the site, as a Discord DM from the Bear Nation bot, or both.">
-          <div className="set-matrix" role="table" aria-label="Notification settings">
+        <Group title="Discord">
+          <LevelUpSetting onStatus={onStatus} />
+        </Group>
+        <Group title="Social" intro="Pick where you hear about each thing: in the bell on the site, as a Discord DM from the Bear Nation bot, or both. Emails are in Settings → Email.">
+          <div className="set-matrix" role="table" aria-label="Notification settings" id={slug("Notify me about")}>
             <div className="set-matrix-head" role="row">
               <span role="columnheader">Notify me about</span>
               <span role="columnheader">On the site</span>
@@ -501,7 +434,7 @@ export function SettingsPanel({ social }: { social: boolean }) {
           <LinkRow href="/social/hidden" icon={Ban} title="Hidden profiles" hint="People you blocked, passed or skipped" />
         </Group>
         {meApi.data?.profile ? (
-          <Group title="Danger zone">
+          <Group title="Danger zone" tone="danger">
             <LinkRow href="/social/profile/edit#danger" icon={Trash2} title="Delete my Social profile" hint="Your website account stays" danger />
           </Group>
         ) : null}
@@ -509,9 +442,11 @@ export function SettingsPanel({ social }: { social: boolean }) {
     );
   }
 
+  const sections = (["You", "Notifications", "Social"] as Section[]).map((name) => ({ name, items: categories.filter((c) => c.section === name) })).filter((x) => x.items.length);
+
   return (
     <div className="set-layout">
-      {/* Sidebar: what this page is, then every category (it never moves when you switch) */}
+      {/* Sidebar: title, search, then every category by section (it never moves when you switch) */}
       <aside className="set-side">
         <header className="set-side-head">
           <span className="set-side-icon" aria-hidden="true">
@@ -522,19 +457,66 @@ export function SettingsPanel({ social }: { social: boolean }) {
             <p>Changes save automatically.</p>
           </div>
         </header>
-        <nav className="set-nav" aria-label="Settings categories">
-          {categories.map((c) => (
-            <button key={c.key} type="button" className={c.key === current.key ? "is-on" : undefined} aria-current={c.key === current.key ? "page" : undefined} onClick={() => open(c.key)}>
-              <span className="set-nav-icon" aria-hidden="true">
-                <c.icon size={17} />
-              </span>
-              <span className="set-nav-text">
-                <b>{c.label}</b>
-                <small>{c.blurb}</small>
-              </span>
+        <div className="set-search">
+          <Search size={15} aria-hidden="true" />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && results[0]) jump(results[0].cat, results[0].title);
+              if (e.key === "Escape") setQuery("");
+            }}
+            placeholder="Search settings"
+            aria-label="Search settings"
+          />
+          {query ? (
+            <button type="button" onClick={() => setQuery("")} aria-label="Clear search">
+              <X size={14} aria-hidden="true" />
             </button>
-          ))}
-        </nav>
+          ) : null}
+        </div>
+        {query.trim() ? (
+          <div className="set-results" role="listbox" aria-label="Matching settings">
+            {results.length ? (
+              results.map((r) => {
+                const c = CATEGORIES.find((x) => x.key === r.cat)!;
+                return (
+                  <button key={`${r.cat}-${r.title}`} type="button" role="option" aria-selected="false" onClick={() => jump(r.cat, r.title)}>
+                    <span className="set-nav-icon" aria-hidden="true">
+                      <c.icon size={15} />
+                    </span>
+                    <span className="set-nav-text">
+                      <b>{r.title}</b>
+                      <small>{c.label}</small>
+                    </span>
+                  </button>
+                );
+              })
+            ) : (
+              <p className="set-results-empty">No settings match “{query.trim()}”.</p>
+            )}
+          </div>
+        ) : (
+          <nav className="set-nav" aria-label="Settings categories">
+            {sections.map((sec) => (
+              <div key={sec.name} className="set-nav-section">
+                <p className="set-nav-label">{sec.name}</p>
+                {sec.items.map((c) => (
+                  <button key={c.key} type="button" className={c.key === current.key ? "is-on" : undefined} aria-current={c.key === current.key ? "page" : undefined} onClick={() => open(c.key)}>
+                    <span className="set-nav-icon" aria-hidden="true">
+                      <c.icon size={17} />
+                    </span>
+                    <span className="set-nav-text">
+                      <b>{c.label}</b>
+                      <small>{c.blurb}</small>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ))}
+          </nav>
+        )}
       </aside>
       <div className="set-main">
         <header className="set-main-head">

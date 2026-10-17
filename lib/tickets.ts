@@ -35,7 +35,13 @@ export type TicketQuery = {
   pageSize?: number;
   /** Also count statuses, handlers, openers and time to close across every match */
   summary?: boolean;
+  /** Leave out NSFW verification tickets (staff who aren't admins never see them) */
+  excludeNsfw?: boolean;
 };
+
+/** NSFW verification tickets hold ID photos: only admins can see them. */
+export const NSFW_TICKET = /nsfw/i;
+export const isNsfwTicket = (type: string | null | undefined) => NSFW_TICKET.test(String(type ?? ""));
 
 const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const snowflake = (value: unknown) => (typeof value === "string" && /^\d{15,21}$/.test(value) ? value : null);
@@ -105,6 +111,7 @@ export async function queryTickets(q: TicketQuery) {
   const { col, union } = await ticketsPipelineBase();
   const and: Document[] = [];
   if (q.types?.length) and.push({ ticket_type: { $in: q.types } });
+  if (q.excludeNsfw) and.push({ ticket_type: { $not: NSFW_TICKET } });
   if (q.statuses?.length) and.push({ status: { $in: q.statuses.map((st) => (st === "Deleted" ? "Finalized" : st)) } });
   if (q.userId) and.push({ opened_by: q.userId });
   if (q.staffId) and.push({ $or: [{ claimed_by: q.staffId }, { resolved_by: q.staffId }, { escalated_by: q.staffId }] });
@@ -242,9 +249,9 @@ export async function ticketStats(q: { from?: Date | null; to?: Date | null; uni
   };
 }
 
-export async function ticketTypes(): Promise<string[]> {
+export async function ticketTypes(excludeNsfw = false): Promise<string[]> {
   const col = await getBotCollection("resolvedTickets");
-  return ((await col.distinct("ticket_type")) as string[]).filter(Boolean).sort();
+  return ((await col.distinct("ticket_type")) as string[]).filter((t) => t && !(excludeNsfw && isNsfwTicket(t))).sort();
 }
 
 /** The ticket a transcript upload belongs to. */
