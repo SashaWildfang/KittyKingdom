@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, Search } from "lucide-react";
+import { Eye, FileText, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   LiveBadge,
@@ -43,8 +43,11 @@ export function TicketsTab({
   onOpenMember,
   onOpenTranscript,
   initialSearch,
+  readOnly = false,
 }: {
   typesAvailable: string[];
+  /** Staff who aren't admins: view only, and NSFW verification tickets are left out (by the server) */
+  readOnly?: boolean;
   onOpenMember: (id: string) => void;
   onOpenTranscript: (ticketId: number) => void;
   initialSearch?: string;
@@ -104,6 +107,11 @@ export function TicketsTab({
 
   return (
     <div className="adm-panel">
+      {readOnly ? (
+        <p className="adm-notice adm-tickets-readonly" role="note">
+          <Eye size={15} aria-hidden="true" /> <b>View only.</b> You can read every ticket and transcript. NSFW verification tickets are only visible to admins.
+        </p>
+      ) : null}
       <OpenTickets onOpenMember={onOpenMember} />
       <div className="adm-filters">
         <label className="adm-search">

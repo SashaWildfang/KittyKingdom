@@ -27,8 +27,10 @@ function layout(o: {
   rows?: Row[];
   button: { label: string; url: string };
   expiry: string;
-  security: string;
+  security?: string;
   reason: string;
+  /** Opt-in notification emails: a one-click unsubscribe and a link to Settings → Email */
+  unsubscribe?: { url: string; label: string };
 }) {
   const steps = o.steps
     ? `<tr><td style="padding:0 40px 8px;">
@@ -120,7 +122,7 @@ function layout(o: {
                     <p style="margin:0;font-size:12px;line-height:1.5;word-break:break-all;"><a href="${o.button.url}" style="color:${ACCENT};">${o.button.url}</a></p>
                   </td>
                 </tr>
-                <tr>
+                ${o.security ? `<tr>
                   <td class="px" style="padding:20px 40px 32px;">
                     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-top:1px solid ${LINE};"><tr>
                       <td style="padding-top:16px;font-size:13px;line-height:1.6;color:${MUTED};">
@@ -128,13 +130,14 @@ function layout(o: {
                       </td>
                     </tr></table>
                   </td>
-                </tr>
+                </tr>` : `<tr><td style="height:24px;font-size:0;line-height:0;">&nbsp;</td></tr>`}
               </table>
             </td>
           </tr>
           <tr>
             <td style="padding:20px 8px 0;text-align:center;font-size:12px;line-height:1.6;color:${MUTED};">
               <p style="margin:0 0 6px;">${escapeHtml(o.reason)}</p>
+              ${o.unsubscribe ? `<p style="margin:0 0 6px;"><a href="${o.unsubscribe.url}" style="color:${MUTED};">${escapeHtml(o.unsubscribe.label)}</a> &nbsp;·&nbsp; <a href="${SITE}/settings#email" style="color:${MUTED};">Email settings</a></p>` : ""}
               <p style="margin:0 0 6px;">
                 <a href="${SITE}" style="color:${MUTED};">bear-nation.net</a> &nbsp;·&nbsp;
                 <a href="${SITE}/support" style="color:${MUTED};">Support</a> &nbsp;·&nbsp;
@@ -527,4 +530,94 @@ export async function sendBanAccountClosedEmail(email: string, a: { name: string
     `${SITE} · Support: ${SITE}/support`,
   ].join("\n");
   return sendEmail(email, "You've been banned from Bear Nation", html, text, "ban-closed");
+}
+
+// ---------- Opt-in notification emails (Settings → Email) ----------
+
+export type NotificationEmail = {
+  to: string;
+  kind: string;
+  subject: string;
+  eyebrow: string;
+  title: string;
+  /** Plain text: escaped here */
+  intro: string;
+  rows?: Row[];
+  button: { label: string; url: string };
+  note: string;
+  /** Why they got it, e.g. "You're receiving this because you turned on News posts emails." */
+  reason: string;
+  unsubscribeUrl: string;
+  unsubscribeLabel: string;
+};
+
+function buildNotification(n: NotificationEmail) {
+  const html = layout({
+    preheader: n.intro.slice(0, 140),
+    eyebrow: n.eyebrow,
+    title: n.title,
+    intro: escapeHtml(n.intro),
+    rows: n.rows,
+    button: n.button,
+    expiry: n.note,
+    reason: n.reason,
+    unsubscribe: { url: n.unsubscribeUrl, label: n.unsubscribeLabel },
+  });
+  const text = [
+    `Bear Nation: ${n.title}`,
+    "",
+    n.intro,
+    ...(n.rows?.length ? ["", ...n.rows.map((r) => `${r.label}: ${r.value}`)] : []),
+    "",
+    `${n.button.label}: ${n.button.url}`,
+    "",
+    n.reason,
+    `${n.unsubscribeLabel}: ${n.unsubscribeUrl}`,
+    `Email settings: ${SITE}/settings#email`,
+  ].join("\n");
+  return { html, text };
+}
+
+const unsubscribeHeaders = (url: string) => ({ "List-Unsubscribe": `<${url}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" });
+
+/**
+ * Sends up to 100 notification emails in one Resend call (each with its own one-click unsubscribe).
+ * One line goes in Admin → Emails per batch. Returns how many were accepted.
+ */
+export async function sendNotificationBatch(emails: NotificationEmail[]): Promise<{ sent: number; error: string | null }> {
+  if (!emails.length) return { sent: 0, error: null };
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.EMAIL_FROM;
+  const built = emails.map((e) => ({ e, ...buildNotification(e) }));
+  let result: { sent: number; error: string | null };
+  if (!apiKey || !from) {
+    result = { sent: 0, error: "Email provider is not configured. Set RESEND_API_KEY and EMAIL_FROM." };
+  } else {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8_000);
+    try {
+      const response = await fetch("https://api.resend.com/emails/batch", {
+        method: "POST",
+        signal: controller.signal,
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify(built.map((b) => ({ from, to: b.e.to, subject: b.e.subject, html: b.html, text: b.text, headers: unsubscribeHeaders(b.e.unsubscribeUrl) }))),
+      });
+      result = response.ok ? { sent: emails.length, error: null } : { sent: 0, error: await response.text() };
+    } catch (error) {
+      result = { sent: 0, error: error instanceof Error ? error.message : "Email request failed." };
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+  const first = built[0];
+  await logEmail({
+    to: emails.length === 1 ? first.e.to : `${first.e.to} + ${emails.length - 1} more`,
+    subject: first.e.subject,
+    kind: first.e.kind,
+    html: first.html,
+    text: first.text,
+    sent: result.sent > 0,
+    error: result.error,
+  });
+  return result;
 }
