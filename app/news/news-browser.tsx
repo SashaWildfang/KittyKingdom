@@ -178,16 +178,24 @@ export function NewsBrowser({ posts, tags, initial }: { posts: NewsItem[]; tags:
   );
 }
 
-/** Posts under month headings (no headings while filtering, where the list is short and mixed). */
+/**
+ * Pinned posts first, then the rest under month headings, newest month first (no headings while filtering,
+ * where the list is short and mixed). Pinned posts come first from the server whatever their month, so
+ * months are grouped with a map rather than by neighbours.
+ */
 function groupByMonth(posts: NewsItem[], filtered: boolean) {
-  if (filtered) return [{ key: "all", label: null as string | null, posts }];
-  const groups: { key: string; label: string | null; posts: NewsItem[] }[] = [];
+  type G = { key: string; label: string | null; posts: NewsItem[] };
+  if (filtered) return [{ key: "all", label: null, posts }] as G[];
+  const pinned = posts.filter((p) => p.pinned);
+  const byMonth = new Map<string, G>();
   for (const p of posts) {
-    const last = groups[groups.length - 1];
-    if (last && last.key === p.month) last.posts.push(p);
-    else groups.push({ key: p.month, label: p.monthLabel, posts: [p] });
+    if (p.pinned) continue;
+    const g = byMonth.get(p.month);
+    if (g) g.posts.push(p);
+    else byMonth.set(p.month, { key: p.month, label: p.monthLabel, posts: [p] });
   }
-  return groups;
+  const months = Array.from(byMonth.values()).sort((a, b) => b.key.localeCompare(a.key));
+  return pinned.length ? [{ key: "pinned", label: "Pinned", posts: pinned }, ...months] : months;
 }
 
 function Meta({ p, read, latest }: { p: NewsItem; read: boolean | null; latest?: boolean }) {
