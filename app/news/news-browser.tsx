@@ -140,8 +140,12 @@ export function NewsBrowser({ posts, tags, initial }: { posts: NewsItem[]; tags:
       ) : null}
 
       {rest.length ? (
-        <ul className="nw2-list">
-          {rest.map((p) => (
+        <div className="nw2-months">
+          {groupByMonth(rest, filtered).map((g) => (
+            <section key={g.key} className="nw2-month">
+              {g.label ? <h2 className="nw2-month-head">{g.label}</h2> : null}
+              <ul className="nw2-list">
+                {g.posts.map((p) => (
             <li key={p.id}>
               <Link href={`/news/${p.id}`} className={`nw2-row${reads && read(p) ? " is-read" : ""}`} id={p.id}>
                 {p.cover ? (
@@ -159,8 +163,11 @@ export function NewsBrowser({ posts, tags, initial }: { posts: NewsItem[]; tags:
                 </div>
               </Link>
             </li>
+                ))}
+              </ul>
+            </section>
           ))}
-        </ul>
+        </div>
       ) : !featured ? (
         <div className="news-empty">
           <Megaphone size={28} aria-hidden="true" />
@@ -169,6 +176,18 @@ export function NewsBrowser({ posts, tags, initial }: { posts: NewsItem[]; tags:
       ) : null}
     </div>
   );
+}
+
+/** Posts under month headings (no headings while filtering, where the list is short and mixed). */
+function groupByMonth(posts: NewsItem[], filtered: boolean) {
+  if (filtered) return [{ key: "all", label: null as string | null, posts }];
+  const groups: { key: string; label: string | null; posts: NewsItem[] }[] = [];
+  for (const p of posts) {
+    const last = groups[groups.length - 1];
+    if (last && last.key === p.month) last.posts.push(p);
+    else groups.push({ key: p.month, label: p.monthLabel, posts: [p] });
+  }
+  return groups;
 }
 
 function Meta({ p, read, latest }: { p: NewsItem; read: boolean | null; latest?: boolean }) {

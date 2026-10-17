@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./account.css";
 import { userTimeZone } from "../../lib/timezone";
 import { accountGreeting } from "../../lib/greeting";
-import { BarChart3, Backpack, House, Settings, Crown, Gift, ShieldCheck, Check, CircleAlert, ClipboardList, FileText, Gavel, KeyRound, Lock, Mail, Rocket, Sparkles, TriangleAlert, UserRound } from "lucide-react";
+import { BarChart3, Backpack, House, Settings, Crown, Gift, Grid3x3, ShieldCheck, Check, CircleAlert, ClipboardList, FileText, Gavel, KeyRound, Lock, Mail, Rocket, Sparkles, TriangleAlert, UserRound } from "lucide-react";
 import { LeafEmote } from "../ui-icons";
 import { redirect } from "next/navigation";
 import { isStaffDiscordId } from "../../lib/admin";
@@ -26,6 +26,8 @@ import { BoostsCard } from "./boosts-card";
 import { DailyCard } from "./daily-card";
 import { SupporterCard } from "./supporter-card";
 import { getDailyStatus } from "../../lib/daily";
+import { wordleState } from "../../lib/games/wordle";
+import { Wordle } from "../games/wordle";
 import { AccountInventory } from "./account-inventory";
 import { DiscordLinkCode } from "./discord-link-code";
 import { DailyReadyDot } from "./daily-ready";
@@ -136,7 +138,7 @@ export default async function AccountPage({
     searchParams.discord ??
     searchParams.verify ??
     searchParams.login;
-  const [application, roles, roleState, dailyStatus, serverId, staffAccount, transcripts, badgeDates, joinedServer, punishments, extras] = await Promise.all([
+  const [application, roles, roleState, dailyStatus, serverId, staffAccount, transcripts, badgeDates, joinedServer, punishments, extras, wordle] = await Promise.all([
     getJoinApplication(user.discordId),
     getMemberRoleSummary(user.discordId),
     user.discordId ? getRoleState(String(user.discordId)).catch(() => null) : Promise.resolve(null),
@@ -148,6 +150,7 @@ export default async function AccountPage({
     serverJoinDate(user.discordId ? String(user.discordId) : null).catch(() => null),
     user.discordId ? myPunishments(String(user.discordId)).catch(() => null) : Promise.resolve(null),
     profileExtras(user.discordId ? String(user.discordId) : null).catch(() => null),
+    user.discordId ? wordleState(String(user.discordId)).then((w) => w.wordle).catch(() => null) : Promise.resolve(null),
   ]);
   const tz = userTimeZone();
   const punDate = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", timeZone: tz });
@@ -317,6 +320,20 @@ export default async function AccountPage({
                   {discordLinked ? (
                     <AccountPanel id="daily" icon={<Gift size={20} />} title="Daily Reward" description={seasonal("Claim free leaves once a day. Claim every day to build your streak.")} summary={dailyReady ? "Ready to claim" : undefined}>
                       <DailyCard initial={dailyStatus} guildId={serverId} />
+                    </AccountPanel>
+                  ) : null}
+                  {discordLinked && wordle ? (
+                    <AccountPanel
+                      id="wordle"
+                      icon={<Grid3x3 size={20} />}
+                      title="Daily Wordle"
+                      description={seasonal(`Guess the 5-letter word in 6 tries for ${wordle.reward.leaves.toLocaleString()} leaves and ${wordle.reward.xp.toLocaleString()} XP. A new word every 24 hours, shared with /wordle in Discord.`)}
+                      summary={wordle.status === "ready" ? "Ready to play" : wordle.status === "playing" ? "In progress" : wordle.status === "won" ? "Solved today" : "Done for today"}
+                    >
+                      <Wordle initial={wordle} compact />
+                      <a className="acct-wordle-link" href="/games?game=wordle">
+                        Play it bigger on the Games tab
+                      </a>
                     </AccountPanel>
                   ) : null}
                   <section className="acct-card acct-discord" id="discord-account">
