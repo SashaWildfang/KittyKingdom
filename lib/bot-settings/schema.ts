@@ -390,6 +390,8 @@ const ECONOMY: BotDef = {
         { key: "casino.blackjackMinBet", label: "Blackjack minimum bet", help: "", type: "number", default: 25, min: 1, max: 1000000, shared: true },
         { key: "casino.minesMinBet", label: "Mines minimum bet", help: "", type: "number", default: 25, min: 1, max: 1000000, shared: true },
         { key: "casino.minesMaxBet", label: "Mines maximum bet", help: "", type: "number", default: 1000000, min: 1, max: 100000000, shared: true },
+        { key: "casino.crashMinBet", label: "Crash minimum bet", help: "Website Games tab.", type: "number", default: 10, min: 1, max: 1000000 },
+        { key: "casino.crashMaxBet", label: "Crash maximum bet", help: "Website Games tab. Crash can pay up to 1,000x, so keep this sensible.", type: "number", default: 100000, min: 1, max: 100000000 },
         { key: "casino.rouletteMinBet", label: "/roulette minimum bet", help: "Discord only (the website's live table has its own table limits).", type: "number", default: 25, min: 1, max: 1000000 },
         { key: "casino.rouletteMaxBet", label: "/roulette maximum bet", help: "Stops doubling-up strategies from printing Leaves.", type: "number", default: 50000, min: 1, max: 100000000 },
         { key: "casino.jackpotReset", label: "Jackpot resets to", help: "What the progressive jackpot starts at after someone wins it.", type: "number", default: 100000, min: 0, max: 100000000, shared: true },

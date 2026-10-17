@@ -33,7 +33,7 @@ html body .rl-layout { grid-template-columns: 17rem minmax(0, 1fr); gap: 1.5rem;
 }
 
 /* ---------- News ---------- */
-html body .nw, html body .nw--v2 { width: min(96rem, calc(100% - 2.5rem)); max-width: none; padding-top: 1.5rem; }
+html body .nw, html body .nw--v2 { width: min(60rem, calc(100% - 2.5rem)); max-width: none; padding-top: 1.5rem; }
 html body .nw--v2 .nw-head {
   border: 1px solid var(--glass-border);
   border-radius: 1.6rem;
@@ -44,10 +44,8 @@ html body .nw--v2 .nw-head {
   margin-bottom: 1.4rem;
   padding: clamp(1.3rem, 3vw, 2.2rem);
 }
-/* Posts two across on wide screens (the featured one stays full width) */
-@media (min-width: 1100px) {
-  html body .nw2-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.9rem; }
-}
+/* One readable column of posts, grouped by month */
+html body .nw2-list { grid-template-columns: minmax(0, 1fr); gap: 0.55rem; }
 
 /* ---------- Wider pages ---------- */
 html body .gm { width: min(88rem, calc(100% - 2.5rem)); }

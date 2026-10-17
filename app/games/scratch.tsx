@@ -7,12 +7,13 @@ import type { Ticket } from "../../lib/games/scratch";
 import { LeafEmote } from "../ui-icons";
 import { Confetti, CountUp, type ScratchStatus } from "./games-client";
 import { useCurrency } from "../season-context";
+import "./scratch.css";
 
 const TIERS: { key: Ticket["tier"]; label: string; blurb: string }[] = [
-  { key: "low", label: "Low Roller", blurb: "10 – 75 leaves" },
-  { key: "mid", label: "Mid Roller", blurb: "100 – 750 leaves" },
-  { key: "high", label: "High Roller", blurb: "1,000 – 15,000 leaves" },
-  { key: "vip", label: "VIP Whale", blurb: "25,000 – 100,000 leaves" },
+  { key: "low", label: "Everyday", blurb: "10 – 75 leaves" },
+  { key: "mid", label: "Big Ticket", blurb: "100 – 750 leaves" },
+  { key: "high", label: "High Roller", blurb: "1K – 15K leaves" },
+  { key: "vip", label: "VIP Whale", blurb: "25K – 100K leaves" },
 ];
 const REVEAL_AT = 0.5; // share of a cell's foil scratched before it pops open
 const BRUSH = 26;
@@ -259,6 +260,59 @@ function Foil({ play, revealed, onReveal, auto }: { play: Play; revealed: boolea
   );
 }
 
+type HistoryItem = { id: number; icon: string; name: string; cost: number; payout: number };
+const INSTANT_KEY = "kk-scratch-instant";
+
+/** One ticket in the shop: a tall lottery ticket with its art, top prize, odds and price. */
+function ShopTicket({ t, locked, short, busy, onBuy, i }: { t: Ticket; locked: boolean; short: boolean; busy: boolean; onBuy: () => void; i: number }) {
+  const cur = useCurrency();
+  const prizes = [...t.prizes].sort((a, b) => b.payout - a.payout);
+  return (
+    <button
+      type="button"
+      className={`sc3-card${locked ? " is-locked" : ""}${short ? " is-short" : ""}`}
+      style={{ "--t1": t.colors[0], "--t2": t.colors[1], "--i": i } as CSSProperties}
+      disabled={busy || locked || short}
+      onClick={onBuy}
+      title={locked ? "Nitro boosters and $10+ supporters" : short ? `Not enough ${cur.lower}` : `Buy ${t.name}`}
+    >
+      <span className="sc3-card-art" aria-hidden="true">
+        <span className="sc3-card-glow" />
+        <span className="sc3-card-icon">{t.icon}</span>
+        {t.nitro ? <span className="sc3-card-badge">Premium</span> : null}
+      </span>
+      <span className="sc3-card-body">
+        <strong>{t.name}</strong>
+        <span className="sc3-card-top">
+          <small>Win up to</small>
+          <b>{compact(topPrize(t))}</b>
+        </span>
+        <span className="sc3-card-ladder" aria-hidden="true">
+          {prizes.map((p) => (
+            <i key={p.symbol} title={`${p.symbol} ${p.payout.toLocaleString()}`}>
+              {p.symbol}
+            </i>
+          ))}
+        </span>
+        <span className="sc3-card-odds">Wins 1 in {(1 / t.winChance).toFixed(1)}</span>
+      </span>
+      <span className="sc3-card-stub">
+        {busy ? (
+          "Printing…"
+        ) : locked ? (
+          <>
+            <Lock size={13} aria-hidden="true" /> Nitro only
+          </>
+        ) : (
+          <>
+            {t.cost.toLocaleString()} <LeafEmote size={14} />
+          </>
+        )}
+      </span>
+    </button>
+  );
+}
+
 export function ScratchOffs({
   tickets,
   balance,
@@ -280,6 +334,7 @@ export function ScratchOffs({
 }) {
   const cur = useCurrency();
   const [status, setStatus] = useState(initialStatus);
+  const [tier, setTier] = useState<Ticket["tier"]>("low");
   const [play, setPlay] = useState<Play | null>(null);
   const [revealed, setRevealed] = useState<boolean[]>(Array(9).fill(false));
   const [finished, setFinished] = useState(false);
@@ -288,6 +343,25 @@ export function ScratchOffs({
   const [error, setError] = useState<string | null>(null);
   const [burst, setBurst] = useState(0);
   const [odds, setOdds] = useState(false);
+  const [instant, setInstant] = useState(false);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+
+  useEffect(() => {
+    try {
+      setInstant(localStorage.getItem(INSTANT_KEY) === "1");
+    } catch {
+      // private mode
+    }
+  }, []);
+  const toggleInstant = (v: boolean) => {
+    setInstant(v);
+    try {
+      if (v) localStorage.setItem(INSTANT_KEY, "1");
+      else localStorage.removeItem(INSTANT_KEY);
+    } catch {
+      // private mode
+    }
+  };
 
   const buy = async (t: Ticket) => {
     if (busy) return;
@@ -306,7 +380,10 @@ export function ScratchOffs({
     setFinished(false);
     setAuto(0);
     setPlay({ ticket: t, grid: res.grid, winSymbol: res.winSymbol, payout: res.payout, balance: res.balance, serial: Date.now().toString(36).toUpperCase().slice(-6) });
-    window.scrollTo({ top: (document.querySelector(".gm-stage") as HTMLElement | null)?.offsetTop ?? 0, behavior: "smooth" });
+    if (instant) setTimeout(() => setAuto(Date.now()), 350);
+    // Bring the ticket into view below the site's top bar
+    const stage = document.querySelector(".gm-stage") as HTMLElement | null;
+    if (stage) window.scrollTo({ top: Math.max(0, stage.getBoundingClientRect().top + window.scrollY - 96), behavior: "smooth" });
   };
 
   const onReveal = useCallback((i: number) => setRevealed((r) => (r[i] ? r : r.map((v, j) => (j === i ? true : v)))), []);
@@ -336,6 +413,7 @@ export function ScratchOffs({
     if (all) {
       setFinished(true);
       onBalance(play.balance);
+      setHistory((h) => [{ id: Date.now(), icon: play.ticket.icon, name: play.ticket.name, cost: play.ticket.cost, payout: play.payout }, ...h].slice(0, 30));
       if (play.payout > play.ticket.cost) setBurst(Date.now());
     }
   }, [revealed, play, finished, onBalance]);
@@ -358,144 +436,187 @@ export function ScratchOffs({
 
   const premium = tickets.filter((t) => t.nitro);
   const outcome = !play || !finished ? null : play.payout > play.ticket.cost ? "win" : play.payout === play.ticket.cost ? "free" : "lose";
+  const spent = history.reduce((n, h) => n + h.cost, 0);
+  const won = history.reduce((n, h) => n + h.payout, 0);
+  const open = revealed.filter(Boolean).length;
+
+  const stats = history.length ? (
+    <div className="sc3-session">
+      <div className="sc3-session-nums">
+        <span>
+          <small>Tickets</small>
+          <b>{history.length}</b>
+        </span>
+        <span>
+          <small>Spent</small>
+          <b>{compact(spent)}</b>
+        </span>
+        <span>
+          <small>Won</small>
+          <b>{compact(won)}</b>
+        </span>
+        <span className={won - spent >= 0 ? "is-up" : "is-down"}>
+          <small>Net</small>
+          <b>
+            {won - spent >= 0 ? "+" : "−"}
+            {compact(Math.abs(won - spent))}
+          </b>
+        </span>
+      </div>
+      <div className="sc3-history" aria-label="Recent tickets">
+        {history.slice(0, 12).map((h) => (
+          <span key={h.id} className={h.payout > h.cost ? "is-win" : h.payout === h.cost ? "is-free" : "is-lose"} title={`${h.name}: ${h.payout ? `won ${h.payout.toLocaleString()}` : "no win"}`}>
+            {h.icon}
+          </span>
+        ))}
+      </div>
+    </div>
+  ) : null;
 
   return (
-    <div className="sc">
-
+    <div className="sc sc3">
       {error ? <p className="gm-error" role="alert">{error}</p> : null}
 
       {play ? (
-        <div className={`sc-stage${outcome ? ` is-${outcome}` : ""}`}>
-          <button type="button" className="sc-back" onClick={() => setPlay(null)} disabled={!finished}>
-            <ArrowLeft size={16} aria-hidden="true" /> All tickets
-          </button>
-          <div className="sc-ticket is-live" style={{ "--t1": play.ticket.colors[0], "--t2": play.ticket.colors[1] } as CSSProperties}>
-            {viewers > 0 ? (
-              <span className="gm-watching is-ticket">
-                <Eye size={13} aria-hidden="true" /> {viewers} watching
-              </span>
-            ) : null}
-            <div className="sc-ticket-head">
-              <span className="sc-ticket-icon">{play.ticket.icon}</span>
-              <div>
-                <strong>{play.ticket.name}</strong>
-                <small>Match 3 to win · Top prize {topPrize(play.ticket).toLocaleString()}</small>
-              </div>
-              <span className="sc-cost">
-                {play.ticket.cost.toLocaleString()} <LeafEmote size={14} />
-              </span>
-            </div>
-            <div className="sc-legend">
-              {play.ticket.prizes.map((p) => (
-                <span key={p.symbol} className={finished && p.symbol === play.winSymbol ? "is-hit" : ""}>
-                  <em>{p.symbol}</em> {compact(p.payout)}
+        <div className={`sc3-play${outcome ? ` is-${outcome}` : ""}`}>
+          <div className="sc3-play-main">
+            <div className="sc3-ticket" style={{ "--t1": play.ticket.colors[0], "--t2": play.ticket.colors[1] } as CSSProperties}>
+              {viewers > 0 ? (
+                <span className="gm-watching is-ticket">
+                  <Eye size={13} aria-hidden="true" /> {viewers} watching
                 </span>
-              ))}
+              ) : null}
+              <header className="sc3-ticket-head">
+                <span className="sc3-ticket-icon">{play.ticket.icon}</span>
+                <div>
+                  <strong>{play.ticket.name}</strong>
+                  <small>Match 3 symbols to win that prize</small>
+                </div>
+                <span className="sc3-ticket-top">
+                  <small>Win up to</small>
+                  <b>{compact(topPrize(play.ticket))}</b>
+                </span>
+              </header>
+              <div className="sc-grid-wrap sc3-grid">
+                <div className="sc-grid">
+                  {play.grid.map((sym, i) => (
+                    <div key={i} className={`sc-cell${revealed[i] ? " is-open" : ""}${finished && sym === play.winSymbol ? " is-win" : ""}`}>
+                      <span>{sym}</span>
+                    </div>
+                  ))}
+                </div>
+                {!finished ? <Foil play={play} revealed={revealed} onReveal={onReveal} auto={auto} /> : null}
+                {finished ? (
+                  <div className={`sc3-stamp is-${outcome}`} aria-hidden="true">
+                    {outcome === "win" ? "Winner!" : outcome === "free" ? "Free ticket" : "No win"}
+                  </div>
+                ) : null}
+              </div>
+              <footer className="sc3-ticket-foot">
+                <span className="sc3-barcode" aria-hidden="true" />
+                <span>
+                  No. {play.serial}-{play.ticket.id.toUpperCase()} · {play.ticket.cost.toLocaleString()} {cur.lower}
+                </span>
+              </footer>
+              <Confetti burst={burst} big={!!play.winSymbol && play.payout >= play.ticket.cost * 10} />
             </div>
-            <div className="sc-grid-wrap">
-              <div className="sc-grid">
-                {play.grid.map((sym, i) => (
-                  <div key={i} className={`sc-cell${revealed[i] ? " is-open" : ""}${finished && sym === play.winSymbol ? " is-win" : ""}`}>
-                    <span>{sym}</span>
+          </div>
+
+          <aside className="sc3-side">
+            <div className="sc3-prizes">
+              <h3>Prize key</h3>
+              {[...play.ticket.prizes]
+                .sort((a, b) => b.payout - a.payout)
+                .map((p) => (
+                  <div key={p.symbol} className={finished && p.symbol === play.winSymbol ? "is-hit" : ""}>
+                    <span>
+                      {p.symbol}
+                      {p.symbol}
+                      {p.symbol}
+                    </span>
+                    <b>
+                      {p.payout.toLocaleString()} <LeafEmote size={13} />
+                    </b>
                   </div>
                 ))}
+            </div>
+
+            {finished ? (
+              <div className={`sc3-result is-${outcome}`} role="status">
+                <strong>{outcome === "win" ? "You won!" : outcome === "free" ? "Free ticket!" : "Not this time"}</strong>
+                <span>
+                  {outcome === "lose" ? (
+                    "Better luck on the next one."
+                  ) : (
+                    <>
+                      +<CountUp value={play.payout} /> <LeafEmote size={15} />
+                    </>
+                  )}
+                </span>
               </div>
-              {!finished ? <Foil play={play} revealed={revealed} onReveal={onReveal} auto={auto} /> : null}
-            </div>
-            <div className="sc-ticket-foot">
-              <span>No. {play.serial}-{play.ticket.id.toUpperCase()}</span>
-              <span>Bear Nation Lottery</span>
-            </div>
-            <Confetti burst={burst} big={!!play.winSymbol && play.payout >= play.ticket.cost * 10} />
-          </div>
-
-          {finished ? (
-            <div className={`sc-result is-${outcome}`} role="status">
-              <strong>{outcome === "win" ? "Winner!" : outcome === "free" ? "Free ticket!" : "No luck this time"}</strong>
-              <span>
-                {outcome === "lose" ? (
-                  <>Better luck on the next one.</>
-                ) : (
-                  <>
-                    Three {play.winSymbol} · +<CountUp value={play.payout} /> <LeafEmote size={16} />
-                  </>
-                )}
-              </span>
-            </div>
-          ) : (
-            <p className="sc-tip">Drag across the foil to scratch it off. Find three matching symbols to win.</p>
-          )}
-
-          <div className="sc-stage-actions">
-            {!finished ? (
-              <button type="button" className="sc-btn" onClick={() => setAuto(Date.now())}>
-                <Wand2 size={16} aria-hidden="true" /> Scratch it all
-              </button>
             ) : (
-              <button type="button" className="sc-btn is-primary" disabled={!!busy || balance < play.ticket.cost} onClick={() => buy(play.ticket)}>
-                <RefreshCw size={16} aria-hidden="true" /> Buy another ({play.ticket.cost.toLocaleString()} <LeafEmote size={14} />)
-              </button>
+              <div className="sc3-progress" role="status">
+                <span>
+                  Scratched {open} of 9
+                </span>
+                <i style={{ "--p": open / 9 } as CSSProperties} />
+              </div>
             )}
-          </div>
+
+            <div className="sc3-actions">
+              {!finished ? (
+                <button type="button" className="sc-btn is-primary" onClick={() => setAuto(Date.now())}>
+                  <Wand2 size={16} aria-hidden="true" /> Reveal all
+                </button>
+              ) : (
+                <button type="button" className="sc-btn is-primary" disabled={!!busy || balance < play.ticket.cost} onClick={() => buy(play.ticket)}>
+                  <RefreshCw size={16} aria-hidden="true" /> Buy another · {play.ticket.cost.toLocaleString()} <LeafEmote size={14} />
+                </button>
+              )}
+              <button type="button" className="sc-btn" onClick={() => setPlay(null)} disabled={!finished}>
+                <ArrowLeft size={16} aria-hidden="true" /> All tickets
+              </button>
+              <label className="sc3-instant">
+                <input type="checkbox" checked={instant} onChange={(e) => toggleInstant(e.target.checked)} /> Instant reveal
+              </label>
+            </div>
+            {!finished ? <p className="sc3-tip">Drag across the foil to scratch it. Three of the same symbol wins that prize.</p> : null}
+            {stats}
+          </aside>
         </div>
       ) : (
-        <div className="sc-gallery">
-          <div className={`gm-note${status.nitro ? " is-nitro" : ""}`}>
-            <Gem size={16} aria-hidden="true" />
-            <span>
-              <b>Premium tickets are for Nitro boosters and $10+ supporters.</b>{" "}
-              {status.nitro
-                ? `All ${premium.length} premium tickets (💎 Black Diamond and up) are unlocked for you.`
-                : `💎 Black Diamond and every ticket above it (${premium.length} in all) unlock when you boost the server or support on Patreon as a Prince or Princess ($10).`}{" "}
-              No daily limit on any ticket.
-            </span>
+        <div className="sc3-shop">
+          <div className="sc3-shop-bar">
+            <div className="sc3-tiers" role="tablist" aria-label="Ticket prices">
+              {TIERS.map((x) => (
+                <button key={x.key} type="button" role="tab" aria-selected={tier === x.key} className={tier === x.key ? "is-on" : undefined} onClick={() => setTier(x.key)}>
+                  <b>{x.label}</b>
+                  <small>{cur.text(x.blurb)}</small>
+                </button>
+              ))}
+            </div>
+            <label className="sc3-instant">
+              <input type="checkbox" checked={instant} onChange={(e) => toggleInstant(e.target.checked)} /> Instant reveal
+            </label>
           </div>
-          {TIERS.map((tier) => (
-            <section key={tier.key} className={`sc-tier is-${tier.key}`}>
-              <header>
-                <h2>{tier.label}</h2>
-                <span>{cur.text(tier.blurb)}</span>
-              </header>
-              <div className="sc-tickets">
-                {tickets
-                  .filter((t) => t.tier === tier.key)
-                  .map((t, i) => {
-                    const locked = t.nitro && !status.nitro;
-                    const short = balance < t.cost;
-                    return (
-                      <button
-                        key={t.id}
-                        type="button"
-                        className={`sc-ticket is-card${locked ? " is-locked" : ""}`}
-                        style={{ "--t1": t.colors[0], "--t2": t.colors[1], "--i": i } as CSSProperties}
-                        disabled={!!busy || locked || short}
-                        onClick={() => buy(t)}
-                        title={locked ? "Nitro boosters and $10+ supporters" : short ? `Not enough ${cur.lower}` : `Buy ${t.name}`}
-                      >
-                        <span className="sc-card-shine" aria-hidden="true" />
-                        {t.nitro ? <span className="sc-premium">Premium</span> : null}
-                        <span className="sc-ticket-icon">{t.icon}</span>
-                        <strong>{t.name}</strong>
-                        <small>
-                          Top prize {compact(topPrize(t))} · 1 in {(1 / t.winChance).toFixed(1)}
-                        </small>
-                        <span className="sc-buy">
-                          {busy === t.id ? "Printing…" : locked ? (
-                            <>
-                              <Lock size={13} aria-hidden="true" /> Nitro
-                            </>
-                          ) : (
-                            <>
-                              {t.cost.toLocaleString()} <LeafEmote size={14} />
-                            </>
-                          )}
-                        </span>
-                      </button>
-                    );
-                  })}
-              </div>
-            </section>
-          ))}
+          {stats}
+          {tickets.some((t) => t.tier === tier && t.nitro) ? (
+            <div className={`gm-note${status.nitro ? " is-nitro" : ""}`}>
+              <Gem size={16} aria-hidden="true" />
+              <span>
+                {status.nitro
+                  ? `Premium tickets are unlocked for you (${premium.length} in all, 💎 Black Diamond and up).`
+                  : "Premium tickets (💎 Black Diamond and up) unlock when you boost the server or support on Patreon as a Prince or Princess ($10)."}
+              </span>
+            </div>
+          ) : null}
+          <div className="sc3-grid-shop">
+            {tickets
+              .filter((t) => t.tier === tier)
+              .map((t, i) => (
+                <ShopTicket key={t.id} t={t} i={i} locked={!!t.nitro && !status.nitro} short={balance < t.cost} busy={busy === t.id || (!!busy && busy !== t.id)} onBuy={() => buy(t)} />
+              ))}
+          </div>
         </div>
       )}
 
@@ -515,7 +636,8 @@ export function ScratchOffs({
               </div>
             ))}
             <p className="gm-fine">
-              No daily limit. Black Diamond and every ticket above it are for Nitro boosters and Prince / Princess+ supporters. Most wins are a free ticket (your cost back).
+              The same tickets and odds as /scratchoff in Discord. Each ticket is settled the moment you buy it, so scratching only reveals it. No daily limit. Black Diamond and every ticket above it are
+              for Nitro boosters and Prince / Princess+ supporters. Most wins are a free ticket (your cost back).
             </p>
           </div>
         ) : null}

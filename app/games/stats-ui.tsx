@@ -16,7 +16,7 @@ const compact = (n: number) => {
 const signed = (n: number) => (n > 0 ? `+${compact(n)}` : compact(n));
 const pct = (n: number | null) => (n === null ? "—" : `${(n * 100).toFixed(1)}%`);
 const dayLabel = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString([], { month: "short", day: "numeric" });
-const GAME_ICON: Record<string, string> = { slots: "🎰", blackjack: "🃏", scratchoff: "🎟️", roulette: "🎡", mines: "💣" };
+const GAME_ICON: Record<string, string> = { slots: "🎰", blackjack: "🃏", scratchoff: "🎟️", roulette: "🎡", mines: "💣", crash: "🚀" };
 
 function Kpi({ label, value, sub, tone, icon }: { label: string; value: ReactNode; sub?: ReactNode; tone?: "up" | "down" | "gold"; icon?: ReactNode }) {
   return (

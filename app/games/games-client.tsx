@@ -1,10 +1,13 @@
 "use client";
 
-import { Bomb, Cherry, CircleDot, Dices, Radio, Spade, Ticket as TicketIcon } from "lucide-react";
+import { Bomb, Cherry, CircleDot, Dices, Grid3x3, Radio, Rocket, Spade, Ticket as TicketIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PublicTable } from "../../lib/games/blackjack";
 import type { PublicMines } from "../../lib/games/mines";
 import type { Ticket } from "../../lib/games/scratch";
+import type { WordleState } from "../../lib/games/wordle";
+import { Crash } from "./crash";
+import { Wordle } from "./wordle";
 import { LeafEmote } from "../ui-icons";
 import { BlackjackTable } from "./blackjack";
 import { LiveGames } from "./live";
@@ -15,8 +18,8 @@ import { Slots, type SlotsStatus } from "./slots";
 import { CurrencyName } from "../season-context";
 
 export type ScratchStatus = { nitro: boolean };
-type Game = "blackjack" | "roulette" | "slots" | "mines" | "scratch" | "live";
-const TABS: Game[] = ["blackjack", "roulette", "slots", "mines", "scratch", "live"];
+export type Game = "wordle" | "blackjack" | "roulette" | "slots" | "mines" | "crash" | "scratch" | "live";
+const TABS: Game[] = ["wordle", "blackjack", "roulette", "slots", "mines", "crash", "scratch", "live"];
 // What the "you're mid-game" prompt says before going to Live
 const LEAVE = {
   blackjack: { title: "You're in the middle of a hand", text: "Finish it before you go watch other tables, or stand on what you have and let the dealer play it out.", stay: "Back to my hand", go: "Stand and go to Live" },
@@ -87,6 +90,7 @@ export function GamesClient({
   initialScratch,
   initialSlots,
   initialMines,
+  initialWordle,
   myId,
   tickets,
   minBet,
@@ -99,6 +103,7 @@ export function GamesClient({
   initialScratch: ScratchStatus;
   initialSlots: SlotsStatus;
   initialMines: PublicMines | null;
+  initialWordle: WordleState | null;
   myId: string;
   tickets: Ticket[];
   minBet: number;
@@ -206,7 +211,11 @@ export function GamesClient({
         </div>
       </header>
 
-      <nav className="gm-tabs" role="tablist" aria-label="Games">
+      <nav className="gm-tabs" role="tablist" aria-label="Games" style={{ "--gm-tabs": TABS.length } as React.CSSProperties}>
+        <button type="button" role="tab" aria-selected={game === "wordle"} className={`gm-tab-daily${game === "wordle" ? " is-on" : ""}`} onClick={() => pick("wordle")}>
+          <Grid3x3 size={16} aria-hidden="true" /> Wordle
+          {initialWordle?.status === "ready" || initialWordle?.status === "playing" ? <span className="gm-tab-dot" title="Today's word is ready" /> : null}
+        </button>
         <button type="button" role="tab" aria-selected={game === "blackjack"} className={game === "blackjack" ? "is-on" : ""} onClick={() => pick("blackjack")}>
           <Spade size={16} aria-hidden="true" /> Blackjack
         </button>
@@ -218,6 +227,9 @@ export function GamesClient({
         </button>
         <button type="button" role="tab" aria-selected={game === "mines"} className={game === "mines" ? "is-on" : ""} onClick={() => pick("mines")}>
           <Bomb size={16} aria-hidden="true" /> Mines
+        </button>
+        <button type="button" role="tab" aria-selected={game === "crash"} className={game === "crash" ? "is-on" : ""} onClick={() => pick("crash")}>
+          <Rocket size={16} aria-hidden="true" /> Crash
         </button>
         <button type="button" role="tab" aria-selected={game === "scratch"} className={game === "scratch" ? "is-on" : ""} onClick={() => pick("scratch")}>
           <TicketIcon size={16} aria-hidden="true" /> <span className="gm-tab-long">Scratch-offs</span>
@@ -234,6 +246,9 @@ export function GamesClient({
 
       {/* Every game stays mounted while you look at another, so a hand or a ticket is right where you left it */}
       <div className="gm-stage">
+        <div hidden={game !== "wordle"}>
+          <Wordle initial={initialWordle} active={game === "wordle"} onBalance={setBalance} />
+        </div>
         <div hidden={game !== "blackjack"}>
           <BlackjackTable initialTable={initialTable} balance={balance} onBalance={setBalance} minBet={minBet} viewers={audience.blackjack} onActive={onBjActive} control={bjControl} />
         </div>
@@ -243,6 +258,9 @@ export function GamesClient({
         </div>
         <div hidden={game !== "mines"}>
           <Mines initial={initialMines} balance={balance} onBalance={setBalance} viewers={audience.mines} onActive={onMnActive} control={mnControl} />
+        </div>
+        <div hidden={game !== "crash"}>
+          <Crash balance={balance} onBalance={setBalance} active={game === "crash"} />
         </div>
         <div hidden={game !== "scratch"}>
           <ScratchOffs tickets={tickets} balance={balance} onBalance={setBalance} initialStatus={initialScratch} viewers={audience.scratch} onActive={onScActive} control={scControl} />

@@ -1,0 +1,170 @@
+/* Crash (app/games/crash.tsx): a night-sky screen with the climbing curve, and the bet panel beside it */
+.cr { display: grid; gap: 1rem; }
+.cr-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 18.5rem;
+  gap: 1rem;
+  align-items: stretch;
+}
+.cr-screen {
+  --cr-axis: rgba(200, 214, 255, 0.55);
+  position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 25rem;
+  overflow: hidden;
+  border-radius: 28px;
+  background:
+    radial-gradient(1px 1px at 12% 22%, #fff8, transparent),
+    radial-gradient(1px 1px at 68% 14%, #fff9, transparent),
+    radial-gradient(1.5px 1.5px at 84% 38%, #fff7, transparent),
+    radial-gradient(1px 1px at 34% 62%, #fff6, transparent),
+    radial-gradient(1px 1px at 52% 30%, #fff5, transparent),
+    radial-gradient(circle at 80% 0%, rgba(180, 108, 255, 0.28), transparent 55%),
+    radial-gradient(circle at 0% 100%, rgba(255, 178, 30, 0.18), transparent 55%),
+    linear-gradient(180deg, #0f1430, #070a18);
+  box-shadow: inset 0 0 0 1px rgba(160, 180, 255, 0.18), 0 20px 40px rgba(0, 0, 0, 0.35);
+  color: #fff;
+  transition: box-shadow 0.3s ease;
+}
+.cr-screen.is-live { box-shadow: inset 0 0 0 1px rgba(255, 178, 30, 0.45), 0 20px 50px rgba(255, 140, 0, 0.18); }
+.cr-screen.is-crashed { animation: cr-shake 0.4s ease; box-shadow: inset 0 0 0 1px rgba(229, 72, 77, 0.6), 0 20px 50px rgba(229, 72, 77, 0.2); }
+.cr-screen.is-cashed { box-shadow: inset 0 0 0 1px rgba(61, 220, 132, 0.55), 0 20px 50px rgba(61, 220, 132, 0.18); }
+@keyframes cr-shake { 25% { transform: translateX(-5px); } 50% { transform: translateX(5px); } 75% { transform: translateX(-3px); } }
+
+.cr-recent {
+  display: flex;
+  gap: 0.35rem;
+  overflow: hidden;
+  padding: 0.85rem 0.9rem 0;
+  mask-image: linear-gradient(90deg, #000 85%, transparent);
+}
+.cr-recent span {
+  flex: none;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  padding: 0.22rem 0.55rem;
+}
+.cr-recent .is-low { background: rgba(229, 72, 77, 0.2); color: #ff8a8e; }
+.cr-recent .is-mid { background: rgba(61, 220, 132, 0.18); color: #6ff0a6; }
+.cr-recent .is-high { background: rgba(255, 213, 106, 0.2); color: #ffd56a; }
+.cr-recent .is-empty { color: rgba(255, 255, 255, 0.5); font-weight: 600; }
+
+.cr-graph { width: 100%; height: 100%; min-height: 20rem; }
+.cr-readout {
+  position: absolute;
+  top: 3.2rem;
+  left: 50%;
+  display: grid;
+  justify-items: center;
+  gap: 0.2rem;
+  pointer-events: none;
+  transform: translateX(-50%);
+  text-align: center;
+}
+.cr-readout strong {
+  font-size: clamp(2.8rem, 8vw, 4.6rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  text-shadow: 0 6px 30px rgba(255, 178, 30, 0.35);
+}
+.cr-readout strong.is-crashed { color: #ff5a60; text-shadow: 0 6px 30px rgba(229, 72, 77, 0.45); }
+.cr-readout strong.is-cashed { color: #3ddc84; text-shadow: 0 6px 30px rgba(61, 220, 132, 0.4); }
+.cr-readout span { color: rgba(255, 255, 255, 0.75); font-size: 0.92rem; font-weight: 700; }
+
+.cr-panel {
+  display: grid;
+  align-content: start;
+  gap: 0.8rem;
+  border: 1px solid var(--glass-border, var(--line));
+  border-radius: 24px;
+  background: var(--glass, var(--panel));
+  padding: 1.1rem;
+}
+.cr-field { display: grid; gap: 0.35rem; }
+.cr-field > span { color: var(--muted); font-size: 0.78rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.cr-auto-head { display: flex; align-items: center; justify-content: space-between; }
+.cr-auto-head label { display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer; }
+.cr-input {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  background: var(--panel);
+  padding: 0 0.8rem;
+}
+.cr-input:focus-within { border-color: rgba(var(--ember-rgb), 0.7); }
+.cr-input.is-off { opacity: 0.55; }
+.cr-input input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  padding: 0.65rem 0;
+  outline: none;
+}
+.cr-input b { color: var(--muted); }
+.cr-chips { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.3rem; }
+.cr-chips button {
+  border: 1px solid var(--line);
+  border-radius: 0.7rem;
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  padding: 0.42rem 0;
+}
+.cr-chips button:hover:not(:disabled) { border-color: rgba(var(--ember-rgb), 0.6); }
+.cr-chips button:disabled { opacity: 0.45; cursor: default; }
+.cr-go {
+  display: grid;
+  justify-items: center;
+  gap: 0.15rem;
+  border: 0;
+  border-radius: 1.1rem;
+  background: linear-gradient(135deg, #ffb21e, #ff6a00);
+  box-shadow: 0 12px 26px rgba(255, 120, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  color: #1a0d00;
+  cursor: pointer;
+  font: inherit;
+  font-size: 1.15rem;
+  font-weight: 900;
+  padding: 0.85rem 1rem;
+  transition: transform 0.1s ease, filter 0.15s ease;
+}
+.cr-go > svg { display: inline; margin-right: 0.3rem; vertical-align: -3px; }
+.cr-go small { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.78rem; font-weight: 700; opacity: 0.75; }
+.cr-go:hover:not(:disabled) { filter: brightness(1.06); }
+.cr-go:active:not(:disabled) { transform: scale(0.98); }
+.cr-go:disabled { cursor: default; filter: grayscale(0.6); opacity: 0.6; }
+.cr-go.is-cash {
+  background: linear-gradient(135deg, #3ddc84, #14a35a);
+  box-shadow: 0 12px 30px rgba(61, 220, 132, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  color: #03230f;
+  animation: cr-pulse 1s ease-in-out infinite;
+}
+.cr-go.is-cash small { font-size: 1rem; font-weight: 900; opacity: 1; }
+@keyframes cr-pulse { 50% { box-shadow: 0 12px 40px rgba(61, 220, 132, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.35); } }
+.cr-last { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; margin: 0; font-size: 0.88rem; }
+.cr-last.is-cashed b { color: #3e9b51; }
+.cr-last.is-bust b { color: #e5484d; }
+:root:not([data-theme="light"]) .cr-last.is-cashed b { color: #6ff0a6; }
+.cr-limits { margin: 0; color: var(--muted); font-size: 0.78rem; }
+
+@media (max-width: 900px) {
+  .cr-stage { grid-template-columns: minmax(0, 1fr); }
+  .cr-screen { min-height: 20rem; }
+  .cr-graph { min-height: 16rem; }
+}

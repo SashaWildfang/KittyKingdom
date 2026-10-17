@@ -8,7 +8,7 @@ import { getBotCollection } from "../mongodb";
 import { num, userFilter } from "./core";
 
 const TZ = "America/Denver";
-export const GAME_LABELS: Record<string, string> = { slots: "Slots", blackjack: "Blackjack", scratchoff: "Scratch-offs", roulette: "Roulette", mines: "Mines" };
+export const GAME_LABELS: Record<string, string> = { slots: "Slots", blackjack: "Blackjack", scratchoff: "Scratch-offs", roulette: "Roulette", mines: "Mines", crash: "Crash" };
 const gameOf = (g: unknown) => (typeof g === "string" && g ? g : "slots");
 
 let indexed: Promise<unknown> | null = null;

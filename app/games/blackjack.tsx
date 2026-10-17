@@ -250,10 +250,12 @@ export function BlackjackTable({
     };
   }, [control, watch, onBalance]);
 
-  // Keyboard: H hit, S stand, D double, P split, Enter deal
+  // Keyboard: H hit, S stand, D double, P split, Enter deal (only while the table is on screen)
+  const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (watch) return;
     const onKey = (e: KeyboardEvent) => {
+      if (!root.current?.offsetParent) return;
       if ((e.target as HTMLElement)?.tagName === "INPUT" || e.metaKey || e.ctrlKey) return;
       const k = e.key.toLowerCase();
       if (playing) {
@@ -275,7 +277,7 @@ export function BlackjackTable({
   const currentBet = table?.hands[table.index]?.bet ?? bet;
 
   return (
-    <div className="bj">
+    <div className="bj" ref={root}>
       <div className={`bj-table${done && showResult ? ` is-${outcome}` : ""}`}>
         <div className="bj-rim" aria-hidden="true" />
         {viewers > 0 ? (
