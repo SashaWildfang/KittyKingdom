@@ -3,6 +3,7 @@
 
 import { ObjectId, type Collection, type Document } from "mongodb";
 import { sendDatingDm } from "./dating/dm";
+import { sendSocialEmail } from "./email-jobs";
 import { getSettings } from "./dating/settings";
 import { getMongoClient } from "./mongodb";
 
@@ -23,6 +24,8 @@ export async function notify(to: string, n: { type: NotificationType; actor?: st
   // Members choose which kinds they get in the bell and which also come as Discord DMs (Settings → Notifications)
   const settings = n.type === "system" ? null : await getSettings(to).catch(() => null);
   if (settings) await sendDatingDm(to, settings, n).catch(() => undefined);
+  // …and which come by email (Settings → Email: matches, messages, friend requests)
+  await sendSocialEmail(to, n).catch(() => undefined);
   // Super Likes follow the "Someone likes you" setting
   const pref = n.type === "superlike" ? "like" : n.type;
   if (settings?.notify[pref as keyof typeof settings.notify] === false) return;

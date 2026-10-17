@@ -1,20 +1,20 @@
 import { requireTwoFactorForAction } from "../../../../../lib/admin-2fa";
 import { NextResponse } from "next/server";
-import { requireAdmin, transcriptToken } from "../../../../../lib/admin";
+import { requireAdmin, requirePanel, transcriptToken } from "../../../../../lib/admin";
 import { people } from "../../../../../lib/admin-people";
 import { TicketDeleteError, deleteTicket } from "../../../../../lib/ticket-delete";
-import { getTicket } from "../../../../../lib/tickets";
+import { getTicket, isNsfwTicket } from "../../../../../lib/tickets";
 import { warmTranscript } from "../../../../../lib/transcript-store";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
-/** One ticket, with a signed link to view its transcript and a fresh zip download link. */
+/** One ticket, with a signed link to view its transcript and a fresh zip download link. All staff (NSFW: admins only). */
 export async function GET(request: Request, { params }: { params: { ticketId: string } }) {
-  const admin = await requireAdmin(request);
-  if (admin instanceof NextResponse) return admin;
+  const panel = await requirePanel(request);
+  if (panel instanceof NextResponse) return panel;
   const ticket = await getTicket(Number(params.ticketId));
-  if (!ticket) return NextResponse.json({ ok: false, error: "Ticket not found." }, { status: 404 });
+  if (!ticket || (panel.level !== "admin" && isNsfwTicket(ticket.type))) return NextResponse.json({ ok: false, error: "Ticket not found." }, { status: 404 });
 
   const download = ticket.transcriptId ? await warmTranscript(ticket.transcriptId).catch(() => null) : null;
   const viewer = ticket.transcriptId && download

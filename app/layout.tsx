@@ -5,6 +5,7 @@ import "./polish.css";
 import "./glass.css";
 import "./page-layouts.css";
 import "./light-mode.css";
+import "./device-prefs.css";
 import { Inter } from "next/font/google";
 import { PageTracker } from "./page-tracker";
 import { TimeZoneSync } from "./time-zone-sync";
@@ -64,8 +65,9 @@ export default async function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            // Saved "light"/"dark", or follow the device (the default, "System")
-            __html: `(function(){var t;try{t=localStorage.getItem("kitty-theme")}catch(e){}if(t!=="light"&&t!=="dark"){t=window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}document.documentElement.dataset.theme=t;var s;try{s=localStorage.getItem("kk-season-preview")}catch(e){}if(s==="spring"||s==="summer"||s==="fall"||s==="winter"){document.documentElement.dataset.season=s}})()`,
+            // Saved "light"/"dark", or follow the device (the default, "System"); then this browser's
+            // text size, motion and seasonal-effects choices (Settings → Appearance, app/device-prefs.ts)
+            __html: `(function(){var t;try{t=localStorage.getItem("kitty-theme")}catch(e){}if(t!=="light"&&t!=="dark"){t=window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}document.documentElement.dataset.theme=t;var s;try{s=localStorage.getItem("kk-season-preview")}catch(e){}if(s==="spring"||s==="summer"||s==="fall"||s==="winter"){document.documentElement.dataset.season=s}var d=document.documentElement.dataset;try{var x=localStorage.getItem("kk-text");if(x==="small"||x==="large"||x==="xl")d.text=x;x=localStorage.getItem("kk-motion");if(x==="reduce"||x==="full")d.motion=x;if(localStorage.getItem("kk-fx")==="off")d.fx="off"}catch(e){}})()`,
           }}
         />
       </head>

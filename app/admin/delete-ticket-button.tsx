@@ -5,6 +5,8 @@ import { createContext, useContext, useState } from "react";
 
 /** True only for the owner, who alone may delete NSFW verification tickets (the server checks too). */
 export const TicketDeletePermissions = createContext(false);
+/** True for admins. Other staff can look at tickets but not delete them (the server checks too). */
+export const TicketCanDelete = createContext(false);
 
 /**
  * Delete a closed ticket and its transcript (Admins). Asks to confirm first. NSFW tickets can only
@@ -24,9 +26,10 @@ export function DeleteTicketButton({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const ownerMayDeleteNsfw = useContext(TicketDeletePermissions);
+  const canDelete = useContext(TicketCanDelete);
   const nsfw = /nsfw/i.test(ticket.type);
 
-  if (ticket.status === "Open") return null;
+  if (ticket.status === "Open" || !canDelete) return null;
   if (nsfw && !ownerMayDeleteNsfw) {
     return (
       <span className="adm-ticket-locked" title="Only the owner can delete NSFW verification tickets" aria-label="NSFW tickets can't be deleted">

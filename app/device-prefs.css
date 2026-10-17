@@ -1,0 +1,29 @@
+/* Settings → Appearance options for this browser (app/device-prefs.ts) */
+html[data-text="small"] {
+  font-size: 93.75%;
+}
+html[data-text="large"] {
+  font-size: 112.5%;
+}
+html[data-text="xl"] {
+  font-size: 125%;
+}
+
+/* Reduce motion: animations and transitions finish instantly */
+html[data-motion="reduce"] *,
+html[data-motion="reduce"] *::before,
+html[data-motion="reduce"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  animation-delay: 0s !important;
+  transition-duration: 0.001ms !important;
+  transition-delay: 0s !important;
+  scroll-behavior: auto !important;
+}
+
+/* Seasonal effects off: no drifting particles, embers or click bursts */
+html[data-fx="off"] .sb-canvas,
+html[data-fx="off"] .fx-embers,
+html[data-fx="off"] .fx-burst {
+  display: none !important;
+}

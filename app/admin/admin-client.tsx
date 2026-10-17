@@ -1,6 +1,6 @@
 "use client";
 
-import { TicketDeletePermissions } from "./delete-ticket-button";
+import { TicketCanDelete, TicketDeletePermissions } from "./delete-ticket-button";
 import { Activity, Archive, AtSign, Database, CalendarDays, Gift, SunSnow, BarChart3, Bot, Coins, History, Megaphone, Server, Shield as ShieldIcon, BookOpen, Crown, Hammer, ClipboardCheck, ListChecks, TerminalSquare, Dices, Gavel, Globe, HeartHandshake, Mail, MessagesSquare, Newspaper, Scale, ScrollText, ShieldCheck, Ticket, Users, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -74,7 +74,7 @@ const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean; giveaw
   { key: "patreon", label: "Patreon", icon: Crown, admin: true },
   { key: "live", label: "Live Chat", icon: MessagesSquare },
   { key: "removed", label: "Removed messages", icon: Archive, admin: true },
-  { key: "tickets", label: "Tickets", icon: Ticket, admin: true },
+  { key: "tickets", label: "Tickets", icon: Ticket },
   { key: "accounts", label: "Accounts", icon: Users, admin: true },
   { key: "emails", label: "Emails", icon: AtSign, admin: true },
   { key: "news", label: "News", icon: Newspaper, admin: true },
@@ -131,8 +131,8 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
   useEffect(() => {
     if (tab === "automod") setAutomodUnread(0);
   }, [tab]);
-  // Open tickets right now (admins), for the bubble on the Tickets tab
-  const openTicketsPoll = useLive<{ count: number }>(isAdmin ? "/api/admin/tickets/open?count=1" : null, 15_000);
+  // Open tickets right now, for the bubble on the Tickets tab (staff don't count NSFW verification tickets)
+  const openTicketsPoll = useLive<{ count: number }>("/api/admin/tickets/open?count=1", 15_000);
   const openTickets = openTicketsPoll.data?.count ?? 0;
   // News posts waiting for review (admins)
   const newsPoll = useLive<{ pending: number }>(isAdmin && tab !== "news" ? "/api/admin/news?status=pending" : null, 30_000);
@@ -192,7 +192,7 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
     const t = params.get("tab") as Tab | null;
     if (t && tabs.some((x) => x.key === t)) setTab(t);
     if (params.get("member")) setMember(params.get("member"));
-    if (isAdmin && params.get("ticket")) setTranscript(Number(params.get("ticket")));
+    if (params.get("ticket")) setTranscript(Number(params.get("ticket")));
     const c = /^(\d{15,21})-(\d{15,21})$/.exec(params.get("chat") ?? "");
     if (isAdmin && c) setChat({ a: c[1], b: c[2] });
     setUrlRead(true);
@@ -219,13 +219,13 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
   }, [tab, member, transcript, urlRead, chat]);
 
   const openMember = useCallback((id: string) => setMember(id), []);
-  const openTranscript = useCallback((id: number) => isAdmin && setTranscript(id), [isAdmin]);
+  const openTranscript = useCallback((id: number) => setTranscript(id), []);
 
   function submitLookup(text: string) {
     const value = text.trim().replace(/[<@!>]/g, "");
     if (/^\d{15,21}$/.test(value)) {
       setMember(value);
-    } else if (isAdmin && /^#?\d{1,6}$/.test(value)) {
+    } else if (/^#?\d{1,6}$/.test(value)) {
       setTranscript(Number(value.replace("#", "")));
     } else if (value) {
       setPunishmentFilters((f) => ({ ...f, search: value, member: null }));
@@ -236,6 +236,7 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
 
   return (
     <TicketDeletePermissions.Provider value={canDeleteNsfw}>
+    <TicketCanDelete.Provider value={isAdmin}>
     <div className="adm">
       <header className="adm-head">
         <div className="adm-head-copy">
@@ -255,7 +256,7 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
             setMember(m.id);
           }}
           onSubmit={submitLookup}
-          placeholder={isAdmin ? "Find a member, ID, @mention or ticket #" : "Find a member, ID or @mention"}
+          placeholder="Find a member, ID, @mention or ticket #"
         />
       </header>
 
@@ -317,7 +318,7 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
       {tab === "banrequests" ? <BanRequestsTab onOpenMember={openMember} /> : null}
       {isAdmin && tab === "appeals" ? <AppealsTab onOpenMember={openMember} /> : null}
       {isAdmin && tab === "messages" ? <MessagesTab chat={chat} onChat={setChat} filter={chatFilter} onFilter={setChatFilter} onOpenMember={openMember} /> : null}
-      {isAdmin && tab === "tickets" ? <TicketsTab typesAvailable={meta?.ticketTypes ?? []} onOpenMember={openMember} onOpenTranscript={openTranscript} /> : null}
+      {tab === "tickets" ? <TicketsTab typesAvailable={meta?.ticketTypes ?? []} readOnly={!isAdmin} onOpenMember={openMember} onOpenTranscript={openTranscript} /> : null}
       {isAdmin && tab === "accounts" ? <AccountsTab onOpenMember={openMember} /> : null}
       {isAdmin && tab === "patreon" ? <PatreonTab onOpenMember={openMember} /> : null}
       {isAdmin && tab === "emails" ? <EmailsTab /> : null}
@@ -379,10 +380,11 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
                 openMember(id);
               }}
             />, document.body) : null}
-      {transcript && isAdmin
+      {transcript
         ? createPortal(<TranscriptViewer ticketId={transcript} onClose={() => setTranscript(null)} onOpenMember={openMember} />, document.body)
         : null}
     </div>
+    </TicketCanDelete.Provider>
     </TicketDeletePermissions.Provider>
   );
 }

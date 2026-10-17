@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "../../../../lib/admin";
+import { requirePanel } from "../../../../lib/admin";
 import { dateRange, listParam, people } from "../../../../lib/admin-people";
 import { queryTickets, type TicketQuery } from "../../../../lib/tickets";
 
@@ -7,8 +7,9 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 15;
 
 export async function GET(request: Request) {
-  const admin = await requireAdmin(request);
-  if (admin instanceof NextResponse) return admin;
+  // All staff can look (read only); NSFW verification tickets are admins only
+  const panel = await requirePanel(request);
+  if (panel instanceof NextResponse) return panel;
   try {
     const params = new URL(request.url).searchParams;
     const { from, to } = dateRange(params);
@@ -26,6 +27,7 @@ export async function GET(request: Request) {
       page: Number(params.get("page") ?? 1),
       pageSize: Number(params.get("pageSize") ?? 25),
       summary: params.get("summary") === "1",
+      excludeNsfw: panel.level !== "admin",
     });
     const who = await people([
       ...result.rows.flatMap((t) => [t.openedBy, t.claimedBy, t.resolvedBy]),
