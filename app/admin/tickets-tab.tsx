@@ -64,9 +64,20 @@ function useTicketSummaries(rows: Ticket[]) {
     }
   };
 
+  // Loads the saved ones and writes what's missing or outdated. Runs when the rows change, and every few
+  // minutes while open tickets are on screen (they may have new messages).
+  const [tick, setTick] = useState(0);
+  const hasOpen = rows.some((r) => r.status === "Open");
+  useEffect(() => {
+    if (!hasOpen) return;
+    const t = window.setInterval(() => document.visibilityState === "visible" && setTick((n) => n + 1), 5 * 60_000);
+    return () => window.clearInterval(t);
+  }, [hasOpen]);
+
   useEffect(() => {
     if (!rows.length) return;
     let cancelled = false;
+    const todo: number[] = [];
     (async () => {
       const r = await fetch(`/api/admin/tickets/summaries?ids=${rows.map((t) => t.ticketId).join(",")}`, { cache: "no-store" }).then((x) => x.json()).catch(() => null);
       if (cancelled || !r?.ok) return;
@@ -79,18 +90,28 @@ function useTicketSummaries(rows: Ticket[]) {
       });
       if (!r.enabled) return;
       // Missing or outdated ones (only tickets there's something to read for), two at a time
-      const todo = rows.filter((t) => (t.transcriptId || t.status === "Open") && (!saved[t.ticketId] || saved[t.ticketId].stale) && !queued.current.has(t.ticketId)).map((t) => t.ticketId);
-      todo.forEach((id) => queued.current.add(id));
+      for (const t of rows) {
+        if ((t.transcriptId || t.status === "Open") && (!saved[t.ticketId] || saved[t.ticketId].stale) && !queued.current.has(t.ticketId)) {
+          todo.push(t.ticketId);
+          queued.current.add(t.ticketId);
+        }
+      }
       const worker = async () => {
-        while (todo.length && !cancelled) await write(todo.shift()!);
+        while (todo.length && !cancelled) {
+          const id = todo.shift()!;
+          await write(id);
+          queued.current.delete(id);
+        }
       };
       await Promise.all([worker(), worker()]);
     })();
     return () => {
       cancelled = true;
+      // Not written yet: free them so the next run (another page, a later check) can pick them up
+      todo.forEach((id) => queued.current.delete(id));
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
+  }, [key, tick]);
 
   return { enabled, state, refresh: (id: number) => write(id, true) };
 }

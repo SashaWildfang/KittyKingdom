@@ -208,8 +208,14 @@ export async function summarizeTicket(ticketId: number, panel: PanelUser, force 
     return view({ ...saved, checkedAt: new Date() }, false);
   }
 
-  const since = new Date(Date.now() - 86_400_000);
-  if ((await c.countDocuments({ generatedAt: { $gte: since } })) >= DAILY_LIMIT) throw new SummaryError(`The daily limit of ${DAILY_LIMIT} ticket summaries has been reached. Try again tomorrow.`, 429);
+  // Every call to the AI counts (refreshes too), per UTC day
+  const usage = (await getMongoClient()).db(process.env.MONGODB_DB ?? "website").collection<{ _id: string; n: number }>("ai_usage");
+  const day = `ticket-summary:${new Date().toISOString().slice(0, 10)}`;
+  const used = await usage.findOneAndUpdate({ _id: day }, { $inc: { n: 1 } }, { upsert: true, returnDocument: "after" });
+  if ((used?.n ?? 1) > DAILY_LIMIT) {
+    await usage.updateOne({ _id: day }, { $inc: { n: -1 } });
+    throw new SummaryError(`The daily limit of ${DAILY_LIMIT} ticket summaries has been reached. Try again tomorrow.`, 429);
+  }
 
   // Screenshots: the member's and staff's own images first, never any from NSFW verification tickets
   const refs = new Map<string, number>();
