@@ -140,3 +140,4 @@
    floating, so the scrolling dialog never cuts the list off */
 .ce-modal .bs-picker-menu, .ce-drawer .bs-picker-menu { position: static; margin-top: 0.35rem; box-shadow: none; }
 .ce-modal .bs-picker-menu ul, .ce-drawer .bs-picker-menu ul { max-height: min(16rem, 40vh); overscroll-behavior: contain; }
+.ce-preview .xp-emote { width: 1.15em; height: 1.15em; }
