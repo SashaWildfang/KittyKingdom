@@ -65,7 +65,7 @@ let channelCache: { at: number; map: Map<string, string> } | null = null;
 async function channelNames() {
   if (channelCache && Date.now() - channelCache.at < 10 * 60_000) return channelCache.map;
   const list = await getGuildChannelsRaw().catch(() => []);
-  const map = new Map(list.map((ch) => [ch.id, `${ch.type === 2 ? "🔊 " : "#"}${ch.name}`]));
+  const map = new Map(list.map((ch) => [ch.id, ch.type === 2 ? `${ch.name} (voice)` : `#${ch.name}`]));
   if (map.size) channelCache = { at: Date.now(), map };
   return map;
 }
@@ -1751,7 +1751,7 @@ add({
         { label: "Giveaways", value: fmt(gws.reduce((a, r) => a + n(r.v), 0)) },
       ],
       main: { kind: "leaderboard", title: "News posts", rows: news.map((r) => ({ label: String(r._id), value: n(r.v), note: `${fmt(n(r.views))} views` })) },
-      side: { kind: "leaderboard", title: "Events hosted & giveaways run", rows: [...events.map((r) => ({ label: `📅 ${String(r._id)}`, value: n(r.v) })), ...gws.map((r) => ({ label: `🎁 ${/^\d+$/.test(String(r._id)) ? gwNames(String(r._id)) : "Staff"}`, value: n(r.v) }))].sort((a, b) => b.value - a.value).slice(0, 10) },
+      side: { kind: "leaderboard", title: "Events hosted & giveaways run", rows: [...events.map((r) => ({ label: String(r._id), value: n(r.v), note: "events" })), ...gws.map((r) => ({ label: /^\d+$/.test(String(r._id)) ? gwNames(String(r._id)) : "Staff", value: n(r.v), note: "giveaways" }))].sort((a, b) => b.value - a.value).slice(0, 10) },
     };
   },
 });

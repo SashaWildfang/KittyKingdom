@@ -17,7 +17,8 @@
 .gx-list button { display: flex; align-items: flex-start; gap: 0.6rem; border: 1px solid transparent; border-radius: 12px; background: none; color: var(--text); cursor: pointer; font: inherit; padding: 0.5rem 0.6rem; text-align: left; }
 .gx-list button:hover { background: rgba(var(--ember-rgb), 0.07); }
 .gx-list button.is-on { border-color: rgba(var(--ember-rgb), 0.55); background: rgba(var(--ember-rgb), 0.13); }
-.gx-list-emoji { flex: none; font-size: 1.05rem; line-height: 1.3; }
+.gx-list-icon { display: grid; place-items: center; flex: none; width: 1.9rem; height: 1.9rem; border-radius: 0.6rem; background: rgba(var(--ember-rgb), 0.12); color: rgb(var(--ember-rgb)); }
+.gx-list button.is-on .gx-list-icon { background: rgb(var(--ember-rgb)); color: #fff; }
 .gx-list b { display: block; font-size: 0.88rem; }
 .gx-list small { display: block; color: var(--muted); font-size: 0.74rem; line-height: 1.35; }
 .gx-none { margin: 0.6rem; color: var(--muted); font-size: 0.85rem; }
