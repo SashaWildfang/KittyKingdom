@@ -31997,3 +31997,12 @@ a.apl-chip {
 /* Posts without a cover image get a small tag-coloured icon instead of an empty picture box */
 .nw2-row:has(.nw2-icon) { grid-template-columns: 3.2rem minmax(0, 1fr); }
 .nw2-row .nw2-icon { width: 3.2rem; height: 3.2rem; border-radius: 0.9rem; }
+
+/* The XP emoji: sized to the text around it (a bit bigger than the text, so it's easy to make out) */
+.xp-emote {
+  width: 1.45em;
+  height: 1.45em;
+  margin: 0 0.05em;
+  vertical-align: -0.38em;
+}
+.xp-amount { white-space: nowrap; }

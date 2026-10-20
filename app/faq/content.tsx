@@ -296,13 +296,13 @@ export const TOPICS: Topic[] = [
               <b>Golden Leaf (Nitro) role</b> and a shiny booster badge
             </li>
             <li>
-              <b>{NITRO.perBoost.toLocaleString()} <CurrencyName /></b> every time you boost, plus <b>{NITRO.monthly.toLocaleString()} <CurrencyName /> and a Streak Shield</b> every month
+              <b>{NITRO.perBoost.toLocaleString()} <LeafEmote size={15} /></b> every time you boost, plus <b>{NITRO.monthly.toLocaleString()} <LeafEmote size={15} /> and a Streak Shield</b> every month
             </li>
             <li>
               <b>{pct(NITRO.leaf)} <CurrencyName /> and {pct(NITRO.xp)} XP</b> on everything you earn
             </li>
             <li>
-              <b>Daily streaks:</b> +100 to +700 extra <CurrencyName /> on your Daily Reward
+              <b>Daily streaks:</b> +100 to +700 extra <LeafEmote size={15} /> on your Daily Reward
             </li>
             <li>
               <b>Spin up to 25 slots</b> at a time
@@ -350,7 +350,7 @@ export const TOPICS: Topic[] = [
                 </small>
                 <b>{t.name}</b>
                 <span>
-                  {t.monthly.toLocaleString()} <CurrencyName /> a month · {pct(t.xp)} XP · {pct(t.leaf)} <CurrencyName />
+                  {t.monthly.toLocaleString()} <LeafEmote size={15} /> a month · {pct(t.xp)} XP · {pct(t.leaf)} <CurrencyName />
                 </span>
                 <em>
                   +{t.daily} on every Daily Reward{t.customRole ? " · custom role" : ""}{t.roleExtras ? " (holographic + icon)" : ""}{t.premiumGames ? " · premium games" : ""}

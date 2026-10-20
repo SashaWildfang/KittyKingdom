@@ -515,7 +515,7 @@ export function ScratchOffs({
               <footer className="sc3-ticket-foot">
                 <span className="sc3-barcode" aria-hidden="true" />
                 <span>
-                  No. {play.serial}-{play.ticket.id.toUpperCase()} · {play.ticket.cost.toLocaleString()} {cur.lower}
+                  No. {play.serial}-{play.ticket.id.toUpperCase()} · {play.ticket.cost.toLocaleString()} <LeafEmote size={13} />
                 </span>
               </footer>
               <Confetti burst={burst} big={!!play.winSymbol && play.payout >= play.ticket.cost * 10} />
@@ -631,7 +631,7 @@ export function ScratchOffs({
                 <b>
                   {t.icon} {t.name}
                 </b>{" "}
-                · {t.cost.toLocaleString()} {cur.lower} · wins {(t.winChance * 100).toFixed(0)}% of the time
+                · {t.cost.toLocaleString()} <LeafEmote size={13} /> · wins {(t.winChance * 100).toFixed(0)}% of the time
                 <span>{t.prizes.map((p) => `${p.symbol} ${p.payout.toLocaleString()}`).join("  ·  ")}</span>
               </div>
             ))}

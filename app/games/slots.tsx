@@ -388,7 +388,7 @@ function Paytable() {
       </ul>
       <p>
         Any <b>two matching</b> symbols give your bet back (26% of spins). Three different symbols lose (62%). Overall the machine pays back about 95% of what's bet. Every losing spin goes into the progressive jackpot, and three gold mice
-        win all of it. Minimum bet 50 <CurrencyName lower /> a spin. Nitro boosters and Prince / Princess+ supporters can spin up to 25 times at once. Same machine and jackpot as /slots in Discord.
+        win all of it. Minimum bet 50 <LeafEmote size={14} /> a spin. Nitro boosters and Prince / Princess+ supporters can spin up to 25 times at once. Same machine and jackpot as /slots in Discord.
       </p>
     </div>
   );

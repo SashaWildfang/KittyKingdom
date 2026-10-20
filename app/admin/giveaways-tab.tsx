@@ -80,7 +80,7 @@ function relative(iso: string | null, now: number) {
 const when = (d: Date) => d.toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 function prizeLabel(p: Prize) {
-  if (p.type === "leaves") return `${(p.amount ?? 0).toLocaleString()} Leaves`;
+  if (p.type === "leaves") return `${(p.amount ?? 0).toLocaleString()} 🍁`;
   if (p.type === "xp") return `${(p.amount ?? 0).toLocaleString()} XP`;
   if (p.type === "item") return `${(p.quantity ?? 1) > 1 ? `${p.quantity}× ` : ""}${p.itemName ?? p.itemId}`;
   return p.text || "Custom prize";
@@ -236,8 +236,8 @@ export function GiveawaysTab() {
         <p className="gw-limits">
           <ShieldCheck size={15} aria-hidden="true" />
           <span>
-            You can run giveaways up to <b>{data.limits.maxLeaves.toLocaleString()} {cur.many}</b>, <b><XpAmount n={data.limits.maxXp} size={15} /></b> or a store item worth up to{" "}
-            <b>{data.limits.maxItemPrice.toLocaleString()} {cur.many}</b> each, for up to <b>{data.limits.maxWinners} winners</b> ({data.limits.maxTotal.toLocaleString()} {cur.many} in total, {data.limits.weeklyBudget.toLocaleString()} a week across Community Managers).
+            You can run giveaways up to <b>{data.limits.maxLeaves.toLocaleString()} <LeafEmote size={15} /></b>, <b><XpAmount n={data.limits.maxXp} size={15} /></b> or a store item worth up to{" "}
+            <b>{data.limits.maxItemPrice.toLocaleString()} <LeafEmote size={15} /></b> each, for up to <b>{data.limits.maxWinners} winners</b> ({data.limits.maxTotal.toLocaleString()} <LeafEmote size={15} /> in total, {data.limits.weeklyBudget.toLocaleString()} a week across Community Managers).
             Anything bigger{data.limits.customNeedsApproval ? ", and custom prizes," : ""} goes to an admin to approve first.
           </span>
         </p>
@@ -483,7 +483,7 @@ function DetailDrawer({
                 <p className="adm-muted">
                   {RECUR[g.recurring]}
                   {g.recurring !== "none" ? ` · round ${g.round}${g.rounds ? ` of ${g.rounds}` : ""}` : ""}
-                  {g.value ? ` · ${g.value.toLocaleString()} ${cur.many} in total` : ""}
+                  {g.value ? <> · {g.value.toLocaleString()} <LeafEmote size={14} /> in total</> : ""}
                 </p>
               </div>
             </header>
@@ -828,12 +828,12 @@ function overLimits(d: Draft, limits: CmLimits | null, item: StoreItem | null, m
   const out: string[] = [];
   const p = d.prize;
   const each = p.type === "leaves" ? (p.amount ?? 0) : p.type === "item" ? (item?.price ?? 0) * (p.quantity ?? 1) : 0;
-  if (p.type === "leaves" && each > limits.maxLeaves) out.push(`${each.toLocaleString()} ${many} each (limit ${limits.maxLeaves.toLocaleString()})`);
-  if (p.type === "item" && item && item.price > limits.maxItemPrice) out.push(`${item.name} costs ${item.price.toLocaleString()} ${many} (limit ${limits.maxItemPrice.toLocaleString()})`);
+  if (p.type === "leaves" && each > limits.maxLeaves) out.push(`${each.toLocaleString()} 🍁 each (limit ${limits.maxLeaves.toLocaleString()})`);
+  if (p.type === "item" && item && item.price > limits.maxItemPrice) out.push(`${item.name} costs ${item.price.toLocaleString()} 🍁 (limit ${limits.maxItemPrice.toLocaleString()})`);
   if (p.type === "xp" && (p.amount ?? 0) > limits.maxXp) out.push(`${(p.amount ?? 0).toLocaleString()} XP each (limit ${limits.maxXp.toLocaleString()})`);
   if (p.type === "custom" && limits.customNeedsApproval) out.push("Custom prizes need an admin");
   if (d.winners > limits.maxWinners) out.push(`${d.winners} winners (limit ${limits.maxWinners})`);
-  if (each * d.winners > limits.maxTotal) out.push(`${(each * d.winners).toLocaleString()} ${many} in total (limit ${limits.maxTotal.toLocaleString()})`);
+  if (each * d.winners > limits.maxTotal) out.push(`${(each * d.winners).toLocaleString()} 🍁 in total (limit ${limits.maxTotal.toLocaleString()})`);
   return out;
 }
 
@@ -952,7 +952,7 @@ function Editor({
 
   const prizeText =
     d.prize.type === "leaves"
-      ? `${(d.prize.amount ?? 0).toLocaleString()} ${cur.many}`
+      ? `${(d.prize.amount ?? 0).toLocaleString()} 🍁`
       : d.prize.type === "xp"
         ? `${(d.prize.amount ?? 0).toLocaleString()} XP`
         : d.prize.type === "item"
@@ -1334,7 +1334,7 @@ function Editor({
                 <ul>
                   {problems.map((p) => (
                     <li key={p}>
-                      <XpText text={p} size={14} />
+                      <CurrencyAmount text={p} size={14} />
                     </li>
                   ))}
                 </ul>

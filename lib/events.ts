@@ -8,7 +8,6 @@ import { ObjectId, type Document } from "mongodb";
 import { getBotCollection } from "./mongodb";
 import { guildPickers } from "./bot-settings/guild";
 import { calendarGiveaways, type CalendarGiveaway } from "./giveaways";
-import { seasonal } from "./season-store";
 import { compact } from "./compact";
 
 export class EventError extends Error {
@@ -87,7 +86,7 @@ export async function withPlaces<T extends ServerEvent>(events: T[]) {
 
 function prizeText(g: CalendarGiveaway) {
   const p = g.prize;
-  if (p.type === "leaves") return seasonal(`${Number(p.amount ?? 0).toLocaleString()} Leaves`);
+  if (p.type === "leaves") return `${Number(p.amount ?? 0).toLocaleString()} 🍁`;
   if (p.type === "xp") return `${Number(p.amount ?? 0).toLocaleString()} XP`;
   // 🍁 is drawn as the season's currency icon (CurrencyAmount)
   if (p.type === "item") return `${Number(p.quantity ?? 1) > 1 ? `${p.quantity}× ` : ""}${p.itemName ?? "a store item"}${p.itemPrice !== undefined ? ` (worth ${compact(p.itemPrice * Number(p.quantity ?? 1))} 🍁)` : ""}`;

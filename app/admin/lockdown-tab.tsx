@@ -99,7 +99,10 @@ export function LockdownTab() {
     <section className="adm-panel ld">
       {!data.botOnline ? (
         <p className="ld-warn">
-          <AlertTriangle size={16} aria-hidden="true" /> The Moderation Bot looks offline, so nothing here will happen until it&apos;s back. In Discord, <code>/lock</code> and <code>/lockdown</code> need it too.
+          <AlertTriangle size={16} aria-hidden="true" />
+          <span>
+            The Moderation Bot looks offline, so nothing here will happen until it&apos;s back. In Discord, <code>/lock</code> and <code>/lockdown</code> need it too.
+          </span>
         </p>
       ) : null}
       {data.lockdown.active ? <ActiveLockdown data={data} now={now} onDone={reload} /> : <StartLockdown data={data} onDone={reload} />}

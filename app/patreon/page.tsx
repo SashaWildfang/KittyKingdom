@@ -190,7 +190,7 @@ export default async function PatreonPage() {
             <div>
               <code>/wheel</code>
               <b>Daily Royal Wheel</b>
-              <p>One free spin every day for prizes up to 3,000 <CurrencyName />, Streak Shields and <CurrencyName one /> Boosters. Higher tiers win bigger.</p>
+              <p>One free spin every day for prizes up to 3,000 <LeafEmote size={14} />, Streak Shields and <CurrencyName one /> Boosters. Higher tiers win bigger.</p>
             </div>
             <div>
               <code>/myrole</code>

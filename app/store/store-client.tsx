@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { Backpack, Check, CircleAlert, Crown, Flame, Gift, Hourglass, Minus, Package, Paintbrush, Plus, Repeat, Rocket, ShieldCheck, ShoppingBag, ShoppingCart, Sparkles, Star, Trash2, Wand2, X } from "lucide-react";
 import { SLOT_LABELS } from "../../lib/cosmetics";
 import type { InventoryEntry, StoreItem, StoreState } from "../../lib/store";
-import { StoreItemIcon } from "../ui-icons";
+import { LeafEmote, StoreItemIcon } from "../ui-icons";
 import { Locker } from "./locker";
 import { ItemDrawer, ShopView, type ShopViewKey } from "./shop-view";
 import { ItemVisual, Leaf, formatCountdown, formatDuration, maxFor, priceFor, swatchStyle, useNow } from "./store-helpers";
@@ -717,7 +717,7 @@ function CartDrawer({ lines, balance, total, discount, busy, onClose, onQty, onC
             </dl>
             {short > 0 ? (
               <p className="store-cart-warn">
-                <CircleAlert size={15} aria-hidden="true" /> You need {short.toLocaleString()} more <CurrencyName lower />. Remove something or come back later.
+                <CircleAlert size={15} aria-hidden="true" /> You need {short.toLocaleString()} more <LeafEmote size={14} />. Remove something or come back later.
               </p>
             ) : null}
             <button type="button" className="store-primary store-checkout" disabled={busy || short > 0} onClick={onCheckout}>

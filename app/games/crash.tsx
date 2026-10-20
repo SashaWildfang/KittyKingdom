@@ -260,7 +260,7 @@ export function Crash({ balance, onBalance, active }: { balance: number; onBalan
               {!round
                 ? "Place a bet to launch"
                 : live
-                  ? `Cash out for ${value.toLocaleString()} ${cur.lower}`
+                  ? <>Cash out for {value.toLocaleString()} <LeafEmote size={16} /></>
                   : crashed
                     ? round.status === "cashed"
                       ? `Crashed at ${fmt(round.crashAt!)}`
@@ -328,7 +328,7 @@ export function Crash({ balance, onBalance, active }: { balance: number; onBalan
             </p>
           ) : null}
           <p className="cr-limits">
-            Bets {limits.min.toLocaleString()} to {limits.max.toLocaleString()} {cur.lower}
+            Bets {limits.min.toLocaleString()} to {limits.max.toLocaleString()} <LeafEmote size={14} />
           </p>
         </aside>
       </div>
