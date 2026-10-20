@@ -280,7 +280,7 @@ add({
     const start = await startAt(c, await bot("message_index"), "t", 30, msgMatch(c));
     const rows = await (await bot("message_index"))
       .aggregate([
-        { $match: { ...msgMatch(c), t: { $gte: start } } },
+        { $match: { ...msgMatch(c), t: { $gte: start, $lt: c.until } } },
         { $group: { _id: { k: { $dateToString: { format: dateFormat(unit === "week" ? "day" : unit), date: unit === "week" ? { $dateTrunc: { date: "$t", unit: "week", startOfWeek: "monday", timezone: c.tz } } : "$t", timezone: c.tz } }, a: "$a" } } },
         { $group: { _id: "$_id.k", v: { $sum: 1 } } },
       ])
@@ -1151,7 +1151,7 @@ add({
     const start = await startAt(c, col as never, "ts", 30);
     const views = await series(col as never, "ts", {}, unit, c, start);
     const vis = await col
-      .aggregate([{ $match: { ts: { $gte: start } } }, { $group: { _id: { k: { $dateToString: { format: dateFormat(unit === "week" ? "day" : unit), date: unit === "week" ? { $dateTrunc: { date: "$ts", unit: "week", startOfWeek: "monday", timezone: c.tz } } : "$ts", timezone: c.tz } }, v: "$vid" } } }, { $group: { _id: "$_id.k", v: { $sum: 1 } } }])
+      .aggregate([{ $match: { ts: { $gte: start, $lt: c.until } } }, { $group: { _id: { k: { $dateToString: { format: dateFormat(unit === "week" ? "day" : unit), date: unit === "week" ? { $dateTrunc: { date: "$ts", unit: "week", startOfWeek: "monday", timezone: c.tz } } : "$ts", timezone: c.tz } }, v: "$vid" } } }, { $group: { _id: "$_id.k", v: { $sum: 1 } } }])
       .toArray();
     const vm = new Map(vis.map((r) => [String(r._id), n(r.v)]));
     const b = buckets(unit, start, c.tz, c.until);
@@ -2101,7 +2101,7 @@ add({
   params: ["range", "tz", "among"],
   tags: ["growth", "joins", "trend"],
   run: async (c) => {
-    const ms = members(c).filter((m) => m.joinedAt);
+    const ms = members(c).filter((m) => m.joinedAt && (!c.since || (m.joinedAt as number) >= c.since.getTime()) && (m.joinedAt as number) < c.until.getTime());
     const unit = unitFor(c);
     const start = c.since ?? new Date(Math.min(...ms.map((m) => m.joinedAt as number)));
     const b = buckets(unit, start, c.tz, c.until);
@@ -2122,12 +2122,15 @@ add({
   params: ["range", "tz"],
   tags: ["joins", "heatmap"],
   run: async (c) => {
-    const ms = members(c).filter((m) => m.joinedAt && (!c.since || (m.joinedAt as number) >= c.since.getTime()));
-    const off = tzOffsetHours(c.tz);
+    const ms = members(c).filter((m) => m.joinedAt && (!c.since || (m.joinedAt as number) >= c.since.getTime()) && (m.joinedAt as number) < c.until.getTime());
+    // Each join's own local weekday and hour (correct across daylight-saving changes)
+    const parts = new Intl.DateTimeFormat("en-US", { timeZone: c.tz, weekday: "short", hour: "numeric", hourCycle: "h23" });
     const map = new Map<number, number>();
     ms.forEach((m) => {
-      const d = new Date((m.joinedAt as number) + off * 3_600_000);
-      const k = ((d.getUTCDay() + 6) % 7) * 24 + d.getUTCHours();
+      const p = parts.formatToParts(new Date(m.joinedAt as number));
+      const day = WEEKDAYS.indexOf(p.find((x) => x.type === "weekday")?.value ?? "Mon");
+      const hour = Number(p.find((x) => x.type === "hour")?.value ?? 0) % 24;
+      const k = Math.max(0, day) * 24 + hour;
       map.set(k, (map.get(k) ?? 0) + 1);
     });
     return { title: "When people join", subtitle: `${fmt(ms.length)} members · ${c.rangeText} · ${zoneName(c.tz)} time.`, footnote: "Members still in the server, by when they joined.", main: { kind: "heat", title: "Joins by day and hour", ...heatFromWeekHours(map) } };
@@ -2514,7 +2517,9 @@ export function parseRange(v: string, tz: string): { since: Date | null; until: 
   m = /^c:(\d{4})-(\d{2})-(\d{2}):(\d{4})-(\d{2})-(\d{2})$/.exec(v);
   if (m) {
     const since = zonedMidnight(+m[1], +m[2], +m[3], tz);
-    let until = new Date(zonedMidnight(+m[4], +m[5], +m[6], tz).getTime() + DAY);
+    // The day after the end date, as a calendar day (so daylight-saving days are 23 or 25 hours, as they should be)
+    const next = new Date(Date.UTC(+m[4], +m[5] - 1, +m[6] + 1));
+    let until = zonedMidnight(next.getUTCFullYear(), next.getUTCMonth() + 1, next.getUTCDate(), tz);
     if (until > now) until = now;
     if (until > since) return { since, until, text: `${fmtD(since)} – ${fmtD(new Date(until.getTime() - 1))}` };
   }
