@@ -1,7 +1,9 @@
 "use client";
 
-import { Eye, FileText, Search } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Eye, FileText, RefreshCw, Search, Sparkles } from "lucide-react";
+import "./ticket-summary.css";
+import { useEffect, useRef, useState } from "react";
+import type { TicketSummary } from "../../lib/ticket-summary";
 import {
   LiveBadge,
   Pager,
@@ -37,6 +39,86 @@ type Filters = {
 
 const DEFAULTS: Filters = { search: "", types: [], statuses: [], range: "all", transcriptsOnly: false, sort: "ticketId", order: "desc", pageSize: 25 };
 const STATUSES = ["Open", "Closed", "Finalized"];
+
+type SummaryState = { summary?: TicketSummary; busy?: boolean; error?: string };
+
+/**
+ * AI descriptions for the tickets on screen: loads the saved ones, then writes the missing (or outdated)
+ * ones a couple at a time.
+ */
+function useTicketSummaries(rows: Ticket[]) {
+  const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [state, setState] = useState<Record<number, SummaryState>>({});
+  const queued = useRef(new Set<number>());
+  const key = rows.map((r) => `${r.ticketId}:${r.status}:${r.transcriptId ?? ""}`).join(",");
+
+  const write = async (id: number, force = false) => {
+    setState((s) => ({ ...s, [id]: { ...s[id], busy: true, error: undefined } }));
+    try {
+      const r = await fetch(`/api/admin/tickets/${id}/summary`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ force }) });
+      const j = await r.json().catch(() => ({ ok: false, error: "Request failed." }));
+      if (!r.ok || !j.ok) throw new Error(j.error ?? "Couldn't describe this ticket.");
+      setState((s) => ({ ...s, [id]: { summary: j.summary } }));
+    } catch (e) {
+      setState((s) => ({ ...s, [id]: { ...s[id], busy: false, error: e instanceof Error ? e.message : "Couldn't describe this ticket." } }));
+    }
+  };
+
+  useEffect(() => {
+    if (!rows.length) return;
+    let cancelled = false;
+    (async () => {
+      const r = await fetch(`/api/admin/tickets/summaries?ids=${rows.map((t) => t.ticketId).join(",")}`, { cache: "no-store" }).then((x) => x.json()).catch(() => null);
+      if (cancelled || !r?.ok) return;
+      setEnabled(r.enabled);
+      const saved = r.summaries as Record<number, TicketSummary>;
+      setState((s) => {
+        const next = { ...s };
+        for (const [id, sum] of Object.entries(saved)) next[Number(id)] = { ...next[Number(id)], summary: sum };
+        return next;
+      });
+      if (!r.enabled) return;
+      // Missing or outdated ones (only tickets there's something to read for), two at a time
+      const todo = rows.filter((t) => (t.transcriptId || t.status === "Open") && (!saved[t.ticketId] || saved[t.ticketId].stale) && !queued.current.has(t.ticketId)).map((t) => t.ticketId);
+      todo.forEach((id) => queued.current.add(id));
+      const worker = async () => {
+        while (todo.length && !cancelled) await write(todo.shift()!);
+      };
+      await Promise.all([worker(), worker()]);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+
+  return { enabled, state, refresh: (id: number) => write(id, true) };
+}
+
+function SummaryLine({ s, onRefresh }: { s: SummaryState | undefined; onRefresh: () => void }) {
+  const [open, setOpen] = useState(false);
+  const sum = s?.summary;
+  // Nothing to show yet (or ever: AI off, or no transcript left to read)
+  if (!sum && !s?.busy && !s?.error) return null;
+  return (
+    <div className={`tks-line${open ? " is-open" : ""}`} onClick={(e) => e.stopPropagation()}>
+      <Sparkles size={14} className="tks-icon" aria-hidden="true" />
+      {sum ? (
+        <button type="button" className="tks-text" onClick={() => setOpen((o) => !o)} aria-expanded={open} title={open ? "Show less" : "Show the whole description"}>
+          <b>{sum.headline}</b> {sum.summary}
+        </button>
+      ) : (
+        <span className="tks-text is-muted">{s?.busy ? "Reading the ticket…" : s?.error}</span>
+      )}
+      {s?.busy && sum ? <span className="tks-busy">Updating…</span> : null}
+      {!s?.busy ? (
+        <button type="button" className="tks-refresh" onClick={onRefresh} title={sum ? `Read it again${sum.images ? ` (looked at ${sum.images} image${sum.images === 1 ? "" : "s"})` : ""}` : "Try again"} aria-label="Describe again">
+          <RefreshCw size={12} />
+        </button>
+      ) : null}
+    </div>
+  );
+}
 
 export function TicketsTab({
   typesAvailable,
@@ -82,6 +164,7 @@ export function TicketsTab({
     ...(filters.range !== "all" ? { range: filters.range } : {}),
   });
   const { data, error, loading, updatedAt, reload } = useLive<Result>(`/api/admin/tickets?${params}`, 15_000);
+  const summaries = useTicketSummaries(data?.rows ?? []);
   // Tickets deleted here disappear straight away (the live refresh confirms it)
   const [deleted, setDeleted] = useState<number[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
@@ -176,8 +259,13 @@ export function TicketsTab({
         </p>
       ) : null}
 
+      {summaries.enabled === false ? (
+        <p className="tks-off">
+          <Sparkles size={14} aria-hidden="true" /> AI ticket descriptions are switched off. Add an <code>ANTHROPIC_API_KEY</code> in Vercel (Settings → Environment Variables) and redeploy to turn them on.
+        </p>
+      ) : null}
       <div className="adm-table-wrap">
-        <table className="adm-table">
+        <table className="adm-table tks-table">
           <thead>
             <tr>
               <th>
@@ -202,7 +290,7 @@ export function TicketsTab({
             </tr>
           </thead>
           <tbody>
-            {(data?.rows ?? []).filter((t) => !deleted.includes(t.ticketId)).map((t) => (
+            {(data?.rows ?? []).filter((t) => !deleted.includes(t.ticketId)).flatMap((t) => [
               <tr key={t.ticketId} onClick={() => t.transcriptId && onOpenTranscript(t.ticketId)} className={t.transcriptId ? "is-clickable" : undefined}>
                 <td>
                   <strong>#{t.ticketId}</strong>
@@ -246,8 +334,14 @@ export function TicketsTab({
                 <td className="adm-ticket-actions">
                   <DeleteTicketButton ticket={t} onDeleted={onDeleted} />
                 </td>
-              </tr>
-            ))}
+              </tr>,
+              <tr key={`${t.ticketId}-sum`} className="tks-row" onClick={() => t.transcriptId && onOpenTranscript(t.ticketId)}>
+                <td />
+                <td colSpan={8}>
+                  <SummaryLine s={summaries.state[t.ticketId]} onRefresh={() => void summaries.refresh(t.ticketId)} />
+                </td>
+              </tr>,
+            ])}
             {!loading && data && !data.rows.length ? (
               <tr>
                 <td colSpan={9} className="adm-empty">

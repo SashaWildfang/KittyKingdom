@@ -1,0 +1,31 @@
+/* Admin → Tickets: the AI description under each ticket */
+.tks-table tbody tr:not(.tks-row) td { border-bottom: 0; }
+.tks-table .tks-row td { padding-top: 0; padding-bottom: 0.7rem; }
+.tks-table .tks-row td:empty { padding: 0; }
+.tks-table .tks-row:has(+ tr) td, .tks-table .tks-row td { border-bottom: 1px solid var(--line); }
+.tks-line { display: flex; align-items: flex-start; gap: 0.45rem; max-width: 62rem; color: var(--muted); font-size: 0.84rem; line-height: 1.45; }
+.tks-line.is-muted { color: var(--muted); font-size: 0.78rem; font-style: italic; }
+.tks-icon { flex: none; margin-top: 0.2rem; color: var(--gold); }
+.tks-text {
+  display: -webkit-box;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-align: left;
+}
+.tks-line.is-open .tks-text { display: block; }
+.tks-text b { color: var(--text); font-weight: 800; }
+.tks-text.is-muted { cursor: default; font-style: italic; }
+.tks-busy { flex: none; color: var(--gold); font-size: 0.72rem; font-weight: 700; }
+.tks-refresh { display: grid; flex: none; place-items: center; width: 1.6rem; height: 1.6rem; border: 1px solid var(--line); border-radius: 0.5rem; background: var(--panel); color: var(--muted); cursor: pointer; opacity: 0.6; }
+.tks-refresh:hover { color: var(--text); opacity: 1; }
+.tks-off { display: flex; align-items: center; gap: 0.45rem; margin: 0; border: 1px solid rgba(var(--ember-rgb), 0.35); border-radius: 0.9rem; background: rgba(var(--ember-rgb), 0.08); font-size: 0.85rem; padding: 0.55rem 0.8rem; }
+.tks-off svg { flex: none; color: var(--gold); }
