@@ -302,7 +302,7 @@ export async function getGuildMember(discordId: string): Promise<MemberSearchRes
 // ==========================================
 export type RawOverwrite = { id: string; type: 0 | 1; allow: string; deny: string };
 export type RawChannel = { id: string; name: string; type: number; parent_id: string | null; position: number; nsfw?: boolean; permission_overwrites?: RawOverwrite[] };
-type RawRole = { id: string; permissions: string };
+type RawRole = { id: string; permissions?: string };
 
 /** Every channel in the server with its permission overwrites (cached a minute). */
 export async function getGuildChannelsRaw(): Promise<RawChannel[]> {
@@ -330,7 +330,7 @@ export async function viewableChannelIds(discordId: string): Promise<Set<string>
     getMemberRoleIds(discordId),
   ]);
   if (!memberRoles || !roles) return new Set();
-  const perms = new Map(roles.map((r) => [r.id, BigInt(r.permissions)]));
+  const perms = new Map(roles.map((r) => [r.id, BigInt(r.permissions ?? 0)]));
   const mine = new Set([guild, ...memberRoles]);
   let base = BigInt(0);
   mine.forEach((id) => {

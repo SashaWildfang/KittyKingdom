@@ -370,8 +370,9 @@ export function JoinAppsTab({ onOpenMember }: { onOpenMember: (id: string) => vo
       {error ? <p className="adm-error">{error}</p> : null}
 
       <div className="ja-list">
-        {data?.apps.map((app) => (
-          <JoinAppCard key={app.discordId} app={app} people={data.people} queueOnline={data.queueOnline} onDone={() => void reload()} onOpenMember={onOpenMember} />
+        {data?.apps.map((app, i) => (
+          // A member can have more than one application (re-applying), so the id alone isn't unique
+          <JoinAppCard key={`${app.discordId}-${app.submittedAt ?? i}`} app={app} people={data.people} queueOnline={data.queueOnline} onDone={() => void reload()} onOpenMember={onOpenMember} />
         ))}
         {data && !data.apps.length ? (
           <p className="adm-empty">{status === "pending" ? "No applications waiting. You're all caught up! 🎉" : "Nothing here."}</p>

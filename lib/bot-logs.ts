@@ -370,7 +370,8 @@ export async function queryLogs(q: {
   ]);
 
   return {
-    rows: rows.map((r) => ({ ...r, id: String(r._id), ts: (r.ts as Date).toISOString() })) as unknown as LogEntry[],
+    // Older or hand-written rows may lack the lists, which the page expects
+    rows: rows.map((r) => ({ ...r, fields: r.fields ?? [], attachments: r.attachments ?? [], userIds: r.userIds ?? [], id: String(r._id), ts: (r.ts as Date).toISOString() })) as unknown as LogEntry[],
     total,
     types: types.map((t) => ({ type: String(t._id.type), category: String(t._id.category ?? logCategory(String(t._id.type))), count: t.n as number })),
     sync: {
