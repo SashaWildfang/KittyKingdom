@@ -34,6 +34,7 @@ import {
   describe,
   filterIsEmpty,
   makeCtx,
+  noneBuckets,
   parseQuestion,
   type Ctx,
   type Dim,
@@ -74,9 +75,10 @@ function RoleChip({ role, mode, onClick, count }: { role: MMRole; mode?: "all" |
 }
 
 /** Horizontal bars with counts and shares; role bars can be clicked to filter by that role. */
-function Bars({ rows, total, onPick, noneLabel, none }: { rows: { key: string; label: string; count: number; color?: string | null; roleId?: string }[]; total: number; onPick?: (roleId: string) => void; none?: number; noneLabel?: string }) {
-  const max = Math.max(1, ...rows.map((r) => r.count), none ?? 0);
-  const all = none ? [...rows, { key: "__none", label: noneLabel ?? "None of these", count: none, color: "#5c5b56" }] : rows;
+function Bars({ rows, total, onPick, extra = [] }: { rows: { key: string; label: string; count: number; color?: string | null; roleId?: string }[]; total: number; onPick?: (roleId: string) => void; extra?: { key: string; label: string; count: number; color?: string | null }[] }) {
+  // The "no role" bars always show (even at 0) so it's clear everyone is counted
+  const all: { key: string; label: string; count: number; color?: string | null; roleId?: string }[] = [...rows, ...extra];
+  const max = Math.max(1, ...all.map((r) => r.count));
   return (
     <div className="mm-bars">
       {all.map((r) => (
@@ -84,9 +86,9 @@ function Bars({ rows, total, onPick, noneLabel, none }: { rows: { key: string; l
           key={r.key}
           type="button"
           className="mm-bar"
-          disabled={!("roleId" in r && r.roleId && onPick)}
-          onClick={() => "roleId" in r && r.roleId && onPick?.(r.roleId)}
-          title={"roleId" in r && r.roleId && onPick ? `Filter to ${r.label}` : undefined}
+          disabled={!(r.roleId && onPick)}
+          onClick={() => r.roleId && onPick?.(r.roleId)}
+          title={r.roleId && onPick ? `Filter to ${r.label}` : undefined}
         >
           <span className="mm-bar-label">
             <i style={{ background: r.color ?? "var(--mm-accent)" }} aria-hidden="true" />
@@ -183,7 +185,7 @@ function Answer({ ctx, parsed, onShow }: { ctx: Ctx; parsed: Parsed; onShow: (f:
       {b && split ? (
         <div className="mm-answer-split">
           <h4>{split.title}</h4>
-          <Bars rows={b.buckets} total={split.members.length} none={split.dim.kind === "category" ? b.none : 0} noneLabel="No role picked" />
+          <Bars rows={b.buckets} total={split.members.length} extra={split.dim.kind === "category" ? noneBuckets(b) : []} />
           {b.multi ? <p className="mm-fine">{b.multi} picked more than one, so the bars can add up to more than the total.</p> : null}
         </div>
       ) : null}
@@ -640,7 +642,7 @@ export function MembersTab({ onOpenMember }: { onOpenMember: (id: string) => voi
               </optgroup>
             </select>
           </div>
-          <Bars rows={b.buckets} total={members.length} none={dim.kind === "category" ? b.none : 0} noneLabel="No role picked" onPick={(id) => addRole(id, "all")} />
+          <Bars rows={b.buckets} total={members.length} extra={dim.kind === "category" ? noneBuckets(b) : []} onPick={(id) => addRole(id, "all")} />
           {b.multi ? <p className="mm-fine">{b.multi} members picked more than one role in this group, so the bars can add up to more than {members.length}.</p> : null}
           {dim.kind === "category" || dim.kind === "roles" ? <p className="mm-fine">Click a role to narrow the members to it.</p> : null}
         </section>
@@ -704,10 +706,25 @@ export function MembersTab({ onOpenMember }: { onOpenMember: (id: string) => voi
                     </tr>
                   );
                 })}
+                <tr className="is-none-row">
+                  <th>
+                    <i style={{ background: "#5c5b56" }} aria-hidden="true" /> No {snap.categories.find((c) => c.key === rowCat)?.title.toLowerCase()} role
+                  </th>
+                  {ct.rowNone.map((n, ci) => (
+                    <td key={ct.cols[ci].id} className="is-none">
+                      {rowPct ? pct(n, ct.rowNoneTotal) : n}
+                    </td>
+                  ))}
+                  <td className="is-none">{rowPct ? pct(ct.neither, ct.rowNoneTotal) : ct.neither}</td>
+                  <td className="is-total">{ct.rowNoneTotal}</td>
+                </tr>
               </tbody>
             </table>
           </div>
-          <p className="mm-fine">Counts within the {members.length.toLocaleString()} filtered members. Click a cell to see those members. People can pick more than one role in a group.</p>
+          <p className="mm-fine">
+            Counts within the {members.length.toLocaleString()} filtered members. Click a cell to see those members. People can pick more than one role in a group.
+            {ctx.adult.has(rowCat) || ctx.adult.has(colCat) ? " 18+ groups can only be picked by members with 18+ Verified, so most “None” counts there are members without it." : ""}
+          </p>
         </section>
       ) : null}
 

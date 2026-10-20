@@ -1,0 +1,41 @@
+/* Admin → Overview → Graphics (app/admin/graphics/graphics-tab.tsx) */
+.gx { display: grid; gap: 1rem; }
+.gx-loading { display: flex; align-items: center; gap: 0.6rem; color: var(--muted); padding: 2rem; }
+.gx-spin { animation: gx-spin 0.9s linear infinite; }
+@keyframes gx-spin { to { transform: rotate(360deg); } }
+.gx-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 0.8rem; }
+.gx-head h2 { display: flex; align-items: center; gap: 0.5rem; max-width: none; margin: 0 0 0.2rem; font-size: 1.35rem; }
+.gx-head p { margin: 0; color: var(--muted); font-size: 0.88rem; }
+.gx-layout { display: grid; grid-template-columns: 21rem minmax(0, 1fr); gap: 1.2rem; align-items: start; }
+.gx-controls { position: sticky; top: 6rem; display: grid; gap: 0.9rem; max-height: calc(100vh - 7rem); overflow: auto; }
+.gx-controls section { display: grid; gap: 0.6rem; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); padding: 0.9rem; }
+.gx-controls h3 { margin: 0; color: var(--muted); font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; }
+.gx-kinds { display: grid; gap: 0.3rem; }
+.gx-kinds button { display: grid; gap: 0.1rem; border: 1px solid transparent; border-radius: 12px; background: none; color: var(--text); cursor: pointer; font: inherit; padding: 0.5rem 0.65rem; text-align: left; }
+.gx-kinds button:hover { background: rgba(var(--ember-rgb), 0.07); }
+.gx-kinds button.is-on { border-color: rgba(var(--ember-rgb), 0.55); background: rgba(var(--ember-rgb), 0.12); }
+.gx-kinds b { font-size: 0.9rem; }
+.gx-kinds small { color: var(--muted); font-size: 0.75rem; line-height: 1.35; }
+.gx-field { display: grid; gap: 0.3rem; }
+.gx-field > span { color: var(--muted); font-size: 0.78rem; font-weight: 700; }
+.gx-field .adm-select { width: 100%; }
+.gx-input { border: 1px solid var(--line); border-radius: 10px; background: var(--bg-soft, var(--panel)); color: var(--text); font: inherit; font-size: 0.9rem; padding: 0.5rem 0.65rem; }
+.gx-input:focus { border-color: rgba(var(--ember-rgb), 0.7); outline: none; }
+.gx-check { display: flex; align-items: center; gap: 0.45rem; color: var(--text2, var(--muted)); font-size: 0.85rem; }
+.gx-seg { display: inline-flex; gap: 2px; justify-self: start; border: 1px solid var(--line); border-radius: 999px; padding: 2px; }
+.gx-seg button { border: 0; border-radius: 999px; background: none; color: var(--muted); cursor: pointer; font: inherit; font-size: 0.85rem; font-weight: 700; padding: 0.35rem 0.9rem; }
+.gx-seg button.is-on { background: rgb(var(--ember-rgb)); color: #fff; }
+.gx-multi { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.gx-pill { border: 1px solid rgba(var(--ember-rgb), 0.5); border-radius: 999px; background: rgba(var(--ember-rgb), 0.12); color: var(--text); cursor: pointer; font: inherit; font-size: 0.8rem; font-weight: 700; padding: 0.25rem 0.6rem; }
+.gx-multi .adm-select { flex: 1 1 100%; }
+.gx-preview { display: grid; gap: 0.7rem; min-width: 0; }
+.gx-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.gx-done { display: inline-flex; align-items: center; gap: 0.3rem; color: #3e9b51; font-size: 0.86rem; font-weight: 700; }
+:root:not([data-theme="light"]) .gx-done { color: #6ff0a6; }
+.gx-dims { margin-left: auto; color: var(--muted); font-size: 0.8rem; }
+.gx-canvas { width: 100%; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 18px 40px rgba(0, 0, 0, 0.3); }
+.gx-canvas svg { display: block; width: 100%; height: auto; }
+@media (max-width: 1100px) {
+  .gx-layout { grid-template-columns: minmax(0, 1fr); }
+  .gx-controls { position: static; max-height: none; }
+}

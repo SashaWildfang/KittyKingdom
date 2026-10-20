@@ -530,5 +530,5 @@ export const COMMAND_GROUPS: CommandGroup[] = [
 /** The website panel tabs a level can open. */
 export const PANEL_TABS = {
   staff: ["Overview", "Staff Guide", "Punishments", "Ban Requests", "AutoMod", "Join Apps", "Logs", "Social", "Games", "Live Chat", "Tickets (view only, no NSFW)"],
-  admin: ["Discord Members", "Appeals", "Messages", "Accounts", "News", "Traffic"],
+  admin: ["Discord Members", "Graphics", "Appeals", "Messages", "Accounts", "News", "Traffic"],
 };

@@ -150,3 +150,4 @@
 .mm-roles-table td { white-space: nowrap; }
 .mm-mini { display: inline-block; width: 5rem; height: 0.5rem; overflow: hidden; border-radius: 999px; background: rgba(var(--cream-rgb), 0.08); vertical-align: middle; }
 .mm-mini i { display: block; height: 100%; border-radius: inherit; }
+.mm-ct tr.is-none-row th { color: var(--muted); font-style: italic; }
