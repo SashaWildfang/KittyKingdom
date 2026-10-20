@@ -6,7 +6,7 @@ import { RARITY } from "../../lib/cosmetics";
 import { compact } from "../../lib/compact";
 import type { PublicGiveaway } from "../../lib/giveaways";
 import { useCurrency } from "../season-context";
-import { LeafEmote } from "../ui-icons";
+import { LeafEmote, XpEmote } from "../ui-icons";
 
 type Data = { running: PublicGiveaway[]; upcoming: PublicGiveaway[]; ended: PublicGiveaway[]; entered: string[] };
 
@@ -40,7 +40,7 @@ function Prize({ g }: { g: PublicGiveaway }) {
   if (g.prize.type === "xp")
     return (
       <span className="gwp-prize">
-        <Sparkles size={26} aria-hidden="true" /> <b>{(g.prize.amount ?? 0).toLocaleString()}</b> XP
+        <Sparkles size={26} aria-hidden="true" /> <b>{(g.prize.amount ?? 0).toLocaleString()}</b> <XpEmote size={20} />
       </span>
     );
   if (g.prize.type === "item") {

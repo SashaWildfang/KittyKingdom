@@ -3,7 +3,7 @@ import "./account.css";
 import { userTimeZone } from "../../lib/timezone";
 import { accountGreeting } from "../../lib/greeting";
 import { BarChart3, Backpack, House, Settings, Crown, Gift, Grid3x3, ShieldCheck, Check, CircleAlert, ClipboardList, FileText, Gavel, KeyRound, Lock, Mail, Rocket, Sparkles, TriangleAlert, UserRound } from "lucide-react";
-import { LeafEmote } from "../ui-icons";
+import { LeafEmote, XpText } from "../ui-icons";
 import { redirect } from "next/navigation";
 import { isStaffDiscordId } from "../../lib/admin";
 import { getCurrentUser } from "../../lib/auth";
@@ -327,7 +327,7 @@ export default async function AccountPage({
                       id="wordle"
                       icon={<Grid3x3 size={20} />}
                       title="Daily Wordle"
-                      description={seasonal(`Guess the 5-letter word in 6 tries for ${wordle.reward.leaves.toLocaleString()} leaves and ${wordle.reward.xp.toLocaleString()} XP. A new word every 24 hours, shared with /wordle in Discord.`)}
+                      description={<XpText text={seasonal(`Guess the 5-letter word in 6 tries for ${wordle.reward.leaves.toLocaleString()} leaves and ${wordle.reward.xp.toLocaleString()} XP. A new word every 24 hours, shared with /wordle in Discord.`)} size={14} />}
                       summary={wordle.status === "ready" ? "Ready to play" : wordle.status === "playing" ? "In progress" : wordle.status === "won" ? "Solved today" : "Done for today"}
                     >
                       <Wordle initial={wordle} compact />

@@ -5,7 +5,7 @@ import { TierIcon } from "../tier-icon";
 import { NITRO, TIERS, pct } from "../../lib/perks";
 import type { ReactNode } from "react";
 import { CurrencyName } from "../season-context";
-import { CurrencyAmount, LeafEmote } from "../ui-icons";
+import { CurrencyAmount, LeafEmote, XpEmote } from "../ui-icons";
 
 export const DISCORD_INVITE = "https://discord.com/invite/M9XKHFdYQV";
 export const PATREON_URL = "https://www.patreon.com/c/thekittykingdom/membership";
@@ -29,7 +29,7 @@ export const EARN = [
   { how: "Daily Wordle", amount: "300 🍁 + 300 XP", when: "Once every 24 hours", cmd: "/wordle" },
   { how: "Question of the Day", amount: "250 🍁", when: "Daily at 12 PM Mountain, for the right answer", cmd: "/qotd help" },
   { how: "Hanging out in VC", amount: "4 🍁 + 5 XP a minute", when: "Automatically after 5 minutes", cmd: null },
-  { how: "Leaf Grab & Word Scramble", amount: "50–100 🍁 / 125 🍁 + 250 XP", when: "Random surprises while people chat", cmd: null },
+  { how: "Chat events", amount: "Up to 450 🍁 + 250 XP", when: "Seasonal mini-games (Ice Cream Truck, trivia, Leaf Grab…) that pop up while people chat", cmd: null },
   { how: "Monthly bump top 3", amount: "Up to 5,000 🍁", when: "End of every month", cmd: "/leaderboard" },
   { how: "Monthly voice chat top 3", amount: "Up to 5,000 🍁", when: "End of every month", cmd: "/leaderboard" },
   { how: "Boosting the server", amount: "750 🍁", when: "Every boost", cmd: null },
@@ -181,7 +181,7 @@ export const TOPICS: Topic[] = [
         q: "What are the monthly bump prizes?",
         a: (
           <>
-            Every <Cmd>/bump</Cmd> in #bot-commands pays <Leaf n="250" /> and 300 XP (every 2 hours). The top 3 on <Cmd>/leaderboard Monthly Bumps</Cmd> win up to <Leaf n="5,000" /> at the end of the month.
+            Every <Cmd>/bump</Cmd> in #bot-commands pays <Leaf n="250" /> and 300 <XpEmote size={15} /> (every 2 hours). The top 3 on <Cmd>/leaderboard Monthly Bumps</Cmd> win up to <Leaf n="5,000" /> at the end of the month.
           </>
         ),
         keywords: "bump disboard monthly",
@@ -222,7 +222,7 @@ export const TOPICS: Topic[] = [
         q: "How much XP do I need for the next level?",
         a: (
           <>
-            Level 1 takes 100 XP; after that each level needs <b>100 × level^1.2</b> XP (for example about 1,580 XP at level 10 and 3,640 XP at level 20). Check your progress with <Cmd>/stats</Cmd> or the stats page on My Account.
+            Level 1 takes 100 <XpEmote size={15} />; after that each level needs <b>100 × level^1.2</b> XP (for example about 1,580 <XpEmote size={15} /> at level 10 and 3,640 <XpEmote size={15} /> at level 20). Check your progress with <Cmd>/stats</Cmd> or the stats page on My Account.
           </>
         ),
         keywords: "formula next level",

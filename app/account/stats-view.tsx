@@ -55,7 +55,7 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 import type { BadgeHistory } from "../../lib/badge-history";
 import type { BadgeShowcase, EarnedBadge } from "../../lib/badges";
 import type { MemberStats } from "../../lib/member-stats";
-import { LeafEmote } from "../ui-icons";
+import { LeafEmote, XpEmote } from "../ui-icons";
 import { BadgeMedal } from "./badge-medal";
 import { BadgeCollection } from "./stats-badges";
 import { FriendshipMap, PeopleExplorer } from "./stats-social";
@@ -275,7 +275,7 @@ function LevelHero({ s }: { s: MemberStats }) {
           <div>
             <p className="st-eyebrow">Level {fmt(level.level)}</p>
             <h2>
-              <Count value={level.xp} /> <small>/ {fmt(level.needed)} XP</small>
+              <Count value={level.xp} /> <small>/ {fmt(level.needed)} <XpEmote size={16} /></small>
             </h2>
           </div>
           <div className="st-hero-rank" title="Your level rank among current members">
@@ -290,7 +290,7 @@ function LevelHero({ s }: { s: MemberStats }) {
           <span>{pct(progress)}</span>
         </div>
         <p className="st-hero-foot">
-          <b>{fmt(Math.max(0, level.needed - level.xp))} XP</b> to level {level.level + 1} · {fmt(level.totalXp || totalNow)} XP earned in total
+          <b>{fmt(Math.max(0, level.needed - level.xp))} <XpEmote size={15} /></b> to level {level.level + 1} · {fmt(level.totalXp || totalNow)} <XpEmote size={15} /> earned in total
         </p>
       </div>
     </section>
@@ -1118,7 +1118,7 @@ export function StatsView({ onBack }: { onBack: () => void }) {
             <Tile icon={<MonitorUp size={18} />} label="Streaming" value={duration(s.voice.streamSeconds)} tone="green" />
             <Tile icon={<Camera size={18} />} label="Camera on" value={duration(s.voice.cameraSeconds)} tone="green" />
             <Tile icon={<VolumeX size={18} />} label="Muted" value={s.voice.trackedSeconds && s.voice.mutedSeconds ? pct(Math.min(1, s.voice.mutedSeconds / Math.max(s.voice.trackedSeconds, s.voice.totalSeconds))) : "—"} sub="of your VC time, self-muted" tone="rose" />
-            <Tile icon={<Coins size={18} />} label="Earned in VC" value={s.voice.rewards ? compact(s.voice.rewards.leaves) : "—"} sub={s.voice.rewards ? `${cur.lower} · ${compact(s.voice.rewards.xp)} XP` : undefined} tone="gold" />
+            <Tile icon={<Coins size={18} />} label="Earned in VC" value={s.voice.rewards ? compact(s.voice.rewards.leaves) : "—"} sub={s.voice.rewards ? <>{cur.lower} · {compact(s.voice.rewards.xp)} <XpEmote size={13} /></> : undefined} tone="gold" />
             <Tile icon={<Users size={18} />} label="Sessions with others" value={s.voice.rewards ? fmt(s.voice.rewards.withOthers) : "—"} sub={s.voice.rewards ? `${fmt(s.voice.rewards.solo)} solo` : undefined} tone="blue" />
           </div>
           <div className="st-grid">

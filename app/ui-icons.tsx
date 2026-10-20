@@ -13,6 +13,36 @@ export function LeafEmote({ size = 18, className }: { size?: number; className?:
 /** The same emote under a clearer name. */
 export const CurrencyEmote = LeafEmote;
 
+/** The server's XP emoji, shown instead of the word "XP" after an amount ("500 <XpEmote />"). */
+export function XpEmote({ size = 18, className }: { size?: number; className?: string }) {
+  return <img className={className ? `leaf-emote xp-emote ${className}` : "leaf-emote xp-emote"} src="/xp-emote.png" alt="XP" title="XP" width={size} height={size} />;
+}
+
+/** "500 XP" with the XP emoji. */
+export function XpAmount({ n, size = 16, bold }: { n: number | string; size?: number; bold?: boolean }) {
+  const text = typeof n === "number" ? n.toLocaleString("en-US") : n;
+  return (
+    <span className="xp-amount">
+      {bold ? <b>{text}</b> : text} <XpEmote size={size} />
+    </span>
+  );
+}
+
+// An amount followed by "XP" ("300 XP", "25–50 XP", "+20% XP"), for text that comes as a string
+const XP_AMOUNT = /(\d[\d,]*(?:\.\d+)?%?(?:\s*[–-]\s*\d[\d,]*(?:\.\d+)?%?)?)\s?XP\b(?!\s*(?:[Ww]eekend|[Bb]ooster|[Bb]oost))/g;
+
+/** Plain text with any "N XP" drawn as N and the XP emoji. */
+export function XpText({ text, size = 15 }: { text: string; size?: number }) {
+  const out: React.ReactNode[] = [];
+  let last = 0;
+  for (const m of Array.from(text.matchAll(XP_AMOUNT))) {
+    out.push(text.slice(last, m.index), m[1], " ", <XpEmote key={m.index} size={size} />);
+    last = (m.index ?? 0) + m[0].length;
+  }
+  out.push(text.slice(last));
+  return <>{out}</>;
+}
+
 const STORE_ICONS = {
   xp: Star,
   heart: Heart,
@@ -49,14 +79,14 @@ export function SiteLogo(props: Omit<React.ImgHTMLAttributes<HTMLImageElement>, 
   return <img {...props} src={season.logo} />;
 }
 
-/** Text written with 🍁 for the currency ("250 🍁 + 300 XP"): the 🍁 becomes the season's emote. */
+/** Text written with 🍁 for the currency ("250 🍁 + 300 XP"): the 🍁 becomes the season's emote, and XP amounts get the XP emoji. */
 export function CurrencyAmount({ text, size = 15 }: { text: string; size?: number }) {
   const parts = text.split("🍁");
   return (
     <>
       {parts.map((p, i) => (
         <span key={i}>
-          {p}
+          <XpText text={p} size={size} />
           {i < parts.length - 1 ? <LeafEmote size={size} /> : null}
         </span>
       ))}

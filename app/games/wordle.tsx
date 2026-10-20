@@ -1,11 +1,11 @@
 "use client";
 
-import { Copy, Delete, Flag, Sparkles, Star, Timer } from "lucide-react";
+import { Copy, Delete, Flag, Sparkles, Timer } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Mark, WordleState } from "../../lib/games/wordle";
 import { askConfirm } from "../confirm-dialog";
 import { useCurrency } from "../season-context";
-import { LeafEmote } from "../ui-icons";
+import { LeafEmote, XpEmote } from "../ui-icons";
 import { Confetti } from "./games-client";
 import "./wordle.css";
 
@@ -167,7 +167,7 @@ export function Wordle({ initial, active = true, compact = false, onBalance }: {
           </div>
           {state ? (
             <span className="wd-reward">
-              Solve it for <b>+{state.reward.leaves.toLocaleString()}</b> <LeafEmote size={15} /> and <b>+{state.reward.xp.toLocaleString()}</b> <Star size={13} aria-hidden="true" /> XP
+              Solve it for <b>+{state.reward.leaves.toLocaleString()}</b> <LeafEmote size={15} /> and <b>+{state.reward.xp.toLocaleString()}</b> <XpEmote size={15} />
             </span>
           ) : null}
         </header>
@@ -212,7 +212,7 @@ export function Wordle({ initial, active = true, compact = false, onBalance }: {
               <>
                 <strong>Solved in {rows.length}!</strong>
                 <span>
-                  +{state!.reward.leaves.toLocaleString()} <LeafEmote size={14} /> {cur.lower} and +{state!.reward.xp.toLocaleString()} XP
+                  +{state!.reward.leaves.toLocaleString()} <LeafEmote size={14} /> {cur.lower} and +{state!.reward.xp.toLocaleString()} <XpEmote size={14} />
                 </span>
               </>
             ) : (

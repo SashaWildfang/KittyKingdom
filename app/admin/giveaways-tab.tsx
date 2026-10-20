@@ -37,7 +37,7 @@ import type { Giveaway, GiveawayInput, GiveawayList, Prize, Recurring, StoreItem
 import { Pager, formatDate, timeAgo, useLive, type People } from "./admin-shared";
 import { Picker, channelOptions, roleOptions, type Meta } from "./bots/pickers";
 import { useCurrency } from "../season-context";
-import { LeafEmote } from "../ui-icons";
+import { CurrencyAmount, LeafEmote, XpAmount, XpText } from "../ui-icons";
 
 type Filter = "review" | "running" | "scheduled" | "ended" | "cancelled" | "all";
 type ListData = GiveawayList & { ok: boolean; isAdmin: boolean; limits: CmLimits };
@@ -223,7 +223,7 @@ export function GiveawaysTab() {
         <div className="adm-kpi adm-kpi--green">
           <small>{cur.many} given</small>
           <strong>{data?.stats.leaves.toLocaleString() ?? "…"}</strong>
-          <span>{data ? `${data.stats.items.toLocaleString()} store items · ${data.stats.xp.toLocaleString()} XP` : "…"}</span>
+          <span>{data ? <>{data.stats.items.toLocaleString()} store items · <XpAmount n={data.stats.xp} size={14} /></> : "…"}</span>
         </div>
         <button type="button" className={`adm-kpi is-link${data?.stats.manualToDo ? " adm-kpi--red" : " adm-kpi--blue"}`} onClick={() => setFilter("ended")}>
           <small>To hand out</small>
@@ -236,7 +236,7 @@ export function GiveawaysTab() {
         <p className="gw-limits">
           <ShieldCheck size={15} aria-hidden="true" />
           <span>
-            You can run giveaways up to <b>{data.limits.maxLeaves.toLocaleString()} {cur.many}</b>, <b>{data.limits.maxXp.toLocaleString()} XP</b> or a store item worth up to{" "}
+            You can run giveaways up to <b>{data.limits.maxLeaves.toLocaleString()} {cur.many}</b>, <b><XpAmount n={data.limits.maxXp} size={15} /></b> or a store item worth up to{" "}
             <b>{data.limits.maxItemPrice.toLocaleString()} {cur.many}</b> each, for up to <b>{data.limits.maxWinners} winners</b> ({data.limits.maxTotal.toLocaleString()} {cur.many} in total, {data.limits.weeklyBudget.toLocaleString()} a week across Community Managers).
             Anything bigger{data.limits.customNeedsApproval ? ", and custom prizes," : ""} goes to an admin to approve first.
           </span>
@@ -304,7 +304,7 @@ export function GiveawaysTab() {
                     </span>
                     <span className="gw-card-prize">
                       <span>
-                        {cur.text(prizeLabel(g.prize))} × {g.winners} winner{g.winners === 1 ? "" : "s"}
+                        <CurrencyAmount text={cur.text(prizeLabel(g.prize))} size={15} /> × {g.winners} winner{g.winners === 1 ? "" : "s"}
                       </span>
                       <RarityChip rarity={g.prize.itemRarity} />
                       <Worth prize={g.prize} many={cur.many} />
@@ -475,7 +475,7 @@ function DetailDrawer({
                 <h2>{g.title}</h2>
                 <p className="gw-drawer-prize">
                   <span>
-                    {cur.text(prizeLabel(g.prize))} × {g.winners} winner{g.winners === 1 ? "" : "s"}
+                    <CurrencyAmount text={cur.text(prizeLabel(g.prize))} size={15} /> × {g.winners} winner{g.winners === 1 ? "" : "s"}
                   </span>
                   <RarityChip rarity={g.prize.itemRarity} />
                   <Worth prize={g.prize} many={cur.many} />
@@ -1280,7 +1280,7 @@ function Editor({
                 <b className="gw-embed-title">🎉 {d.title || "Giveaway"}</b>
                 {d.description ? <p className="gw-embed-desc">{d.description}</p> : null}
                 <p>
-                  🎁 Prize: <b>{prizeText}</b>
+                  🎁 Prize: <b><CurrencyAmount text={prizeText} size={15} /></b>
                   {d.prize.type === "item" && picked ? (
                     <>
                       {" "}
@@ -1333,7 +1333,9 @@ function Editor({
                 </p>
                 <ul>
                   {problems.map((p) => (
-                    <li key={p}>{p}</li>
+                    <li key={p}>
+                      <XpText text={p} size={14} />
+                    </li>
                   ))}
                 </ul>
               </div>
