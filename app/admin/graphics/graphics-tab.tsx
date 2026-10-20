@@ -1,322 +1,162 @@
 "use client";
 
-import { Check, Copy, Download, ImageIcon, Loader2, RefreshCw } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import type { MMMember, MMSnapshot } from "../../../lib/members-manager";
+import { ChevronLeft, ChevronRight, Copy, Dices, Download, ImageIcon, Loader2, Search, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CATEGORIES, RANGES, ZONES, type ParamKind, type Params, type Spec, type StatMeta } from "../../../lib/graphics/spec";
 import { useStored } from "../admin-shared";
-import { applyFilter, breakdown, crosstab, EMPTY, makeCtx, noneBuckets, type Ctx, type Filter } from "../members/members-query";
-import { BarsBlock, ColumnsBlock, Graphic, HeatBlock, HeroBlock, pctText, seriesColor, SIZES, SplitBlock, StripBlock, svgToPng, TilesBlock, TOKENS, type BarRow, type Frame, type Size, type Theme } from "./charts";
+import { SIZES, svgToPng, type Size, type Theme } from "./charts";
+import { SpecGraphic } from "./spec-graphic";
 import "./graphics.css";
 
-type Kind = "group" | "ratio" | "compare" | "overview" | "joins" | "levels";
-const KINDS: { key: Kind; label: string; blurb: string }[] = [
-  { key: "group", label: "Role group breakdown", blurb: "Every role in a group (Gender, Pronouns, Positions…) with counts, shares and a strip." },
-  { key: "ratio", label: "Ratio", blurb: "One set of roles against another, like men to women." },
-  { key: "compare", label: "Two groups compared", blurb: "A heat table, like Gender × Relationship Status." },
-  { key: "overview", label: "Server overview", blurb: "Headline numbers, joins over the last year and the biggest roles." },
-  { key: "joins", label: "Joins over time", blurb: "New members each month." },
-  { key: "levels", label: "Level spread", blurb: "How many members are at each level band." },
-];
-
-type Opts = {
-  kind: Kind;
-  theme: Theme;
-  size: Size;
-  among: string; // role id, or "" for everyone
-  group: string;
-  rowGroup: string;
-  colGroup: string;
-  aRoles: string[];
-  bRoles: string[];
-  months: number;
-  title: string;
-  subtitle: string;
-  footnote: boolean;
+type Options = {
+  channels: { id: string; name: string; messages: number }[];
+  groups: { key: string; title: string; adult: boolean }[];
+  roles: { id: string; name: string }[];
+  games: { key: string; name: string }[];
 };
-const DEFAULT: Opts = { kind: "group", theme: "dark", size: "landscape", among: "", group: "Gender", rowGroup: "Gender", colGroup: "Relationship_Status", aRoles: [], bRoles: [], months: 12, title: "", subtitle: "", footnote: true };
+type Look = { theme: Theme; size: Size; footnote: boolean };
 
-const today = () => new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-const ratio = (a: number, b: number) => (!b ? "—" : (a / b).toFixed(a / b >= 10 ? 1 : 2).replace(/\.?0+$/, "") || "0");
+const browserZone = () => {
+  try {
+    const z = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return ZONES.some((x) => x[0] === z) ? z : "America/New_York";
+  } catch {
+    return "America/New_York";
+  }
+};
 
-/** Works out everything a graphic needs, then draws it. */
-function useGraphic(ctx: Ctx | null, o: Opts) {
-  return useMemo(() => {
-    if (!ctx) return null;
-    const snap = ctx.snap;
-    const roleName = (id: string) => snap.roles[ctx.index.get(id) ?? -1]?.name ?? "Unknown role";
-    const groupTitle = (k: string) => snap.categories.find((c) => c.key === k)?.title ?? k;
-    const base: Filter = o.among ? { ...EMPTY, all: [o.among] } : EMPTY;
-    const members = applyFilter(ctx, base);
-    const humans = snap.members.filter((m) => !m.bot);
-    const amongText = o.among ? `members with ${roleName(o.among)}` : "members";
-    const stamp = `Snapshot · ${today()}\nSource: live Discord roles`;
-    let title = "";
-    let subtitle = "";
-    let footnote = "";
-    let body: (b: { x: number; y: number; w: number; h: number; t: (typeof TOKENS)["dark"]; theme: Theme }) => ReactNode = () => null;
-    const square = o.size === "square";
-
-    if (o.kind === "group") {
-      const b = breakdown(ctx, members, { kind: "category", key: o.group });
-      const many = b.buckets.length > 8;
-      const rows: BarRow[] = b.buckets.map((x, i) => ({ label: x.label, count: x.count, color: many ? undefined : seriesColor(o.theme, i) }));
-      const none = noneBuckets(b);
-      const top = b.buckets[0];
-      const second = b.buckets[1];
-      title = `${groupTitle(o.group)} breakdown${o.among ? ` of ${roleName(o.among)} members` : ""}`;
-      subtitle = `${members.length.toLocaleString()} ${amongText}, counted from the ${groupTitle(o.group).toLowerCase()} roles they picked.`;
-      footnote = [b.multi ? `${b.multi} members picked more than one ${groupTitle(o.group).toLowerCase()} role, so a few are counted twice.` : "", none.length > 1 ? "18+ role groups can only be picked by members with 18+ Verified." : "", "Bots are not counted."].filter(Boolean).join(" ");
-      body = ({ x, y, w, h, t, theme }) => {
-        const accent = seriesColor(theme, 0);
-        const barRows = [...rows.map((r) => ({ ...r, color: r.color ?? accent })), ...none.map((n, i) => ({ label: n.label, count: n.count, color: i ? t.gray2 : t.gray }))];
-        const stripRows: BarRow[] = [...b.buckets.slice(0, 7).map((x, i) => ({ label: x.label, count: x.count, color: seriesColor(theme, i) })), ...(b.buckets.length > 7 ? [{ label: "Other roles", count: b.buckets.slice(7).reduce((a, z) => a + z.count, 0), color: t.text2 }] : []), ...none.map((n, i) => ({ label: n.label, count: n.count, color: i ? t.gray2 : t.gray }))];
-        const stripH = 170;
-        const gap = 26;
-        const heroW = square ? w : w * 0.36;
-        const heroH = square ? 260 : h - stripH - gap;
-        const bars = square ? { x, y: y + heroH + gap, w, h: h - heroH - stripH - gap * 2 } : { x: x + heroW + gap, y, w: w - heroW - gap, h: h - stripH - gap };
-        return (
-          <g>
-            <HeroBlock
-              x={x}
-              y={y}
-              w={heroW}
-              h={heroH}
-              t={t}
-              label={second && top ? `${top.label} : ${second.label}` : "Most picked"}
-              big={second && top ? ratio(top.count, second.count) : top ? pctText(top.count, members.length) : "0"}
-              small={second && top ? ": 1" : undefined}
-              caption={top ? `${top.count.toLocaleString()} ${top.label} to ${second ? `${second.count.toLocaleString()} ${second.label}` : "no others"}. ${top.label} is ${pctText(top.count, members.length)} of ${amongText}.` : "Nobody has picked one of these roles yet."}
-              chips={[top, second].filter(Boolean).map((z, i) => ({ color: seriesColor(theme, i), text: `${z!.label} ${z!.count.toLocaleString()}` }))}
-            />
-            <BarsBlock {...bars} t={t} rows={barRows} total={members.length} title={`Members by ${groupTitle(o.group).toLowerCase()} role`} />
-            <StripBlock x={x} y={y + h - stripH} w={w} h={stripH} t={t} rows={stripRows} title="Everyone, side by side" />
-          </g>
-        );
-      };
-    } else if (o.kind === "ratio") {
-      const fa = { ...base, any: o.aRoles };
-      const fb = { ...base, any: o.bRoles };
-      const ma = o.aRoles.length ? applyFilter(ctx, fa).length : 0;
-      const mb = o.bRoles.length ? applyFilter(ctx, fb).length : 0;
-      const la = o.aRoles.map(roleName).join(" + ") || "Pick roles";
-      const lb = o.bRoles.map(roleName).join(" + ") || "Pick roles";
-      title = `${la} to ${lb}${o.among ? ` among ${roleName(o.among)}` : ""}`;
-      subtitle = `Out of ${members.length.toLocaleString()} ${amongText}.`;
-      footnote = "Members with roles on both sides are counted on both. Bots are not counted.";
-      body = ({ x, y, w, h, t, theme }) => {
-        const tileH = 170;
-        const gap = 26;
-        return (
-          <g>
-            <HeroBlock x={x} y={y} w={square ? w : w * 0.42} h={h - tileH - gap} t={t} label="Ratio" big={ratio(ma, mb)} small=": 1" caption={`${ma.toLocaleString()} ${la} for every ${mb.toLocaleString()} ${lb}.`} chips={[{ color: seriesColor(theme, 0), text: `${la} ${ma}` }, { color: seriesColor(theme, 1), text: `${lb} ${mb}` }]} />
-            {!square ? (
-              <SplitBlock x={x + w * 0.42 + gap} y={y} w={w - w * 0.42 - gap} h={h - tileH - gap} t={t} a={{ label: la, count: ma, color: seriesColor(theme, 0) }} b={{ label: lb, count: mb, color: seriesColor(theme, 1) }} title="Side by side" />
-            ) : null}
-            <TilesBlock
-              x={x}
-              y={y + h - tileH}
-              w={w}
-              h={tileH}
-              t={t}
-              tiles={[
-                { label: la, value: ma.toLocaleString(), note: `${pctText(ma, members.length)} of ${amongText}` },
-                { label: lb, value: mb.toLocaleString(), note: `${pctText(mb, members.length)} of ${amongText}` },
-                { label: o.among ? `All with ${roleName(o.among)}` : "All members", value: members.length.toLocaleString() },
-              ]}
-            />
-          </g>
-        );
-      };
-    } else if (o.kind === "compare") {
-      const ct = crosstab(ctx, members, o.rowGroup, o.colGroup);
-      title = `${groupTitle(o.rowGroup)} × ${groupTitle(o.colGroup)}${o.among ? ` · ${roleName(o.among)}` : ""}`;
-      subtitle = `${members.length.toLocaleString()} ${amongText}. Each cell counts members with both roles.`;
-      footnote = `“None” is members with no ${groupTitle(o.colGroup).toLowerCase()} role${ctx.adult.has(o.colGroup) ? " (18+ groups need the 18+ Verified role)" : ""}. Members can pick more than one role in a group. Bots are not counted.`;
-      const rowLabels = [...ct.rows.map((r) => r.name), `No ${groupTitle(o.rowGroup).toLowerCase()} role`];
-      const colLabels = [...ct.cols.map((c) => c.name), "None"];
-      const cells = [...ct.cells.map((r, i) => [...r, ct.colNone[i]]), [...ct.rowNone, ct.neither]];
-      // Each person once per row (someone with two roles across the top isn't counted twice)
-      const totals = [...ct.rowTotals, ct.rowNoneTotal];
-      body = ({ x, y, w, h, t, theme }) => <HeatBlock x={x} y={y} w={w} h={h} t={t} rows={rowLabels} cols={colLabels} cells={cells} totals={totals} title="Members in each pair" accent={seriesColor(theme, 0)} />;
-    } else if (o.kind === "overview") {
-      const now = Date.now();
-      const month = 30 * 86_400_000;
-      const verified = ctx.verified !== null ? humans.filter((m) => m.r.includes(ctx.verified!)).length : 0;
-      const joins = monthly(humans, 12);
-      const top = Array.from(
-        humans.reduce((acc, m) => {
-          m.r.forEach((i) => acc.set(i, (acc.get(i) ?? 0) + 1));
-          return acc;
-        }, new Map<number, number>()),
-      )
-        .filter(([i]) => !snap.roles[i].managed)
-        .sort((a, z) => z[1] - a[1])
-        .slice(0, 8);
-      title = "Bear Nation at a glance";
-      subtitle = `${humans.length.toLocaleString()} members in the Discord server today.`;
-      footnote = "Bots are not counted. Joins only count members who are still in the server.";
-      body = ({ x, y, w, h, t, theme }) => {
-        const tileH = 150;
-        const gap = 26;
-        const rest = h - tileH - gap;
-        return (
-          <g>
-            <TilesBlock
-              x={x}
-              y={y}
-              w={w}
-              h={tileH}
-              t={t}
-              tiles={[
-                { label: "Members", value: humans.length.toLocaleString() },
-                { label: "Joined in 30 days", value: humans.filter((m) => (m.joinedAt ?? 0) > now - month).length.toLocaleString() },
-                { label: "18+ Verified", value: verified.toLocaleString(), note: pctText(verified, humans.length) },
-                { label: "Boosting", value: humans.filter((m) => m.boosting).length.toLocaleString() },
-                ...(square ? [] : [{ label: "Website accounts", value: humans.filter((m) => m.account).length.toLocaleString(), note: pctText(humans.filter((m) => m.account).length, humans.length) }]),
-              ]}
-            />
-            <ColumnsBlock x={x} y={y + tileH + gap} w={square ? w : w * 0.55} h={square ? rest * 0.5 - gap / 2 : rest} t={t} cols={joins} title="New members each month" color={seriesColor(theme, 0)} />
-            <BarsBlock
-              x={square ? x : x + w * 0.55 + gap}
-              y={square ? y + tileH + gap + rest * 0.5 + gap / 2 : y + tileH + gap}
-              w={square ? w : w - w * 0.55 - gap}
-              h={square ? rest * 0.5 - gap / 2 : rest}
-              t={t}
-              rows={top.map(([i, n]) => ({ label: snap.roles[i].name, count: n, color: seriesColor(theme, 0) }))}
-              total={humans.length}
-              title="Biggest roles"
-            />
-          </g>
-        );
-      };
-    } else if (o.kind === "joins") {
-      const cols = monthly(members, o.months);
-      const total = cols.reduce((a, c) => a + c.count, 0);
-      const best = cols.reduce((a, c) => (c.count > a.count ? c : a), cols[0] ?? { label: "", count: 0 });
-      title = `New ${o.among ? `${roleName(o.among)} ` : ""}members each month`;
-      subtitle = `The last ${o.months} months: ${total.toLocaleString()} joined and are still here. Busiest month: ${best.label} (${best.count.toLocaleString()}).`;
-      footnote = "Counts members by the date they joined. Members who joined and left again aren't included. Bots are not counted.";
-      body = ({ x, y, w, h, t, theme }) => <ColumnsBlock x={x} y={y} w={w} h={h} t={t} cols={cols} title="Joins per month" color={seriesColor(theme, 0)} />;
-    } else {
-      const b = breakdown(ctx, members, { kind: "level" });
-      const withLevel = members.filter((m) => (m.level ?? 0) > 0);
-      const avg = withLevel.length ? withLevel.reduce((a, m) => a + (m.level ?? 0), 0) / withLevel.length : 0;
-      const maxLevel = Math.max(0, ...members.map((m) => m.level ?? 0));
-      title = `Level spread${o.among ? ` of ${roleName(o.among)} members` : ""}`;
-      subtitle = `${members.length.toLocaleString()} ${amongText}, grouped by their chat level.`;
-      footnote = "Levels come from chat and voice XP. Bots are not counted.";
-      body = ({ x, y, w, h, t, theme }) => {
-        const tileH = 150;
-        const gap = 26;
-        return (
-          <g>
-            <TilesBlock
-              x={x}
-              y={y}
-              w={w}
-              h={tileH}
-              t={t}
-              tiles={[
-                { label: "Average level", value: avg.toFixed(1), note: "of members with a level" },
-                { label: "Highest level", value: String(maxLevel) },
-                { label: "Level 10+", value: members.filter((m) => (m.level ?? 0) >= 10).length.toLocaleString(), note: pctText(members.filter((m) => (m.level ?? 0) >= 10).length, members.length) },
-              ]}
-            />
-            <ColumnsBlock x={x} y={y + tileH + gap} w={w} h={h - tileH - gap} t={t} cols={b.buckets.map((z) => ({ label: z.label, count: z.count }))} title="Members per level band" color={seriesColor(theme, 2)} />
-          </g>
-        );
-      };
-    }
-
-    const frame: Frame = {
-      theme: o.theme,
-      size: o.size,
-      eyebrow: o.among ? `Bear Nation · ${roleName(o.among)}` : "Bear Nation",
-      title: o.title.trim() || title,
-      subtitle: o.subtitle.trim() || subtitle,
-      stamp,
-      footnote: o.footnote ? footnote : "",
-    };
-    return { frame, body, defaults: { title, subtitle } };
-  }, [ctx, o]);
-}
-
-/** Members per join month, oldest to newest. */
-function monthly(members: MMMember[], months: number) {
-  const now = new Date();
-  const keys = Array.from({ length: months }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth() - (months - 1 - i), 1);
-    return { y: d.getFullYear(), m: d.getMonth(), label: d.toLocaleDateString("en-US", { month: "short", ...(months > 12 || d.getMonth() === 0 ? { year: "2-digit" } : {}) }) };
-  });
-  return keys.map((k) => ({ label: k.label, count: members.filter((m) => m.joinedAt && new Date(m.joinedAt).getFullYear() === k.y && new Date(m.joinedAt).getMonth() === k.m).length }));
-}
-
-function RoleMulti({ ctx, value, onChange, placeholder }: { ctx: Ctx; value: string[]; onChange: (v: string[]) => void; placeholder: string }) {
-  return (
-    <div className="gx-multi">
-      {value.map((id) => (
-        <button key={id} type="button" className="gx-pill" onClick={() => onChange(value.filter((x) => x !== id))}>
-          {ctx.snap.roles[ctx.index.get(id) ?? -1]?.name ?? id} ×
-        </button>
-      ))}
-      <select className="adm-select" value="" onChange={(e) => e.target.value && onChange([...value, e.target.value])} aria-label={placeholder}>
-        <option value="">{value.length ? "Add another role…" : placeholder}</option>
-        {ctx.snap.roles
-          .filter((r) => !r.managed && !value.includes(r.id))
-          .map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.name}
-            </option>
-          ))}
+/** One dropdown per option the chosen graphic needs. */
+function ParamControl({ kind, value, onChange, options }: { kind: ParamKind; value: string; onChange: (v: string) => void; options: Options }) {
+  const select = (label: string, items: [string, string][], allowEmpty?: string) => (
+    <label className="gx-field">
+      <span>{label}</span>
+      <select className="adm-select" value={value} onChange={(e) => onChange(e.target.value)}>
+        {allowEmpty !== undefined ? <option value="">{allowEmpty}</option> : null}
+        {items.map(([v, l]) => (
+          <option key={v} value={v}>
+            {l}
+          </option>
+        ))}
       </select>
+    </label>
+  );
+  if (kind === "range") return select("Time range", RANGES);
+  if (kind === "tz") return select("Time zone", ZONES);
+  if (kind === "top") return select("How many", ["5", "10", "15", "20", "25"].map((x) => [x, `Top ${x}`]));
+  if (kind === "group") return select("Role group", options.groups.map((g) => [g.key, `${g.title}${g.adult ? " (18+)" : ""}`]));
+  if (kind === "rowGroup") return select("Down the side", options.groups.map((g) => [g.key, g.title]));
+  if (kind === "colGroup") return select("Across the top", options.groups.map((g) => [g.key, g.title]));
+  if (kind === "among") return select("Only members with", options.roles.map((r) => [r.id, r.name]), "Everyone (no role filter)");
+  if (kind === "channel") return select("Channel", options.channels.map((c) => [c.id, `${c.name} (${c.messages.toLocaleString()} msgs/yr)`]), "All channels");
+  if (kind === "game") return select("Game", options.games.map((g) => [g.key, g.name]), "All games");
+  if (kind === "months") return select("Months", ["6", "12", "18", "24"].map((x) => [x, `Last ${x} months`]));
+  // rolesA / rolesB: several roles, stored as "id,id"
+  const picked = value.split(",").filter(Boolean);
+  return (
+    <div className="gx-field">
+      <span>{kind === "rolesA" ? "First side (any of)" : "Second side (any of)"}</span>
+      <div className="gx-multi">
+        {picked.map((id) => (
+          <button key={id} type="button" className="gx-pill" onClick={() => onChange(picked.filter((x) => x !== id).join(","))}>
+            {options.roles.find((r) => r.id === id)?.name ?? id} ×
+          </button>
+        ))}
+        <select className="adm-select" value="" onChange={(e) => e.target.value && onChange([...picked, e.target.value].join(","))}>
+          <option value="">{picked.length ? "Add another role…" : "Pick a role…"}</option>
+          {options.roles
+            .filter((r) => !picked.includes(r.id))
+            .map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+        </select>
+      </div>
     </div>
   );
 }
 
 export function GraphicsTab() {
-  const [snap, setSnap] = useState<MMSnapshot | null>(null);
+  const [stats, setStats] = useState<StatMeta[] | null>(null);
+  const [options, setOptions] = useState<Options | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [cat, setCat] = useState<string>("all");
+  const [selected, setSelected] = useStored<string>("gx-selected", "members-overview");
+  const [params, setParams] = useStored<Params>("gx-params", {});
+  const [look, setLook] = useStored<Look>("gx-look", { theme: "dark", size: "landscape", footnote: true });
+  const [title, setTitle] = useState("");
+  const [subtitle, setSubtitle] = useState("");
+  const [spec, setSpec] = useState<Spec | null>(null);
   const [loading, setLoading] = useState(false);
-  const [o, setO] = useStored<Opts>("gx-opts", DEFAULT);
-  const opts = useMemo(() => ({ ...DEFAULT, ...o }), [o]);
+  const [specError, setSpecError] = useState<string | null>(null);
   const [busy, setBusy] = useState<"png" | "copy" | null>(null);
-  const [done, setDone] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
-  const load = useCallback(async (fresh = false) => {
-    setLoading(true);
-    setError(null);
-    const res = await fetch(`/api/admin/members/all${fresh ? "?fresh=1" : ""}`, { cache: "no-store" })
+  useEffect(() => {
+    fetch("/api/admin/graphics/catalog", { cache: "no-store" })
       .then((r) => r.json())
-      .catch(() => null);
-    setLoading(false);
-    if (res?.ok) setSnap(res as MMSnapshot);
-    else setError(res?.error ?? "Couldn't load the member list.");
+      .then((r) => {
+        if (!r?.ok) return setError(r?.error ?? "Couldn't load the graphics list.");
+        setStats(r.stats);
+        setOptions(r.options);
+      })
+      .catch(() => setError("Couldn't load the graphics list."));
   }, []);
   useEffect(() => {
-    void load();
-  }, [load]);
-  useEffect(() => {
-    if (!done) return;
-    const t = setTimeout(() => setDone(null), 2000);
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2200);
     return () => clearTimeout(t);
-  }, [done]);
+  }, [toast]);
 
-  const ctx = useMemo(() => (snap ? makeCtx(snap) : null), [snap]);
-  // A sensible starting ratio (Male vs Female) the first time
+  const stat = stats?.find((s) => s.id === selected) ?? stats?.[0] ?? null;
+
+  // Sensible starting choices (filled in once the role list is known)
+  const defaults = useMemo<Params>(() => {
+    const find = (re: RegExp) => options?.roles.find((r) => re.test(r.name.replace(/[^\w\s()+/-]/g, "").trim()))?.id ?? "";
+    return { range: "30", tz: browserZone(), top: "10", group: "Gender", rowGroup: "Gender", colGroup: "Relationship_Status", rolesA: find(/^male$/i), rolesB: find(/^female$/i), months: "12" };
+  }, [options]);
+  const value = (k: ParamKind) => params[k] ?? defaults[k] ?? "";
+
+  // Work out the graphic whenever it or its options change
+  const req = stat ? `id=${stat.id}&${stat.params.map((k) => `${k}=${encodeURIComponent(value(k))}`).join("&")}` : "";
   useEffect(() => {
-    if (!ctx || opts.aRoles.length || opts.bRoles.length) return;
-    const find = (re: RegExp) => ctx.snap.roles.find((r) => re.test(r.name.replace(/[^\w\s()+/-]/g, "").trim()))?.id;
-    const male = find(/^male$/i);
-    const female = find(/^female$/i);
-    if (male && female) setO({ ...opts, aRoles: [male], bRoles: [female] });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ctx]);
-  const g = useGraphic(ctx, opts);
-  const set = (patch: Partial<Opts>) => setO({ ...opts, ...patch });
+    if (!req || !options) return;
+    let stop = false;
+    setLoading(true);
+    setSpecError(null);
+    const t = setTimeout(() => {
+      fetch(`/api/admin/graphics/run?${req}`, { cache: "no-store" })
+        .then((r) => r.json())
+        .then((r) => {
+          if (stop) return;
+          if (r?.ok) setSpec(r.spec);
+          else setSpecError(r?.error ?? "Couldn't work that graphic out.");
+        })
+        .catch(() => !stop && setSpecError("Couldn't work that graphic out."))
+        .finally(() => !stop && setLoading(false));
+    }, 150);
+    return () => {
+      stop = true;
+      clearTimeout(t);
+    };
+  }, [req, options]);
 
-  const filename = () => `${(g?.frame.title ?? "graphic").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60)}.png`;
+  const pick = (id: string) => {
+    setSelected(id);
+    setTitle("");
+    setSubtitle("");
+  };
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return (stats ?? []).filter((s) => (cat === "all" || s.category === cat) && (!q || `${s.title} ${s.blurb} ${(s.tags ?? []).join(" ")} ${CATEGORIES.find((c) => c.key === s.category)?.label}`.toLowerCase().includes(q)));
+  }, [stats, query, cat]);
+  const index = filtered.findIndex((s) => s.id === stat?.id);
+  const step = (d: number) => filtered.length && pick(filtered[(index + d + filtered.length) % filtered.length].id);
+
+  const fileName = () => `${(title || spec?.title || "graphic").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60)}.png`;
   const download = async () => {
     if (!svgRef.current) return;
     setBusy("png");
@@ -325,14 +165,14 @@ export function GraphicsTab() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = filename();
+      a.download = fileName();
       document.body.appendChild(a);
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 2000);
-      setDone("Saved");
+      setToast("Saved");
     } catch {
-      setDone("Couldn't make the image");
+      setToast("Couldn't make the image");
     }
     setBusy(null);
   };
@@ -342,32 +182,28 @@ export function GraphicsTab() {
     try {
       const blob = await svgToPng(svgRef.current);
       await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-      setDone("Copied. Paste it into Discord");
+      setToast("Copied. Paste it into Discord");
     } catch {
-      setDone("Your browser blocked copying. Use Download instead");
+      setToast("Your browser blocked copying. Use Download");
     }
     setBusy(null);
   };
 
-  if (error && !snap) {
+  if (error)
     return (
       <div className="adm-panel">
         <p className="adm-error">{error}</p>
-        <button type="button" className="adm-btn" onClick={() => void load(true)}>
-          Try again
-        </button>
       </div>
     );
-  }
-  if (!ctx || !g) {
+  if (!stats || !options || !stat) {
     return (
       <div className="adm-panel gx-loading">
-        <Loader2 size={20} className="gx-spin" aria-hidden="true" /> Loading member data…
+        <Loader2 size={20} className="gx-spin" aria-hidden="true" /> Loading graphics…
       </div>
     );
   }
-  const { w, h } = SIZES[opts.size];
-  const groups = ctx.snap.categories;
+  const { w, h } = SIZES[look.size];
+  const counts = new Map(CATEGORIES.map((c) => [c.key, stats.filter((s) => s.category === c.key).length]));
 
   return (
     <div className="adm-panel gx">
@@ -376,128 +212,86 @@ export function GraphicsTab() {
           <h2>
             <ImageIcon size={20} aria-hidden="true" /> Graphics
           </h2>
-          <p>Make a stat graphic from live member data and save it as a PNG to post. Nothing is shared until you post it.</p>
+          <p>
+            {stats.length} graphics from the server&apos;s chat, voice, economy, casino, moderation, Social and website data, each with its own options. Pick one, adjust it, then download a PNG or copy it
+            straight into Discord.
+          </p>
         </div>
-        <button type="button" className="adm-btn adm-btn--ghost" onClick={() => void load(true)} disabled={loading}>
-          <RefreshCw size={14} className={loading ? "gx-spin" : undefined} aria-hidden="true" /> Refresh data
-        </button>
       </header>
 
       <div className="gx-layout">
-        <aside className="gx-controls">
-          <section>
-            <h3>Graphic</h3>
-            <div className="gx-kinds">
-              {KINDS.map((k) => (
-                <button key={k.key} type="button" className={opts.kind === k.key ? "is-on" : undefined} onClick={() => set({ kind: k.key, title: "", subtitle: "" })}>
-                  <b>{k.label}</b>
-                  <small>{k.blurb}</small>
-                </button>
-              ))}
-            </div>
-          </section>
+        <aside className="gx-browse">
+          <label className="adm-search gx-search">
+            <Search size={15} aria-hidden="true" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search: emojis, voice, tickets, gender…" />
+            {query ? (
+              <button type="button" onClick={() => setQuery("")} aria-label="Clear">
+                <X size={13} />
+              </button>
+            ) : null}
+          </label>
+          <div className="gx-cats">
+            <button type="button" className={cat === "all" ? "is-on" : undefined} onClick={() => setCat("all")}>
+              All <small>{stats.length}</small>
+            </button>
+            {CATEGORIES.map((c) => (
+              <button key={c.key} type="button" className={cat === c.key ? "is-on" : undefined} onClick={() => setCat(c.key)}>
+                {c.emoji} {c.label} <small>{counts.get(c.key)}</small>
+              </button>
+            ))}
+          </div>
+          <div className="gx-list">
+            {filtered.map((s) => (
+              <button key={s.id} type="button" className={s.id === stat.id ? "is-on" : undefined} onClick={() => pick(s.id)}>
+                <span className="gx-list-emoji" aria-hidden="true">
+                  {CATEGORIES.find((c) => c.key === s.category)?.emoji}
+                </span>
+                <span>
+                  <b>{s.title}</b>
+                  <small>{s.blurb}</small>
+                </span>
+              </button>
+            ))}
+            {!filtered.length ? <p className="gx-none">Nothing matches “{query}”.</p> : null}
+          </div>
+        </aside>
 
-          <section>
-            <h3>Data</h3>
-            {opts.kind !== "overview" ? (
-              <label className="gx-field">
-                <span>Among</span>
-                <select className="adm-select" value={opts.among} onChange={(e) => set({ among: e.target.value, title: "", subtitle: "" })}>
-                  <option value="">Everyone in the server</option>
-                  {ctx.snap.roles
-                    .filter((r) => !r.managed)
-                    .map((r) => (
-                      <option key={r.id} value={r.id}>
-                        Members with {r.name}
-                      </option>
-                    ))}
-                </select>
-              </label>
-            ) : null}
-            {opts.kind === "group" ? (
-              <label className="gx-field">
-                <span>Role group</span>
-                <select
-                  className="adm-select"
-                  value={opts.group}
-                  onChange={(e) => {
-                    // 18+ groups only make sense among 18+ Verified members, so start there (it can still be changed)
-                    const adult = ctx.adult.has(e.target.value);
-                    const v18 = ctx.verified !== null ? ctx.snap.roles[ctx.verified].id : "";
-                    set({ group: e.target.value, title: "", subtitle: "", ...(adult && !opts.among && v18 ? { among: v18 } : {}) });
-                  }}
-                >
-                  {groups.map((c) => (
-                    <option key={c.key} value={c.key}>
-                      {c.title}
-                      {c.adult ? " (18+)" : ""}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
-            {opts.kind === "compare" ? (
-              <>
-                <label className="gx-field">
-                  <span>Down the side</span>
-                  <select className="adm-select" value={opts.rowGroup} onChange={(e) => set({ rowGroup: e.target.value, title: "", subtitle: "" })}>
-                    {groups.map((c) => (
-                      <option key={c.key} value={c.key}>
-                        {c.title}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="gx-field">
-                  <span>Across the top</span>
-                  <select className="adm-select" value={opts.colGroup} onChange={(e) => set({ colGroup: e.target.value, title: "", subtitle: "" })}>
-                    {groups.map((c) => (
-                      <option key={c.key} value={c.key}>
-                        {c.title}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </>
-            ) : null}
-            {opts.kind === "ratio" ? (
-              <>
-                <div className="gx-field">
-                  <span>First side (any of these roles)</span>
-                  <RoleMulti ctx={ctx} value={opts.aRoles} onChange={(v) => set({ aRoles: v, title: "", subtitle: "" })} placeholder="Pick a role…" />
-                </div>
-                <div className="gx-field">
-                  <span>Second side (any of these roles)</span>
-                  <RoleMulti ctx={ctx} value={opts.bRoles} onChange={(v) => set({ bRoles: v, title: "", subtitle: "" })} placeholder="Pick a role…" />
-                </div>
-              </>
-            ) : null}
-            {opts.kind === "joins" ? (
-              <label className="gx-field">
-                <span>Months</span>
-                <select className="adm-select" value={opts.months} onChange={(e) => set({ months: Number(e.target.value), subtitle: "" })}>
-                  {[6, 12, 18, 24].map((n) => (
-                    <option key={n} value={n}>
-                      Last {n} months
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
-          </section>
+        <section className="gx-work">
+          <div className="gx-toolbar">
+            <button type="button" className="adm-btn adm-btn--ghost adm-btn--tiny" onClick={() => step(-1)} aria-label="Previous graphic">
+              <ChevronLeft size={14} />
+            </button>
+            <b className="gx-current">{stat.title}</b>
+            <button type="button" className="adm-btn adm-btn--ghost adm-btn--tiny" onClick={() => step(1)} aria-label="Next graphic">
+              <ChevronRight size={14} />
+            </button>
+            <button type="button" className="adm-btn adm-btn--ghost adm-btn--tiny" onClick={() => pick(stats[Math.floor(Math.random() * stats.length)].id)}>
+              <Dices size={14} aria-hidden="true" /> Surprise me
+            </button>
+            <span className="gx-spacer" />
+            <button type="button" className="adm-btn" onClick={() => void download()} disabled={!!busy || !spec}>
+              {busy === "png" ? <Loader2 size={14} className="gx-spin" aria-hidden="true" /> : <Download size={14} aria-hidden="true" />} Download PNG
+            </button>
+            <button type="button" className="adm-btn adm-btn--ghost" onClick={() => void copy()} disabled={!!busy || !spec}>
+              {busy === "copy" ? <Loader2 size={14} className="gx-spin" aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />} Copy image
+            </button>
+            {toast ? <span className="gx-done">{toast}</span> : null}
+          </div>
 
-          <section>
-            <h3>Look</h3>
-            <div className="gx-seg" role="radiogroup" aria-label="Theme">
-              {(["dark", "light"] as Theme[]).map((t) => (
-                <button key={t} type="button" role="radio" aria-checked={opts.theme === t} className={opts.theme === t ? "is-on" : undefined} onClick={() => set({ theme: t })}>
-                  {t === "dark" ? "Dark" : "Light"}
-                </button>
-              ))}
-            </div>
+          <div className="gx-controls-row">
+            {stat.params.map((k) => (
+              <ParamControl key={k} kind={k} value={value(k)} onChange={(v) => setParams({ ...params, [k]: v })} options={options} />
+            ))}
+            <label className="gx-field">
+              <span>Look</span>
+              <select className="adm-select" value={look.theme} onChange={(e) => setLook({ ...look, theme: e.target.value as Theme })}>
+                <option value="dark">Dark</option>
+                <option value="light">Light</option>
+              </select>
+            </label>
             <label className="gx-field">
               <span>Size</span>
-              <select className="adm-select" value={opts.size} onChange={(e) => set({ size: e.target.value as Size })}>
+              <select className="adm-select" value={look.size} onChange={(e) => setLook({ ...look, size: e.target.value as Size })}>
                 {(Object.keys(SIZES) as Size[]).map((s) => (
                   <option key={s} value={s}>
                     {SIZES[s].label}
@@ -505,41 +299,37 @@ export function GraphicsTab() {
                 ))}
               </select>
             </label>
-            <label className="gx-field">
-              <span>Title</span>
-              <input className="gx-input" value={opts.title} placeholder={g.defaults.title} onChange={(e) => set({ title: e.target.value })} maxLength={90} />
-            </label>
-            <label className="gx-field">
-              <span>Subtitle</span>
-              <input className="gx-input" value={opts.subtitle} placeholder={g.defaults.subtitle} onChange={(e) => set({ subtitle: e.target.value })} maxLength={180} />
-            </label>
-            <label className="gx-check">
-              <input type="checkbox" checked={opts.footnote} onChange={(e) => set({ footnote: e.target.checked })} /> Show the footnote (how it was counted)
-            </label>
-          </section>
-        </aside>
+          </div>
+          <details className="gx-more">
+            <summary>Change the title, subtitle or footnote</summary>
+            <div className="gx-controls-row">
+              <label className="gx-field gx-wide">
+                <span>Title</span>
+                <input className="gx-input" value={title} placeholder={spec?.title} onChange={(e) => setTitle(e.target.value)} maxLength={90} />
+              </label>
+              <label className="gx-field gx-wide">
+                <span>Subtitle</span>
+                <input className="gx-input" value={subtitle} placeholder={spec?.subtitle} onChange={(e) => setSubtitle(e.target.value)} maxLength={180} />
+              </label>
+              <label className="gx-check">
+                <input type="checkbox" checked={look.footnote} onChange={(e) => setLook({ ...look, footnote: e.target.checked })} /> Footnote (how it was counted)
+              </label>
+            </div>
+          </details>
 
-        <div className="gx-preview">
-          <div className="gx-actions">
-            <button type="button" className="adm-btn" onClick={() => void download()} disabled={!!busy}>
-              {busy === "png" ? <Loader2 size={14} className="gx-spin" aria-hidden="true" /> : <Download size={14} aria-hidden="true" />} Download PNG
-            </button>
-            <button type="button" className="adm-btn adm-btn--ghost" onClick={() => void copy()} disabled={!!busy}>
-              {busy === "copy" ? <Loader2 size={14} className="gx-spin" aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />} Copy image
-            </button>
-            {done ? (
-              <span className="gx-done" role="status">
-                <Check size={14} aria-hidden="true" /> {done}
+          <div className={`gx-canvas${loading ? " is-loading" : ""}`} style={{ aspectRatio: `${w} / ${h}` }}>
+            {spec ? <SpecGraphic spec={spec} theme={look.theme} size={look.size} title={title} subtitle={subtitle} footnote={look.footnote} svgRef={svgRef} /> : null}
+            {loading ? (
+              <span className="gx-overlay">
+                <Loader2 size={22} className="gx-spin" aria-hidden="true" /> Working it out…
               </span>
             ) : null}
-            <span className="gx-dims">
-              {w * 2}×{h * 2} PNG
-            </span>
+            {specError ? <span className="gx-overlay is-error">{specError}</span> : null}
           </div>
-          <div className="gx-canvas" style={{ aspectRatio: `${w} / ${h}` }}>
-            <Graphic frame={g.frame} body={g.body} svgRef={svgRef} />
-          </div>
-        </div>
+          <p className="gx-dims">
+            {w * 2}×{h * 2} PNG · numbers are cached for five minutes
+          </p>
+        </section>
       </div>
     </div>
   );
