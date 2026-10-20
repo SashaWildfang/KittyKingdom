@@ -86,6 +86,8 @@ function buckets(unit: "day" | "week" | "month", start: Date, tz: string) {
       out.push({ key: k, label });
     }
     d.setTime(d.getTime() + (unit === "month" ? 25 * DAY : unit === "week" ? 7 * DAY : DAY));
+    // The last step can jump past now: make sure the current day / week / month is always there
+    if (d.getTime() > end && d.getTime() - end < (unit === "month" ? 25 * DAY : unit === "week" ? 7 * DAY : DAY)) d.setTime(end);
   }
   return out;
 }
@@ -114,7 +116,18 @@ async function series(col: Awaited<ReturnType<typeof bot>>, field: string, match
   const b = buckets(unit, start, c.tz);
   return { labels: b.map((x) => x.label), values: b.map((x) => map.get(x.key) ?? 0) };
 }
-const startFor = (c: Ctx, fallbackDays: number) => c.since ?? new Date(Date.now() - fallbackDays * DAY);
+/**
+ * Where a trend starts: the chosen range, or for "All time" the oldest record there is (so all-time totals
+ * really are all-time). Graphics without a range use `fallbackDays`.
+ */
+async function startAt(c: Ctx, col: { find: (f: Document, o?: Document) => { sort: (s: Document) => { limit: (n: number) => { toArray: () => Promise<Document[]> } } } }, field: string, fallbackDays: number, match: Document = {}) {
+  if (c.since) return c.since;
+  if (c.p.range === "all") {
+    const [first] = await col.find({ ...match, [field]: { $type: "date" } }, { projection: { [field]: 1 } }).sort({ [field]: 1 }).limit(1).toArray();
+    if (first?.[field] instanceof Date) return first[field] as Date;
+  }
+  return new Date(Date.now() - fallbackDays * DAY);
+}
 const unitFor = (c: Ctx): "day" | "week" | "month" => (c.p.range === "7" || c.p.range === "30" ? "day" : c.p.range === "90" ? "week" : "month");
 const unitWord = (u: "day" | "week" | "month") => u;
 
@@ -234,7 +247,7 @@ for (const unit of ["day", "week", "month"] as const) {
     params: ["range", "among", "tz"],
     tags: ["messages", "activity", "trend"],
     run: async (c) => {
-      const start = startFor(c, unit === "day" ? 30 : unit === "week" ? 180 : 540);
+      const start = await startAt(c, await bot("message_index"), "t", unit === "day" ? 30 : unit === "week" ? 180 : 540, msgMatch(c));
       const s = await series(await bot("message_index"), "t", msgMatch(c), unit, c, start);
       return trend(`Messages per ${unit}`, `${c.rangeText}${amongText(c)}. Times in ${zoneName(c.tz)}.`, s, unit, "messages", "From the bot's message index. Deleted messages and bots are not counted.");
     },
@@ -250,7 +263,7 @@ add({
   tags: ["active", "unique", "members"],
   run: async (c) => {
     const unit = unitFor(c);
-    const start = startFor(c, 30);
+    const start = await startAt(c, await bot("message_index"), "t", 30, msgMatch(c));
     const rows = await (await bot("message_index"))
       .aggregate([
         { $match: { ...msgMatch(c), t: { $gte: start } } },
@@ -374,8 +387,8 @@ add({
   run: async (c) => {
     const ch = await channelNames();
     const unit = unitFor(c);
-    const start = startFor(c, 30);
     const match = { ...msgMatch(c), ...(c.p.channel ? { c: Long.fromString(c.p.channel) } : {}) };
+    const start = await startAt(c, await bot("message_index"), "t", 30, match);
     const s = await series(await bot("message_index"), "t", match, unit, c, start);
     const name = c.p.channel ? ch.get(c.p.channel) ?? "the channel" : "all channels";
     return trend(`${name} over time`, `Messages per ${unit} in ${name} · ${c.rangeText}.`, s, unit, "messages");
@@ -615,7 +628,7 @@ add({
   tags: ["voice", "trend"],
   run: async (c) => {
     const unit = unitFor(c);
-    const s = await series((await web("vc_rewards")) as never, "ts", {}, unit, c, startFor(c, 30), "seconds");
+    const s = await series((await web("vc_rewards")) as never, "ts", {}, unit, c, await startAt(c, (await web("vc_rewards")) as never, "ts", 30), "seconds");
     return trend("Voice time over time", `Rewarded voice hours per ${unit} · ${c.rangeText}.`, { labels: s.labels, values: s.values.map((v) => Math.round(v / 3600)) }, unit, "hours", "From the voice reward history (kept for a year).");
   },
 });
@@ -703,7 +716,8 @@ function casinoMatch(c: Ctx): Document {
   if (c.since) m.timestamp = { $gte: c.since };
   const ids = amongIds(c);
   if (ids) m.discordId = { $in: ids.map((id) => Long.fromString(id)) };
-  if (c.p.game) m.game = c.p.game;
+  // Older slots logs were saved without a game name
+  if (c.p.game) Object.assign(m, c.p.game === "slots" ? { $or: [{ game: "slots" }, { game: { $exists: false } }, { game: null }] } : { game: c.p.game });
   return m;
 }
 add({
@@ -714,7 +728,7 @@ add({
   params: ["range", "among"],
   tags: ["gambling", "games"],
   run: async (c) => {
-    const rows = await (await bot("gambling_logs")).aggregate([{ $match: casinoMatch({ ...c, p: { ...c.p, game: undefined } }) }, { $group: { _id: "$game", plays: { $sum: 1 }, spent: { $sum: "$spent" }, won: { $sum: "$won" }, wins: { $sum: { $cond: [{ $gt: ["$net", 0] }, 1, 0] } } } }, { $sort: { plays: -1 } }]).toArray();
+    const rows = await (await bot("gambling_logs")).aggregate([{ $match: casinoMatch({ ...c, p: { ...c.p, game: undefined } }) }, { $group: { _id: { $ifNull: ["$game", "slots"] }, plays: { $sum: 1 }, spent: { $sum: "$spent" }, won: { $sum: "$won" }, wins: { $sum: { $cond: [{ $gt: ["$net", 0] }, 1, 0] } } } }, { $sort: { plays: -1 } }]).toArray();
     const plays = rows.reduce((a, r) => a + n(r.plays), 0);
     const spent = rows.reduce((a, r) => a + n(r.spent), 0);
     const won = rows.reduce((a, r) => a + n(r.won), 0);
@@ -742,7 +756,7 @@ add({
   tags: ["gambling", "trend"],
   run: async (c) => {
     const unit = unitFor(c);
-    const s = await series(await bot("gambling_logs"), "timestamp", casinoMatch(c), unit, c, startFor(c, 30));
+    const s = await series(await bot("gambling_logs"), "timestamp", casinoMatch(c), unit, c, await startAt(c, await bot("gambling_logs"), "timestamp", 30));
     return trend(`${c.p.game ? gameName(c.p.game) : "Casino"} plays over time`, `Games per ${unit} · ${c.rangeText}.`, s, unit, "games", "From the gambling history (kept 180 days).");
   },
 });
@@ -809,7 +823,7 @@ add({
   tags: ["store", "trend"],
   run: async (c) => {
     const unit = unitFor(c);
-    const s = await series(await bot("store_sales"), "timestamp", {}, unit, c, startFor(c, 30), "price_paid");
+    const s = await series(await bot("store_sales"), "timestamp", {}, unit, c, await startAt(c, await bot("store_sales"), "timestamp", 30), "price_paid");
     return trend("Store spending", `Leaves spent per ${unit} · ${c.rangeText}.`, s, unit, "leaves");
   },
 });
@@ -859,7 +873,7 @@ add({
   tags: ["qotd"],
   run: async (c) => {
     const unit = unitFor(c);
-    const s = await series(await bot("qotdAnswers"), "answered_at", {}, unit, c, startFor(c, 30));
+    const s = await series(await bot("qotdAnswers"), "answered_at", {}, unit, c, await startAt(c, await bot("qotdAnswers"), "answered_at", 30));
     const totals = await (await bot("qotd")).aggregate([{ $group: { _id: null, people: { $sum: 1 }, answered: { $sum: "$total_answered" }, correct: { $sum: "$total_correct" }, leaves: { $sum: "$leaves_earned" } } }]).toArray();
     const t = totals[0] ?? {};
     const best = await leaders(c, "qotd", "best", "user_id", { title: "" });
@@ -981,7 +995,7 @@ add({
   tags: ["social", "matches", "trend"],
   run: async (c) => {
     const unit = unitFor(c);
-    const s = await series(await bot("dating_matches"), "matched_at", {}, unit, c, startFor(c, 90));
+    const s = await series(await bot("dating_matches"), "matched_at", {}, unit, c, await startAt(c, await bot("dating_matches"), "matched_at", 90));
     return trend("Social matches", `New matches per ${unit} · ${c.rangeText}.`, s, unit, "matches");
   },
 });
@@ -994,7 +1008,7 @@ add({
   tags: ["social", "messages", "trend"],
   run: async (c) => {
     const unit = unitFor(c);
-    const s = await series((await web("dating_messages")) as never, "at", {}, unit, c, startFor(c, 30));
+    const s = await series((await web("dating_messages")) as never, "at", {}, unit, c, await startAt(c, (await web("dating_messages")) as never, "at", 30));
     return trend("Social messages", `Messages sent on Social per ${unit} · ${c.rangeText}.`, s, unit, "messages", "Counts only: message text is never read for this.");
   },
 });
@@ -1023,7 +1037,7 @@ add({
   tags: ["moderation", "trend"],
   run: async (c) => {
     const unit = unitFor(c);
-    const s = await series(await bot("punishments"), "timestamp", {}, unit, c, startFor(c, 365));
+    const s = await series(await bot("punishments"), "timestamp", {}, unit, c, await startAt(c, await bot("punishments"), "timestamp", 365));
     return trend("Punishments over time", `Per ${unit} · ${c.rangeText}.`, s, unit, "punishments");
   },
 });
@@ -1035,9 +1049,11 @@ add({
   params: ["range", "top"],
   tags: ["staff", "leaderboard"],
   run: async (c) => {
-    const rows = await (await bot("punishments")).aggregate([{ $match: c.since ? { timestamp: { $gte: c.since } } : {} }, { $group: { _id: "$issuerId", v: { $sum: 1 } } }, { $sort: { v: -1 } }, { $limit: c.top }]).toArray();
+    const rows = await (await bot("punishments")).aggregate([{ $match: c.since ? { timestamp: { $gte: c.since } } : {} }, { $group: { _id: { $toString: { $ifNull: ["$issuerId", { $ifNull: ["$issuer_discord_id", "$issuer_id"] }] } }, v: { $sum: 1 } } }, { $sort: { v: -1 } }, { $limit: c.top }]).toArray();
     const nameOf = await names(rows.map((r) => String(r._id)));
-    return board("Moderator activity", `Punishments issued · ${c.rangeText}.`, rows.map((r) => ({ label: /^\d+$/.test(String(r._id)) ? nameOf(String(r._id)) : "AutoMod", value: n(r.v) })), "punishments", undefined, "Staff only. From the punishment records.");
+    // A Discord id is a staff member; a word like "automod" is AutoMod; nothing recorded is unknown
+    const who = (id: unknown) => (/^\d{15,21}$/.test(String(id)) ? nameOf(String(id)) : id && /auto/i.test(String(id)) ? "AutoMod" : "Not recorded");
+    return board("Moderator activity", `Punishments issued · ${c.rangeText}.`, rows.map((r) => ({ label: who(r._id), value: n(r.v) })), "punishments", undefined, "Staff only. From the punishment records.");
   },
 });
 add({
@@ -1081,7 +1097,7 @@ add({
     const match = c.since ? { created: { $gte: c.since } } : {};
     const types = await (await bot("resolvedTickets")).aggregate([{ $match: match }, { $group: { _id: "$ticket_type", v: { $sum: 1 }, close: { $avg: { $cond: [{ $and: [{ $eq: [{ $type: "$resolved_at" }, "date"] }, { $eq: [{ $type: "$created" }, "date"] }] }, { $subtract: ["$resolved_at", "$created"] }, null] } } } }, { $sort: { v: -1 } }]).toArray();
     const unit = unitFor(c) === "day" ? "week" : unitFor(c);
-    const s = await series(await bot("resolvedTickets"), "created", {}, unit, c, startFor(c, 365));
+    const s = await series(await bot("resolvedTickets"), "created", {}, unit, c, await startAt(c, await bot("resolvedTickets"), "created", 365));
     const total = types.reduce((a, r) => a + n(r.v), 0);
     const nice = (s2: unknown) => String(s2 ?? "support").replace(/[_-]/g, " ").replace(/^\w/, (x) => x.toUpperCase());
     return {
@@ -1117,8 +1133,8 @@ add({
   tags: ["website", "traffic", "trend"],
   run: async (c) => {
     const unit = unitFor(c);
-    const start = startFor(c, 30);
     const col = await web("page_views");
+    const start = await startAt(c, col as never, "ts", 30);
     const views = await series(col as never, "ts", {}, unit, c, start);
     const vis = await col
       .aggregate([{ $match: { ts: { $gte: start } } }, { $group: { _id: { k: { $dateToString: { format: dateFormat(unit === "week" ? "day" : unit), date: unit === "week" ? { $dateTrunc: { date: "$ts", unit: "week", startOfWeek: "monday", timezone: c.tz } } : "$ts", timezone: c.tz } }, v: "$vid" } } }, { $group: { _id: "$_id.k", v: { $sum: 1 } } }])
@@ -1190,7 +1206,7 @@ add({
   run: async (c) => {
     const col = await web("invite_clicks");
     const unit = unitFor(c);
-    const s = await series(col as never, "at", {}, unit, c, startFor(c, 30));
+    const s = await series(col as never, "at", {}, unit, c, await startAt(c, col as never, "at", 30));
     const src = await col.aggregate([{ $match: c.since ? { at: { $gte: c.since } } : {} }, { $group: { _id: "$src", v: { $sum: 1 } } }, { $sort: { v: -1 } }, { $limit: 8 }]).toArray();
     const spec = trend("Discord invite clicks", `Per ${unit} · ${c.rangeText}.`, s, unit, "clicks", "From the website's invite buttons.");
     spec.side = { kind: "bars", title: "Where the click came from", rows: src.map((r) => ({ label: String(r._id ?? "site"), value: n(r.v) })), colorful: true };
@@ -1435,7 +1451,7 @@ export async function statOptions() {
     channels: busy.map((b) => ({ id: String(b._id), name: ch.get(String(b._id)) ?? "#deleted-channel", messages: n(b.v) })),
     groups: snap.categories.map((g) => ({ key: g.key, title: g.title, adult: g.adult })),
     roles: snap.roles.filter((r) => !r.managed).map((r) => ({ id: r.id, name: r.name })),
-    games: (games as string[]).filter(Boolean).map((g) => ({ key: g, name: gameName(g) })),
+    games: Array.from(new Set(["slots", ...(games as string[]).filter(Boolean)])).map((g) => ({ key: g, name: gameName(g) })),
   };
 }
 
