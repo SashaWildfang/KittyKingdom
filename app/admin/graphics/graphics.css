@@ -40,10 +40,12 @@
 .gx-more summary { color: var(--ember); cursor: pointer; font-size: 0.85rem; font-weight: 700; }
 .gx-more[open] summary { margin-bottom: 0.5rem; }
 .gx-canvas { position: relative; width: 100%; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); box-shadow: 0 18px 40px rgba(0, 0, 0, 0.3); }
-.gx-canvas svg { display: block; width: 100%; height: auto; transition: opacity 0.15s ease; }
-.gx-canvas.is-loading svg { opacity: 0.45; }
-.gx-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 0.5rem; color: var(--text); font-weight: 800; }
-.gx-overlay.is-error { background: rgba(0, 0, 0, 0.55); color: #ff8a8e; padding: 1rem; text-align: center; }
+/* Only the graphic itself fills the frame (not the small loading icon) */
+.gx-canvas > svg { display: block; width: 100%; height: auto; transition: opacity 0.15s ease; }
+.gx-canvas.is-loading > svg { opacity: 0.45; }
+.gx-overlay { position: absolute; top: 0.8rem; right: 0.8rem; display: inline-flex; align-items: center; gap: 0.45rem; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25); color: var(--text); font-size: 0.82rem; font-weight: 800; padding: 0.35rem 0.75rem; }
+.gx-overlay svg { width: 15px; height: 15px; flex: none; }
+.gx-overlay.is-error { inset: 0; top: 0; right: 0; justify-content: center; border: 0; border-radius: 0; background: rgba(0, 0, 0, 0.55); color: #ff8a8e; font-size: 0.95rem; padding: 1rem; text-align: center; }
 .gx-dims { margin: 0; color: var(--muted); font-size: 0.78rem; }
 
 @media (max-width: 1100px) {
@@ -51,3 +53,8 @@
   .gx-browse { position: static; max-height: none; }
   .gx-list { max-height: 18rem; }
 }
+
+.gx-range { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+.gx-date { min-width: 9.5rem; }
+.gx-date input { padding: 0.42rem 0.55rem; }
+.gx-loading svg { width: 20px; height: 20px; }

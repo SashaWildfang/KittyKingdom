@@ -23,7 +23,7 @@ function drawBlock(b: Block, box: Box): ReactNode {
   }
   if (b.kind === "columns") return <ColumnsBlock {...box} cols={b.rows.map((r) => ({ label: r.label, count: r.value }))} title={b.title} color={accent} format={b.format} />;
   if (b.kind === "line") return <LineBlock {...box} labels={b.labels} series={b.series.slice(0, 4)} title={b.title} theme={theme} format={b.format} />;
-  if (b.kind === "heat") return <HeatBlock {...box} rows={b.rows} cols={b.cols} cells={b.cells} totals={b.totals} title={b.title} accent={accent} />;
+  if (b.kind === "heat") return <HeatBlock {...box} rows={b.rows} cols={b.cols} cells={b.cells} totals={b.totals} title={b.title} accent={accent} byColumn={b.byColumn} />;
   if (b.kind === "strip") return <StripBlock {...box} rows={b.rows.map((r, i) => ({ label: r.label, count: r.value, color: r.muted ? (i % 2 ? t.gray2 : t.gray) : seriesColor(theme, i) }))} title={b.title} />;
   return <TilesBlock {...box} tiles={b.tiles} />;
 }

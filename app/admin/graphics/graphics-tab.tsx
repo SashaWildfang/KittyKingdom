@@ -9,6 +9,7 @@ import { SpecGraphic } from "./spec-graphic";
 import "./graphics.css";
 
 type Options = {
+  ranges: { group: string; items: [string, string][] }[];
   channels: { id: string; name: string; messages: number }[];
   groups: { key: string; title: string; adult: boolean }[];
   roles: { id: string; name: string }[];
@@ -25,6 +26,47 @@ const browserZone = () => {
   }
 };
 
+/** The time range: recent periods, whole years, single months, or custom dates. */
+function RangeControl({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: Options }) {
+  const custom = value.startsWith("c:");
+  const [, from = "", to = ""] = custom ? value.split(":") : [];
+  const today = new Date().toISOString().slice(0, 10);
+  const monthAgo = new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10);
+  return (
+    <div className="gx-range">
+      <label className="gx-field">
+        <span>Time range</span>
+        <select className="adm-select" value={custom ? "custom" : value} onChange={(e) => onChange(e.target.value === "custom" ? `c:${monthAgo}:${today}` : e.target.value)}>
+          {(options.ranges?.length ? options.ranges : [{ group: "Recent", items: RANGES }]).map((g) => (
+            <optgroup key={g.group} label={g.group}>
+              {g.items.map(([v, l]) => (
+                <option key={v} value={v}>
+                  {l}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+          <optgroup label="Custom">
+            <option value="custom">Pick dates…</option>
+          </optgroup>
+        </select>
+      </label>
+      {custom ? (
+        <>
+          <label className="gx-field gx-date">
+            <span>From</span>
+            <input type="date" className="gx-input" value={from} max={to || today} onChange={(e) => e.target.value && onChange(`c:${e.target.value}:${to || today}`)} />
+          </label>
+          <label className="gx-field gx-date">
+            <span>To</span>
+            <input type="date" className="gx-input" value={to} min={from} max={today} onChange={(e) => e.target.value && onChange(`c:${from || monthAgo}:${e.target.value}`)} />
+          </label>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
 /** One dropdown per option the chosen graphic needs. */
 function ParamControl({ kind, value, onChange, options }: { kind: ParamKind; value: string; onChange: (v: string) => void; options: Options }) {
   const select = (label: string, items: [string, string][], allowEmpty?: string) => (
@@ -40,7 +82,7 @@ function ParamControl({ kind, value, onChange, options }: { kind: ParamKind; val
       </select>
     </label>
   );
-  if (kind === "range") return select("Time range", RANGES);
+  if (kind === "range") return <RangeControl value={value} onChange={onChange} options={options} />;
   if (kind === "tz") return select("Time zone", ZONES);
   if (kind === "top") return select("How many", ["5", "10", "15", "20", "25"].map((x) => [x, `Top ${x}`]));
   if (kind === "group") return select("Role group", options.groups.map((g) => [g.key, `${g.title}${g.adult ? " (18+)" : ""}`]));
@@ -321,7 +363,7 @@ export function GraphicsTab() {
             {spec ? <SpecGraphic spec={spec} theme={look.theme} size={look.size} title={title} subtitle={subtitle} footnote={look.footnote} svgRef={svgRef} /> : null}
             {loading ? (
               <span className="gx-overlay">
-                <Loader2 size={22} className="gx-spin" aria-hidden="true" /> Working it out…
+                <Loader2 size={15} className="gx-spin" aria-hidden="true" /> Updating…
               </span>
             ) : null}
             {specError ? <span className="gx-overlay is-error">{specError}</span> : null}

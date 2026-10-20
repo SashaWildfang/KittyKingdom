@@ -392,7 +392,7 @@ export function TilesBlock({ x, y, w, h, t, tiles }: { x: number; y: number; w: 
 }
 
 /** Heat table: one role group down the side, another across the top. */
-export function HeatBlock({ x, y, w, h, t, rows, cols, cells, totals, title, accent }: { x: number; y: number; w: number; h: number; t: Tokens; rows: string[]; cols: string[]; cells: number[][]; totals?: number[]; title: string; accent: string }) {
+export function HeatBlock({ x, y, w, h, t, rows, cols, cells, totals, title, accent, byColumn }: { x: number; y: number; w: number; h: number; t: Tokens; rows: string[]; cols: string[]; cells: number[][]; totals?: number[]; title: string; accent: string; byColumn?: boolean }) {
   const inner = { x: x + 32, y: y + 70, w: w - 64, h: h - 96 };
   const labelW = Math.min(280, inner.w * 0.26);
   const totalW = 110;
@@ -400,6 +400,7 @@ export function HeatBlock({ x, y, w, h, t, rows, cols, cells, totals, title, acc
   const headH = 46;
   const rh = Math.min(54, (inner.h - headH) / Math.max(1, rows.length));
   const max = Math.max(1, ...cells.flat());
+  const colMax = cols.map((_, ci) => Math.max(1, ...cells.map((r) => r[ci] ?? 0)));
   const fs = Math.max(12, Math.min(17, rh * 0.36));
   // Tight grids (like 24 hours) show colour only; the numbers wouldn't fit
   const showNumbers = cw >= 52;
@@ -428,7 +429,7 @@ export function HeatBlock({ x, y, w, h, t, rows, cols, cells, totals, title, acc
               {clip(r, fs, labelW - 12, 700)}
             </Txt>
             {cells[ri].map((n, ci) => {
-              const heat = n / max;
+              const heat = n / (byColumn ? colMax[ci] : max);
               return (
                 <g key={ci}>
                   <rect x={inner.x + labelW + ci * cw + 2} y={ry + 2} width={cw - 4} height={rh - 4} rx={8} fill={accent} fillOpacity={n ? 0.12 + heat * 0.78 : 0.04} />
