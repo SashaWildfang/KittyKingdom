@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Copy, Dices, Download, ImageIcon, Loader2, Search, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy, Dices, Download, Gavel, Globe, HeartHandshake, ImageIcon, Leaf, LayoutGrid, Loader2, MessageCircle, Mic, PartyPopper, ScrollText, Search, ShieldCheck, ShoppingBag, Users, X, type LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CATEGORIES, RANGES, ZONES, type ParamKind, type Params, type Spec, type StatMeta } from "../../../lib/graphics/spec";
 import { useStored } from "../admin-shared";
@@ -16,6 +16,13 @@ type Options = {
   games: { key: string; name: string }[];
 };
 type Look = { theme: Theme; size: Size; footnote: boolean };
+
+// The category icons named in lib/graphics/spec.ts
+const ICONS: Record<string, LucideIcon> = { ShieldCheck, Users, MessageCircle, Mic, Leaf, Dices, ShoppingBag, PartyPopper, HeartHandshake, Gavel, Globe, ScrollText };
+function CategoryIcon({ category, size = 15 }: { category: string; size?: number }) {
+  const Icon = ICONS[CATEGORIES.find((c) => c.key === category)?.icon ?? ""] ?? LayoutGrid;
+  return <Icon size={size} aria-hidden="true" />;
+}
 
 const browserZone = () => {
   try {
@@ -274,19 +281,19 @@ export function GraphicsTab() {
           </label>
           <div className="gx-cats">
             <button type="button" className={cat === "all" ? "is-on" : undefined} onClick={() => setCat("all")}>
-              All <small>{stats.length}</small>
+              <LayoutGrid size={13} aria-hidden="true" /> All <small>{stats.length}</small>
             </button>
             {CATEGORIES.map((c) => (
               <button key={c.key} type="button" className={cat === c.key ? "is-on" : undefined} onClick={() => setCat(c.key)}>
-                {c.emoji} {c.label} <small>{counts.get(c.key)}</small>
+                <CategoryIcon category={c.key} size={13} /> {c.label} <small>{counts.get(c.key)}</small>
               </button>
             ))}
           </div>
           <div className="gx-list">
             {filtered.map((s) => (
               <button key={s.id} type="button" className={s.id === stat.id ? "is-on" : undefined} onClick={() => pick(s.id)}>
-                <span className="gx-list-emoji" aria-hidden="true">
-                  {CATEGORIES.find((c) => c.key === s.category)?.emoji}
+                <span className="gx-list-icon">
+                  <CategoryIcon category={s.category} />
                 </span>
                 <span>
                   <b>{s.title}</b>

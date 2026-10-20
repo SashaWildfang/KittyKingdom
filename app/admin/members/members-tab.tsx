@@ -5,6 +5,8 @@ import {
   ArrowUp,
   BarChart3,
   Bookmark,
+  Check,
+  HeartHandshake,
   Download,
   Filter as FilterIcon,
   Grid3x3,
@@ -909,7 +911,12 @@ export function MembersTab({ onOpenMember }: { onOpenMember: (id: string) => voi
                       <td>{m.level ?? "—"}</td>
                       <td>{m.messages?.toLocaleString() ?? "—"}</td>
                       <td>{m.balance?.toLocaleString() ?? "—"}</td>
-                      <td>{m.account ? (m.account === "verified" ? "✓" : "unconfirmed") : "—"}{m.social ? " · Social" : ""}</td>
+                      <td>
+                        <span className="mm-site">
+                          {m.account === "verified" ? <Check size={14} className="mm-ok" aria-label="Website account, email confirmed" /> : m.account ? "unconfirmed" : "—"}
+                          {m.social ? <HeartHandshake size={14} aria-label="Has a Social profile" /> : null}
+                        </span>
+                      </td>
                       <td>
                         <span className="mm-roles">
                           {rs.slice(0, 5).map((r) => (

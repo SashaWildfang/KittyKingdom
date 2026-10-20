@@ -31,19 +31,20 @@ export type ParamKind = "range" | "tz" | "top" | "group" | "among" | "channel" |
 export type StatMeta = { id: string; category: string; title: string; blurb: string; params: ParamKind[]; tags?: string[] };
 export type Params = Partial<Record<ParamKind, string>>;
 
-export const CATEGORIES: { key: string; label: string; emoji: string }[] = [
-  { key: "staff", label: "Staff activity", emoji: "🧑‍⚖️" },
-  { key: "members", label: "Members & roles", emoji: "👥" },
-  { key: "chat", label: "Chat", emoji: "💬" },
-  { key: "voice", label: "Voice", emoji: "🎙️" },
-  { key: "levels", label: "Levels & economy", emoji: "🍁" },
-  { key: "casino", label: "Casino", emoji: "🎰" },
-  { key: "store", label: "Store & gifts", emoji: "🛍️" },
-  { key: "community", label: "QOTD, Wordle, events & giveaways", emoji: "🎉" },
-  { key: "social", label: "Social", emoji: "💞" },
-  { key: "moderation", label: "Moderation & tickets", emoji: "🛡️" },
-  { key: "website", label: "Website", emoji: "🌐" },
-  { key: "server", label: "Server logs", emoji: "📜" },
+/** Each category's icon is a lucide icon name (drawn by the Graphics page). */
+export const CATEGORIES: { key: string; label: string; icon: string }[] = [
+  { key: "staff", label: "Staff activity", icon: "ShieldCheck" },
+  { key: "members", label: "Members & roles", icon: "Users" },
+  { key: "chat", label: "Chat", icon: "MessageCircle" },
+  { key: "voice", label: "Voice", icon: "Mic" },
+  { key: "levels", label: "Levels & economy", icon: "Leaf" },
+  { key: "casino", label: "Casino", icon: "Dices" },
+  { key: "store", label: "Store & gifts", icon: "ShoppingBag" },
+  { key: "community", label: "QOTD, Wordle, events & giveaways", icon: "PartyPopper" },
+  { key: "social", label: "Social", icon: "HeartHandshake" },
+  { key: "moderation", label: "Moderation & tickets", icon: "Gavel" },
+  { key: "website", label: "Website", icon: "Globe" },
+  { key: "server", label: "Server logs", icon: "ScrollText" },
 ];
 
 export const RANGES: [string, string][] = [
