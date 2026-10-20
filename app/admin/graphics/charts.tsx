@@ -2,7 +2,10 @@
 // exact same picture can be turned into a PNG in the browser. Each chart takes its data already counted.
 
 import type { ReactNode } from "react";
-import { formatValue, type Fmt } from "../../../lib/graphics/spec";
+import { formatValue, type Fmt, type PartialEnds } from "../../../lib/graphics/spec";
+
+/** Moving-average window by time unit: a week of days, a month of weeks, a quarter of months. */
+const maWindow = (partial?: PartialEnds) => (partial?.step === "day" ? 7 : partial?.step === "week" ? 4 : 3);
 
 export type Theme = "dark" | "light";
 export type Size = "landscape" | "square" | "wide";
@@ -70,9 +73,10 @@ export type Trend = "line" | "avg" | "both" | "none";
  * Straight line of best fit (least squares) through the values. Periods only partly covered at either end
  * (a half-finished current week, a range starting mid-month) are left out so they don't tilt the line.
  */
-function fitLine(all: number[], partial?: { first?: boolean; last?: boolean }) {
-  const from = partial?.first && all.length > 4 ? 1 : 0;
-  const to = partial?.last && all.length > 4 ? all.length - 1 : all.length;
+function fitLine(all: number[], partial?: PartialEnds) {
+  // Incomplete ends are always left out; with too few complete points left there's no trend to draw
+  const from = partial?.first ? 1 : 0;
+  const to = partial?.last ? all.length - 1 : all.length;
   const pts = all.slice(from, to).map((y, k) => [k + from, y] as const);
   const n = pts.length;
   if (n < 2) return null;
@@ -95,7 +99,7 @@ function movingAverage(v: number[], window: number) {
   });
 }
 /** "Rising 18%" / "Falling 6%" / "Flat" over the period, from the trend line. */
-function trendWords(v: number[], partial?: { first?: boolean; last?: boolean }) {
+function trendWords(v: number[], partial?: PartialEnds) {
   const f = fitLine(v, partial);
   if (!f) return "";
   const start = f.at(f.from);
@@ -308,7 +312,7 @@ export function StripBlock({ x, y, w, h, t, rows, title }: { x: number; y: numbe
 }
 
 /** Columns over time (joins per month), with the value on top of each. */
-export function ColumnsBlock({ x, y, w, h, t, cols, title, color, format, trend = "none", timeline = false, partial }: { x: number; y: number; w: number; h: number; t: Tokens; cols: { label: string; count: number }[]; title: string; color: string; format?: Fmt; trend?: Trend; timeline?: boolean; partial?: { first?: boolean; last?: boolean } }) {
+export function ColumnsBlock({ x, y, w, h, t, cols, title, color, format, trend = "none", timeline = false, partial }: { x: number; y: number; w: number; h: number; t: Tokens; cols: { label: string; count: number }[]; title: string; color: string; format?: Fmt; trend?: Trend; timeline?: boolean; partial?: PartialEnds }) {
   const inner = { x: x + 40, y: y + 80, w: w - 80, h: h - 140 };
   const n = Math.max(1, cols.length);
   const slot = inner.w / n;
@@ -325,7 +329,7 @@ export function ColumnsBlock({ x, y, w, h, t, cols, title, color, format, trend 
   const CY = (v: number) => inner.y + inner.h - (Math.max(0, v) / max) * (inner.h - 30);
   const showTrend = timeline && trend !== "none" && cols.length >= 3;
   const fit = showTrend && (trend === "line" || trend === "both") ? fitLine(vals, partial) : null;
-  const ma = showTrend && (trend === "avg" || trend === "both") ? movingAverage(vals, cols.length > 20 ? 7 : 3) : null;
+  const ma = showTrend && (trend === "avg" || trend === "both") ? movingAverage(vals, maWindow(partial)) : null;
   return (
     <g>
       <Card x={x} y={y} w={w} h={h} t={t} />
@@ -378,7 +382,7 @@ export function ColumnsBlock({ x, y, w, h, t, cols, title, color, format, trend 
 }
 
 /** A line over time (up to four series), with gridlines, the peak marked and a legend. */
-export function LineBlock({ x, y, w, h, t, labels, series, title, theme, format, trend = "none", partial }: { x: number; y: number; w: number; h: number; t: Tokens; labels: string[]; series: { name: string; values: number[] }[]; title: string; theme: Theme; format?: Fmt; trend?: Trend; partial?: { first?: boolean; last?: boolean } }) {
+export function LineBlock({ x, y, w, h, t, labels, series, title, theme, format, trend = "none", partial }: { x: number; y: number; w: number; h: number; t: Tokens; labels: string[]; series: { name: string; values: number[] }[]; title: string; theme: Theme; format?: Fmt; trend?: Trend; partial?: PartialEnds }) {
   const inner = { x: x + 70, y: y + 84, w: w - 110, h: h - 150 };
   const max = Math.max(1, ...series.flatMap((s) => s.values));
   const nice = (() => {
@@ -395,7 +399,7 @@ export function LineBlock({ x, y, w, h, t, labels, series, title, theme, format,
   const first = series[0]?.values ?? [];
   const showTrend = trend !== "none" && first.length >= 3 && series.length === 1;
   const fit = showTrend && (trend === "line" || trend === "both") ? fitLine(first, partial) : null;
-  const ma = showTrend && (trend === "avg" || trend === "both") ? movingAverage(first, first.length > 20 ? 7 : 3) : null;
+  const ma = showTrend && (trend === "avg" || trend === "both") ? movingAverage(first, maWindow(partial)) : null;
   const avgs = series.map((s) => s.values.reduce((a, b) => a + b, 0) / Math.max(1, s.values.length));
   const slotW = labels.length > 1 ? inner.w / (labels.length - 1) : inner.w;
   return (

@@ -16,7 +16,7 @@ export type Block =
   | { kind: "tiles"; tiles: Tile[] };
 
 /** Periods at either end that are only partly covered (left out of trend lines so they don't skew them). */
-export type PartialEnds = { first?: boolean; last?: boolean };
+export type PartialEnds = { first?: boolean; last?: boolean; /** The time unit of each point (sets the moving-average window) */ step?: "day" | "week" | "month" };
 
 export type Spec = {
   title: string;
