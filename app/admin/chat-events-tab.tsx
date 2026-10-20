@@ -38,7 +38,7 @@ import { EVENT_SEASONS, EVENT_TYPES, outcomeChances, rangeLabel, type ChatEvent,
 import { timeAgo, useLive } from "./admin-shared";
 import { Picker, channelOptions, roleOptions, type Meta } from "./bots/pickers";
 import { useCurrency } from "../season-context";
-import { XpAmount, XpText } from "../ui-icons";
+import { CurrencyAmount, LeafEmote, XpAmount } from "../ui-icons";
 
 type Data = ChatEventsView & { ok: boolean; canEdit: boolean };
 
@@ -219,7 +219,7 @@ export function ChatEventsTab() {
                   <span className="ce-card-type">
                     <Icon size={13} aria-hidden="true" /> {EVENT_TYPES[e.type].label} · {e.seconds}s
                   </span>
-                  <span className="ce-card-reward"><XpText text={rewardSummary(e, cur.many)} size={14} /></span>
+                  <span className="ce-card-reward"><CurrencyAmount text={rewardSummary(e, cur.many)} size={14} /></span>
                   <span className="ce-card-stats">{st ? `Ran ${st.runs}× · ${st.players} plays · last ${timeAgo(st.last)}` : "Hasn't run in the last 30 days"}</span>
                 </span>
               </button>
@@ -280,11 +280,11 @@ function rewardSummary(e: ChatEvent, many: string) {
     const o = e.outcomes ?? [];
     const best = Math.max(0, ...o.map((x) => x.leaves[1]));
     const worst = Math.min(0, ...o.map((x) => x.leaves[0]));
-    return `${o.length} outcomes · up to ${best.toLocaleString()} ${many}${worst < 0 ? ` · can lose ${Math.abs(worst)}` : ""}`;
+    return `${o.length} outcomes · up to ${best.toLocaleString()} 🍁${worst < 0 ? ` · can lose ${Math.abs(worst)} 🍁` : ""}`;
   }
   const r = e.reward;
   if (!r) return "";
-  const parts = [r.leaves[1] ? `${rangeLabel(r.leaves)} ${many}` : "", r.xp[1] ? `${rangeLabel(r.xp)} XP` : ""].filter(Boolean);
+  const parts = [r.leaves[1] ? `${rangeLabel(r.leaves)} 🍁` : "", r.xp[1] ? `${rangeLabel(r.xp)} XP` : ""].filter(Boolean);
   const who = e.type === "raffle" ? `${e.winners} winners get ` : e.type === "goal" ? "every helper gets " : e.type === "trivia" || e.type === "pick" ? "each winner gets " : "";
   return `${who}${parts.join(" + ") || "nothing"}`;
 }
@@ -304,7 +304,7 @@ function RunItem({ r, open, onToggle, channel, many }: { r: RunRow; open: boolea
         </span>
         <span className={`ce-run-stat ${r.totalLeaves < 0 ? "is-neg" : "is-pos"}`}>
           {r.totalLeaves >= 0 ? "+" : ""}
-          {r.totalLeaves.toLocaleString()} {many}
+          {r.totalLeaves.toLocaleString()} <LeafEmote size={14} />
         </span>
       </button>
       {open ? (
@@ -315,7 +315,7 @@ function RunItem({ r, open, onToggle, channel, many }: { r: RunRow; open: boolea
                 <span>{x.name}</span>
                 {x.text ? <small>{x.text}</small> : null}
                 <b className={x.leaves < 0 || x.xp < 0 ? "is-neg" : "is-pos"}>
-                  <XpText text={[x.leaves ? `${x.leaves > 0 ? "+" : ""}${x.leaves.toLocaleString()} ${many}` : "", x.xp ? `${x.xp > 0 ? "+" : ""}${x.xp} XP` : ""].filter(Boolean).join(" · ") || "nothing"} size={13} />
+                  <CurrencyAmount text={[x.leaves ? `${x.leaves > 0 ? "+" : ""}${x.leaves.toLocaleString()} 🍁` : "", x.xp ? `${x.xp > 0 ? "+" : ""}${x.xp} XP` : ""].filter(Boolean).join(" · ") || "nothing"} size={13} />
                 </b>
               </li>
             ))
@@ -700,7 +700,7 @@ function QuestionsEditor({ value, onChange, disabled }: { value: Question[]; onC
 /** Roughly how it looks in Discord. */
 function Preview({ e, many }: { e: ChatEvent; many: string }) {
   const r = e.reward ?? { leaves: [0, 0] as Range, xp: [0, 0] as Range };
-  const reward = [r.leaves[1] ? `${rangeLabel(r.leaves)} ${many}` : "", r.xp[1] ? `${rangeLabel(r.xp)} XP` : ""].filter(Boolean).join(" + ") || "bragging rights";
+  const reward = [r.leaves[1] ? `${rangeLabel(r.leaves)} 🍁` : "", r.xp[1] ? `${rangeLabel(r.xp)} XP` : ""].filter(Boolean).join(" + ") || "bragging rights";
   const fill = (t: string) =>
     t.replace(/\{(\w+)\}/g, (m, k: string) => String(({ reward, seconds: e.seconds, goal: e.goal, winners: e.winners, min: e.min, max: e.max } as Record<string, unknown>)[k] ?? m));
   const body = fill(e.text).replace(/\*\*(.+?)\*\*/g, "$1");
@@ -714,7 +714,7 @@ function Preview({ e, many }: { e: ChatEvent; many: string }) {
       </b>
       {e.type === "trivia" && e.questions?.[0] ? <p className="ce-preview-q">{e.questions[0].q}</p> : null}
       <p>
-        <XpText text={body} size={15} />
+        <CurrencyAmount text={body} size={15} />
       </p>
       {sample ? <code>{sample}</code> : null}
       {["draw", "raffle"].includes(e.type) ? <p>👥 Nobody yet. Be the first!</p> : e.type === "pick" ? <p>👥 Nobody has picked yet.</p> : e.type === "trivia" ? <p>👥 Nobody has answered yet.</p> : null}
