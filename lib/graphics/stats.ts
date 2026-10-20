@@ -315,7 +315,7 @@ add({
       title: "When the chat is busiest",
       subtitle: `Messages by hour · ${c.rangeText}${amongText(c)} · ${zoneName(c.tz)} time.`,
       footnote: "From the bot's message index. Bots are not counted.",
-      hero: { label: "Peak hour", big: HOUR(best), caption: `${pct(vals[best], total)} of messages are sent between ${HOUR(best)} and ${HOUR((best + 1) % 24)}. The quietest hour is ${HOUR(quiet)}.` },
+      hero: !total ? undefined : { label: "Peak hour", big: HOUR(best), caption: `${pct(vals[best], total)} of messages are sent between ${HOUR(best)} and ${HOUR((best + 1) % 24)}. The quietest hour is ${HOUR(quiet)}.` },
       main: { kind: "columns", title: "Messages per hour", rows: vals.map((v, h) => ({ label: HOUR(h), value: v })) },
       bottom: { kind: "strip", title: "Time of day", rows: parts },
     };
@@ -340,7 +340,7 @@ add({
       title: "Busiest days of the week",
       subtitle: `Messages by weekday · ${c.rangeText}${amongText(c)} · ${zoneName(c.tz)} time.`,
       footnote: "From the bot's message index. Bots are not counted.",
-      hero: { label: "Busiest day", big: WEEKDAYS[best], caption: `${pct(vals[best], total)} of all messages. Weekends (Sat + Sun) have ${pct(weekend, total)} of messages.` },
+      hero: !total ? undefined : { label: "Busiest day", big: WEEKDAYS[best], caption: `${pct(vals[best], total)} of all messages. Weekends (Sat + Sun) have ${pct(weekend, total)} of messages.` },
       main: { kind: "columns", title: "Messages per weekday", rows: vals.map((v, i) => ({ label: WEEKDAYS[i], value: v })) },
       bottom: { kind: "strip", title: "Weekdays vs weekend", rows: [{ label: "Mon–Fri", value: total - weekend }, { label: "Sat–Sun", value: weekend }] },
     };
@@ -2520,8 +2520,11 @@ export function parseRange(v: string, tz: string): { since: Date | null; until: 
     // The day after the end date, as a calendar day (so daylight-saving days are 23 or 25 hours, as they should be)
     const next = new Date(Date.UTC(+m[4], +m[5] - 1, +m[6] + 1));
     let until = zonedMidnight(next.getUTCFullYear(), next.getUTCMonth() + 1, next.getUTCDate(), tz);
+    const label = `${fmtD(since)} – ${fmtD(new Date(until.getTime() - 1))}`;
+    // Entirely in the future: an empty range (not some other period's numbers)
+    if (since >= now) return { since, until: since, text: `${label} (no data yet)` };
     if (until > now) until = now;
-    if (until > since) return { since, until, text: `${fmtD(since)} – ${fmtD(new Date(until.getTime() - 1))}` };
+    if (until > since) return { since, until, text: label };
   }
   return { since: new Date(now.getTime() - 30 * DAY), until: now, text: "Last 30 days" };
 }

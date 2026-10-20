@@ -101,7 +101,8 @@ function RangeControl({ value, onChange, options }: { value: string; onChange: (
             ))}
           </div>
           <p className="gx-custom-note">
-            Showing {fmtDay(from)} to {fmtDay(to)}, both days included.{to > today ? " Days after today have no data yet." : ""}
+            Showing {fmtDay(from)} to {fmtDay(to)}, both days included.
+            {from > today ? " These dates are all in the future, so there's nothing to show yet." : to > today ? " Days after today have no data yet." : ""}
           </p>
         </div>
       ) : null}
