@@ -104,7 +104,7 @@ export async function getMemberRoleSummary(discordId: unknown): Promise<MemberRo
 // ==========================================
 // Uncached calls used by the website store (roles, member search, DMs, log channels)
 // ==========================================
-async function discordRequest<T>(method: string, path: string, body?: unknown): Promise<{ ok: boolean; status: number; data: T | null }> {
+export async function discordRequest<T>(method: string, path: string, body?: unknown): Promise<{ ok: boolean; status: number; data: T | null }> {
   const token = botToken();
   if (!token) return { ok: false, status: 0, data: null };
   // Discord rate limits (429) and brief hiccups (5xx / network) get a couple of quick retries
