@@ -62,6 +62,15 @@ function Overlay({ children }: { children: ReactNode }) {
   return createPortal(children, document.body);
 }
 
+/** Escape closes the dialog or drawer (a picker's own menu catches Escape first). */
+function useEscape(onClose: () => void) {
+  useEffect(() => {
+    const esc = (k: KeyboardEvent) => k.key === "Escape" && onClose();
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, [onClose]);
+}
+
 /** Which seasons' events can run right now (mirrors current_seasons() in the bot). */
 function liveSeasons(s: ChatEventSettings, season: string): Set<string> {
   const keys = new Set<string>(s.seasonMode === "all" ? ["spring", "summer", "fall", "winter"] : [s.seasonMode === "auto" ? season : s.seasonMode]);
@@ -319,13 +328,16 @@ function RunItem({ r, open, onToggle, channel, many }: { r: RunRow; open: boolea
 }
 
 // ---------------------------------------------------------------------------------------------------- editor
-function Field({ label, help, children, wide }: { label: string; help?: string; children: ReactNode; wide?: boolean }) {
+/** A labelled field. Pickers use `box` (a plain div): inside a <label>, a click on the field would also press
+ *  the first button in it (a chip's remove ×). */
+function Field({ label, help, children, wide, box }: { label: string; help?: string; children: ReactNode; wide?: boolean; box?: boolean }) {
+  const Tag = box ? "div" : "label";
   return (
-    <label className={`ce-field${wide ? " is-wide" : ""}`}>
+    <Tag className={`ce-field${wide ? " is-wide" : ""}`}>
       <span>{label}</span>
       {children}
       {help ? <small>{help}</small> : null}
-    </label>
+    </Tag>
   );
 }
 
@@ -367,11 +379,7 @@ function Editor({ event, canEdit, many, onClose, onSaved, onRun }: { event: Chat
   const off = !canEdit;
   const dirty = JSON.stringify(e) !== JSON.stringify(structuredClone(event));
 
-  useEffect(() => {
-    const esc = (k: KeyboardEvent) => k.key === "Escape" && onClose();
-    window.addEventListener("keydown", esc);
-    return () => window.removeEventListener("keydown", esc);
-  }, [onClose]);
+  useEscape(onClose);
 
   const save = async () => {
     setBusy(true);
@@ -728,6 +736,7 @@ function RunDialog({ event, meta, data, onClose, onDone }: { event: ChatEventRow
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [reqId, setReqId] = useState<string | null>(null);
   const req = reqId ? data.requests.find((r) => r.id === reqId) : null;
+  useEscape(onClose);
 
   useEffect(() => {
     if (!reqId || (req && req.status !== "pending" && req.status !== "working")) return;
@@ -760,7 +769,7 @@ function RunDialog({ event, meta, data, onClose, onDone }: { event: ChatEventRow
           </button>
           <h3>{event === "random" ? "Run a random event" : `Run ${event.name}`}</h3>
           <p className="adm-muted">{event === "random" ? "The bot picks one of the events that are on right now, the same way it does in chat." : "It starts straight away, even if it's switched off or out of season."}</p>
-          <Field label="Channel">
+          <Field box label="Channel">
             <Picker kind="channel" value={channel} options={channelOptions(meta, "text")} onChange={(v) => setChannel((v as string) ?? null)} />
           </Field>
           {data.settings.pingRole ? (
@@ -790,6 +799,7 @@ function CreateDialog({ season, onClose, onCreated }: { season: EventSeason; onC
   const [s, setS] = useState<EventSeason>(season);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  useEscape(onClose);
   const go = async () => {
     setBusy(true);
     try {
@@ -849,6 +859,7 @@ function SettingsDrawer({ data, meta, onClose, onSaved }: { data: Data; meta: Me
   const [err, setErr] = useState<string | null>(null);
   const set = <K extends keyof ChatEventSettings>(k: K, v: ChatEventSettings[K]) => setS((x) => ({ ...x, [k]: v }));
   const dirty = JSON.stringify(s) !== JSON.stringify(data.settings);
+  useEscape(onClose);
   const save = async () => {
     setBusy(true);
     setErr(null);
@@ -890,11 +901,11 @@ function SettingsDrawer({ data, meta, onClose, onSaved }: { data: Data; meta: Me
               <input type="checkbox" checked={s.includeAllYear} onChange={(x) => set("includeAllYear", x.target.checked)} />
               <span>Mix in the all-year events too</span>
             </label>
-            <Field label="Only in these channels" wide help="Leave empty for any channel outside the categories below.">
+            <Field box label="Only in these channels" wide help="Leave empty for any channel outside the categories below.">
               <Picker kind="channel" multiple value={s.channels} options={channelOptions(meta, "text")} onChange={(v) => set("channels", (v as string[]) ?? [])} />
             </Field>
             {!s.channels.length ? (
-              <Field label="Never in these categories" wide>
+              <Field box label="Never in these categories" wide>
                 <Picker kind="channel" multiple value={s.excludedCategories} options={channelOptions(meta, "category")} onChange={(v) => set("excludedCategories", (v as string[]) ?? [])} />
               </Field>
             ) : null}
@@ -932,7 +943,7 @@ function SettingsDrawer({ data, meta, onClose, onSaved }: { data: Data; meta: Me
               <input type="checkbox" checked={s.streaks} onChange={(x) => set("streaks", x.target.checked)} />
               <span>Call out win streaks (&ldquo;has won 3 in a row!&rdquo;)</span>
             </label>
-            <Field label="Role to ping when staff run one" wide help="Optional. Staff choose whether to ping each time.">
+            <Field box label="Role to ping when staff run one" wide help="Optional. Staff choose whether to ping each time.">
               <Picker kind="role" allowEmpty value={s.pingRole} options={roleOptions(meta)} onChange={(v) => set("pingRole", (v as string) || null)} />
             </Field>
           </div>

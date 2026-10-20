@@ -346,7 +346,7 @@ export function ColumnsBlock({ x, y, w, h, t, cols, title, color, format, trend 
         const bh = (c.count / max) * (inner.h - 30);
         const cx = inner.x + i * slot + slot / 2;
         return (
-          <g key={c.label}>
+          <g key={`${i}-${c.label}`}>
             {bh > 0 ? <rect x={cx - bw / 2} y={inner.y + inner.h - bh} width={bw} height={bh} rx={4} fill={color} /> : null}
             {showValues ? (
               <Txt x={cx} y={inner.y + inner.h - bh - 8} size={fs} fill={t.text} weight={800} anchor="middle">
@@ -495,7 +495,7 @@ export function TilesBlock({ x, y, w, h, t, tiles }: { x: number; y: number; w: 
         const tx = x + i * (tw + gap);
         const vs = Math.min(54, tw / Math.max(3, tile.value.length * 0.62));
         return (
-          <g key={tile.label}>
+          <g key={`${i}-${tile.label}`}>
             <Card x={tx} y={y} w={tw} h={h} t={t} />
             <Txt x={tx + 24} y={y + 38} size={13} fill={t.text2} weight={800} spacing={1.6}>
               {clip(tile.label.toUpperCase(), 13, tw - 40, 800)}
@@ -535,7 +535,7 @@ export function HeatBlock({ x, y, w, h, t, rows, cols, cells, totals, title, acc
         {title}
       </Label>
       {cols.map((c, ci) => (
-        <Txt key={c} x={inner.x + labelW + ci * cw + cw / 2} y={inner.y + 26} size={Math.min(15, fs)} fill={t.text2} weight={800} anchor="middle">
+        <Txt key={`${ci}-${c}`} x={inner.x + labelW + ci * cw + cw / 2} y={inner.y + 26} size={Math.min(15, fs)} fill={t.text2} weight={800} anchor="middle">
           {/* Short labels (hours) may run into the empty columns beside them */}
           {c.length <= 5 ? c : clip(c, Math.min(15, fs), cw - 8, 800)}
         </Txt>
@@ -548,7 +548,7 @@ export function HeatBlock({ x, y, w, h, t, rows, cols, cells, totals, title, acc
       {rows.map((r, ri) => {
         const ry = inner.y + headH + ri * rh;
         return (
-          <g key={r}>
+          <g key={`${ri}-${r}`}>
             <Txt x={inner.x} y={ry + rh / 2 + fs * 0.35} size={fs} fill={t.text} weight={700}>
               {clip(r, fs, labelW - 12, 700)}
             </Txt>

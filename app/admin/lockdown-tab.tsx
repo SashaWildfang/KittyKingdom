@@ -455,10 +455,10 @@ function ChannelLocks({ data, meta, now, name, onDone }: { data: Data; meta: Met
         <div className="ld-lock-form">
           <h4>Lock channels</h4>
           <div className="ld-row">
-            <label className="ld-field ld-grow">
+            <div className="ld-field ld-grow">
               <span>Channels or categories</span>
               <Picker kind="channel" multiple value={channels} options={channelOptions(meta, "mixed")} placeholder="Pick channels (a category locks everything in it)" onChange={(v) => setChannels((v as string[]) ?? [])} />
-            </label>
+            </div>
           </div>
           <div className="ld-row">
             <label className="ld-field">

@@ -135,3 +135,8 @@
   .ce-card-actions { padding-left: 0.95rem; }
   .ce-chance { width: 6rem; }
 }
+
+/* Channel / role search inside the dialog and drawers: open in the flow (pushing things down) instead of
+   floating, so the scrolling dialog never cuts the list off */
+.ce-modal .bs-picker-menu, .ce-drawer .bs-picker-menu { position: static; margin-top: 0.35rem; box-shadow: none; }
+.ce-modal .bs-picker-menu ul, .ce-drawer .bs-picker-menu ul { max-height: min(16rem, 40vh); overscroll-behavior: contain; }

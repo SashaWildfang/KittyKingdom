@@ -29,9 +29,9 @@ export async function GET(request: Request) {
       after: params.get("after") ?? undefined,
       limit: Number(params.get("limit") ?? 40),
     });
-    const texts = result.rows.flatMap((r) => [r.description, r.content, ...r.fields.map((f) => f.value)]);
+    const texts = result.rows.flatMap((r) => [r.description, r.content, ...(r.fields ?? []).map((f) => f.value)]);
     const { mentions, userIds } = await resolveMentions(texts);
-    const who = await people([...result.rows.flatMap((r) => r.userIds), ...userIds]);
+    const who = await people([...result.rows.flatMap((r) => r.userIds ?? []), ...userIds]);
     return NextResponse.json({ ok: true, ...result, people: who, mentions }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Bot logs failed", error);
