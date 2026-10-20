@@ -30,12 +30,16 @@ export const EMPTY: Filter = { all: [], any: [], none: [], missing: [], search: 
 
 const DAY = 86_400_000;
 
-export type Ctx = { snap: MMSnapshot; index: Map<string, number>; categoryRoles: Map<string, Set<number>> };
+export type Ctx = { snap: MMSnapshot; index: Map<string, number>; categoryRoles: Map<string, Set<number>>; adult: Set<string>; verified: number | null };
+
+/** The 18+ Verified role: only members with it can pick the 18+ role groups (Positions, Relationship Status…) */
+export const VERIFIED_18_ID = "1358469974552870913";
 
 export function makeCtx(snap: MMSnapshot): Ctx {
   const index = new Map(snap.roles.map((r, i) => [r.id, i]));
   const categoryRoles = new Map(snap.categories.map((c) => [c.key, new Set(c.roleIds.map((id) => index.get(id)!).filter((i) => i !== undefined))]));
-  return { snap, index, categoryRoles };
+  const verifiedId = snap.roles.find((r) => r.id === VERIFIED_18_ID)?.id ?? snap.roles.find((r) => /18\+/.test(r.name) && /verif/i.test(r.name))?.id;
+  return { snap, index, categoryRoles, adult: new Set(snap.categories.filter((c) => c.adult).map((c) => c.key)), verified: verifiedId ? index.get(verifiedId) ?? null : null };
 }
 
 /** Members matching the filter. */
@@ -90,16 +94,41 @@ const LEVEL_BANDS: [number, number, string][] = [[0, 0, "No level yet"], [1, 4, 
 const MSG_BANDS: [number, number, string][] = [[0, 0, "0"], [1, 99, "1–99"], [100, 999, "100–999"], [1000, 4999, "1K–5K"], [5000, 19999, "5K–20K"], [20000, Infinity, "20K+"]];
 const AGE_BANDS: [number, number, string][] = [[0, 30, "Under 1 month"], [30, 182, "1–6 months"], [182, 365, "6–12 months"], [365, 730, "1–2 years"], [730, 1825, "2–5 years"], [1825, Infinity, "5+ years"]];
 
-export function breakdown(ctx: Ctx, members: MMMember[], dim: Dim, now = Date.now()): { buckets: Bucket[]; none: number; multi: number } {
+export type BreakdownResult = {
+  buckets: Bucket[];
+  none: number;
+  multi: number;
+  /** 18+ groups: of the members with none of these roles, how many have 18+ Verified (could pick one) and how many don't (can't) */
+  noneVerified?: number;
+  noneUnverified?: number;
+};
+
+/** The "no role" bars for a breakdown: one bar, or two for an 18+ group (can pick but didn't / can't pick). */
+export function noneBuckets(b: BreakdownResult): Bucket[] {
+  if (b.noneVerified !== undefined && b.noneUnverified !== undefined) {
+    return [
+      { key: "__none_v", label: "None picked (18+)", count: b.noneVerified, color: "#6e6d68" },
+      { key: "__none_u", label: "Not 18+ Verified", count: b.noneUnverified, color: "#45443f" },
+    ];
+  }
+  return [{ key: "__none", label: "No role picked", count: b.none, color: "#5c5b56" }];
+}
+
+export function breakdown(ctx: Ctx, members: MMMember[], dim: Dim, now = Date.now()): BreakdownResult {
   const roles = ctx.snap.roles;
   if (dim.kind === "category" || dim.kind === "roles") {
     const set = dim.kind === "category" ? ctx.categoryRoles.get(dim.key) ?? new Set<number>() : null;
     const counts = new Map<number, number>();
     let none = 0;
     let multi = 0;
+    let noneVerified = 0;
+    const adult = dim.kind === "category" && ctx.adult.has(dim.key) && ctx.verified !== null;
     for (const m of members) {
       const hit = set ? m.r.filter((i) => set.has(i)) : m.r;
-      if (!hit.length) none++;
+      if (!hit.length) {
+        none++;
+        if (adult && m.r.includes(ctx.verified!)) noneVerified++;
+      }
       if (hit.length > 1) multi++;
       for (const i of hit) counts.set(i, (counts.get(i) ?? 0) + 1);
     }
@@ -108,7 +137,7 @@ export function breakdown(ctx: Ctx, members: MMMember[], dim: Dim, now = Date.no
       .map((i) => ({ key: roles[i].id, roleId: roles[i].id, label: roles[i].name, color: roles[i].color, count: counts.get(i) ?? 0 }))
       .filter((b) => dim.kind === "category" || b.count > 0)
       .sort((a, b) => b.count - a.count);
-    return { buckets: dim.kind === "roles" ? buckets.slice(0, 40) : buckets, none, multi };
+    return { buckets: dim.kind === "roles" ? buckets.slice(0, 40) : buckets, none, multi, ...(adult ? { noneVerified, noneUnverified: none - noneVerified } : {}) };
   }
   const bandOf = (bands: [number, number, string][], v: number) => bands.find(([a, b]) => v >= a && v <= b)?.[2] ?? bands[bands.length - 1][2];
   const counts = new Map<string, number>();
@@ -142,6 +171,7 @@ export function crosstab(ctx: Ctx, members: MMMember[], rowKey: string, colKey: 
   const cells = rows.map(() => cols.map(() => 0));
   const rowNone = cols.map(() => 0);
   const colNone = rows.map(() => 0);
+  let neither = 0;
   for (const m of members) {
     const has = new Set(m.r);
     const rHit = rows.map((r) => has.has(r));
@@ -151,9 +181,12 @@ export function crosstab(ctx: Ctx, members: MMMember[], rowKey: string, colKey: 
       if (!cHit.some(Boolean)) colNone[ri]++;
       cHit.forEach((ch, ci) => ch && cells[ri][ci]++);
     });
-    if (!rHit.some(Boolean)) cHit.forEach((ch, ci) => ch && rowNone[ci]++);
+    if (!rHit.some(Boolean)) {
+      cHit.forEach((ch, ci) => ch && rowNone[ci]++);
+      if (!cHit.some(Boolean)) neither++;
+    }
   }
-  return { rows: rows.map((i) => ctx.snap.roles[i]), cols: cols.map((i) => ctx.snap.roles[i]), cells, rowNone, colNone };
+  return { rows: rows.map((i) => ctx.snap.roles[i]), cols: cols.map((i) => ctx.snap.roles[i]), cells, rowNone, colNone, neither, rowNoneTotal: rowNone.reduce((a, b) => a + b, 0) + neither };
 }
 
 // ---------- The question box ----------
