@@ -64,6 +64,60 @@ const Label = ({ x, y, t, children }: { x: number; y: number; t: Tokens; childre
   </Txt>
 );
 
+export type Trend = "line" | "avg" | "both" | "none";
+
+/**
+ * Straight line of best fit (least squares) through the values. Periods only partly covered at either end
+ * (a half-finished current week, a range starting mid-month) are left out so they don't tilt the line.
+ */
+function fitLine(all: number[], partial?: { first?: boolean; last?: boolean }) {
+  const from = partial?.first && all.length > 4 ? 1 : 0;
+  const to = partial?.last && all.length > 4 ? all.length - 1 : all.length;
+  const pts = all.slice(from, to).map((y, k) => [k + from, y] as const);
+  const n = pts.length;
+  if (n < 2) return null;
+  const mx = pts.reduce((a, [x]) => a + x, 0) / n;
+  const my = pts.reduce((a, [, y]) => a + y, 0) / n;
+  let num = 0;
+  let den = 0;
+  pts.forEach(([x, y]) => {
+    num += (x - mx) * (y - my);
+    den += (x - mx) ** 2;
+  });
+  const slope = den ? num / den : 0;
+  return { slope, from, to: to - 1, at: (x: number) => my + slope * (x - mx) };
+}
+/** Average of each point and the ones before it (a smoothed line). */
+function movingAverage(v: number[], window: number) {
+  return v.map((_, i) => {
+    const part = v.slice(Math.max(0, i - window + 1), i + 1);
+    return part.reduce((a, b) => a + b, 0) / part.length;
+  });
+}
+/** "Rising 18%" / "Falling 6%" / "Flat" over the period, from the trend line. */
+function trendWords(v: number[], partial?: { first?: boolean; last?: boolean }) {
+  const f = fitLine(v, partial);
+  if (!f) return "";
+  const start = f.at(f.from);
+  const end = f.at(f.to);
+  const avg = v.reduce((a, b) => a + b, 0) / v.length;
+  const change = start > 0 ? ((end - start) / start) * 100 : avg ? ((end - start) / avg) * 100 : 0;
+  if (Math.abs(change) < 3) return "Trend: flat";
+  return `Trend: ${change > 0 ? "rising" : "falling"} ${Math.abs(change).toFixed(0)}%`;
+}
+const tipValue = (v: number, format?: Fmt) => (format ? formatValue(v, format) : Math.abs(v) < 10 && v % 1 ? v.toFixed(1) : Math.round(v).toLocaleString("en-US"));
+/** The hover note for a point in a series: its value, how it compares with the one before and with the average. */
+function seriesTip(label: string, v: number, prev: number | undefined, avg: number, format?: Fmt, name?: string) {
+  const lines = [`${label}`, `${name ? `${name}: ` : ""}${tipValue(v, format)}`];
+  if (prev !== undefined && prev > 0) lines.push(`${v >= prev ? "+" : "−"}${Math.abs(((v - prev) / prev) * 100).toFixed(0)}% vs the one before`);
+  else if (prev !== undefined && prev === 0 && v > 0) lines.push("Up from 0 the one before");
+  if (avg) lines.push(`${v >= avg ? "Above" : "Below"} the ${tipValue(avg, format)} average`);
+  return lines.join("\n");
+}
+/** A see-through hover target (only the page's tooltip uses it; invisible in the PNG). */
+const Hit = ({ x, y, w, h, tip }: { x: number; y: number; w: number; h: number; tip: string }) => <rect className="gx-hit" x={x} y={y} width={Math.max(0, w)} height={Math.max(0, h)} fill="#000" fillOpacity={0} data-tip={tip} />;
+const HOURS24 = Array.from({ length: 24 }, (_, h) => (h === 0 ? "12am" : h < 12 ? `${h}am` : h === 12 ? "12pm" : `${h - 12}pm`));
+
 export type Frame = { theme: Theme; size: Size; eyebrow: string; title: string; subtitle: string; stamp: string; footnote: string };
 
 /** Background, header and footnote shared by every graphic; `body` draws inside the content box. */
@@ -147,6 +201,7 @@ export function BarsBlock({ x, y, w, h, t, rows, total, title, format, showPct =
               </tspan>
               {showPct && total ? `  ${pctText(r.count, total)}` : r.note ? `  ${r.note}` : ""}
             </Txt>
+            <Hit x={inner.x - 6} y={cy - rowH / 2} w={inner.w + 12} h={rowH} tip={[r.label, tipValue(r.count, format), total ? `${pctText(r.count, total)} of the total` : "", r.note ?? "", i > 0 ? `#${i + 1} of ${rows.length}` : `Top of ${rows.length}`].filter(Boolean).join("\n")} />
           </g>
         );
       })}
@@ -220,6 +275,7 @@ export function StripBlock({ x, y, w, h, t, rows, title }: { x: number; y: numbe
         return (
           <g key={`${r.label}-${i}`}>
             <rect x={gx} y={sy} width={Math.max(0, segW - (i < rows.length - 1 ? 2 : 0))} height={46} rx={i === 0 || i === rows.length - 1 ? 6 : 0} fill={r.color ?? t.gray} />
+            <Hit x={gx} y={sy} w={segW} h={46} tip={`${r.label}\n${fmt(r.count)}\n${pctText(r.count, total)} of the total`} />
             {textW(label, 15, 800) + 16 < segW ? (
               <Txt x={gx + segW / 2} y={sy + 29} size={15} fill="#ffffff" weight={800} anchor="middle">
                 {label}
@@ -252,7 +308,7 @@ export function StripBlock({ x, y, w, h, t, rows, title }: { x: number; y: numbe
 }
 
 /** Columns over time (joins per month), with the value on top of each. */
-export function ColumnsBlock({ x, y, w, h, t, cols, title, color, format }: { x: number; y: number; w: number; h: number; t: Tokens; cols: { label: string; count: number }[]; title: string; color: string; format?: Fmt }) {
+export function ColumnsBlock({ x, y, w, h, t, cols, title, color, format, trend = "none", timeline = false, partial }: { x: number; y: number; w: number; h: number; t: Tokens; cols: { label: string; count: number }[]; title: string; color: string; format?: Fmt; trend?: Trend; timeline?: boolean; partial?: { first?: boolean; last?: boolean } }) {
   const inner = { x: x + 40, y: y + 80, w: w - 80, h: h - 140 };
   const n = Math.max(1, cols.length);
   const slot = inner.w / n;
@@ -260,14 +316,27 @@ export function ColumnsBlock({ x, y, w, h, t, cols, title, color, format }: { x:
   const max = Math.max(1, ...cols.map((c) => c.count));
   const fs = Math.max(11, Math.min(15, slot * 0.22));
   // Crowded charts only label every few columns (and skip the values on top)
-  const every = Math.max(1, Math.ceil((n * 64) / inner.w));
+  const every = Math.max(1, Math.ceil((n * (Math.max(30, ...cols.map((c) => textW(c.label, Math.max(11, fs - 1)))) + 14)) / inner.w));
   const showValues = slot >= 30;
+  const vals = cols.map((c) => c.count);
+  const avg = vals.reduce((a, b) => a + b, 0) / Math.max(1, vals.length);
+  const total = vals.reduce((a, b) => a + b, 0);
+  const CX = (i: number) => inner.x + i * slot + slot / 2;
+  const CY = (v: number) => inner.y + inner.h - (Math.max(0, v) / max) * (inner.h - 30);
+  const showTrend = timeline && trend !== "none" && cols.length >= 3;
+  const fit = showTrend && (trend === "line" || trend === "both") ? fitLine(vals, partial) : null;
+  const ma = showTrend && (trend === "avg" || trend === "both") ? movingAverage(vals, cols.length > 20 ? 7 : 3) : null;
   return (
     <g>
       <Card x={x} y={y} w={w} h={h} t={t} />
       <Label x={x + 32} y={y + 44} t={t}>
         {title}
       </Label>
+      {showTrend ? (
+        <Txt x={x + w - 32} y={y + 44} size={15} fill={t.text2} weight={700} anchor="end">
+          {trendWords(vals, partial)}
+        </Txt>
+      ) : null}
       <line x1={inner.x} x2={inner.x + inner.w} y1={inner.y + inner.h} y2={inner.y + inner.h} stroke={t.line} strokeWidth={1.5} />
       {cols.map((c, i) => {
         const bh = (c.count / max) * (inner.h - 30);
@@ -288,12 +357,28 @@ export function ColumnsBlock({ x, y, w, h, t, cols, title, color, format }: { x:
           </g>
         );
       })}
+      {ma ? <polyline points={ma.map((v, i) => `${CX(i)},${CY(v)}`).join(" ")} fill="none" stroke={t.text} strokeOpacity={0.75} strokeWidth={2.5} strokeLinejoin="round" /> : null}
+      {fit ? <line x1={CX(0)} y1={CY(fit.at(0))} x2={CX(cols.length - 1)} y2={CY(fit.at(cols.length - 1))} stroke={t.brand} strokeWidth={3} strokeDasharray="10 8" strokeLinecap="round" /> : null}
+      {cols.map((c, i) => (
+        <Hit
+          key={`hit-${i}`}
+          x={inner.x + i * slot}
+          y={inner.y}
+          w={slot}
+          h={inner.h}
+          tip={
+            timeline
+              ? `${seriesTip(c.label, c.count, i > 0 ? vals[i - 1] : undefined, avg, format)}${fit ? `\nTrend line: ${tipValue(fit.at(i), format)}` : ""}${ma ? `\nMoving average: ${tipValue(ma[i], format)}` : ""}`
+              : [c.label, tipValue(c.count, format), total && !format ? `${pctText(c.count, total)} of the total` : ""].filter(Boolean).join("\n")
+          }
+        />
+      ))}
     </g>
   );
 }
 
 /** A line over time (up to four series), with gridlines, the peak marked and a legend. */
-export function LineBlock({ x, y, w, h, t, labels, series, title, theme, format }: { x: number; y: number; w: number; h: number; t: Tokens; labels: string[]; series: { name: string; values: number[] }[]; title: string; theme: Theme; format?: Fmt }) {
+export function LineBlock({ x, y, w, h, t, labels, series, title, theme, format, trend = "none", partial }: { x: number; y: number; w: number; h: number; t: Tokens; labels: string[]; series: { name: string; values: number[] }[]; title: string; theme: Theme; format?: Fmt; trend?: Trend; partial?: { first?: boolean; last?: boolean } }) {
   const inner = { x: x + 70, y: y + 84, w: w - 110, h: h - 150 };
   const max = Math.max(1, ...series.flatMap((s) => s.values));
   const nice = (() => {
@@ -303,13 +388,27 @@ export function LineBlock({ x, y, w, h, t, labels, series, title, theme, format 
   })();
   const X = (i: number) => inner.x + (labels.length <= 1 ? inner.w / 2 : (i / (labels.length - 1)) * inner.w);
   const Y = (v: number) => inner.y + inner.h - (v / nice) * inner.h;
-  const every = Math.max(1, Math.ceil((labels.length * 70) / inner.w));
+  // Label every few points so the dates never run into each other
+  const labelW = Math.max(40, ...labels.map((l) => textW(l, 13))) + 18;
+  const every = Math.max(1, Math.ceil((labels.length * labelW) / inner.w));
+  // Trend lines follow the first series
+  const first = series[0]?.values ?? [];
+  const showTrend = trend !== "none" && first.length >= 3 && series.length === 1;
+  const fit = showTrend && (trend === "line" || trend === "both") ? fitLine(first, partial) : null;
+  const ma = showTrend && (trend === "avg" || trend === "both") ? movingAverage(first, first.length > 20 ? 7 : 3) : null;
+  const avgs = series.map((s) => s.values.reduce((a, b) => a + b, 0) / Math.max(1, s.values.length));
+  const slotW = labels.length > 1 ? inner.w / (labels.length - 1) : inner.w;
   return (
     <g>
       <Card x={x} y={y} w={w} h={h} t={t} />
       <Label x={x + 32} y={y + 44} t={t}>
         {title}
       </Label>
+      {showTrend && series.length === 1 ? (
+        <Txt x={x + w - 32} y={y + 44} size={15} fill={t.text2} weight={700} anchor="end">
+          {trendWords(first, partial)}
+        </Txt>
+      ) : null}
       {series.length > 1
         ? series.map((s, si) => {
             const lx = x + w - 32 - series.slice(si).reduce((a, z) => a + textW(z.name, 15) + 40, 0);
@@ -332,7 +431,7 @@ export function LineBlock({ x, y, w, h, t, labels, series, title, theme, format 
         </g>
       ))}
       {labels.map((l, i) =>
-        i % every === 0 || i === labels.length - 1 ? (
+        i % every === 0 || (i === labels.length - 1 && i % every >= every / 2) ? (
           <Txt key={i} x={X(i)} y={inner.y + inner.h + 26} size={13} fill={t.muted} anchor="middle">
             {l}
           </Txt>
@@ -357,6 +456,27 @@ export function LineBlock({ x, y, w, h, t, labels, series, title, theme, format 
           </g>
         );
       })}
+      {ma ? <polyline points={ma.map((v, i) => `${X(i)},${Y(v)}`).join(" ")} fill="none" stroke={t.text} strokeOpacity={0.75} strokeWidth={2.5} strokeLinejoin="round" /> : null}
+      {fit ? <line x1={X(0)} y1={Y(fit.at(0))} x2={X(first.length - 1)} y2={Y(fit.at(first.length - 1))} stroke={t.brand} strokeWidth={3} strokeDasharray="10 8" strokeLinecap="round" /> : null}
+      {labels.map((l, i) => (
+        <g key={`hit-${i}`} className="gx-pt">
+          <line className="gx-guide" x1={X(i)} x2={X(i)} y1={inner.y} y2={inner.y + inner.h} stroke={t.text2} strokeWidth={1} strokeDasharray="3 4" opacity={0} />
+          {series.map((s, si) => (
+            <circle key={s.name} className="gx-dot" cx={X(i)} cy={Y(s.values[i] ?? 0)} r={6} fill={seriesColor(theme, si)} stroke={t.card} strokeWidth={2} opacity={0} />
+          ))}
+          <Hit
+            x={X(i) - slotW / 2}
+            y={inner.y}
+            w={slotW}
+            h={inner.h}
+            tip={
+              series.length === 1
+                ? `${seriesTip(l, first[i] ?? 0, i > 0 ? first[i - 1] : undefined, avgs[0], format)}${fit ? `\nTrend line: ${tipValue(fit.at(i), format)}` : ""}${ma ? `\nMoving average: ${tipValue(ma[i], format)}` : ""}`
+                : [l, ...series.map((s) => `${s.name}: ${tipValue(s.values[i] ?? 0, format)}`)].join("\n")
+            }
+          />
+        </g>
+      ))}
     </g>
   );
 }
@@ -433,6 +553,7 @@ export function HeatBlock({ x, y, w, h, t, rows, cols, cells, totals, title, acc
               return (
                 <g key={ci}>
                   <rect x={inner.x + labelW + ci * cw + 2} y={ry + 2} width={cw - 4} height={rh - 4} rx={8} fill={accent} fillOpacity={n ? 0.12 + heat * 0.78 : 0.04} />
+                  <Hit x={inner.x + labelW + ci * cw} y={ry} w={cw} h={rh} tip={`${r} · ${cols[ci] || (cols.length === 24 ? HOURS24[ci] : "")}\n${fmt(n)}${totals?.[ri] ? `\n${pctText(n, totals[ri])} of the row` : ""}`} />
                   {showNumbers ? (
                     <Txt x={inner.x + labelW + ci * cw + cw / 2} y={ry + rh / 2 + fs * 0.35} size={fs} fill={heat > 0.55 ? "#ffffff" : t.text} weight={800} anchor="middle">
                       {n ? fmt(n) : "·"}

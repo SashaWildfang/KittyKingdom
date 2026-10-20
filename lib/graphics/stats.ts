@@ -164,7 +164,7 @@ function trend(title: string, subtitle: string, s: { labels: string[]; values: n
       { label: `Busiest ${unit}`, value: best >= 0 ? s.labels[best] : "—", note: best >= 0 ? `${fmt(s.values[best])} ${what}` : undefined },
       { label: "Second half vs first", value: first ? (Math.round(change) === 0 ? "0%" : `${change > 0 ? "+" : ""}${change.toFixed(0)}%`) : "—", note: "of the period shown" },
     ],
-    main: { kind: s.labels.length > 40 ? "line" : "columns", title: `${what[0].toUpperCase()}${what.slice(1)} per ${unit}`, labels: s.labels, series: [{ name: what, values: s.values }], rows: s.labels.map((l, i) => ({ label: l, value: s.values[i] })) } as Block,
+    main: { kind: s.labels.length > 40 ? "line" : "columns", title: `${what[0].toUpperCase()}${what.slice(1)} per ${unit}`, labels: s.labels, series: [{ name: what, values: s.values }], rows: s.labels.map((l, i) => ({ label: l, value: s.values[i] })), timeline: true, partial: { first: unit !== "day", last: toNow } } as Block,
   };
 }
 
@@ -901,7 +901,7 @@ add({
         { label: "Correct", value: pct(n(t.correct), n(t.answered)) },
         { label: "Leaves earned", value: fmt(n(t.leaves)) },
       ],
-      main: { kind: s.labels.length > 40 ? "line" : "columns", title: "Answers", labels: s.labels, series: [{ name: "Answers", values: s.values }], rows: s.labels.map((l, i) => ({ label: l, value: s.values[i] })) } as Block,
+      main: { kind: s.labels.length > 40 ? "line" : "columns", title: "Answers", labels: s.labels, series: [{ name: "Answers", values: s.values }], rows: s.labels.map((l, i) => ({ label: l, value: s.values[i] })), timeline: true } as Block,
       side: { kind: "leaderboard", title: "Best streaks", rows: best.slice(0, 8) },
     };
   },
@@ -966,7 +966,7 @@ add({
   run: async (c) => {
     const s = await series(await bot("events"), "startAt", {}, "month", c, new Date(Date.now() - 365 * DAY));
     const kinds = await (await bot("events")).aggregate([{ $group: { _id: "$kind", v: { $sum: 1 } } }, { $sort: { v: -1 } }]).toArray();
-    return { title: "Events in the Nation", subtitle: "Events per month over the last year.", footnote: "From Admin → Events.", main: { kind: "columns", title: "Events per month", rows: s.labels.map((l, i) => ({ label: l, value: s.values[i] })) }, side: { kind: "bars", title: "By kind", rows: kinds.map((k) => ({ label: String(k._id ?? "other").replace(/^\w/, (x) => x.toUpperCase()), value: n(k.v) })), colorful: true } };
+    return { title: "Events in the Nation", subtitle: "Events per month over the last year.", footnote: "From Admin → Events.", main: { kind: "columns", timeline: true, title: "Events per month", rows: s.labels.map((l, i) => ({ label: l, value: s.values[i] })) }, side: { kind: "bars", title: "By kind", rows: kinds.map((k) => ({ label: String(k._id ?? "other").replace(/^\w/, (x) => x.toUpperCase()), value: n(k.v) })), colorful: true } };
   },
 });
 
@@ -1097,7 +1097,7 @@ add({
     const s = await series(await bot("join_applications"), "submittedAt", {}, "month", c, new Date(Date.now() - 365 * DAY));
     const st = await (await bot("join_applications")).aggregate([{ $group: { _id: "$status", v: { $sum: 1 } } }, { $sort: { v: -1 } }]).toArray();
     const total = st.reduce((a, r) => a + n(r.v), 0);
-    return { title: "Join applications", subtitle: `${fmt(total)} applications in all.`, footnote: "From the join form.", main: { kind: "columns", title: "Applications per month", rows: s.labels.map((l, i) => ({ label: l, value: s.values[i] })) }, bottom: { kind: "strip", title: "Decisions", rows: st.map((r) => ({ label: String(r._id ?? "unknown").replace(/^\w/, (x) => x.toUpperCase()), value: n(r.v) })) } };
+    return { title: "Join applications", subtitle: `${fmt(total)} applications in all.`, footnote: "From the join form.", main: { kind: "columns", timeline: true, title: "Applications per month", rows: s.labels.map((l, i) => ({ label: l, value: s.values[i] })) }, bottom: { kind: "strip", title: "Decisions", rows: st.map((r) => ({ label: String(r._id ?? "unknown").replace(/^\w/, (x) => x.toUpperCase()), value: n(r.v) })) } };
   },
 });
 add({
@@ -1118,7 +1118,7 @@ add({
       title: "Support tickets",
       subtitle: `${fmt(total)} closed tickets · ${c.rangeText}.`,
       footnote: "From closed tickets. Close time is from opening to closing.",
-      main: { kind: s.labels.length > 40 ? "line" : "columns", title: `Tickets per ${unit}`, labels: s.labels, series: [{ name: "Tickets", values: s.values }], rows: s.labels.map((l, i) => ({ label: l, value: s.values[i] })) } as Block,
+      main: { kind: s.labels.length > 40 ? "line" : "columns", title: `Tickets per ${unit}`, labels: s.labels, series: [{ name: "Tickets", values: s.values }], rows: s.labels.map((l, i) => ({ label: l, value: s.values[i] })), timeline: true } as Block,
       side: { kind: "bars", title: "Average hours to close", rows: types.filter((t) => t.close).map((t) => ({ label: nice(t._id), value: n(t.close) / 3_600_000, note: `${fmt(n(t.v))} tickets` })), format: "hours" },
     };
   },
@@ -1206,7 +1206,7 @@ add({
         { label: "Discord linked", value: pct(linked, total) },
         { label: "Two-factor on", value: pct(twofa, total) },
       ],
-      main: { kind: "columns", title: "New accounts per month", rows: s.labels.map((l, i) => ({ label: l, value: s.values[i] })) },
+      main: { kind: "columns", timeline: true, title: "New accounts per month", rows: s.labels.map((l, i) => ({ label: l, value: s.values[i] })) },
     };
   },
 });
@@ -1360,7 +1360,7 @@ add({
         { label: "Boosting", value: fmt(ms.filter((m) => m.boosting).length) },
         { label: "Website accounts", value: fmt(ms.filter((m) => m.account).length) },
       ],
-      main: { kind: "columns", title: "New members each month", rows: joins },
+      main: { kind: "columns", timeline: true, title: "New members each month", rows: joins },
       side: { kind: "bars", title: "Biggest roles", rows: top.map(([i, k]) => ({ label: c.snap.roles[i].name, value: k })), total: ms.length },
     };
   },
@@ -2016,7 +2016,7 @@ add({
       const hello = joined.filter((m) => first.has(m.id) && first.get(m.id)! - (m.joinedAt as number) < 7 * DAY && first.get(m.id)! >= (m.joinedAt as number) - DAY);
       return joined.length ? Math.round((hello.length / joined.length) * 100) : 0;
     });
-    return { title: "New members who say hello", subtitle: "Share of each month's new members (still here) who chatted within 7 days of joining.", footnote: "Only counts members who are still in the server.", main: { kind: "columns", title: "Chatted in their first week (%)", rows: b.map((x, i) => ({ label: x.label, value: vals[i] })), format: "percent" } };
+    return { title: "New members who say hello", subtitle: "Share of each month's new members (still here) who chatted within 7 days of joining.", footnote: "Only counts members who are still in the server.", main: { kind: "columns", timeline: true, title: "Chatted in their first week (%)", rows: b.map((x, i) => ({ label: x.label, value: vals[i] })), format: "percent" } };
   },
 });
 add({
@@ -2395,7 +2395,7 @@ add({
     const rows = await (await bot("join_applications")).aggregate([{ $match: { reviewedAt: { $type: "date" }, submittedAt: { $type: "date", $gte: new Date(Date.now() - 365 * DAY) } } }, { $group: { _id: { $dateToString: { format: "%Y-%m", date: "$submittedAt", timezone: c.tz } }, h: { $avg: { $subtract: ["$reviewedAt", "$submittedAt"] } }, v: { $sum: 1 } } }]).toArray();
     const map = new Map(rows.map((r) => [String(r._id), n(r.h) / 3_600_000]));
     const b = buckets("month", new Date(Date.now() - 335 * DAY), c.tz);
-    return { title: "How fast join forms are reviewed", subtitle: "Average hours from submitting to the decision.", footnote: "From the join form.", main: { kind: "columns", title: "Average wait (hours)", rows: b.map((x) => ({ label: x.label, value: Math.round((map.get(x.key) ?? 0) * 10) / 10 })), format: "hours" } };
+    return { title: "How fast join forms are reviewed", subtitle: "Average hours from submitting to the decision.", footnote: "From the join form.", main: { kind: "columns", timeline: true, title: "Average wait (hours)", rows: b.map((x) => ({ label: x.label, value: Math.round((map.get(x.key) ?? 0) * 10) / 10 })), format: "hours" } };
   },
 });
 

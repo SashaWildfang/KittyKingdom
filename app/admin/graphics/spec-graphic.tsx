@@ -4,9 +4,9 @@
 
 import type { ReactNode, Ref } from "react";
 import type { Block, Spec } from "../../../lib/graphics/spec";
-import { BarsBlock, ColumnsBlock, Graphic, HeatBlock, HeroBlock, LineBlock, seriesColor, StripBlock, TilesBlock, type Size, type Theme, type Tokens } from "./charts";
+import { BarsBlock, ColumnsBlock, Graphic, HeatBlock, HeroBlock, LineBlock, seriesColor, StripBlock, TilesBlock, type Size, type Theme, type Tokens, type Trend } from "./charts";
 
-type Box = { x: number; y: number; w: number; h: number; t: Tokens; theme: Theme };
+type Box = { x: number; y: number; w: number; h: number; t: Tokens; theme: Theme; trend?: Trend };
 
 function drawBlock(b: Block, box: Box): ReactNode {
   const { t, theme } = box;
@@ -21,15 +21,15 @@ function drawBlock(b: Block, box: Box): ReactNode {
     const showPct = b.kind === "bars" && Boolean(b.total) && !b.format;
     return <BarsBlock {...box} rows={rows} total={b.kind === "bars" ? b.total ?? 0 : 0} title={b.title} format={b.format} showPct={showPct} />;
   }
-  if (b.kind === "columns") return <ColumnsBlock {...box} cols={b.rows.map((r) => ({ label: r.label, count: r.value }))} title={b.title} color={accent} format={b.format} />;
-  if (b.kind === "line") return <LineBlock {...box} labels={b.labels} series={b.series.slice(0, 4)} title={b.title} theme={theme} format={b.format} />;
+  if (b.kind === "columns") return <ColumnsBlock {...box} cols={b.rows.map((r) => ({ label: r.label, count: r.value }))} title={b.title} color={accent} format={b.format} trend={box.trend} timeline={b.timeline} partial={b.partial} />;
+  if (b.kind === "line") return <LineBlock {...box} labels={b.labels} series={b.series.slice(0, 4)} title={b.title} theme={theme} format={b.format} trend={box.trend} partial={b.partial} />;
   if (b.kind === "heat") return <HeatBlock {...box} rows={b.rows} cols={b.cols} cells={b.cells} totals={b.totals} title={b.title} accent={accent} byColumn={b.byColumn} />;
   if (b.kind === "strip") return <StripBlock {...box} rows={b.rows.map((r, i) => ({ label: r.label, count: r.value, color: r.muted ? (i % 2 ? t.gray2 : t.gray) : seriesColor(theme, i) }))} title={b.title} />;
   return <TilesBlock {...box} tiles={b.tiles} />;
 }
 
 /** Lays out tiles on top, then hero / main / side across, then a strip at the bottom. */
-export function SpecGraphic({ spec, theme, size, title, subtitle, footnote, svgRef }: { spec: Spec; theme: Theme; size: Size; title?: string; subtitle?: string; footnote: boolean; svgRef?: Ref<SVGSVGElement> }) {
+export function SpecGraphic({ spec, theme, size, title, subtitle, footnote, svgRef, trend = "line" }: { spec: Spec; theme: Theme; size: Size; title?: string; subtitle?: string; footnote: boolean; svgRef?: Ref<SVGSVGElement>; trend?: Trend }) {
   const square = size === "square";
   return (
     <Graphic
@@ -43,7 +43,8 @@ export function SpecGraphic({ spec, theme, size, title, subtitle, footnote, svgR
         stamp: `Snapshot · ${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}\nbear-nation.net`,
         footnote: footnote ? spec.footnote : "",
       }}
-      body={(box) => {
+      body={(b0) => {
+        const box = { ...b0, trend };
         const gap = 26;
         let { y, h } = box;
         const parts: ReactNode[] = [];
