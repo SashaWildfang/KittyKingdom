@@ -172,21 +172,26 @@ export function crosstab(ctx: Ctx, members: MMMember[], rowKey: string, colKey: 
   const rowNone = cols.map(() => 0);
   const colNone = rows.map(() => 0);
   let neither = 0;
+  // People per row (each counted once, even with several roles across the top)
+  const rowTotals = rows.map(() => 0);
+  let noRowRole = 0;
   for (const m of members) {
     const has = new Set(m.r);
     const rHit = rows.map((r) => has.has(r));
     const cHit = cols.map((c) => has.has(c));
     rHit.forEach((rh, ri) => {
       if (!rh) return;
+      rowTotals[ri]++;
       if (!cHit.some(Boolean)) colNone[ri]++;
       cHit.forEach((ch, ci) => ch && cells[ri][ci]++);
     });
     if (!rHit.some(Boolean)) {
+      noRowRole++;
       cHit.forEach((ch, ci) => ch && rowNone[ci]++);
       if (!cHit.some(Boolean)) neither++;
     }
   }
-  return { rows: rows.map((i) => ctx.snap.roles[i]), cols: cols.map((i) => ctx.snap.roles[i]), cells, rowNone, colNone, neither, rowNoneTotal: rowNone.reduce((a, b) => a + b, 0) + neither };
+  return { rows: rows.map((i) => ctx.snap.roles[i]), cols: cols.map((i) => ctx.snap.roles[i]), cells, rowNone, colNone, neither, rowTotals, rowNoneTotal: noRowRole };
 }
 
 // ---------- The question box ----------

@@ -136,7 +136,8 @@ function useGraphic(ctx: Ctx | null, o: Opts) {
       const rowLabels = [...ct.rows.map((r) => r.name), `No ${groupTitle(o.rowGroup).toLowerCase()} role`];
       const colLabels = [...ct.cols.map((c) => c.name), "None"];
       const cells = [...ct.cells.map((r, i) => [...r, ct.colNone[i]]), [...ct.rowNone, ct.neither]];
-      const totals = cells.map((r) => r.reduce((a, z) => a + z, 0));
+      // Each person once per row (someone with two roles across the top isn't counted twice)
+      const totals = [...ct.rowTotals, ct.rowNoneTotal];
       body = ({ x, y, w, h, t, theme }) => <HeatBlock x={x} y={y} w={w} h={h} t={t} rows={rowLabels} cols={colLabels} cells={cells} totals={totals} title="Members in each pair" accent={seriesColor(theme, 0)} />;
     } else if (o.kind === "overview") {
       const now = Date.now();
