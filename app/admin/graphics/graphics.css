@@ -66,3 +66,30 @@
 .gx-quick button:hover { border-color: rgba(var(--ember-rgb), 0.6); }
 .gx-quick button.is-on { border-color: rgba(var(--ember-rgb), 0.7); background: rgba(var(--ember-rgb), 0.15); }
 .gx-custom-note { margin: 0; color: var(--muted); font-size: 0.78rem; }
+
+/* Hover points (preview only: the PNG is drawn from attributes, these rules don't reach it) */
+.gx-canvas .gx-hit { cursor: crosshair; }
+.gx-canvas rect.gx-hit:hover { fill-opacity: 0.07; fill: #fff; }
+.gx-canvas .gx-pt rect.gx-hit:hover { fill-opacity: 0; }
+.gx-canvas .gx-pt:hover .gx-dot, .gx-canvas .gx-pt:hover .gx-guide { opacity: 1; }
+.gx-tip {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  gap: 0.15rem;
+  min-width: 9rem;
+  max-width: 16rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-soft, var(--panel));
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.35;
+  padding: 0.5rem 0.7rem;
+  pointer-events: none;
+  transform: translate(14px, -50%);
+}
+.gx-tip.is-flip { transform: translate(calc(-100% - 14px), -50%); }
+.gx-tip b { color: var(--text); font-size: 0.85rem; }
+.gx-tip .is-main { color: var(--text); font-size: 0.95rem; font-weight: 800; }
