@@ -404,7 +404,8 @@
   z-index: 20;
   border: 1px solid var(--line);
   border-radius: 0.8rem;
-  background: var(--panel-strong);
+  /* the panel colour can be see-through (glass), so lay it over the solid page colour */
+  background: linear-gradient(var(--panel-strong), var(--panel-strong)), var(--bg);
   box-shadow: 0 18px 40px var(--shadow);
   overflow: hidden;
 }

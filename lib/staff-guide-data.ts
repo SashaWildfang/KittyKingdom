@@ -39,7 +39,7 @@ export const ROLES: RoleInfo[] = [
     summary: "Junior moderators take on channel control and 18+ verification.",
     duties: [
       "Run ID checks in NSFW verification tickets and grant access with /nsfwverify",
-      "Keep channels calm: /slowmode, /lockchannel, /clear and /clearall",
+      "Keep channels calm: /slowmode, /lock, /clear and /clearall",
       "Kick members who need removing but not banning",
       "Request bans with /ban: a Mod+ reviews every Jr Mod ban before it happens",
       "Send members back to verification with /forceunverify when needed",
@@ -280,7 +280,7 @@ export const PROCEDURES: Procedure[] = [
     summary: "An argument or pile-on that won't calm down.",
     steps: [
       { title: "Slow it down", detail: "Slowmode is usually enough.", example: "/slowmode seconds:30" },
-      { title: "Lock it for a bit", detail: "Set a time so it reopens by itself.", example: "/lockchannel duration:30m" },
+      { title: "Lock it for a bit", detail: "Set a time so it reopens by itself. You can also do this from Admin → Moderation → Lockdown.", example: "/lock duration:30m reason:Taking a break" },
       { title: "Tidy up", detail: "A transcript of everything removed is kept for the record.", example: "/clearall user:@member" },
       { title: "Back to normal", detail: "When things have calmed down.", example: "/clearslowmode" },
     ],
@@ -371,9 +371,9 @@ export const COMMAND_GROUPS: CommandGroup[] = [
     commands: [
       { cmd: "/slowmode seconds", what: "Turn on slowmode.", min: "Jr Mod", examples: ["/slowmode seconds:15"] },
       { cmd: "/clearslowmode", what: "Turn slowmode off.", min: "Jr Mod", examples: ["/clearslowmode"] },
-      { cmd: "/lockchannel [duration]", what: "Lock the channel for members (staff keep access). With a duration it unlocks by itself.", min: "Jr Mod", examples: ["/lockchannel duration:30m", "/lockchannel"] },
-      { cmd: "/unlockchannel", what: "Unlock it again.", min: "Jr Mod", examples: ["/unlockchannel"] },
-      { cmd: "/showlockedchannels", what: "Every channel that's locked right now.", min: "Jr Mod", examples: ["/showlockedchannels"] },
+      { cmd: "/lock [channel] [duration] [reason] [quiet]", what: "Lock this channel (or another one, or a whole category) so only staff can talk. With a duration it opens by itself, even after a bot restart.", min: "Jr Mod", examples: ["/lock duration:30m", "/lock channel:#general reason:Cooling off", "/lock"] },
+      { cmd: "/unlock [channel]", what: "Unlock it again (everything goes back to how it was).", min: "Jr Mod", examples: ["/unlock"] },
+      { cmd: "/locks", what: "Every channel that's locked right now, who locked it and when it opens.", min: "Jr Mod", examples: ["/locks"] },
       { cmd: "/clear amount [user]", what: "Delete up to 100 recent messages (optionally only one person's). A transcript is saved.", min: "Jr Mod", examples: ["/clear amount:25", "/clear amount:50 user:@member"] },
       { cmd: "/clearall user", what: "Delete everything one person said in this channel, with a transcript.", min: "Jr Mod", examples: ["/clearall user:@member"] },
     ],
@@ -384,9 +384,10 @@ export const COMMAND_GROUPS: CommandGroup[] = [
     icon: "siren",
     about: "For raids. Try AutoMod's raid mode first.",
     commands: [
-      { cmd: "/lockdown [reason]", what: "Turn server lockdown on or off: invites are paused and new joins are kicked.", min: "Admin", examples: ["/lockdown reason:Raid in progress"] },
-      { cmd: "/updatelockdown message", what: "Post an update to the lockdown announcement.", min: "Admin", examples: ["/updatelockdown message:Raid accounts removed, reopening soon"] },
-      { cmd: "/lockdownstatus", what: "Whether lockdown is on, and the latest updates.", min: "Helper", examples: ["/lockdownstatus"] },
+      { cmd: "/lockdown start reason [preset] [duration]", what: "Lock the server down. Raid pauses invites and DMs, blocks new joins, raises verification and locks the main chats; the other presets do less. Also on Admin → Moderation → Lockdown.", min: "Admin", examples: ["/lockdown start reason:Raid in progress", "/lockdown start reason:Spam wave preset:Chats only duration:30m"] },
+      { cmd: "/lockdown update message", what: "Post an update (it's added to the lockdown announcement too).", min: "Admin", examples: ["/lockdown update message:Raid accounts removed, reopening soon"] },
+      { cmd: "/lockdown end", what: "End it and put everything back the way it was.", min: "Admin", examples: ["/lockdown end"] },
+      { cmd: "/lockdown status", what: "Whether lockdown is on, and the latest updates.", min: "Helper", examples: ["/lockdown status"] },
     ],
   },
   {

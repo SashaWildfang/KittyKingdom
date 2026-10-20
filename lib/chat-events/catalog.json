@@ -1,0 +1,2107 @@
+{
+ "version": 1,
+ "settings": {
+  "enabled": true,
+  "seasonMode": "auto",
+  "includeAllYear": true,
+  "channels": [
+   "1358452494660796448",
+   "1358487735811182682"
+  ],
+  "excludedCategories": [
+   "1358485130242560020",
+   "1358486463251091569",
+   "1362459990245245151",
+   "1362461644768411758",
+   "1448247633574363237",
+   "1358487125661585658",
+   "1358485995649237103"
+  ],
+  "minChatters": 2,
+  "chatterSeconds": 120,
+  "chancePercent": 8,
+  "channelCooldownMinutes": 8,
+  "globalCooldownMinutes": 2,
+  "maxPerHour": 8,
+  "rewardMultiplier": 1,
+  "deleteAfterSeconds": 60,
+  "streaks": true,
+  "pingRole": null
+ },
+ "events": [
+  {
+   "id": "fall-leaf-grab",
+   "season": "fall",
+   "type": "grab",
+   "name": "Leaf Grab",
+   "emoji": "🍃",
+   "color": "#d56300",
+   "weight": 3,
+   "seconds": 45,
+   "title": "A leaf blew in!",
+   "text": "First to grab it gets **{reward}**!",
+   "button": "Grab it",
+   "winText": "{user} snatched the leaf in **{time}** and got **{reward}**!",
+   "missText": "The wind carried it away before anyone could grab it.",
+   "reward": {
+    "leaves": [
+     50,
+     100
+    ],
+    "xp": [
+     25,
+     50
+    ]
+   },
+   "enabled": true
+  },
+  {
+   "id": "fall-pumpkin-patch",
+   "season": "fall",
+   "type": "pick",
+   "name": "Pumpkin Patch",
+   "emoji": "🎃",
+   "color": "#ea580c",
+   "weight": 2,
+   "seconds": 30,
+   "title": "Pumpkin Patch",
+   "text": "One of these pumpkins hides a pile of treats. Pick one!",
+   "options": [
+    {
+     "label": "Big pumpkin",
+     "emoji": "🎃"
+    },
+    {
+     "label": "Lumpy pumpkin",
+     "emoji": "🟠"
+    },
+    {
+     "label": "Tiny pumpkin",
+     "emoji": "🍊"
+    }
+   ],
+   "winText": "The treats were in the **{answer}**!",
+   "reward": {
+    "leaves": [
+     120,
+     220
+    ],
+    "xp": [
+     60,
+     120
+    ]
+   },
+   "miss": {
+    "leaves": [
+     0,
+     0
+    ],
+    "xp": [
+     10,
+     20
+    ]
+   },
+   "missText": "Wrong pumpkin, but you had fun picking.",
+   "enabled": true
+  },
+  {
+   "id": "fall-haunted-house",
+   "season": "fall",
+   "type": "draw",
+   "name": "Haunted House",
+   "emoji": "👻",
+   "color": "#7c3aed",
+   "weight": 3,
+   "seconds": 30,
+   "title": "The haunted house is open…",
+   "text": "Dare to step inside? Everyone who enters finds out what's waiting in **{seconds}s**.",
+   "button": "Enter",
+   "outcomes": [
+    {
+     "text": "found a bag of candy",
+     "weight": 30,
+     "leaves": [
+      60,
+      140
+     ],
+     "xp": [
+      0,
+      0
+     ]
+    },
+    {
+     "text": "made friends with a ghost",
+     "weight": 22,
+     "leaves": [
+      0,
+      0
+     ],
+     "xp": [
+      60,
+      140
+     ]
+    },
+    {
+     "text": "found the hidden treasure room!",
+     "weight": 6,
+     "leaves": [
+      250,
+      450
+     ],
+     "xp": [
+      100,
+      200
+     ]
+    },
+    {
+     "text": "got spooked and dropped some",
+     "weight": 18,
+     "leaves": [
+      -60,
+      -20
+     ],
+     "xp": [
+      0,
+      0
+     ]
+    },
+    {
+     "text": "got chased out by a skeleton",
+     "weight": 12,
+     "leaves": [
+      -40,
+      -10
+     ],
+     "xp": [
+      -30,
+      -10
+     ]
+    },
+    {
+     "text": "found nothing but cobwebs",
+     "weight": 12,
+     "leaves": [
+      0,
+      0
+     ],
+     "xp": [
+      0,
+      0
+     ]
+    }
+   ],
+   "enabled": true
+  },
+  {
+   "id": "fall-hayride",
+   "season": "fall",
+   "type": "goal",
+   "name": "Hayride",
+   "emoji": "🚜",
+   "color": "#a16207",
+   "weight": 1,
+   "seconds": 60,
+   "goal": 25,
+   "maxPerUser": 6,
+   "title": "The hayride is stuck!",
+   "text": "Help push it up the hill: **{goal} pushes** needed in **{seconds}s**. Everyone who helps gets **{reward}**.",
+   "button": "Push",
+   "winText": "The hayride made it up the hill! {players} helpers each got **{reward}**.",
+   "missText": "The hayride rolled back down… so close!",
+   "reward": {
+    "leaves": [
+     80,
+     150
+    ],
+    "xp": [
+     40,
+     80
+    ]
+   },
+   "enabled": true
+  },
+  {
+   "id": "fall-apple-bobbing",
+   "season": "fall",
+   "type": "typer",
+   "name": "Apple Bobbing",
+   "emoji": "🍎",
+   "color": "#dc2626",
+   "weight": 2,
+   "seconds": 60,
+   "title": "Apple bobbing!",
+   "text": "First to type this exactly grabs the apple:",
+   "reward": {
+    "leaves": [
+     60,
+     120
+    ],
+    "xp": [
+     40,
+     80
+    ]
+   },
+   "phrases": [
+    "crisp autumn apples",
+    "bob for the red one",
+    "cider by the fire",
+    "pumpkin spice and everything nice",
+    "sweater weather",
+    "hayride at sunset",
+    "falling leaves everywhere",
+    "warm apple pie"
+   ],
+   "enabled": true
+  },
+  {
+   "id": "fall-scramble",
+   "season": "fall",
+   "type": "scramble",
+   "name": "Autumn Scramble",
+   "emoji": "🍁",
+   "color": "#b45309",
+   "weight": 2,
+   "seconds": 90,
+   "title": "A gust scattered these letters!",
+   "text": "Unscramble them before they blow away:",
+   "reward": {
+    "leaves": [
+     100,
+     150
+    ],
+    "xp": [
+     150,
+     250
+    ]
+   },
+   "words": [
+    "pumpkin",
+    "harvest",
+    "acorn",
+    "scarecrow",
+    "cider",
+    "maple",
+    "sweater",
+    "orchard",
+    "hayride",
+    "cornfield",
+    "squirrel",
+    "lantern",
+    "cinnamon",
+    "bonfire",
+    "chestnut",
+    "autumn",
+    "foliage",
+    "cranberry",
+    "pinecone",
+    "blanket",
+    "candle",
+    "harvest moon",
+    "wheat",
+    "spooky"
+   ],
+   "enabled": true
+  },
+  {
+   "id": "fall-trivia",
+   "season": "fall",
+   "type": "trivia",
+   "name": "Autumn Trivia",
+   "emoji": "🍂",
+   "color": "#c2410c",
+   "weight": 2,
+   "seconds": 25,
+   "title": "Autumn trivia",
+   "text": "Everyone who picks the right answer wins **{reward}**!",
+   "reward": {
+    "leaves": [
+     60,
+     100
+    ],
+    "xp": [
+     50,
+     80
+    ]
+   },
+   "questions": [
+    {
+     "q": "What makes leaves change colour in autumn?",
+     "answers": [
+      "Chlorophyll breaking down",
+      "Cold rain",
+      "Less wind",
+      "Squirrels"
+     ]
+    },
+    {
+     "q": "Which month is Halloween in?",
+     "answers": [
+      "October",
+      "September",
+      "November",
+      "December"
+     ]
+    },
+    {
+     "q": "What's another name for autumn?",
+     "answers": [
+      "Fall",
+      "Harvest",
+      "Drop",
+      "Leafing"
+     ]
+    },
+    {
+     "q": "What is a baby turkey called?",
+     "answers": [
+      "A poult",
+      "A kit",
+      "A cub",
+      "A fawn"
+     ]
+    },
+    {
+     "q": "Which fruit is cider made from?",
+     "answers": [
+      "Apples",
+      "Pears",
+      "Grapes",
+      "Cherries"
+     ]
+    },
+    {
+     "q": "What do squirrels bury for winter?",
+     "answers": [
+      "Nuts",
+      "Leaves",
+      "Berries",
+      "Pinecones"
+     ]
+    },
+    {
+     "q": "What's the full moon closest to the autumn equinox called?",
+     "answers": [
+      "Harvest moon",
+      "Blue moon",
+      "Wolf moon",
+      "Snow moon"
+     ]
+    },
+    {
+     "q": "Pumpkins are technically a…",
+     "answers": [
+      "Fruit",
+      "Vegetable",
+      "Nut",
+      "Root"
+     ]
+    }
+   ],
+   "enabled": true
+  },
+  {
+   "id": "fall-harvest-raffle",
+   "season": "fall",
+   "type": "raffle",
+   "name": "Harvest Raffle",
+   "emoji": "🌽",
+   "color": "#ca8a04",
+   "weight": 1,
+   "seconds": 60,
+   "winners": 3,
+   "title": "Harvest raffle!",
+   "text": "Join in. **{winners} winners** get **{reward}** when the basket is drawn in **{seconds}s**.",
+   "button": "Join",
+   "reward": {
+    "leaves": [
+     150,
+     300
+    ],
+    "xp": [
+     75,
+     150
+    ]
+   },
+   "enabled": true
+  },
+  {
+   "id": "fall-acorn-guess",
+   "season": "fall",
+   "type": "guess",
+   "name": "Acorn Count",
+   "emoji": "🐿️",
+   "color": "#92400e",
+   "weight": 1,
+   "seconds": 120,
+   "min": 1,
+   "max": 60,
+   "title": "How many acorns did the squirrel bury?",
+   "text": "Guess a number from **{min}** to **{max}** in chat. I'll say higher or lower!",
+   "reward": {
+    "leaves": [
+     100,
+     200
+    ],
+    "xp": [
+     80,
+     150
+    ]
+   },
+   "enabled": true
+  },
+  {
+   "id": "winter-snowflake-catch",
+   "season": "winter",
+   "type": "grab",
+   "name": "Snowflake Catch",
+   "emoji": "❄️",
+   "color": "#38bdf8",
+   "weight": 3,
+   "seconds": 45,
+   "title": "A snowflake is drifting down!",
+   "text": "First to catch it gets **{reward}**!",
+   "button": "Catch it",
+   "winText": "{user} caught it on their tongue in **{time}** and got **{reward}**!",
+   "missText": "It melted before anyone caught it.",
+   "reward": {
+    "leaves": [
+     50,
+     100
+    ],
+    "xp": [
+     25,
+     50
+    ]
+   },
+   "enabled": true
+  },
+  {
+   "id": "winter-snowball-fight",
+   "season": "winter",
+   "type": "draw",
+   "name": "Snowball Fight",
+   "emoji": "☃️",
+   "color": "#60a5fa",
+   "weight": 3,
+   "seconds": 30,
+   "title": "Snowball fight!",
+   "text": "Jump in! In **{seconds}s** we'll see who gets hit and who wins.",
+   "button": "Throw",
+   "outcomes": [
+    {
+     "text": "landed a perfect hit",
+     "weight": 30,
+     "leaves": [
+      60,
+      140
+     ],
+     "xp": [
+      20,
+      40
+     ]
+    },
+    {
+     "text": "built an epic snow fort",
+     "weight": 18,
+     "leaves": [
+      0,
+      0
+     ],
+     "xp": [
+      70,
+      140
+     ]
+    },
+    {
+     "text": "won the whole fight!",
+     "weight": 6,
+     "leaves": [
+      250,
+      450
+     ],
+     "xp": [
+      100,
+      180
+     ]
+    },
+    {
+     "text": "took one to the face",
+     "weight": 20,
+     "leaves": [
+      -60,
+      -20
+     ],
+     "xp": [
+      0,
+      0
+     ]
+    },
+    {
+     "text": "slipped on the ice",
+     "weight": 14,
+     "leaves": [
+      -40,
+      -10
+     ],
+     "xp": [
+      -30,
+      -10
+     ]
+    },
+    {
+     "text": "missed every throw",
+     "weight": 12,
+     "leaves": [
+      0,
+      0
+     ],
+     "xp": [
+      0,
+      0
+     ]
+    }
+   ],
+   "enabled": true
+  },
+  {
+   "id": "winter-gift-exchange",
+   "season": "winter",
+   "type": "raffle",
+   "name": "Gift Exchange",
+   "emoji": "🎁",
+   "color": "#ef4444",
+   "weight": 1,
+   "seconds": 60,
+   "winners": 3,
+   "title": "Gift exchange!",
+   "text": "Put your name in. **{winners}** lucky members unwrap **{reward}** in **{seconds}s**.",
+   "button": "Join",
+   "reward": {
+    "leaves": [
+     150,
+     300
+    ],
+    "xp": [
+     75,
+     150
+    ]
+   },
+   "enabled": true
+  },
+  {
+   "id": "winter-snowman",
+   "season": "winter",
+   "type": "goal",
+   "name": "Build a Snowman",
+   "emoji": "⛄",
+   "color": "#93c5fd",
+   "weight": 1,
+   "seconds": 60,
+   "goal": 30,
+   "maxPerUser": 6,
+   "title": "Let's build a snowman!",
+   "text": "Roll **{goal} snowballs** together in **{seconds}s**. Every builder gets **{reward}**.",
+   "button": "Roll",
+   "winText": "The snowman is done! {players} builders each got **{reward}**.",
+   "missText": "The snowman fell apart… try again next time!",
+   "reward": {
+    "leaves": [
+     80,
+     150
+    ],
+    "xp": [
+     40,
+     80
+    ]
+   },
+   "enabled": true
+  },
+  {
+   "id": "winter-hot-cocoa",
+   "season": "winter",
+   "type": "draw",
+   "name": "Hot Cocoa Stand",
+   "emoji": "☕",
+   "color": "#a16207",
+   "weight": 2,
+   "seconds": 30,
+   "title": "The hot cocoa stand is open!",
+   "text": "Grab a mug. In **{seconds}s** we'll see what's in it.",
+   "button": "Grab a mug",
+   "outcomes": [
+    {
+     "text": "got extra marshmallows",
+     "weight": 30,
+     "leaves": [
+      50,
+      110
+     ],
+     "xp": [
+      0,
+      0
+     ]
+    },
+    {
+     "text": "found a candy cane stirrer",
+     "weight": 22,
+     "leaves": [
+      0,
+      0
+     ],
+     "xp": [
+      50,
+      120
+     ]
+    },
+    {
+     "text": "got the golden mug!",
+     "weight": 6,
+     "leaves": [
+      220,
+      400
+     ],
+     "xp": [
+      80,
+      160
+     ]
+    },
+    {
+     "text": "burned their tongue",
+     "weight": 16,
+     "leaves": [
+      -40,
+      -10
+     ],
+     "xp": [
+      0,
+      0
+     ]
+    },
+    {
+     "text": "spilled it everywhere",
+     "weight": 12,
+     "leaves": [
+      -50,
+      -15
+     ],
+     "xp": [
+      -20,
+      -5
+     ]
+    },
+    {
+     "text": "got plain lukewarm cocoa",
+     "weight": 14,
+     "leaves": [
+      0,
+      0
+     ],
+     "xp": [
+      0,
+      0
+     ]
+    }
+   ],
+   "enabled": true
+  },
+  {
+   "id": "winter-ice-fishing",
+   "season": "winter",
+   "type": "pick",
+   "name": "Ice Fishing",
+   "emoji": "🎣",
+   "color": "#0ea5e9",
+   "weight": 2,
+   "seconds": 30,
+   "title": "Ice fishing",
+   "text": "Three holes in the ice, one big fish. Pick a hole!",
+   "options": [
+    {
+     "label": "Left hole",
+     "emoji": "🕳️"
+    },
+    {
+     "label": "Middle hole",
+     "emoji": "🧊"
+    },
+    {
+     "label": "Right hole",
+     "emoji": "🐟"
+    }
+   ],
+   "winText": "The big fish was in the **{answer}**!",
+   "reward": {
+    "leaves": [
+     120,
+     220
+    ],
+    "xp": [
+     60,
+     120
+    ]
+   },
+   "miss": {
+    "leaves": [
+     0,
+     0
+    ],
+    "xp": [
+     10,
+     20
+    ]
+   },
+   "missText": "Only a boot. Better luck next time!",
+   "enabled": true
+  },
+  {
+   "id": "winter-scramble",
+   "season": "winter",
+   "type": "scramble",
+   "name": "Winter Scramble",
+   "emoji": "🧣",
+   "color": "#3b82f6",
+   "weight": 2,
+   "seconds": 90,
+   "title": "The blizzard jumbled these letters!",
+   "text": "Unscramble them before they freeze:",
+   "reward": {
+    "leaves": [
+     100,
+     150
+    ],
+    "xp": [
+     150,
+     250
+    ]
+   },
+   "words": [
+    "snowman",
+    "blizzard",
+    "mittens",
+    "icicle",
+    "sled",
+    "cocoa",
+    "fireplace",
+    "penguin",
+    "snowflake",
+    "frosty",
+    "reindeer",
+    "chimney",
+    "scarf",
+    "igloo",
+    "avalanche",
+    "glacier",
+    "evergreen",
+    "snowball",
+    "winter",
+    "cozy",
+    "frostbite",
+    "sleigh",
+    "candy cane",
+    "gingerbread"
+   ],
+   "enabled": true
+  },
+  {
+   "id": "winter-trivia",
+   "season": "winter",
+   "type": "trivia",
+   "name": "Winter Trivia",
+   "emoji": "🌨️",
+   "color": "#2563eb",
+   "weight": 2,
+   "seconds": 25,
+   "title": "Winter trivia",
+   "text": "Everyone who picks the right answer wins **{reward}**!",
+   "reward": {
+    "leaves": [
+     60,
+     100
+    ],
+    "xp": [
+     50,
+     80
+    ]
+   },
+   "questions": [
+    {
+     "q": "How many sides does a snowflake have?",
+     "answers": [
+      "Six",
+      "Five",
+      "Eight",
+      "Four"
+     ]
+    },
+    {
+     "q": "Which animal pulls Santa's sleigh?",
+     "answers": [
+      "Reindeer",
+      "Horses",
+      "Huskies",
+      "Polar bears"
+     ]
+    },
+    {
+     "q": "What do bears do through the winter?",
+     "answers": [
+      "Hibernate",
+      "Migrate",
+      "Moult",
+      "Swim"
+     ]
+    },
+    {
+     "q": "What is the shortest day of the year called?",
+     "answers": [
+      "Winter solstice",
+      "Equinox",
+      "Leap day",
+      "Frost day"
+     ]
+    },
+    {
+     "q": "Which continent is the coldest?",
+     "answers": [
+      "Antarctica",
+      "Europe",
+      "Asia",
+      "North America"
+     ]
+    },
+    {
+     "q": "What is frozen rain called?",
+     "answers": [
+      "Sleet",
+      "Mist",
+      "Dew",
+      "Fog"
+     ]
+    },
+    {
+     "q": "Which country gives London a Christmas tree every year?",
+     "answers": [
+      "Norway",
+      "Sweden",
+      "Canada",
+      "Finland"
+     ]
+    },
+    {
+     "q": "What temperature does water freeze at in Fahrenheit?",
+     "answers": [
+      "32°F",
+      "0°F",
+      "10°F",
+      "50°F"
+     ]
+    }
+   ],
+   "enabled": true
+  },
+  {
+   "id": "winter-cookie-guess",
+   "season": "winter",
+   "type": "guess",
+   "name": "Cookie Jar",
+   "emoji": "🍪",
+   "color": "#b45309",
+   "weight": 1,
+   "seconds": 120,
+   "min": 1,
+   "max": 60,
+   "title": "How many cookies are in the jar?",
+   "text": "Guess a number from **{min}** to **{max}** in chat. I'll say higher or lower!",
+   "reward": {
+    "leaves": [
+     100,
+     200
+    ],
+    "xp": [
+     80,
+     150
+    ]
+   },
+   "enabled": true
+  },
+  {
+   "id": "spring-butterfly-catch",
+   "season": "spring",
+   "type": "grab",
+   "name": "Butterfly Catch",
+   "emoji": "🦋",
+   "color": "#c084fc",
+   "weight": 3,
+   "seconds": 45,
+   "title": "A butterfly fluttered in!",
+   "text": "First to catch it gets **{reward}**!",
+   "button": "Catch it",
+   "winText": "{user} gently caught it in **{time}** and got **{reward}**!",
+   "missText": "It fluttered away into the flowers.",
+   "reward": {
+    "leaves": [
+     50,
+     100
+    ],
+    "xp": [
+     25,
+     50
+    ]
+   },
+   "enabled": true
+  },
+  {
+   "id": "spring-egg-hunt",
+   "season": "spring",
+   "type": "pick",
+   "name": "Egg Hunt",
+   "emoji": "🥚",
+   "color": "#f472b6",
+   "weight": 2,
+   "seconds": 30,
+   "title": "Egg hunt!",
+   "text": "The golden egg is hidden in one of these spots. Where is it?",
+   "options": [
+    {
+     "label": "Bush",
+     "emoji": "🌳"
+    },
+    {
+     "label": "Flower bed",
+     "emoji": "🌷"
+    },
+    {
+     "label": "Basket",
+     "emoji": "🧺"
+    },
+    {
+     "label": "Under a rock",
+     "emoji": "🪨"
+    }
+   ],
+   "winText": "The golden egg was in the **{answer}**!",
+   "reward": {
+    "leaves": [
+     150,
+     260
+    ],
+    "xp": [
+     70,
+     130
+    ]
+   },
+   "miss": {
+    "leaves": [
+     0,
+     0
+    ],
+    "xp": [
+     10,
+     20
+    ]
+   },
+   "missText": "You found a plain egg. Still cute.",
+   "enabled": true
+  },
+  {
+   "id": "spring-garden",
+   "season": "spring",
+   "type": "goal",
+   "name": "Community Garden",
+   "emoji": "🌱",
+   "color": "#22c55e",
+   "weight": 1,
+   "seconds": 60,
+   "goal": 25,
+   "maxPerUser": 6,
+   "title": "The garden needs water!",
+   "text": "Give it **{goal} waterings** in **{seconds}s** and every gardener gets **{reward}**.",
+   "button": "Water",
+   "winText": "The garden is blooming! {players} gardeners each got **{reward}**.",
+   "missText": "The garden wilted a little… next time!",
+   "reward": {
+    "leaves": [
+     80,
+     150
+    ],
+    "xp": [
+     40,
+     80
+    ]
+   },
+   "enabled": true
+  },
+  {
+   "id": "spring-rain-shower",
+   "season": "spring",
+   "type": "draw",
+   "name": "Spring Shower",
+   "emoji": "🌧️",
+   "color": "#38bdf8",
+   "weight": 3,
+   "seconds": 30,
+   "title": "A spring shower is rolling in!",
+   "text": "Step outside? In **{seconds}s** we'll see what the rain brings.",
+   "button": "Go outside",
+   "outcomes": [
+    {
+     "text": "jumped in a puddle and found coins",
+     "weight": 30,
+     "leaves": [
+      60,
+      130
+     ],
+     "xp": [
+      0,
+      0
+     ]
+    },
+    {
+     "text": "saw a double rainbow",
+     "weight": 22,
+     "leaves": [
+      0,
+      0
+     ],
+     "xp": [
+      60,
+      130
+     ]
+    },
+    {
+     "text": "found the pot of gold at the end of the rainbow!",
+     "weight": 6,
+     "leaves": [
+      250,
+      450
+     ],
+     "xp": [
+      100,
+      180
+     ]
+    },
+    {
+     "text": "got soaked without an umbrella",
+     "weight": 18,
+     "leaves": [
+      -50,
+      -15
+     ],
+     "xp": [
+      0,
+      0
+     ]
+    },
+    {
+     "text": "slipped in the mud",
+     "weight": 12,
+     "leaves": [
+      -40,
+      -10
+     ],
+     "xp": [
+      -30,
+      -10
+     ]
+    },
+    {
+     "text": "just got a little damp",
+     "weight": 12,
+     "leaves": [
+      0,
+      0
+     ],
+     "xp": [
+      0,
+      0
+     ]
+    }
+   ],
+   "enabled": true
+  },
+  {
+   "id": "spring-flower-raffle",
+   "season": "spring",
+   "type": "raffle",
+   "name": "Flower Raffle",
+   "emoji": "🌷",
+   "color": "#ec4899",
+   "weight": 1,
+   "seconds": 60,
+   "winners": 3,
+   "title": "Flower raffle!",
+   "text": "Join in. **{winners}** bouquets with **{reward}** are handed out in **{seconds}s**.",
+   "button": "Join",
+   "reward": {
+    "leaves": [
+     150,
+     300
+    ],
+    "xp": [
+     75,
+     150
+    ]
+   },
+   "enabled": true
+  },
+  {
+   "id": "spring-bee-buzz",
+   "season": "spring",
+   "type": "typer",
+   "name": "Bee Buzz",
+   "emoji": "🐝",
+   "color": "#eab308",
+   "weight": 2,
+   "seconds": 60,
+   "title": "A bee is buzzing by!",
+   "text": "First to type this exactly befriends the bee:",
+   "reward": {
+    "leaves": [
+     60,
+     120
+    ],
+    "xp": [
+     40,
+     80
+    ]
+   },
+   "phrases": [
+    "buzzing through the blossoms",
+    "spring has sprung",
+    "april showers bring may flowers",
+    "fresh cut grass",
+    "picnic in the park",
+    "cherry blossom season",
+    "sunshine after rain",
+    "honey bees and daisies"
+   ],
+   "enabled": true
+  },
+  {
+   "id": "spring-scramble",
+   "season": "spring",
+   "type": "scramble",
+   "name": "Spring Scramble",
+   "emoji": "🌸",
+   "color": "#db2777",
+   "weight": 2,
+   "seconds": 90,
+   "title": "The spring breeze mixed up these letters!",
+   "text": "Unscramble them:",
+   "reward": {
+    "leaves": [
+     100,
+     150
+    ],
+    "xp": [
+     150,
+     250
+    ]
+   },
+   "words": [
+    "blossom",
+    "tulip",
+    "rainbow",
+    "garden",
+    "butterfly",
+    "daisy",
+    "sprout",
+    "umbrella",
+    "puddle",
+    "bunny",
+    "meadow",
+    "pollen",
+    "sunshine",
+    "seedling",
+    "lilac",
+    "robin",
+    "picnic",
+    "breeze",
+    "dandelion",
+    "caterpillar",
+    "orchid",
+    "spring",
+    "lavender",
+    "clover"
+   ],
+   "enabled": true
+  },
+  {
+   "id": "spring-trivia",
+   "season": "spring",
+   "type": "trivia",
+   "name": "Spring Trivia",
+   "emoji": "🌼",
+   "color": "#16a34a",
+   "weight": 2,
+   "seconds": 25,
+   "title": "Spring trivia",
+   "text": "Everyone who picks the right answer wins **{reward}**!",
+   "reward": {
+    "leaves": [
+     60,
+     100
+    ],
+    "xp": [
+     50,
+     80
+    ]
+   },
+   "questions": [
+    {
+     "q": "What do caterpillars turn into?",
+     "answers": [
+      "Butterflies",
+      "Bees",
+      "Beetles",
+      "Dragonflies"
+     ]
+    },
+    {
+     "q": "What do bees make?",
+     "answers": [
+      "Honey",
+      "Silk",
+      "Wax paper",
+      "Jam"
+     ]
+    },
+    {
+     "q": "Which flower is famous in the Netherlands?",
+     "answers": [
+      "Tulip",
+      "Rose",
+      "Daisy",
+      "Sunflower"
+     ]
+    },
+    {
+     "q": "What's the day with equal day and night in spring called?",
+     "answers": [
+      "Vernal equinox",
+      "Solstice",
+      "Midsummer",
+      "Leap day"
+     ]
+    },
+    {
+     "q": "Which country celebrates cherry blossom season with hanami?",
+     "answers": [
+      "Japan",
+      "France",
+      "Brazil",
+      "Egypt"
+     ]
+    },
+    {
+     "q": "What gas do plants take in to grow?",
+     "answers": [
+      "Carbon dioxide",
+      "Oxygen",
+      "Helium",
+      "Nitrogen"
+     ]
+    },
+    {
+     "q": "What is a baby rabbit called?",
+     "answers": [
+      "A kit",
+      "A pup",
+      "A calf",
+      "A joey"
+     ]
+    },
+    {
+     "q": "Rainbows have how many colours?",
+     "answers": [
+      "Seven",
+      "Five",
+      "Six",
+      "Nine"
+     ]
+    }
+   ],
+   "enabled": true
+  },
+  {
+   "id": "summer-ice-cream-truck",
+   "season": "summer",
+   "type": "draw",
+   "name": "Ice Cream Truck",
+   "emoji": "🍦",
+   "color": "#f472b6",
+   "weight": 3,
+   "seconds": 30,
+   "title": "The ice cream truck is here!",
+   "text": "Line up! In **{seconds}s** everyone in line finds out what they got.",
+   "button": "Get in line",
+   "outcomes": [
+    {
+     "text": "got a triple scoop",
+     "weight": 30,
+     "leaves": [
+      60,
+      140
+     ],
+     "xp": [
+      0,
+      0
+     ]
+    },
+    {
+     "text": "got a rainbow sprinkle cone",
+     "weight": 22,
+     "leaves": [
+      0,
+      0
+     ],
+     "xp": [
+      60,
+      140
+     ]
+    },
+    {
+     "text": "won free ice cream for life!",
+     "weight": 6,
+     "leaves": [
+      250,
+      450
+     ],
+     "xp": [
+      100,
+      200
+     ]
+    },
+    {
+     "text": "dropped their cone on the ground",
+     "weight": 18,
+     "leaves": [
+      -60,
+      -20
+     ],
+     "xp": [
+      -20,
+      -5
+     ]
+    },
+    {
+     "text": "got brain freeze",
+     "weight": 12,
+     "leaves": [
+      -40,
+      -10
+     ],
+     "xp": [
+      -30,
+      -10
+     ]
+    },
+    {
+     "text": "got there as the truck drove off",
+     "weight": 12,
+     "leaves": [
+      0,
+      0
+     ],
+     "xp": [
+      0,
+      0
+     ]
+    }
+   ],
+   "enabled": true
+  },
+  {
+   "id": "summer-crab-grab",
+   "season": "summer",
+   "type": "grab",
+   "name": "Crab Grab",
+   "emoji": "🦀",
+   "color": "#f97316",
+   "weight": 3,
+   "seconds": 45,
+   "title": "A crab scuttled onto the beach!",
+   "text": "First to grab it gets **{reward}**!",
+   "button": "Grab it",
+   "winText": "{user} grabbed it in **{time}** (only a little pinch) and got **{reward}**!",
+   "missText": "It scuttled back into the sea.",
+   "reward": {
+    "leaves": [
+     50,
+     100
+    ],
+    "xp": [
+     25,
+     50
+    ]
+   },
+   "enabled": true
+  },
+  {
+   "id": "summer-treasure-dig",
+   "season": "summer",
+   "type": "pick",
+   "name": "Treasure Dig",
+   "emoji": "🏝️",
+   "color": "#eab308",
+   "weight": 2,
+   "seconds": 30,
+   "title": "Buried treasure!",
+   "text": "The map says X marks the spot… but which X? Pick one!",
+   "options": [
+    {
+     "label": "By the palm tree",
+     "emoji": "🌴"
+    },
+    {
+     "label": "Near the rocks",
+     "emoji": "🪨"
+    },
+    {
+     "label": "By the water",
+     "emoji": "🌊"
+    }
+   ],
+   "winText": "The treasure was **{answer}**!",
+   "reward": {
+    "leaves": [
+     120,
+     220
+    ],
+    "xp": [
+     60,
+     120
+    ]
+   },
+   "miss": {
+    "leaves": [
+     0,
+     0
+    ],
+    "xp": [
+     10,
+     20
+    ]
+   },
+   "missText": "Just sand and a seashell.",
+   "enabled": true
+  },
+  {
+   "id": "summer-sandcastle",
+   "season": "summer",
+   "type": "goal",
+   "name": "Sandcastle",
+   "emoji": "🏰",
+   "color": "#f59e0b",
+   "weight": 1,
+   "seconds": 60,
+   "goal": 25,
+   "maxPerUser": 6,
+   "title": "Build a sandcastle before the tide!",
+   "text": "**{goal} buckets** of sand in **{seconds}s**. Every builder gets **{reward}**.",
+   "button": "Add sand",
+   "winText": "The sandcastle is standing tall! {players} builders each got **{reward}**.",
+   "missText": "The tide washed it away…",
+   "reward": {
+    "leaves": [
+     80,
+     150
+    ],
+    "xp": [
+     40,
+     80
+    ]
+   },
+   "enabled": true
+  },
+  {
+   "id": "summer-water-balloons",
+   "season": "summer",
+   "type": "draw",
+   "name": "Water Balloon Fight",
+   "emoji": "🎈",
+   "color": "#06b6d4",
+   "weight": 2,
+   "seconds": 30,
+   "title": "Water balloon fight!",
+   "text": "Grab a balloon! In **{seconds}s** we'll see who's soaked.",
+   "button": "Grab a balloon",
+   "outcomes": [
+    {
+     "text": "soaked someone perfectly",
+     "weight": 30,
+     "leaves": [
+      50,
+      120
+     ],
+     "xp": [
+      20,
+      40
+     ]
+    },
+    {
+     "text": "dodged everything",
+     "weight": 22,
+     "leaves": [
+      0,
+      0
+     ],
+     "xp": [
+      60,
+      120
+     ]
+    },
+    {
+     "text": "won the water war!",
+     "weight": 6,
+     "leaves": [
+      220,
+      400
+     ],
+     "xp": [
+      80,
+      160
+     ]
+    },
+    {
+     "text": "got drenched",
+     "weight": 18,
+     "leaves": [
+      -50,
+      -15
+     ],
+     "xp": [
+      0,
+      0
+     ]
+    },
+    {
+     "text": "popped one in their own hands",
+     "weight": 12,
+     "leaves": [
+      -40,
+      -10
+     ],
+     "xp": [
+      -20,
+      -5
+     ]
+    },
+    {
+     "text": "forgot to fill theirs",
+     "weight": 12,
+     "leaves": [
+      0,
+      0
+     ],
+     "xp": [
+      0,
+      0
+     ]
+    }
+   ],
+   "enabled": true
+  },
+  {
+   "id": "summer-lemonade-raffle",
+   "season": "summer",
+   "type": "raffle",
+   "name": "Lemonade Stand Raffle",
+   "emoji": "🍋",
+   "color": "#facc15",
+   "weight": 1,
+   "seconds": 60,
+   "winners": 3,
+   "title": "Lemonade stand raffle!",
+   "text": "Join in. **{winners}** winners get **{reward}** in **{seconds}s**.",
+   "button": "Join",
+   "reward": {
+    "leaves": [
+     150,
+     300
+    ],
+    "xp": [
+     75,
+     150
+    ]
+   },
+   "enabled": true
+  },
+  {
+   "id": "summer-scramble",
+   "season": "summer",
+   "type": "scramble",
+   "name": "Summer Scramble",
+   "emoji": "🌊",
+   "color": "#0891b2",
+   "weight": 2,
+   "seconds": 90,
+   "title": "A wave scrambled these letters!",
+   "text": "Unscramble them before the tide comes in:",
+   "reward": {
+    "leaves": [
+     100,
+     150
+    ],
+    "xp": [
+     150,
+     250
+    ]
+   },
+   "words": [
+    "sunscreen",
+    "seashell",
+    "surfboard",
+    "lemonade",
+    "popsicle",
+    "sandcastle",
+    "flamingo",
+    "vacation",
+    "barbecue",
+    "sunglasses",
+    "hammock",
+    "lifeguard",
+    "watermelon",
+    "seagull",
+    "snorkel",
+    "campfire",
+    "fireworks",
+    "beach",
+    "tropical",
+    "ocean",
+    "coconut",
+    "pineapple",
+    "sunburn",
+    "boardwalk"
+   ],
+   "enabled": true
+  },
+  {
+   "id": "summer-trivia",
+   "season": "summer",
+   "type": "trivia",
+   "name": "Summer Trivia",
+   "emoji": "☀️",
+   "color": "#ea580c",
+   "weight": 2,
+   "seconds": 25,
+   "title": "Summer trivia",
+   "text": "Everyone who picks the right answer wins **{reward}**!",
+   "reward": {
+    "leaves": [
+     60,
+     100
+    ],
+    "xp": [
+     50,
+     80
+    ]
+   },
+   "questions": [
+    {
+     "q": "What is the largest ocean?",
+     "answers": [
+      "Pacific",
+      "Atlantic",
+      "Indian",
+      "Arctic"
+     ]
+    },
+    {
+     "q": "How many legs does a crab have (not counting claws)?",
+     "answers": [
+      "Eight",
+      "Six",
+      "Ten",
+      "Four"
+     ]
+    },
+    {
+     "q": "What fruit is mostly water and has a green rind?",
+     "answers": [
+      "Watermelon",
+      "Mango",
+      "Peach",
+      "Banana"
+     ]
+    },
+    {
+     "q": "What is the longest day of the year called?",
+     "answers": [
+      "Summer solstice",
+      "Equinox",
+      "Midwinter",
+      "Leap day"
+     ]
+    },
+    {
+     "q": "What does SPF stand for?",
+     "answers": [
+      "Sun protection factor",
+      "Skin power formula",
+      "Solar proof film",
+      "Super protection fluid"
+     ]
+    },
+    {
+     "q": "Which animal is known as the 'king of the ocean'?",
+     "answers": [
+      "Orca",
+      "Shark",
+      "Dolphin",
+      "Octopus"
+     ]
+    },
+    {
+     "q": "Where would you find the Great Barrier Reef?",
+     "answers": [
+      "Australia",
+      "Mexico",
+      "Hawaii",
+      "Greece"
+     ]
+    },
+    {
+     "q": "Which planet is closest to the Sun?",
+     "answers": [
+      "Mercury",
+      "Venus",
+      "Mars",
+      "Earth"
+     ]
+    }
+   ],
+   "enabled": true
+  },
+  {
+   "id": "any-fast-typer",
+   "season": "any",
+   "type": "typer",
+   "name": "Fast Typer",
+   "emoji": "⌨️",
+   "color": "#8b5cf6",
+   "weight": 2,
+   "seconds": 60,
+   "title": "Fast typer!",
+   "text": "First to type this exactly wins:",
+   "reward": {
+    "leaves": [
+     60,
+     120
+    ],
+    "xp": [
+     40,
+     80
+    ]
+   },
+   "phrases": [
+    "bear nation is the best",
+    "the quick brown fox jumps over the lazy dog",
+    "hugs for everyone",
+    "hello from the den",
+    "honey is a food group",
+    "big bear energy",
+    "touch grass",
+    "snacks before naps"
+   ],
+   "enabled": true
+  },
+  {
+   "id": "any-quick-math",
+   "season": "any",
+   "type": "math",
+   "name": "Quick Maths",
+   "emoji": "🧮",
+   "color": "#6366f1",
+   "weight": 2,
+   "seconds": 45,
+   "difficulty": "normal",
+   "title": "Quick maths!",
+   "text": "First to answer in chat wins **{reward}**:",
+   "reward": {
+    "leaves": [
+     60,
+     120
+    ],
+    "xp": [
+     40,
+     80
+    ]
+   },
+   "enabled": true
+  },
+  {
+   "id": "any-number-guess",
+   "season": "any",
+   "type": "guess",
+   "name": "Number Guess",
+   "emoji": "🔢",
+   "color": "#14b8a6",
+   "weight": 1,
+   "seconds": 120,
+   "min": 1,
+   "max": 100,
+   "title": "I'm thinking of a number…",
+   "text": "Guess a number from **{min}** to **{max}** in chat. I'll say higher or lower!",
+   "reward": {
+    "leaves": [
+     100,
+     200
+    ],
+    "xp": [
+     80,
+     150
+    ]
+   },
+   "enabled": true
+  },
+  {
+   "id": "any-mystery-box",
+   "season": "any",
+   "type": "draw",
+   "name": "Mystery Box",
+   "emoji": "📦",
+   "color": "#a855f7",
+   "weight": 2,
+   "seconds": 30,
+   "title": "A mystery box appeared!",
+   "text": "Reach in! In **{seconds}s** everyone sees what they pulled out.",
+   "button": "Reach in",
+   "outcomes": [
+    {
+     "text": "pulled out a handful of coins",
+     "weight": 30,
+     "leaves": [
+      60,
+      130
+     ],
+     "xp": [
+      0,
+      0
+     ]
+    },
+    {
+     "text": "found an XP crystal",
+     "weight": 22,
+     "leaves": [
+      0,
+      0
+     ],
+     "xp": [
+      60,
+      130
+     ]
+    },
+    {
+     "text": "found the jackpot!",
+     "weight": 6,
+     "leaves": [
+      250,
+      450
+     ],
+     "xp": [
+      100,
+      200
+     ]
+    },
+    {
+     "text": "got bitten by something inside",
+     "weight": 18,
+     "leaves": [
+      -50,
+      -15
+     ],
+     "xp": [
+      0,
+      0
+     ]
+    },
+    {
+     "text": "got stuck and lost some XP",
+     "weight": 12,
+     "leaves": [
+      0,
+      0
+     ],
+     "xp": [
+      -40,
+      -10
+     ]
+    },
+    {
+     "text": "pulled out an old sock",
+     "weight": 12,
+     "leaves": [
+      0,
+      0
+     ],
+     "xp": [
+      0,
+      0
+     ]
+    }
+   ],
+   "enabled": true
+  },
+  {
+   "id": "any-trivia",
+   "season": "any",
+   "type": "trivia",
+   "name": "General Trivia",
+   "emoji": "🧠",
+   "color": "#7c3aed",
+   "weight": 2,
+   "seconds": 25,
+   "title": "Trivia time",
+   "text": "Everyone who picks the right answer wins **{reward}**!",
+   "reward": {
+    "leaves": [
+     60,
+     100
+    ],
+    "xp": [
+     50,
+     80
+    ]
+   },
+   "questions": [
+    {
+     "q": "What is the largest bear species?",
+     "answers": [
+      "Polar bear",
+      "Grizzly bear",
+      "Black bear",
+      "Panda"
+     ]
+    },
+    {
+     "q": "How many continents are there?",
+     "answers": [
+      "Seven",
+      "Five",
+      "Six",
+      "Eight"
+     ]
+    },
+    {
+     "q": "What is the capital of Canada?",
+     "answers": [
+      "Ottawa",
+      "Toronto",
+      "Vancouver",
+      "Montreal"
+     ]
+    },
+    {
+     "q": "Which planet is known as the Red Planet?",
+     "answers": [
+      "Mars",
+      "Jupiter",
+      "Venus",
+      "Saturn"
+     ]
+    },
+    {
+     "q": "What do pandas mostly eat?",
+     "answers": [
+      "Bamboo",
+      "Fish",
+      "Berries",
+      "Honey"
+     ]
+    },
+    {
+     "q": "How many hours are in a week?",
+     "answers": [
+      "168",
+      "144",
+      "160",
+      "172"
+     ]
+    },
+    {
+     "q": "What is H2O?",
+     "answers": [
+      "Water",
+      "Hydrogen",
+      "Salt",
+      "Oxygen"
+     ]
+    },
+    {
+     "q": "Which instrument has 88 keys?",
+     "answers": [
+      "Piano",
+      "Guitar",
+      "Violin",
+      "Flute"
+     ]
+    },
+    {
+     "q": "What's the fastest land animal?",
+     "answers": [
+      "Cheetah",
+      "Lion",
+      "Horse",
+      "Gazelle"
+     ]
+    },
+    {
+     "q": "How many players are on a soccer team on the field?",
+     "answers": [
+      "Eleven",
+      "Ten",
+      "Nine",
+      "Twelve"
+     ]
+    }
+   ],
+   "enabled": true
+  },
+  {
+   "id": "any-word-scramble",
+   "season": "any",
+   "type": "scramble",
+   "name": "Word Scramble",
+   "emoji": "🔤",
+   "color": "#0d9488",
+   "weight": 2,
+   "seconds": 90,
+   "title": "Scrambled letters!",
+   "text": "Unscramble this word:",
+   "reward": {
+    "leaves": [
+     100,
+     150
+    ],
+    "xp": [
+     150,
+     250
+    ]
+   },
+   "words": [
+    "honey",
+    "forest",
+    "grizzly",
+    "campfire",
+    "picnic",
+    "kingdom",
+    "friendship",
+    "adventure",
+    "mountain",
+    "river",
+    "cabin",
+    "lantern",
+    "compass",
+    "backpack",
+    "waterfall",
+    "starlight",
+    "pillow",
+    "blanket",
+    "cuddle",
+    "snack"
+   ],
+   "enabled": true
+  }
+ ]
+}
