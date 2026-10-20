@@ -9,6 +9,8 @@ export type Filter = {
   /** Role ids: has every one of `all`, at least one of `any`, none of `none` */
   all: string[];
   any: string[];
+  /** More "at least one of" groups (when a question combines two of them) */
+  anyGroups?: string[][];
   none: string[];
   /** Category keys where the member has none of that category's roles (e.g. no gender role picked) */
   missing: string[];
@@ -41,16 +43,18 @@ export function applyFilter(ctx: Ctx, f: Filter, now = Date.now()): MMMember[] {
   const ids = (list: string[]) => list.map((id) => ctx.index.get(id)).filter((i): i is number => i !== undefined);
   const all = ids(f.all);
   const any = ids(f.any);
+  const anyGroups = (f.anyGroups ?? []).map(ids).filter((g) => g.length);
   const none = ids(f.none);
   const missing = f.missing.map((k) => ctx.categoryRoles.get(k)).filter((s): s is Set<number> => Boolean(s));
   const q = f.search.trim().toLowerCase();
   return ctx.snap.members.filter((m) => {
     if (f.bots === "humans" && m.bot) return false;
     if (f.bots === "bots" && !m.bot) return false;
-    if (all.length || any.length || none.length || missing.length) {
+    if (all.length || any.length || anyGroups.length || none.length || missing.length) {
       const has = new Set(m.r);
       if (all.some((i) => !has.has(i))) return false;
       if (any.length && !any.some((i) => has.has(i))) return false;
+      if (anyGroups.some((g) => !g.some((i) => has.has(i)))) return false;
       if (none.some((i) => has.has(i))) return false;
       if (missing.some((set) => m.r.some((i) => set.has(i)))) return false;
     }
@@ -72,7 +76,10 @@ export function applyFilter(ctx: Ctx, f: Filter, now = Date.now()): MMMember[] {
   });
 }
 
-export const filterIsEmpty = (f: Filter) => JSON.stringify({ ...f, bots: "humans" }) === JSON.stringify(EMPTY);
+export const filterIsEmpty = (f: Filter) => {
+  const { anyGroups, ...rest } = f;
+  return !(anyGroups ?? []).some((g) => g.length) && JSON.stringify({ ...rest, bots: "humans" }) === JSON.stringify(EMPTY);
+};
 
 // ---------- Breakdowns ----------
 
@@ -245,7 +252,7 @@ function clause(text: string, vocab: ReturnType<typeof roleVocab>, ctx: Ctx, rea
     reading.push(`joined in the last ${f.joined === "1" ? "day" : `${f.joined} days`}`);
     t = t.replace(joined[0], " ");
   }
-  const lvl = /\b(level|lvl) (\d+)\s*(\+|or (more|higher|above))\b|\b(above|over) level (\d+)\b|\blevel (\d+) and up\b/.exec(t);
+  const lvl = /\b(level|lvl) (\d+)\s*(\+|or (more|higher|above)\b)|\b(above|over) level (\d+)\b|\blevel (\d+) and up\b/.exec(t);
   if (lvl) {
     f.levelMin = Number(lvl[2] ?? lvl[6] ?? lvl[7]) + (lvl[5] ? 1 : 0);
     reading.push(`level ${f.levelMin}+`);
@@ -331,6 +338,7 @@ export function describe(ctx: Ctx, f: Filter) {
   const parts: string[] = [];
   if (f.all.length) parts.push(f.all.map((id) => roleName(ctx, id)).join(" + "));
   if (f.any.length) parts.push(`any of ${f.any.map((id) => roleName(ctx, id)).join(" / ")}`);
+  for (const g of f.anyGroups ?? []) if (g.length) parts.push(`any of ${g.map((id) => roleName(ctx, id)).join(" / ")}`);
   if (f.none.length) parts.push(`not ${f.none.map((id) => roleName(ctx, id)).join(", ")}`);
   for (const k of f.missing) parts.push(`no ${ctx.snap.categories.find((c) => c.key === k)?.title.toLowerCase()} role`);
   if (f.joined !== "any") parts.push(f.joined === "older" ? "joined over a year ago" : `joined in the last ${f.joined === "1" ? "day" : `${f.joined} days`}`);
@@ -426,7 +434,9 @@ export function combine(a: Filter, b: Filter): Filter {
   const pick = <T>(x: T, y: T, empty: T) => (y !== empty ? y : x);
   return {
     all: Array.from(new Set([...a.all, ...b.all])),
-    any: a.any.length && b.any.length ? a.any.filter((x) => b.any.includes(x)) : [...a.any, ...b.any],
+    // Two "any of" groups both have to match: keep the second as its own group
+    any: a.any.length ? a.any : b.any,
+    anyGroups: [...(a.anyGroups ?? []), ...(b.anyGroups ?? []), ...(a.any.length && b.any.length ? [b.any] : [])],
     none: Array.from(new Set([...a.none, ...b.none])),
     missing: Array.from(new Set([...a.missing, ...b.missing])),
     search: b.search || a.search,

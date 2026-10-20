@@ -69,9 +69,9 @@ async function build(): Promise<MMSnapshot> {
     let after = "0";
     for (let page = 0; page < 50; page++) {
       const res = await discordRequest<RawMember[]>("GET", `/guilds/${guild}/members?limit=1000&after=${after}`);
+      // Never a partial list: counts and bulk actions would quietly miss members
       if (!res.ok || !res.data) {
-        if (!raw.length) throw new Error("Discord didn't send the member list. Check the bot token and its Server Members intent.");
-        break;
+        throw new Error(raw.length ? "Discord stopped part way through the member list. Try Refresh in a moment." : "Discord didn't send the member list. Check the bot token and its Server Members intent.");
       }
       raw.push(...res.data);
       if (res.data.length < 1000) break;
