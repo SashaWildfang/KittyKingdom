@@ -1,7 +1,7 @@
 "use client";
 
 import { TicketCanDelete, TicketDeletePermissions } from "./delete-ticket-button";
-import { Activity, Archive, AtSign, Database, CalendarDays, Gift, SunSnow, BarChart3, Bot, Coins, History, Megaphone, Server, Shield as ShieldIcon, BookOpen, Crown, Hammer, ClipboardCheck, ListChecks, TerminalSquare, Dices, Gavel, Globe, HeartHandshake, Mail, MessagesSquare, Newspaper, Scale, ScrollText, ShieldCheck, Ticket, Users, type LucideIcon } from "lucide-react";
+import { Activity, Archive, AtSign, Database, CalendarDays, Gift, SunSnow, BarChart3, Bot, Coins, History, Megaphone, Server, Shield as ShieldIcon, BookOpen, Crown, Hammer, ClipboardCheck, ListChecks, TerminalSquare, Dices, Gavel, Globe, HeartHandshake, Mail, MessagesSquare, Newspaper, Scale, ScrollText, ShieldCheck, Ticket, Users, UsersRound, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AccountsTab } from "./accounts-tab";
@@ -38,9 +38,10 @@ import { TrafficTab } from "./traffic-tab";
 import { OverviewTab } from "./overview-tab";
 import { DEFAULT_PUNISHMENT_FILTERS, PunishmentsTab, type PunishmentFilters } from "./punishments-tab";
 import { TicketsTab } from "./tickets-tab";
+import { MembersTab } from "./members/members-tab";
 import { TranscriptViewer } from "./transcript-viewer";
 
-type Tab = "overview" | "punishments" | "automod" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live" | "join" | "dating" | "appeals" | "messages" | "games" | "guide" | "banrequests" | "patreon" | "emails" | "ads" | "bot-main" | "bot-economy" | "bot-moderation" | "bot-ticketing" | "server" | "bot-history" | "removed" | "giveaways" | "seasons" | "status" | "events" | "rules" | "bot-console" | "database";
+type Tab = "discord-members" | "overview" | "punishments" | "automod" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live" | "join" | "dating" | "appeals" | "messages" | "games" | "guide" | "banrequests" | "patreon" | "emails" | "ads" | "bot-main" | "bot-economy" | "bot-moderation" | "bot-ticketing" | "server" | "bot-history" | "removed" | "giveaways" | "seasons" | "status" | "events" | "rules" | "bot-console" | "database";
 type Level = "admin" | "staff";
 
 // Tabs are grouped so the bar stays short: pick a group, then one of its tabs
@@ -48,7 +49,7 @@ type Group = "overview" | "moderation" | "members" | "website" | "bots";
 const GROUPS: { key: Group; label: string; icon: LucideIcon; tabs: Tab[] }[] = [
   { key: "overview", label: "Overview", icon: BarChart3, tabs: ["overview", "seasons", "status", "guide"] },
   { key: "moderation", label: "Moderation", icon: Gavel, tabs: ["punishments", "banrequests", "appeals", "automod", "rules", "logs", "live", "removed"] },
-  { key: "members", label: "Members", icon: Users, tabs: ["join", "tickets", "events", "dating", "messages", "games", "giveaways", "patreon"] },
+  { key: "members", label: "Members", icon: Users, tabs: ["discord-members", "join", "tickets", "events", "dating", "messages", "games", "giveaways", "patreon"] },
   { key: "website", label: "Website", icon: Globe, tabs: ["accounts", "emails", "news", "ads", "traffic", "database"] },
   { key: "bots", label: "Bots", icon: Bot, tabs: ["bot-console", "bot-main", "bot-economy", "bot-moderation", "bot-ticketing", "server", "bot-history"] },
 ];
@@ -56,6 +57,7 @@ const GROUPS: { key: Group; label: string; icon: LucideIcon; tabs: Tab[] }[] = [
 // admin: admins only; giveaways: admins and Community Managers
 const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean; giveaways?: boolean }[] = [
   { key: "overview", label: "Overview", icon: BarChart3 },
+  { key: "discord-members", label: "Discord Members", icon: UsersRound, admin: true },
   { key: "seasons", label: "Seasons", icon: SunSnow, admin: true },
   { key: "status", label: "Status", icon: Activity, admin: true },
   { key: "guide", label: "Staff Guide", icon: BookOpen },
@@ -318,6 +320,7 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
       {tab === "banrequests" ? <BanRequestsTab onOpenMember={openMember} /> : null}
       {isAdmin && tab === "appeals" ? <AppealsTab onOpenMember={openMember} /> : null}
       {isAdmin && tab === "messages" ? <MessagesTab chat={chat} onChat={setChat} filter={chatFilter} onFilter={setChatFilter} onOpenMember={openMember} /> : null}
+      {isAdmin && tab === "discord-members" ? <MembersTab onOpenMember={openMember} /> : null}
       {tab === "tickets" ? <TicketsTab typesAvailable={meta?.ticketTypes ?? []} readOnly={!isAdmin} onOpenMember={openMember} onOpenTranscript={openTranscript} /> : null}
       {isAdmin && tab === "accounts" ? <AccountsTab onOpenMember={openMember} /> : null}
       {isAdmin && tab === "patreon" ? <PatreonTab onOpenMember={openMember} /> : null}
