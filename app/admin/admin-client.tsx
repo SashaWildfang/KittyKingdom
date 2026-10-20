@@ -1,7 +1,7 @@
 "use client";
 
 import { TicketCanDelete, TicketDeletePermissions } from "./delete-ticket-button";
-import { Activity, Archive, AtSign, Database, CalendarDays, Gift, SunSnow, BarChart3, Bot, Coins, History, Megaphone, Server, Shield as ShieldIcon, BookOpen, Crown, Hammer, ClipboardCheck, ListChecks, TerminalSquare, Dices, Gavel, Globe, HeartHandshake, Mail, MessagesSquare, Newspaper, Scale, ScrollText, ShieldCheck, Ticket, Users, UsersRound, ImagePlus, type LucideIcon } from "lucide-react";
+import { Lock, PartyPopper, Activity, Archive, AtSign, Database, CalendarDays, Gift, SunSnow, BarChart3, Bot, Coins, History, Megaphone, Server, Shield as ShieldIcon, BookOpen, Crown, Hammer, ClipboardCheck, ListChecks, TerminalSquare, Dices, Gavel, Globe, HeartHandshake, Mail, MessagesSquare, Newspaper, Scale, ScrollText, ShieldCheck, Ticket, Users, UsersRound, ImagePlus, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AccountsTab } from "./accounts-tab";
@@ -26,6 +26,8 @@ import { AdsTab } from "./ads-tab";
 import { TabBoundary } from "./tab-boundary";
 import { RemovedTab } from "./removed-tab";
 import { GiveawaysTab } from "./giveaways-tab";
+import { ChatEventsTab } from "./chat-events-tab";
+import { LockdownTab } from "./lockdown-tab";
 import { SeasonsTab } from "./seasons-tab";
 import { StatusTab } from "./status-tab";
 import { EventsTab } from "./events-tab";
@@ -42,15 +44,15 @@ import { MembersTab } from "./members/members-tab";
 import { GraphicsTab } from "./graphics/graphics-tab";
 import { TranscriptViewer } from "./transcript-viewer";
 
-type Tab = "graphics" | "discord-members" | "overview" | "punishments" | "automod" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live" | "join" | "dating" | "appeals" | "messages" | "games" | "guide" | "banrequests" | "patreon" | "emails" | "ads" | "bot-main" | "bot-economy" | "bot-moderation" | "bot-ticketing" | "server" | "bot-history" | "removed" | "giveaways" | "seasons" | "status" | "events" | "rules" | "bot-console" | "database";
+type Tab = "graphics" | "discord-members" | "overview" | "punishments" | "automod" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live" | "join" | "dating" | "appeals" | "messages" | "games" | "guide" | "banrequests" | "patreon" | "emails" | "ads" | "bot-main" | "bot-economy" | "bot-moderation" | "bot-ticketing" | "server" | "bot-history" | "removed" | "giveaways" | "seasons" | "status" | "events" | "rules" | "bot-console" | "database" | "chat-events" | "lockdown";
 type Level = "admin" | "staff";
 
 // Tabs are grouped so the bar stays short: pick a group, then one of its tabs
 type Group = "overview" | "moderation" | "members" | "website" | "bots";
 const GROUPS: { key: Group; label: string; icon: LucideIcon; tabs: Tab[] }[] = [
   { key: "overview", label: "Overview", icon: BarChart3, tabs: ["overview", "graphics", "seasons", "status", "guide"] },
-  { key: "moderation", label: "Moderation", icon: Gavel, tabs: ["punishments", "banrequests", "appeals", "automod", "rules", "logs", "live", "removed"] },
-  { key: "members", label: "Members", icon: Users, tabs: ["discord-members", "join", "tickets", "events", "dating", "messages", "games", "giveaways", "patreon"] },
+  { key: "moderation", label: "Moderation", icon: Gavel, tabs: ["punishments", "banrequests", "appeals", "automod", "lockdown", "rules", "logs", "live", "removed"] },
+  { key: "members", label: "Members", icon: Users, tabs: ["discord-members", "join", "tickets", "events", "chat-events", "dating", "messages", "games", "giveaways", "patreon"] },
   { key: "website", label: "Website", icon: Globe, tabs: ["accounts", "emails", "news", "ads", "traffic", "database"] },
   { key: "bots", label: "Bots", icon: Bot, tabs: ["bot-console", "bot-main", "bot-economy", "bot-moderation", "bot-ticketing", "server", "bot-history"] },
 ];
@@ -67,6 +69,7 @@ const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean; giveaw
   { key: "banrequests", label: "Ban Requests", icon: Hammer },
   { key: "appeals", label: "Appeals", icon: Scale, admin: true },
   { key: "automod", label: "AutoMod", icon: ShieldCheck },
+  { key: "lockdown", label: "Lockdown", icon: Lock },
   { key: "rules", label: "Rules", icon: ListChecks, admin: true },
   { key: "join", label: "Join Apps", icon: ClipboardCheck },
   { key: "logs", label: "Logs", icon: ScrollText },
@@ -75,6 +78,7 @@ const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean; giveaw
   { key: "games", label: "Games", icon: Dices },
   { key: "events", label: "Events", icon: CalendarDays },
   { key: "giveaways", label: "Giveaways", icon: Gift, giveaways: true },
+  { key: "chat-events", label: "Chat Events", icon: PartyPopper, giveaways: true },
   { key: "patreon", label: "Patreon", icon: Crown, admin: true },
   { key: "live", label: "Live Chat", icon: MessagesSquare },
   { key: "removed", label: "Removed messages", icon: Archive, admin: true },
@@ -333,6 +337,8 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
       {isAdmin && tab === "ads" ? <AdsTab /> : null}
       {isAdmin && tab === "removed" ? <RemovedTab /> : null}
       {(isAdmin || canGiveaways) && tab === "giveaways" ? <GiveawaysTab /> : null}
+      {(isAdmin || canGiveaways) && tab === "chat-events" ? <ChatEventsTab /> : null}
+      {tab === "lockdown" ? <LockdownTab /> : null}
       {isAdmin && tab === "seasons" ? <SeasonsTab /> : null}
       {isAdmin && tab === "status" ? <StatusTab /> : null}
       {tab === "events" ? <EventsTab /> : null}
