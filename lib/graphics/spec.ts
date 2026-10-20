@@ -9,11 +9,14 @@ export type Tile = { label: string; value: string; note?: string };
 export type Block =
   | { kind: "bars"; title: string; rows: Row[]; total?: number; format?: Fmt; colorful?: boolean }
   | { kind: "leaderboard"; title: string; rows: Row[]; format?: Fmt }
-  | { kind: "columns"; title: string; rows: Row[]; format?: Fmt }
-  | { kind: "line"; title: string; labels: string[]; series: { name: string; values: number[] }[]; format?: Fmt }
+  | { kind: "columns"; title: string; rows: Row[]; format?: Fmt; /** Columns in time order (so a trend line makes sense) */ timeline?: boolean; partial?: PartialEnds }
+  | { kind: "line"; title: string; labels: string[]; series: { name: string; values: number[] }[]; format?: Fmt; partial?: PartialEnds }
   | { kind: "heat"; title: string; rows: string[]; cols: string[]; cells: number[][]; totals?: number[]; format?: Fmt; /** Colour each column on its own scale (for scorecards) */ byColumn?: boolean }
   | { kind: "strip"; title: string; rows: Row[] }
   | { kind: "tiles"; tiles: Tile[] };
+
+/** Periods at either end that are only partly covered (left out of trend lines so they don't skew them). */
+export type PartialEnds = { first?: boolean; last?: boolean; /** The time unit of each point (sets the moving-average window) */ step?: "day" | "week" | "month" };
 
 export type Spec = {
   title: string;

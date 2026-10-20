@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, Copy, Dices, Download, Gavel, Globe, HeartHa
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CATEGORIES, RANGES, ZONES, type ParamKind, type Params, type Spec, type StatMeta } from "../../../lib/graphics/spec";
 import { useStored } from "../admin-shared";
-import { SIZES, svgToPng, type Size, type Theme } from "./charts";
+import { SIZES, svgToPng, type Size, type Theme, type Trend } from "./charts";
 import { SpecGraphic } from "./spec-graphic";
 import "./graphics.css";
 
@@ -15,7 +15,8 @@ type Options = {
   roles: { id: string; name: string }[];
   games: { key: string; name: string }[];
 };
-type Look = { theme: Theme; size: Size; footnote: boolean };
+type Look = { theme: Theme; size: Size; footnote: boolean; trend?: Trend };
+type Tip = { x: number; y: number; lines: string[]; flip: boolean };
 
 // The category icons named in lib/graphics/spec.ts
 const ICONS: Record<string, LucideIcon> = { ShieldCheck, Users, MessageCircle, Mic, Leaf, Dices, ShoppingBag, PartyPopper, HeartHandshake, Gavel, Globe, ScrollText };
@@ -178,6 +179,7 @@ export function GraphicsTab() {
   const [busy, setBusy] = useState<"png" | "copy" | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const [tip, setTip] = useState<Tip | null>(null);
 
   useEffect(() => {
     fetch("/api/admin/graphics/catalog", { cache: "no-store" })
@@ -368,6 +370,15 @@ export function GraphicsTab() {
               <ParamControl key={k} kind={k} value={value(k)} onChange={(v) => setParams({ ...params, [k]: v })} options={options} />
             ))}
             <label className="gx-field">
+              <span>Trend</span>
+              <select className="adm-select" value={look.trend ?? "line"} onChange={(e) => setLook({ ...look, trend: e.target.value as Trend })}>
+                <option value="line">Trend line</option>
+                <option value="avg">Moving average</option>
+                <option value="both">Both</option>
+                <option value="none">None</option>
+              </select>
+            </label>
+            <label className="gx-field">
               <span>Look</span>
               <select className="adm-select" value={look.theme} onChange={(e) => setLook({ ...look, theme: e.target.value as Theme })}>
                 <option value="dark">Dark</option>
@@ -402,8 +413,30 @@ export function GraphicsTab() {
             </div>
           </details>
 
-          <div className={`gx-canvas${loading ? " is-loading" : ""}`} style={{ aspectRatio: `${w} / ${h}` }}>
-            {spec ? <SpecGraphic spec={spec} theme={look.theme} size={look.size} title={title} subtitle={subtitle} footnote={look.footnote} svgRef={svgRef} /> : null}
+          <div
+            className={`gx-canvas${loading ? " is-loading" : ""}`}
+            style={{ aspectRatio: `${w} / ${h}` }}
+            onPointerMove={(e) => {
+              // Hover points: anything drawn with a data-tip shows it in a tooltip
+              const el = (e.target as Element).closest?.("[data-tip]");
+              if (!el) return setTip(null);
+              const box = e.currentTarget.getBoundingClientRect();
+              const x = e.clientX - box.left;
+              setTip({ x, y: e.clientY - box.top, lines: (el.getAttribute("data-tip") ?? "").split("\n").filter(Boolean), flip: x > box.width - 240 });
+            }}
+            onPointerLeave={() => setTip(null)}
+          >
+            {spec ? <SpecGraphic spec={spec} theme={look.theme} size={look.size} title={title} subtitle={subtitle} footnote={look.footnote} svgRef={svgRef} trend={look.trend ?? "line"} /> : null}
+            {tip && tip.lines.length ? (
+              <div className={`gx-tip${tip.flip ? " is-flip" : ""}`} style={{ left: tip.x, top: tip.y }} role="tooltip">
+                <b>{tip.lines[0]}</b>
+                {tip.lines.slice(1).map((l, i) => (
+                  <span key={i} className={i === 0 ? "is-main" : undefined}>
+                    {l}
+                  </span>
+                ))}
+              </div>
+            ) : null}
             {loading ? (
               <span className="gx-overlay">
                 <Loader2 size={15} className="gx-spin" aria-hidden="true" /> Updating…
