@@ -4,7 +4,7 @@ import { Check, CircleAlert, Crown, Gem, Loader2, Lock, Palette, PauseCircle, Ro
 import { useCallback, useEffect, useState } from "react";
 import { NITRO, TIERS, itemsLabel, pct, type Tier } from "../../lib/perks";
 import type { RoleStyle, SupporterStatus } from "../../lib/supporter";
-import { LeafEmote } from "../ui-icons";
+import { LeafEmote, CurrencyAmount } from "../ui-icons";
 import { TierIcon } from "../tier-icon";
 import { ColorPicker } from "./color-picker";
 import "./supporter-card.css";
@@ -14,13 +14,13 @@ const HOLO = ["#A9C9FF", "#FFBBEC", "#FFC3A0"];
 
 function tierPerks(t: Tier) {
   const out = [
-    `${t.monthly.toLocaleString()} Leaves + ${itemsLabel(t.items)} every month`,
+    `${t.monthly.toLocaleString()} 🍁 + ${itemsLabel(t.items)} every month`,
     `${pct(t.xp)} XP and ${pct(t.leaf)} Leaves on everything`,
-    `+${t.daily} Leaves on every Daily Reward`,
+    `+${t.daily} 🍁 on every Daily Reward`,
   ];
   if (t.customRole) out.push(t.roleExtras ? "Custom role with gradient, holographic style and an icon" : "Custom role: your own name and colors");
   if (t.premiumGames) out.push("25 slot spins at once and the premium scratch-offs");
-  out.push(`Weekly Royal Chest (/chest): ${t.chest.toLocaleString()}+ Leaves${t.chestItems.length ? ` + ${t.chestItems.join(", ")}` : ""}`);
+  out.push(`Weekly Royal Chest (/chest): ${t.chest.toLocaleString()}+ 🍁${t.chestItems.length ? ` + ${t.chestItems.join(", ")}` : ""}`);
   out.push(`Daily Royal Wheel (/wheel): Leaf prizes ×${t.wheelMult}`);
   out.push(`${Math.round(t.discount * 100)}% off everything in the Store`);
   out.push(`+${t.weight} weight in Social's hourly Featured draw`);
@@ -28,8 +28,8 @@ function tierPerks(t: Tier) {
 }
 
 const NITRO_PERKS = [
-  `${NITRO.perBoost.toLocaleString()} Leaves for every boost`,
-  `${NITRO.monthly.toLocaleString()} Leaves + ${itemsLabel(NITRO.items)} every month`,
+  `${NITRO.perBoost.toLocaleString()} 🍁 for every boost`,
+  `${NITRO.monthly.toLocaleString()} 🍁 + ${itemsLabel(NITRO.items)} every month`,
   `${pct(NITRO.xp)} XP and ${pct(NITRO.leaf)} Leaves on everything`,
   "Daily Reward streak bonus up to +700",
   "25 slot spins at once and the premium scratch-offs",
@@ -238,13 +238,13 @@ export function SupporterCard({ displayName }: { displayName: string }) {
         {tier ? (
           <div>
             <h4><TierIcon tier={tier.key} size={16} /> {tier.titles[status.variant]} perks</h4>
-            <ul>{tierPerks(tier).map((p) => <li key={p}><Check size={14} aria-hidden="true" /> {cur.text(p)}</li>)}</ul>
+            <ul>{tierPerks(tier).map((p) => <li key={p}><Check size={14} aria-hidden="true" /> <CurrencyAmount text={cur.text(p)} size={15} /></li>)}</ul>
           </div>
         ) : null}
         {status.nitro ? (
           <div>
             <h4><TierIcon tier="nitro" size={16} /> Nitro Booster</h4>
-            <ul>{NITRO_PERKS.map((p) => <li key={p}><Check size={14} aria-hidden="true" /> {cur.text(p)}</li>)}</ul>
+            <ul>{NITRO_PERKS.map((p) => <li key={p}><Check size={14} aria-hidden="true" /> <CurrencyAmount text={cur.text(p)} size={15} /></li>)}</ul>
           </div>
         ) : null}
       </div>

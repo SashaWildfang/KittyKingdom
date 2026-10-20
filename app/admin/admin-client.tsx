@@ -1,7 +1,8 @@
 "use client";
 
+import "./admin-nav.css";
 import { TicketCanDelete, TicketDeletePermissions } from "./delete-ticket-button";
-import { Lock, PartyPopper, Activity, Archive, AtSign, Database, CalendarDays, Gift, SunSnow, BarChart3, Bot, Coins, History, Megaphone, Server, Shield as ShieldIcon, BookOpen, Crown, Hammer, ClipboardCheck, ListChecks, TerminalSquare, Dices, Gavel, Globe, HeartHandshake, Mail, MessagesSquare, Newspaper, Scale, ScrollText, ShieldCheck, Ticket, Users, UsersRound, ImagePlus, type LucideIcon } from "lucide-react";
+import { ChevronDown, ChevronRight, Menu, Search, X, Lock, PartyPopper, Activity, Archive, AtSign, Database, CalendarDays, Gift, SunSnow, BarChart3, Bot, Coins, History, Megaphone, Server, Shield as ShieldIcon, BookOpen, Crown, Hammer, ClipboardCheck, ListChecks, TerminalSquare, Dices, Gavel, Globe, HeartHandshake, Mail, MessagesSquare, Newspaper, Scale, ScrollText, ShieldCheck, Ticket, Users, UsersRound, ImagePlus, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AccountsTab } from "./accounts-tab";
@@ -48,11 +49,12 @@ type Tab = "graphics" | "discord-members" | "overview" | "punishments" | "automo
 type Level = "admin" | "staff";
 
 // Tabs are grouped so the bar stays short: pick a group, then one of its tabs
-type Group = "overview" | "moderation" | "members" | "website" | "bots";
+type Group = "overview" | "moderation" | "members" | "community" | "website" | "bots";
 const GROUPS: { key: Group; label: string; icon: LucideIcon; tabs: Tab[] }[] = [
   { key: "overview", label: "Overview", icon: BarChart3, tabs: ["overview", "graphics", "seasons", "status", "guide"] },
-  { key: "moderation", label: "Moderation", icon: Gavel, tabs: ["punishments", "banrequests", "appeals", "automod", "lockdown", "rules", "logs", "live", "removed"] },
-  { key: "members", label: "Members", icon: Users, tabs: ["discord-members", "join", "tickets", "events", "chat-events", "dating", "messages", "games", "giveaways", "patreon"] },
+  { key: "moderation", label: "Moderation", icon: Gavel, tabs: ["punishments", "banrequests", "appeals", "automod", "lockdown", "logs", "live", "removed", "rules"] },
+  { key: "members", label: "Members", icon: Users, tabs: ["discord-members", "join", "tickets", "messages", "patreon"] },
+  { key: "community", label: "Community", icon: PartyPopper, tabs: ["events", "chat-events", "giveaways", "games", "dating"] },
   { key: "website", label: "Website", icon: Globe, tabs: ["accounts", "emails", "news", "ads", "traffic", "database"] },
   { key: "bots", label: "Bots", icon: Bot, tabs: ["bot-console", "bot-main", "bot-economy", "bot-moderation", "bot-ticketing", "server", "bot-history"] },
 ];
@@ -154,7 +156,6 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
   // Jr Mod ban requests waiting for a Mod+
   const bansPoll = useLive<{ pending: number }>("/api/admin/ban-requests?count=1", 20_000);
   const pendingBans = bansPoll.data?.pending ?? 0;
-  const tabsRef = useRef<HTMLElement>(null);
 
   // Bubbles on tabs (and added up on their group)
   // 999 → "999", 1,420 → "1.42k", 15,300 → "15.3k"
@@ -172,28 +173,53 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
   };
   const groups = GROUPS.map((g) => ({ ...g, tabs: g.tabs.filter((k) => tabs.some((t) => t.key === k)) })).filter((g) => g.tabs.length);
   const group = (groups.find((g) => g.tabs.includes(tab)) ?? groups[0]).key;
-  const groupTabs = tabs.filter((t) => groups.find((g) => g.key === group)?.tabs.includes(t.key));
-  // Each group remembers the tab you last had open in it
-  const lastInGroup = useRef<Partial<Record<Group, Tab>>>({});
-  useEffect(() => {
-    lastInGroup.current[group] = tab;
-  }, [group, tab]);
-  const openGroup = (g: Group) => {
-    const found = groups.find((x) => x.key === g);
-    if (!found) return;
-    const last = lastInGroup.current[g];
-    setTab(last && found.tabs.includes(last) ? last : found.tabs[0]);
+  const groupTabsOf = (g: Group) => (groups.find((x) => x.key === g)?.tabs ?? []).map((k) => tabs.find((t) => t.key === k)!).filter(Boolean);
+  const currentTab = tabs.find((t) => t.key === tab);
+  // Section menu: search, collapsed groups (remembered), and the slide-in menu on small screens
+  const [navQ, setNavQ] = useState("");
+  const [navOpen, setNavOpen] = useState(false);
+  const [collapsed, setCollapsed] = useStored<Group[]>("nav-collapsed", []);
+  const navSearch = useRef<HTMLInputElement>(null);
+  const navMatches = navQ.trim()
+    ? groups.flatMap((g) => groupTabsOf(g.key).filter((t) => `${t.label} ${g.label}`.toLowerCase().includes(navQ.trim().toLowerCase())))
+    : [];
+  const pickTab = (k: Tab) => {
+    setTab(k);
+    setNavQ("");
+    setNavOpen(false);
   };
-
-  // On narrow screens the tab strip scrolls sideways; keep the open tab in view
+  // Things waiting outside the open section (for the menu button on small screens)
+  const menuAlerts = tabs.reduce((n, t) => n + (t.key === "live" || t.key === tab ? 0 : alert(t.key)?.count ?? 0), 0);
+  // While the slide-in menu is open: the page behind doesn't scroll, and Escape closes it
   useEffect(() => {
-    const strip = tabsRef.current;
-    const active = strip?.querySelector<HTMLElement>('[aria-selected="true"]');
-    if (!strip || !active || strip.scrollWidth <= strip.clientWidth) return;
-    const offset = active.getBoundingClientRect().left - strip.getBoundingClientRect().left + strip.scrollLeft;
-    strip.scrollTo({ left: offset - (strip.clientWidth - active.offsetWidth) / 2, behavior: "smooth" });
-  }, [tab]);
-
+    if (!navOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setNavOpen(false);
+    // The menu only exists on small screens: widening the window closes it (and lets the page scroll again)
+    const wide = window.matchMedia("(min-width: 1001px)");
+    const onWide = () => wide.matches && setNavOpen(false);
+    window.addEventListener("keydown", esc);
+    wide.addEventListener("change", onWide);
+    onWide();
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", esc);
+      wide.removeEventListener("change", onWide);
+    };
+  }, [navOpen]);
+  // "/" jumps to the section search (unless you're typing somewhere)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || el?.closest("input, textarea, select, [contenteditable=true]")) return;
+      e.preventDefault();
+      if (window.matchMedia("(max-width: 1000px)").matches) setNavOpen(true);
+      window.setTimeout(() => navSearch.current?.focus(), 30);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   // Keep the open tab / member / transcript in the address bar so links can be shared
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -242,6 +268,66 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
     setLookup("");
   }
 
+  // The section menu: inline on wide screens, a slide-in drawer on small ones
+  const sideNav = (drawer: boolean) => (
+<aside className={`adm-side${drawer ? " is-drawer" : ""}`} aria-label="Admin sections">
+      <div className="adm-side-top">
+        <label className="adm-side-search">
+          <Search size={14} aria-hidden="true" />
+          <input ref={drawer === navOpen ? navSearch : undefined} value={navQ} onChange={(e) => setNavQ(e.target.value)} placeholder="Jump to…" aria-label="Find a section" onKeyDown={(e) => {
+            if (e.key === "Enter" && navMatches.length) pickTab(navMatches[0].key);
+            if (e.key === "Escape") setNavQ("");
+          }} />
+          {!navQ ? <kbd>/</kbd> : null}
+        </label>
+        <button type="button" className="adm-side-close" onClick={() => setNavOpen(false)} aria-label="Close menu">
+          <X size={18} />
+        </button>
+      </div>
+      <nav className="adm-side-groups">
+        {groups.map((g) => {
+          const list = groupTabsOf(g.key).filter((t) => !navQ || navMatches.includes(t));
+          if (!list.length) return null;
+          // Live Chat is just unread chat, not something to act on, so it doesn't add to its group
+          const count = g.tabs.reduce((n, k) => n + (k === "live" ? 0 : alert(k)?.count ?? 0), 0);
+          const hot = g.tabs.some((k) => k !== "live" && alert(k)?.hot);
+          const closed = !navQ && collapsed.includes(g.key) && g.key !== group;
+          return (
+            <section key={g.key} className={`adm-side-group${g.key === group ? " is-current" : ""}`}>
+              <button type="button" className="adm-side-head" aria-expanded={!closed} onClick={() => setCollapsed((c) => (c.includes(g.key) ? c.filter((x) => x !== g.key) : [...c, g.key]))}>
+                <g.icon size={15} aria-hidden="true" />
+                <span>{g.label}</span>
+                {closed && count > 0 ? <span className={`adm-tab-bubble${hot ? " is-hot" : ""}`}>{shortCount(count)}</span> : null}
+                <ChevronDown size={14} className="adm-side-chev" aria-hidden="true" />
+              </button>
+              {!closed ? (
+                <ul role="tablist" aria-label={g.label}>
+                  {list.map((t) => {
+                    const a = alert(t.key);
+                    return (
+                      <li key={t.key}>
+                        <button type="button" role="tab" aria-selected={tab === t.key} className={tab === t.key ? "is-active" : undefined} onClick={() => pickTab(t.key)}>
+                          <t.icon size={15} aria-hidden="true" />
+                          <span>{t.label}</span>
+                          {a ? (
+                            <span className={`adm-tab-bubble${a.hot ? " is-hot" : ""}${a.live ? " is-live" : ""}`} aria-label={a.label}>
+                              {shortCount(a.count)}
+                            </span>
+                          ) : null}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : null}
+            </section>
+          );
+        })}
+        {navQ && !navMatches.length ? <p className="adm-side-empty">No section called &ldquo;{navQ}&rdquo;.</p> : null}
+      </nav>
+    </aside>
+  );
+
   return (
     <TicketDeletePermissions.Provider value={canDeleteNsfw}>
     <TicketCanDelete.Provider value={isAdmin}>
@@ -268,39 +354,22 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
         />
       </header>
 
-      {/* Groups first, then the chosen group's tabs */}
-      <nav className="adm-groups" aria-label="Admin sections">
-        {groups.map((g) => {
-          // Live Chat is just unread chat, not something to act on, so it doesn't add to its group
-          const count = g.tabs.reduce((n, k) => n + (k === "live" ? 0 : alert(k)?.count ?? 0), 0);
-          const hot = g.tabs.some((k) => k !== "live" && alert(k)?.hot);
-          const on = g.key === group;
-          return (
-            <button key={g.key} type="button" className={on ? "is-active" : undefined} aria-pressed={on} onClick={() => openGroup(g.key)}>
-              <g.icon size={16} aria-hidden="true" /> {g.label}
-              {count > 0 && !on ? <span className={`adm-tab-bubble${hot ? " is-hot" : ""}`}>{shortCount(count)}</span> : null}
-            </button>
-          );
-        })}
-      </nav>
-      {groupTabs.length > 1 ? (
-        <nav className="adm-tabs" role="tablist" ref={tabsRef}>
-          {groupTabs.map((t) => {
-            const a = alert(t.key);
-            return (
-              <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} className={tab === t.key ? "is-active" : undefined} onClick={() => setTab(t.key)}>
-                <t.icon size={16} aria-hidden="true" /> {t.label}
-                {a ? (
-                  <span className={`adm-tab-bubble${a.hot ? " is-hot" : ""}${a.live ? " is-live" : ""}`} aria-label={a.label}>
-                    {shortCount(a.count)}
-                  </span>
-                ) : null}
-              </button>
-            );
-          })}
-        </nav>
-      ) : null}
+      {/* A sidebar of every section, grouped (a menu button on small screens) */}
+      <div className="adm-layout">
+        {sideNav(false)}
+        {/* On small screens the menu slides in over the page (on <body>, so nothing can clip it) */}
+        {navOpen ? createPortal(<><div className="adm-side-backdrop" onClick={() => setNavOpen(false)} aria-hidden="true" />{sideNav(true)}</>, document.body) : null}
 
+        <div className="adm-main">
+          <div className="adm-where">
+            <button type="button" className="adm-menu-btn" onClick={() => setNavOpen(true)} aria-label="Open the section menu">
+              <Menu size={18} aria-hidden="true" />
+            </button>
+            <span className="adm-where-group">{groups.find((g) => g.key === group)?.label}</span>
+            <ChevronRight size={14} aria-hidden="true" />
+            <b>{currentTab?.label}</b>
+            {menuAlerts > 0 ? <span className="adm-tab-bubble is-hot adm-where-alerts">{shortCount(menuAlerts)}</span> : null}
+          </div>
       <TabBoundary key={tab} name={tab}>
       {tab === "overview" ? (
         <OverviewTab
@@ -352,6 +421,8 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
       {isAdmin && tab === "bot-history" ? <BotsHistoryTab /> : null}
       {isAdmin && tab === "traffic" ? <TrafficTab /> : null}
       </TabBoundary>
+        </div>
+      </div>
 
       {/* Overlays render at the page root so they sit above the site's top bar */}
       {member

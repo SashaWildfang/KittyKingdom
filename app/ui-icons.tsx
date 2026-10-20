@@ -36,7 +36,13 @@ export function XpText({ text, size = 15 }: { text: string; size?: number }) {
   const out: React.ReactNode[] = [];
   let last = 0;
   for (const m of Array.from(text.matchAll(XP_AMOUNT))) {
-    out.push(text.slice(last, m.index), m[1], " ", <XpEmote key={m.index} size={size} />);
+    // The number and its emoji stay on one line
+    out.push(
+      text.slice(last, m.index),
+      <span key={m.index} className="xp-amount">
+        {m[1]} <XpEmote size={size} />
+      </span>,
+    );
     last = (m.index ?? 0) + m[0].length;
   }
   out.push(text.slice(last));
