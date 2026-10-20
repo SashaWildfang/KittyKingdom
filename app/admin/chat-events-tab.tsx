@@ -38,6 +38,7 @@ import { EVENT_SEASONS, EVENT_TYPES, outcomeChances, rangeLabel, type ChatEvent,
 import { timeAgo, useLive } from "./admin-shared";
 import { Picker, channelOptions, roleOptions, type Meta } from "./bots/pickers";
 import { useCurrency } from "../season-context";
+import { XpAmount, XpText } from "../ui-icons";
 
 type Data = ChatEventsView & { ok: boolean; canEdit: boolean };
 
@@ -165,7 +166,7 @@ export function ChatEventsTab() {
         <div className="adm-kpi adm-kpi--green">
           <small>{cur.many} paid out</small>
           <strong>{data.totals.leaves.toLocaleString()}</strong>
-          <span>{data.totals.xp.toLocaleString()} XP · 30 days</span>
+          <span><XpAmount n={data.totals.xp} size={14} /> · 30 days</span>
         </div>
       </div>
 
@@ -218,7 +219,7 @@ export function ChatEventsTab() {
                   <span className="ce-card-type">
                     <Icon size={13} aria-hidden="true" /> {EVENT_TYPES[e.type].label} · {e.seconds}s
                   </span>
-                  <span className="ce-card-reward">{rewardSummary(e, cur.many)}</span>
+                  <span className="ce-card-reward"><XpText text={rewardSummary(e, cur.many)} size={14} /></span>
                   <span className="ce-card-stats">{st ? `Ran ${st.runs}× · ${st.players} plays · last ${timeAgo(st.last)}` : "Hasn't run in the last 30 days"}</span>
                 </span>
               </button>
@@ -314,7 +315,7 @@ function RunItem({ r, open, onToggle, channel, many }: { r: RunRow; open: boolea
                 <span>{x.name}</span>
                 {x.text ? <small>{x.text}</small> : null}
                 <b className={x.leaves < 0 || x.xp < 0 ? "is-neg" : "is-pos"}>
-                  {[x.leaves ? `${x.leaves > 0 ? "+" : ""}${x.leaves.toLocaleString()} ${many}` : "", x.xp ? `${x.xp > 0 ? "+" : ""}${x.xp} XP` : ""].filter(Boolean).join(" · ") || "nothing"}
+                  <XpText text={[x.leaves ? `${x.leaves > 0 ? "+" : ""}${x.leaves.toLocaleString()} ${many}` : "", x.xp ? `${x.xp > 0 ? "+" : ""}${x.xp} XP` : ""].filter(Boolean).join(" · ") || "nothing"} size={13} />
                 </b>
               </li>
             ))
@@ -712,9 +713,13 @@ function Preview({ e, many }: { e: ChatEvent; many: string }) {
         <Emoji value={e.emoji} /> {e.title}
       </b>
       {e.type === "trivia" && e.questions?.[0] ? <p className="ce-preview-q">{e.questions[0].q}</p> : null}
-      <p>{body}</p>
+      <p>
+        <XpText text={body} size={15} />
+      </p>
       {sample ? <code>{sample}</code> : null}
-      <small>Ends in {e.seconds}s</small>
+      {["draw", "raffle"].includes(e.type) ? <p>👥 Nobody yet. Be the first!</p> : e.type === "pick" ? <p>👥 Nobody has picked yet.</p> : e.type === "trivia" ? <p>👥 Nobody has answered yet.</p> : null}
+      <p>⏳ Ends in {e.seconds} seconds</p>
+      <small>{e.name} · chat event</small>
       {buttons.length ? (
         <div className="ce-preview-buttons">
           {buttons.map((b, i) => (
