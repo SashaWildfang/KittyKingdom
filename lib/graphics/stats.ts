@@ -901,7 +901,7 @@ add({
         { label: "Correct", value: pct(n(t.correct), n(t.answered)) },
         { label: "Leaves earned", value: fmt(n(t.leaves)) },
       ],
-      main: { kind: s.labels.length > 40 ? "line" : "columns", title: "Answers", labels: s.labels, series: [{ name: "Answers", values: s.values }], rows: s.labels.map((l, i) => ({ label: l, value: s.values[i] })), timeline: true, partial: { first: unit !== "day", last: true, step: unit } } as Block,
+      main: { kind: s.labels.length > 40 ? "line" : "columns", title: "Answers", labels: s.labels, series: [{ name: "Answers", values: s.values }], rows: s.labels.map((l, i) => ({ label: l, value: s.values[i] })), timeline: true, partial: { first: unit !== "day", last: c.until.getTime() >= Date.now() - 60_000, step: unit } } as Block,
       side: { kind: "leaderboard", title: "Best streaks", rows: best.slice(0, 8) },
     };
   },
@@ -1118,7 +1118,7 @@ add({
       title: "Support tickets",
       subtitle: `${fmt(total)} closed tickets · ${c.rangeText}.`,
       footnote: "From closed tickets. Close time is from opening to closing.",
-      main: { kind: s.labels.length > 40 ? "line" : "columns", title: `Tickets per ${unit}`, labels: s.labels, series: [{ name: "Tickets", values: s.values }], rows: s.labels.map((l, i) => ({ label: l, value: s.values[i] })), timeline: true, partial: { first: unit !== "day", last: true, step: unit } } as Block,
+      main: { kind: s.labels.length > 40 ? "line" : "columns", title: `Tickets per ${unit}`, labels: s.labels, series: [{ name: "Tickets", values: s.values }], rows: s.labels.map((l, i) => ({ label: l, value: s.values[i] })), timeline: true, partial: { first: unit !== "day", last: c.until.getTime() >= Date.now() - 60_000, step: unit } } as Block,
       side: { kind: "bars", title: "Average hours to close", rows: types.filter((t) => t.close).map((t) => ({ label: nice(t._id), value: n(t.close) / 3_600_000, note: `${fmt(n(t.v))} tickets` })), format: "hours" },
     };
   },
