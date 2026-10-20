@@ -59,3 +59,10 @@
 .gx-date { min-width: 9.5rem; }
 .gx-date input { padding: 0.42rem 0.55rem; }
 .gx-loading svg { width: 20px; height: 20px; }
+.gx-custom { display: grid; gap: 0.4rem; }
+.gx-custom-dates { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+.gx-quick { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.gx-quick button { border: 1px solid var(--line); border-radius: 999px; background: var(--panel); color: var(--text); cursor: pointer; font: inherit; font-size: 0.78rem; font-weight: 700; padding: 0.25rem 0.65rem; }
+.gx-quick button:hover { border-color: rgba(var(--ember-rgb), 0.6); }
+.gx-quick button.is-on { border-color: rgba(var(--ember-rgb), 0.7); background: rgba(var(--ember-rgb), 0.15); }
+.gx-custom-note { margin: 0; color: var(--muted); font-size: 0.78rem; }

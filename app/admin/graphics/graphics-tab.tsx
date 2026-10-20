@@ -33,12 +33,35 @@ const browserZone = () => {
   }
 };
 
+/** A date as YYYY-MM-DD in the viewer's own calendar (not UTC, which can be a day off). */
+const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const addDays = (d: Date, n: number) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+const fmtDay = (v: string) => (v ? new Date(`${v}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "…");
+
+/** One-click custom ranges (both days included). */
+function quickRanges(): [string, string, string][] {
+  const now = new Date();
+  const monday = addDays(now, -((now.getDay() + 6) % 7));
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  return [
+    ["This week", ymd(monday), ymd(addDays(monday, 6))],
+    ["Last week", ymd(addDays(monday, -7)), ymd(addDays(monday, -1))],
+    ["This month", ymd(monthStart), ymd(new Date(now.getFullYear(), now.getMonth() + 1, 0))],
+    ["Last month", ymd(lastMonthStart), ymd(new Date(now.getFullYear(), now.getMonth(), 0))],
+    ["Last 3 months", ymd(new Date(now.getFullYear(), now.getMonth() - 2, 1)), ymd(new Date(now.getFullYear(), now.getMonth() + 1, 0))],
+  ];
+}
+
 /** The time range: recent periods, whole years, single months, or custom dates. */
 function RangeControl({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: Options }) {
   const custom = value.startsWith("c:");
   const [, from = "", to = ""] = custom ? value.split(":") : [];
-  const today = new Date().toISOString().slice(0, 10);
-  const monthAgo = new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10);
+  const today = ymd(new Date());
+  const monthAgo = ymd(addDays(new Date(), -30));
+  // Either date can be picked in any order (and in the future: the graphic just stops at today); if they
+  // end up the wrong way round they're swapped
+  const set = (f: string, t: string) => onChange(f && t && f > t ? `c:${t}:${f}` : `c:${f || monthAgo}:${t || today}`);
   return (
     <div className="gx-range">
       <label className="gx-field">
@@ -59,16 +82,29 @@ function RangeControl({ value, onChange, options }: { value: string; onChange: (
         </select>
       </label>
       {custom ? (
-        <>
-          <label className="gx-field gx-date">
-            <span>From</span>
-            <input type="date" className="gx-input" value={from} max={to || today} onChange={(e) => e.target.value && onChange(`c:${e.target.value}:${to || today}`)} />
-          </label>
-          <label className="gx-field gx-date">
-            <span>To</span>
-            <input type="date" className="gx-input" value={to} min={from} max={today} onChange={(e) => e.target.value && onChange(`c:${from || monthAgo}:${e.target.value}`)} />
-          </label>
-        </>
+        <div className="gx-custom">
+          <div className="gx-custom-dates">
+            <label className="gx-field gx-date">
+              <span>Start date</span>
+              <input type="date" className="gx-input" value={from} onChange={(e) => e.target.value && set(e.target.value, to)} />
+            </label>
+            <label className="gx-field gx-date">
+              <span>End date (included)</span>
+              <input type="date" className="gx-input" value={to} onChange={(e) => e.target.value && set(from, e.target.value)} />
+            </label>
+          </div>
+          <div className="gx-quick" role="group" aria-label="Quick dates">
+            {quickRanges().map(([label, f, t]) => (
+              <button key={label} type="button" className={from === f && to === t ? "is-on" : undefined} onClick={() => onChange(`c:${f}:${t}`)}>
+                {label}
+              </button>
+            ))}
+          </div>
+          <p className="gx-custom-note">
+            Showing {fmtDay(from)} to {fmtDay(to)}, both days included.
+            {from > today ? " These dates are all in the future, so there's nothing to show yet." : to > today ? " Days after today have no data yet." : ""}
+          </p>
+        </div>
       ) : null}
     </div>
   );
