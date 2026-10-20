@@ -11,7 +11,7 @@ export type Block =
   | { kind: "leaderboard"; title: string; rows: Row[]; format?: Fmt }
   | { kind: "columns"; title: string; rows: Row[]; format?: Fmt }
   | { kind: "line"; title: string; labels: string[]; series: { name: string; values: number[] }[]; format?: Fmt }
-  | { kind: "heat"; title: string; rows: string[]; cols: string[]; cells: number[][]; totals?: number[]; format?: Fmt }
+  | { kind: "heat"; title: string; rows: string[]; cols: string[]; cells: number[][]; totals?: number[]; format?: Fmt; /** Colour each column on its own scale (for scorecards) */ byColumn?: boolean }
   | { kind: "strip"; title: string; rows: Row[] }
   | { kind: "tiles"; tiles: Tile[] };
 
@@ -32,6 +32,7 @@ export type StatMeta = { id: string; category: string; title: string; blurb: str
 export type Params = Partial<Record<ParamKind, string>>;
 
 export const CATEGORIES: { key: string; label: string; emoji: string }[] = [
+  { key: "staff", label: "Staff activity", emoji: "🧑‍⚖️" },
   { key: "members", label: "Members & roles", emoji: "👥" },
   { key: "chat", label: "Chat", emoji: "💬" },
   { key: "voice", label: "Voice", emoji: "🎙️" },
@@ -42,6 +43,7 @@ export const CATEGORIES: { key: string; label: string; emoji: string }[] = [
   { key: "social", label: "Social", emoji: "💞" },
   { key: "moderation", label: "Moderation & tickets", emoji: "🛡️" },
   { key: "website", label: "Website", emoji: "🌐" },
+  { key: "server", label: "Server logs", emoji: "📜" },
 ];
 
 export const RANGES: [string, string][] = [
