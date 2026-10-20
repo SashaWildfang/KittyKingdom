@@ -196,10 +196,16 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const esc = (e: KeyboardEvent) => e.key === "Escape" && setNavOpen(false);
+    // The menu only exists on small screens: widening the window closes it (and lets the page scroll again)
+    const wide = window.matchMedia("(min-width: 1001px)");
+    const onWide = () => wide.matches && setNavOpen(false);
     window.addEventListener("keydown", esc);
+    wide.addEventListener("change", onWide);
+    onWide();
     return () => {
       document.body.style.overflow = prev;
       window.removeEventListener("keydown", esc);
+      wide.removeEventListener("change", onWide);
     };
   }, [navOpen]);
   // "/" jumps to the section search (unless you're typing somewhere)
