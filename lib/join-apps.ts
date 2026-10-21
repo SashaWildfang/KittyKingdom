@@ -99,18 +99,33 @@ async function queueHealthy() {
 const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /**
- * Pending applications from people who already left the server are closed automatically:
- * they move to "Left" instead of waiting in Pending forever.
+ * Applications from people who already left the server are closed automatically, the same way the Moderation
+ * Bot does it when someone leaves (db/verification_reset.py): pending AND approved ones move to "Left", with
+ * the old copy kept under previousApplications, so a member who comes back has to apply again. Denied, banned
+ * and underage ones keep their status. Someone only counts as gone when Discord says "Unknown Member".
  */
 async function closeLeftApplications() {
   const col = await getJoinApplicationsCollection();
   const pending = await col.find({ status: "pending" }, { projection: { discordId: 1 } }).limit(100).toArray();
-  const checks = await Promise.all(pending.map(async (d) => ({ id: String(d.discordId ?? ""), here: /^\d{15,21}$/.test(String(d.discordId)) ? await isInServer(String(d.discordId)) : null })));
+  // Approved ones: only check people the member list already shows as gone (a few at a time)
+  const dir = (await getMongoClient()).db(process.env.MONGODB_DB ?? "website").collection<{ _id: string }>("member_directory");
+  const goneIds = (await dir.find({ inServer: false } as never, { projection: { _id: 1 } }).toArray()).map((d) => String(d._id));
+  const approved = goneIds.length ? await col.find({ status: "approved", discordId: { $in: goneIds } }, { projection: { discordId: 1 } }).limit(20).toArray() : [];
+  const ids = Array.from(new Set([...pending, ...approved].map((d) => String(d.discordId ?? "")).filter((id) => /^\d{15,21}$/.test(id))));
+  const checks = await Promise.all(ids.map(async (id) => ({ id, here: await isInServer(id) })));
   const gone = checks.filter((c) => c.here === false).map((c) => c.id);
-  if (gone.length) {
-    await col.updateMany(
-      { discordId: { $in: gone }, status: "pending" },
-      { $set: { status: "left", reviewedAt: new Date(), reviewedVia: "website-auto", reason: "Left the server before being reviewed" } },
+  const now = new Date();
+  for (const id of gone) {
+    const app = await col.findOne({ discordId: id, status: { $in: ["pending", "approved"] } }, { sort: { submittedAt: -1 } });
+    if (!app) continue;
+    const { _id, previousApplications: _prev, ...old } = app as Document;
+    const wasPending = app.status === "pending";
+    await col.updateOne(
+      { _id, status: app.status },
+      {
+        $set: { status: "left", leftAt: now, ...(wasPending ? { reviewedAt: now, reviewedVia: "website-auto", reason: "Left the server before being reviewed" } : {}) },
+        $push: { previousApplications: { $each: [{ ...old, archivedAt: now, archivedBecause: "left" }], $slice: -10 } },
+      } as never,
     );
   }
   return gone.length;

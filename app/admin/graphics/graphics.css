@@ -55,7 +55,12 @@
   .gx-list { max-height: 18rem; }
 }
 
-.gx-range { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+.gx-range { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0.6rem; }
+/* The time range menu keeps its normal height next to the date pickers (it used to stretch to their height) */
+.gx-range > .gx-field { align-self: flex-start; }
+.gx-range .adm-select { height: auto; }
+/* With custom dates the whole range control gets its own row, so the other options don't get pushed around */
+.gx-range:has(.gx-custom) { flex: 1 1 100%; }
 .gx-date { min-width: 9.5rem; }
 .gx-date input { padding: 0.42rem 0.55rem; }
 .gx-loading svg { width: 20px; height: 20px; }
