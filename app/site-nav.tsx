@@ -7,6 +7,9 @@ import { NewsNavBadge } from "./news-nav-badge";
 import { recentNewsStamps } from "../lib/news";
 import { eventNavStamps } from "../lib/events";
 import { EventsNavBadge } from "./events-nav-badge";
+import { getMemberRoleSummary } from "../lib/discord-member";
+import { AccountNudges } from "./account-nudges";
+import { accountName } from "../lib/names";
 import { canSeeDating } from "../lib/dating/access";
 import { NotificationBell } from "./notification-bell";
 import { MobileMenu } from "./mobile-menu";
@@ -29,6 +32,10 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
   const linked = Boolean(user?.discordId);
   // Dating is for 18+ Verified members (role checked with Discord, cached for two minutes)
   const dating = linked ? await canSeeDating(user?.discordId).catch(() => false) : false;
+  // Their picture and name for the account button (server profile picture first; cached for two minutes)
+  const summary = linked ? await getMemberRoleSummary(user?.discordId).catch(() => null) : null;
+  const avatar = summary?.avatar ?? null;
+  const displayName = user ? accountName(user, summary) : "My Account";
   // Recent posts, for the unread bubble on the News tab
   const newsStamps = await recentNewsStamps();
   // Upcoming events and open polls, for the bubble on the Events tab
@@ -103,7 +110,7 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
         ) : null}
         {/* Theme lives in the account menu, the footer and the phone menu */}
         {signedIn ? (
-          <AccountMenu social={dating} />
+          <AccountMenu social={dating} avatar={avatar} name={displayName} />
         ) : (
           <>
             <a className="login-link" href="/login">
@@ -115,6 +122,7 @@ export async function SiteNav({ signedIn, discordOnline }: SiteNavProps) {
           </>
         )}
       </div>
+      {signedIn ? <AccountNudges /> : null}
       <MobileMenu links={mobileLinks} signedIn={signedIn} newsStamps={newsStamps} eventStamps={eventStamps} bell={linked} messages={dating} />
     </nav>
   );
