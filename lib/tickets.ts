@@ -255,6 +255,15 @@ export async function ticketTypes(excludeNsfw = false): Promise<string[]> {
 }
 
 /** The ticket a transcript upload belongs to. */
+/** Several tickets at once (in no particular order). */
+export async function getTickets(ticketIds: number[]): Promise<Ticket[]> {
+  if (!ticketIds.length) return [];
+  const { col, union } = await ticketsPipelineBase();
+  const docs = await col.aggregate([...union, { $match: { ticket_id: { $in: ticketIds } } }, { $limit: ticketIds.length * 2 }]).toArray();
+  const seen = new Set<number>();
+  return docs.map(toTicket).filter((t) => !seen.has(t.ticketId) && Boolean(seen.add(t.ticketId)));
+}
+
 export async function getTicketByTranscript(transcriptId: string): Promise<Ticket | null> {
   if (!/^\d{15,21}$/.test(transcriptId)) return null;
   const doc = await (await getBotCollection("resolvedTickets")).findOne({ transcript_id: transcriptId });
