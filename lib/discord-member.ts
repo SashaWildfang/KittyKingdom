@@ -372,19 +372,39 @@ export async function viewableChannelIds(discordId: string): Promise<Set<string>
 }
 
 /** Deletes a message as the bot, with a note in Discord's audit log. */
+/**
+ * Deletes a message. Waits out rate limits (429) and retries brief Discord hiccups. `forbidden` means this
+ * bot isn't allowed to (e.g. another bot's message without Manage Messages in that channel).
+ */
 export async function deleteChannelMessage(channelId: string, messageId: string, reason: string) {
   const token = botToken();
-  if (!token) return { ok: false, status: 0 };
-  try {
-    const response = await fetch(`${DISCORD_API}/channels/${channelId}/messages/${messageId}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bot ${token}`, "X-Audit-Log-Reason": encodeURIComponent(reason.slice(0, 400)) },
-      cache: "no-store",
-    });
-    return { ok: response.ok || response.status === 404, status: response.status };
-  } catch {
-    return { ok: false, status: 0 };
+  if (!token) return { ok: false, status: 0, forbidden: false };
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      const response = await fetch(`${DISCORD_API}/channels/${channelId}/messages/${messageId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bot ${token}`, "X-Audit-Log-Reason": encodeURIComponent(reason.slice(0, 400)) },
+        cache: "no-store",
+      });
+      if (response.ok || response.status === 404) return { ok: true, status: response.status, forbidden: false };
+      if ((response.status === 429 || response.status >= 500) && attempt < 4) {
+        const body = (await response.json().catch(() => null)) as { retry_after?: number } | null;
+        const wait = Number(body?.retry_after ?? response.headers.get("retry-after") ?? 1);
+        // A long rate limit: give up now (nothing is deleted) rather than retrying before it resets
+        if (wait > 20) return { ok: false, status: 429, forbidden: false };
+        await new Promise((r) => setTimeout(r, Math.max(400, wait * 1000 + 100)));
+        continue;
+      }
+      return { ok: false, status: response.status, forbidden: response.status === 403 };
+    } catch {
+      if (attempt < 4) {
+        await new Promise((r) => setTimeout(r, 600));
+        continue;
+      }
+      return { ok: false, status: 0, forbidden: false };
+    }
   }
+  return { ok: false, status: 429, forbidden: false };
 }
 
 const membershipCache = new Map<string, { inServer: boolean; at: number }>();

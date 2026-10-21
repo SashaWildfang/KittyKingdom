@@ -146,11 +146,30 @@ function useTicketSummaries(rows: Ticket[]) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, tick]);
 
-  return { enabled, state, refresh: (id: number) => write(id, true) };
+  return { enabled, state, refresh: (id: number) => write(id, true), set: (sum: TicketSummary) => setState((s) => ({ ...s, [sum.ticketId]: { summary: sum } })) };
 }
 
-function SummaryLine({ s, onRefresh }: { s: SummaryState | undefined; onRefresh: () => void }) {
+function SummaryLine({ s, onRefresh, ticket, canEdit, onSummary }: { s: SummaryState | undefined; onRefresh: () => void; ticket?: Ticket; canEdit?: boolean; onSummary?: (sum: TicketSummary) => void }) {
   const sum = s?.summary;
+  const [dobOpen, setDobOpen] = useState(false);
+  const [dob, setDob] = useState("");
+  const [dobBusy, setDobBusy] = useState(false);
+  const [dobErr, setDobErr] = useState<string | null>(null);
+  // Older 18+ tickets: an admin can record the DOB on the ID after looking at it in the transcript
+  const canAddDob = Boolean(canEdit && ticket && sum?.tags?.includes("id-not-recorded"));
+  const saveDob = async () => {
+    if (!ticket) return;
+    setDobBusy(true);
+    setDobErr(null);
+    const r = await fetch(`/api/admin/tickets/${ticket.ticketId}/id-dob`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dob, openedBy: ticket.openedBy }) })
+      .then((x) => x.json())
+      .catch(() => null);
+    setDobBusy(false);
+    if (!r?.ok) return setDobErr(r?.error ?? "Couldn't save that.");
+    setDobOpen(false);
+    setDob("");
+    onSummary?.(r.summary);
+  };
   // Nothing to show yet (or ever: AI off, or no transcript left to read)
   if (!sum && !s?.busy && !s?.error) return null;
   return (
@@ -172,6 +191,29 @@ function SummaryLine({ s, onRefresh }: { s: SummaryState | undefined; onRefresh:
         <span className="tks-text is-muted">{s?.busy ? "Reading the ticket…" : s?.error}</span>
       )}
       {s?.busy && sum ? <span className="tks-busy">Updating…</span> : null}
+      {canAddDob && !dobOpen ? (
+        <button type="button" className="tks-adddob" onClick={() => setDobOpen(true)} title="Look at the ID in the transcript, then type the date of birth printed on it">
+          Add ID DOB
+        </button>
+      ) : null}
+      {dobOpen ? (
+        <form
+          className="tks-dobform"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (dob.trim() && !dobBusy) void saveDob();
+          }}
+        >
+          <input autoFocus value={dob} onChange={(e) => setDob(e.target.value)} placeholder="DOB on the ID, e.g. 10/12/2001" aria-label="Date of birth on the ID" />
+          <button type="submit" className="adm-btn adm-btn--tiny" disabled={!dob.trim() || dobBusy}>
+            {dobBusy ? "Saving…" : "Save"}
+          </button>
+          <button type="button" className="adm-btn adm-btn--tiny adm-btn--ghost" onClick={() => (setDobOpen(false), setDobErr(null))}>
+            Cancel
+          </button>
+          {dobErr ? <span className="tks-doberr">{dobErr}</span> : null}
+        </form>
+      ) : null}
       {!s?.busy ? (
         <button type="button" className="tks-refresh" onClick={onRefresh} title={sum ? "Read it again" : "Try again"} aria-label="Describe again">
           <RefreshCw size={12} />
@@ -450,7 +492,7 @@ export function TicketsTab({
               <tr className="tks-row" onClick={() => t.transcriptId && onOpenTranscript(t.ticketId)}>
                 <td />
                 <td colSpan={7}>
-                  <SummaryLine s={summaries.state[t.ticketId]} onRefresh={() => void summaries.refresh(t.ticketId)} />
+                  <SummaryLine s={summaries.state[t.ticketId]} onRefresh={() => void summaries.refresh(t.ticketId)} ticket={t} canEdit={canDelete && !readOnly} onSummary={summaries.set} />
                 </td>
               </tr>
             </tbody>
@@ -492,14 +534,31 @@ export function TicketsTab({
   );
 }
 
-/** Bulk-delete old closed tickets (admins): pick what, see how many, type the number to confirm. */
+/** Bulk-delete old closed tickets (admins): pick what, see exactly what goes, type the number to confirm. */
+type CleanupPreview = { count: number; before: string; byType: { type: string; count: number }[]; oldest: string | null; newest: string | null; range: { low: number; high: number } | null; sample: { ticketId: number; type: string; created: string | null }[] };
+const AGES: [number, string][] = [
+  [1, "1 month"],
+  [3, "3 months"],
+  [6, "6 months"],
+  [12, "1 year"],
+  [24, "2 years"],
+  [36, "3 years"],
+];
+const WHO: ["any" | "gone" | "left" | "deleted", string][] = [
+  ["any", "Anyone"],
+  ["gone", "Not in the server"],
+  ["left", "Left"],
+  ["deleted", "Deleted account"],
+];
+const longDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "—");
+
 function CleanupDialog({ typesAvailable, onClose, onDone }: { typesAvailable: string[]; onClose: () => void; onDone: (message: string) => void }) {
   const mayNsfw = useContext(TicketDeletePermissions);
   const [months, setMonths] = useState(12);
   const [includeNsfw, setIncludeNsfw] = useState(false);
   const [types, setTypes] = useState<string[]>([]);
   const [opener, setOpener] = useState<"any" | "left" | "deleted" | "gone">("any");
-  const [preview, setPreview] = useState<{ count: number; sample: { ticketId: number; type: string; created: string | null }[] } | null>(null);
+  const [preview, setPreview] = useState<CleanupPreview | null>(null);
   const [typed, setTyped] = useState("");
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
@@ -517,6 +576,7 @@ function CleanupDialog({ typesAvailable, onClose, onDone }: { typesAvailable: st
     let cancelled = false;
     setPreview(null);
     setTyped("");
+    setError(null);
     const t = window.setTimeout(() => {
       post({ step: "preview" })
         .then((p) => !cancelled && setPreview(p))
@@ -562,87 +622,119 @@ function CleanupDialog({ typesAvailable, onClose, onDone }: { typesAvailable: st
     }
   };
 
+  const max = Math.max(1, ...(preview?.byType.map((t) => t.count) ?? [1]));
   return createPortal(
     <div className="tkd-wrap" onMouseDown={(e) => e.target === e.currentTarget && !busy && onClose()}>
-      <div className="tkd is-wide" role="dialog" aria-modal="true" aria-labelledby="tkc-title">
+      <div className="tkc" role="dialog" aria-modal="true" aria-labelledby="tkc-title">
         <button type="button" className="tkd-close" onClick={onClose} disabled={busy} aria-label="Close">
           <X size={18} />
         </button>
-        <span className="tkd-icon" aria-hidden="true">
-          <BrushCleaning size={22} />
-        </span>
-        <h3 id="tkc-title">Clean up old tickets</h3>
-        <p className="tkd-type">Deletes closed tickets and their transcripts for good. Open tickets are never touched. The rest are renumbered afterwards so there are no gaps.</p>
-        <div className="tkc-grid">
-          <label>
-            <span>Closed more than</span>
-            <select value={months} onChange={(e) => setMonths(Number(e.target.value))} disabled={busy}>
-              {[1, 3, 6, 12, 18, 24, 36].map((m) => (
-                <option key={m} value={m}>
-                  {m} month{m === 1 ? "" : "s"} ago
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>Opened by</span>
-            <select value={opener} onChange={(e) => setOpener(e.target.value as typeof opener)} disabled={busy}>
-              <option value="any">Anyone</option>
-              <option value="gone">Members who aren&apos;t here any more</option>
-              <option value="left">Members who left</option>
-              <option value="deleted">Deleted Discord accounts</option>
-            </select>
-          </label>
-        </div>
-        <div className="tkc-types">
-          <span>Types (none picked = all)</span>
+        <header className="tkc-head">
+          <span className="tkc-icon" aria-hidden="true">
+            <BrushCleaning size={22} />
+          </span>
           <div>
-            {typesAvailable
-              .filter((t) => !/nsfw/i.test(t))
-              .map((t) => (
-                <button key={t} type="button" className={`adm-chip${types.includes(t) ? " is-on" : ""}`} onClick={() => setTypes((x) => (x.includes(t) ? x.filter((y) => y !== t) : [...x, t]))} disabled={busy}>
-                  {prettyAction(t)}
+            <h3 id="tkc-title">Clean up old tickets</h3>
+            <p>Deletes closed tickets and their transcripts for good. Open tickets are never touched, and the rest are renumbered afterwards.</p>
+          </div>
+        </header>
+
+        <div className="tkc-body">
+          <section className="tkc-step">
+            <h4>
+              <span>1</span> Closed more than
+            </h4>
+            <div className="tkc-pills" role="radiogroup" aria-label="Closed more than">
+              {AGES.map(([m, l]) => (
+                <button key={m} type="button" role="radio" aria-checked={months === m} className={months === m ? "is-on" : undefined} onClick={() => setMonths(m)} disabled={busy}>
+                  {l}
                 </button>
               ))}
-          </div>
+            </div>
+            <small>{preview ? `Closed before ${longDate(preview.before)}` : " "}</small>
+          </section>
+
+          <section className="tkc-step">
+            <h4>
+              <span>2</span> Opened by
+            </h4>
+            <div className="tkc-pills" role="radiogroup" aria-label="Opened by">
+              {WHO.map(([k, l]) => (
+                <button key={k} type="button" role="radio" aria-checked={opener === k} className={opener === k ? "is-on" : undefined} onClick={() => setOpener(k)} disabled={busy}>
+                  {l}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="tkc-step">
+            <h4>
+              <span>3</span> Types <small>(none picked = all)</small>
+            </h4>
+            <div className="tkc-pills is-multi">
+              {typesAvailable
+                .filter((t) => !/nsfw/i.test(t))
+                .map((t) => (
+                  <button key={t} type="button" aria-pressed={types.includes(t)} className={types.includes(t) ? "is-on" : undefined} onClick={() => setTypes((x) => (x.includes(t) ? x.filter((y) => y !== t) : [...x, t]))} disabled={busy}>
+                    {prettyAction(t)}
+                  </button>
+                ))}
+            </div>
+            {mayNsfw ? (
+              <label className={`tkc-switch${includeNsfw ? " is-on" : ""}`}>
+                <input type="checkbox" checked={includeNsfw} onChange={(e) => setIncludeNsfw(e.target.checked)} disabled={busy} />
+                <span>
+                  <b>Include 18+ verification tickets</b>
+                  <small>Off by default: their records stay on the member either way.</small>
+                </span>
+              </label>
+            ) : null}
+          </section>
         </div>
-        {mayNsfw ? (
-          <label className="tkc-check">
-            <input type="checkbox" checked={includeNsfw} onChange={(e) => setIncludeNsfw(e.target.checked)} disabled={busy} /> Include 18+ verification tickets
-          </label>
-        ) : null}
-        <div className="tkc-preview">
-          {preview ? (
-            preview.count ? (
-              <>
-                <b>
-                  {preview.count} ticket{preview.count === 1 ? "" : "s"} will be deleted
-                </b>
-                <small>
-                  e.g. {preview.sample.map((x) => `#${x.ticketId}`).join(", ")}
-                  {preview.count > preview.sample.length ? "…" : ""}
-                </small>
-              </>
-            ) : (
-              <b className="is-none">Nothing matches.</b>
-            )
+
+        <section className={`tkc-summary${preview && !preview.count ? " is-empty" : ""}`} aria-live="polite">
+          {!preview ? (
+            <p className="adm-muted">Counting…</p>
+          ) : !preview.count ? (
+            <p>Nothing matches. Try an older range or more types.</p>
           ) : (
-            <span className="adm-muted">Counting…</span>
+            <>
+              <div className="tkc-total">
+                <b>{preview.count}</b>
+                <span>
+                  ticket{preview.count === 1 ? "" : "s"} will be deleted
+                  <small>
+                    opened {longDate(preview.oldest)} – {longDate(preview.newest)}
+                    {preview.range ? ` · #${preview.range.low}–#${preview.range.high}` : ""}
+                  </small>
+                </span>
+              </div>
+              <ul className="tkc-bars">
+                {preview.byType.map((t) => (
+                  <li key={t.type}>
+                    <span>{prettyAction(t.type)}</span>
+                    <i style={{ width: `${Math.max(4, Math.round((100 * t.count) / max))}%`, background: TICKET_COLORS[t.type] ?? "#8b8d98" }} />
+                    <b>{t.count}</b>
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
-        </div>
-        {preview?.count ? (
-          <label className="tkd-typed">
-            <span>
-              <AlertTriangle size={14} aria-hidden="true" /> Type <b>{preview.count}</b> to confirm.
+        </section>
+
+        {preview?.count && !busy ? (
+          <label className="tkd-typed tkc-confirm">
+            <span className="tkd-typed-ask">
+              To confirm, type <b>{preview.count}</b>
             </span>
-            <input inputMode="numeric" value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={String(preview.count)} disabled={busy} />
+            <input inputMode="numeric" value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={String(preview.count)} aria-label={`Type ${preview.count} to confirm`} />
           </label>
         ) : null}
         {progress ? (
           <div className="tkc-progress" role="progressbar" aria-valuemin={0} aria-valuemax={progress.total} aria-valuenow={progress.done}>
             <i style={{ width: `${Math.round((100 * progress.done) / Math.max(1, progress.total))}%` }} />
             <span>
-              {progress.done} / {progress.total}
+              Deleting… {progress.done} / {progress.total}
             </span>
           </div>
         ) : null}
@@ -652,7 +744,7 @@ function CleanupDialog({ typesAvailable, onClose, onDone }: { typesAvailable: st
             Cancel
           </button>
           <button type="button" className="adm-btn adm-btn--danger" onClick={() => void run()} disabled={busy || !preview?.count || typed.trim() !== String(preview.count)}>
-            <Trash2 size={15} aria-hidden="true" /> {busy ? "Deleting…" : `Delete ${preview?.count ?? ""} ticket${preview?.count === 1 ? "" : "s"}`}
+            <Trash2 size={15} aria-hidden="true" /> {busy ? "Deleting…" : preview?.count ? `Delete ${preview.count} ticket${preview.count === 1 ? "" : "s"}` : "Delete"}
           </button>
         </div>
       </div>
