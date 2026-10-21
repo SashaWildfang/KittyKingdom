@@ -49,7 +49,12 @@ export const TICKET_TAGS: Record<string, { label: string; bad: boolean }> = {
   "id-not-recorded": { label: "ID DOB not recorded", bad: false },
   left: { label: "Left the server", bad: false },
   deleted: { label: "Deleted account", bad: false },
+  // Not stored on descriptions: worked out from the ticket itself (closed with no saved transcript)
+  "no-transcript": { label: "No transcript", bad: false },
 };
+
+// Closed tickets with no transcript upload saved
+const NO_TRANSCRIPT = { $nor: [{ transcript_id: { $type: "string", $regex: /^\d{15,21}$/ } }] };
 
 export class SummaryError extends Error {
   status: number;
@@ -338,14 +343,21 @@ export async function savedSummaries(tickets: Ticket[]) {
 /** Ticket numbers whose description has any of these tags (for the page's tag filter). */
 export async function ticketIdsWithTags(tags: string[]) {
   if (!tags.length) return null;
-  const docs = await (await col()).find({ tags: { $in: tags } }, { projection: { _id: 1 } }).toArray();
-  return docs.map((d) => d._id);
+  const stored = tags.filter((t) => t !== "no-transcript");
+  const [docs, bare] = await Promise.all([
+    stored.length ? (await col()).find({ tags: { $in: stored } }, { projection: { _id: 1 } }).toArray() : Promise.resolve([]),
+    tags.includes("no-transcript") ? (await getBotCollection("resolvedTickets")).find(NO_TRANSCRIPT as never, { projection: { ticket_id: 1 } }).toArray() : Promise.resolve([]),
+  ]);
+  return Array.from(new Set([...docs.map((d) => d._id), ...bare.map((d) => Number(d.ticket_id))]));
 }
 
 /** How many tickets have each tag (for the filter menu). */
 export async function tagCounts() {
-  const rows = await (await col()).aggregate([{ $unwind: "$tags" }, { $group: { _id: "$tags", n: { $sum: 1 } } }]).toArray();
-  return Object.fromEntries(rows.map((r) => [String(r._id), Number(r.n)])) as Record<string, number>;
+  const [rows, bare] = await Promise.all([
+    (await col()).aggregate([{ $unwind: "$tags" }, { $group: { _id: "$tags", n: { $sum: 1 } } }]).toArray(),
+    (await getBotCollection("resolvedTickets")).countDocuments(NO_TRANSCRIPT as never),
+  ]);
+  return { ...Object.fromEntries(rows.map((r) => [String(r._id), Number(r.n)])), "no-transcript": bare } as Record<string, number>;
 }
 
 /** Reads the ticket and writes (or refreshes) its description. Only calls the AI when something changed. */

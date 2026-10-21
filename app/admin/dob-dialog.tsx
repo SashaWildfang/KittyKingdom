@@ -1,8 +1,8 @@
 "use client";
 
 // Admins recording a missing date of birth on an 18+ verification ticket (the join application's, or the one on
-// the member's ID). Deliberately strict: the date typed twice, a "checked it" confirmation and a fresh 2FA code,
-// and dates that are already recorded can't be changed here. The server checks all of it again.
+// the member's ID). Deliberately strict: admins with 2FA turned on, the date typed twice and a "checked it"
+// confirmation, and dates that are already recorded can't be changed here. The server checks all of it again.
 
 import "./delete-ticket.css";
 import { AlertTriangle, IdCard, Lock, ScrollText, X } from "lucide-react";
@@ -42,7 +42,6 @@ export function DobDialog({
   const [dob, setDob] = useState("");
   const [repeat, setRepeat] = useState("");
   const [checked, setChecked] = useState(false);
-  const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,8 +59,7 @@ export function DobDialog({
   const date = parseMdy(dob);
   const same = Boolean(date && parseMdy(repeat)?.getTime() === date.getTime());
   const age = date ? ageOf(date) : null;
-  const codeOk = /^\d{6}$/.test(code.replace(/\s+/g, "")) || /^[a-z0-9]{4,5}-?[a-z0-9]{4,5}$/i.test(code.trim());
-  const ready = Boolean(kind && date && same && checked && codeOk && !busy);
+  const ready = Boolean(kind && date && same && checked && !busy);
 
   async function save() {
     if (!ready || !kind) return;
@@ -70,15 +68,13 @@ export function DobDialog({
     const r = await fetch(`/api/admin/tickets/${ticket.ticketId}/dob`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ kind, dob, repeat, checked, code, openedBy: ticket.openedBy }),
+      body: JSON.stringify({ kind, dob, repeat, checked, openedBy: ticket.openedBy }),
     })
       .then((x) => x.json())
       .catch(() => null);
     setBusy(false);
     if (!r?.ok) {
       setError(r?.error ?? "Couldn't save that.");
-      // A used or wrong code can't be tried again
-      setCode("");
       return;
     }
     onSaved(r.summary);
@@ -150,19 +146,13 @@ export function DobDialog({
               <span>{kind === "id" ? "I checked this against the ID in this ticket's transcript." : "This is the date of birth the member gave (or the one on their ID)."}</span>
             </label>
 
-            <label className="dobd-code">
-              <span>
-                <Lock size={13} aria-hidden="true" /> 2FA code
-              </span>
-              <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="123456" inputMode="numeric" autoComplete="one-time-code" disabled={busy} maxLength={12} />
-              <small>From your authenticator app (or a backup code). Needed for every save.</small>
-            </label>
           </>
         ) : (
           <p className="dobd-note">Pick which date of birth you&apos;re recording.</p>
         )}
 
         <ul className="tkd-list dobd-rules">
+          <li>Needs two-factor authentication turned on for your account.</li>
           <li>Once saved it can&apos;t be changed from here.</li>
           <li>It&apos;s logged with your name in the admin log and the ticket log channel.</li>
         </ul>

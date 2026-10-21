@@ -71,6 +71,7 @@ const TAGS: Record<string, { label: string; bad: boolean }> = {
   "id-not-recorded": { label: "ID DOB not recorded", bad: false },
   left: { label: "Left the server", bad: false },
   deleted: { label: "Deleted account", bad: false },
+  "no-transcript": { label: "No transcript", bad: false },
 };
 
 type SummaryState = { summary?: TicketSummary; busy?: boolean; error?: string };
@@ -183,7 +184,7 @@ function SummaryLine({ s, onRefresh, ticket, canEdit, onSummary }: { s: SummaryS
       )}
       {s?.busy && sum ? <span className="tks-busy">Updating…</span> : null}
       {canRecordDob ? (
-        <button type="button" className="tks-adddob" onClick={() => setDobOpen(true)} title="Record a missing date of birth (2FA code needed)">
+        <button type="button" className="tks-adddob" onClick={() => setDobOpen(true)} title="Record a missing date of birth (needs 2FA on your account)">
           <Lock size={11} aria-hidden="true" /> Record DOB
         </button>
       ) : null}
@@ -374,7 +375,7 @@ export function TicketsTab({
             <span className="tk-chip-label">Tags</span>
             {tagKeys.map((k) => (
               <button key={k} type="button" className={`adm-chip tk-tag${TAGS[k].bad ? " is-bad" : ""}${filters.tags.includes(k) ? " is-on" : ""}`} style={{ "--c": TAGS[k].bad ? "#e5484d" : "#8b8d98" } as React.CSSProperties} onClick={() => update({ tags: toggle(filters.tags, k) })}>
-                {TAGS[k].bad ? <AlertTriangle size={12} aria-hidden="true" /> : k === "left" || k === "deleted" ? <UserX size={12} aria-hidden="true" /> : null} {TAGS[k].label} <small>{tagCounts[k] ?? 0}</small>
+                {TAGS[k].bad ? <AlertTriangle size={12} aria-hidden="true" /> : k === "left" || k === "deleted" ? <UserX size={12} aria-hidden="true" /> : k === "no-transcript" ? <FileText size={12} aria-hidden="true" /> : null} {TAGS[k].label} <small>{tagCounts[k] ?? 0}</small>
               </button>
             ))}
           </div>

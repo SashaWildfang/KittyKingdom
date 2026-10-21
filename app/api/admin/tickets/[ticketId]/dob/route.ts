@@ -10,7 +10,6 @@ import { getBotCollection, getJoinApplicationsCollection, getMongoClient } from 
 import { STAFF_LOG_CHANNEL_ID } from "../../../../../../lib/ticket-delete";
 import { summarizeTicket } from "../../../../../../lib/ticket-summary";
 import { getTicket, isNsfwTicket } from "../../../../../../lib/tickets";
-import { TwoFactorError, checkSecondFactor } from "../../../../../../lib/two-factor-account";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +19,7 @@ const fail = (error: string, status = 400) => NextResponse.json({ ok: false, err
 /**
  * Admins: record a missing date of birth on an 18+ verification ticket, either the one on the member's join
  * application or the one printed on their ID. Locked down:
- * - admins only, with 2FA turned on, and a fresh 2FA code for every save
+ * - admins only, with 2FA turned on for their account
  * - the date typed twice, and a confirmation that it was checked
  * - only fills in a missing date: one that's already recorded can't be changed here
  * - saved to the admin action log and posted in the ticket log channel
@@ -31,7 +30,7 @@ export async function POST(request: Request, { params }: { params: { ticketId: s
   const no2fa = await requireTwoFactorForAction();
   if (no2fa) return no2fa;
 
-  const body = (await request.json().catch(() => ({}))) as { kind?: string; dob?: string; repeat?: string; code?: string; checked?: boolean; openedBy?: string };
+  const body = (await request.json().catch(() => ({}))) as { kind?: string; dob?: string; repeat?: string; checked?: boolean; openedBy?: string };
   const kind = body.kind === "app" || body.kind === "id" ? body.kind : null;
   if (!kind) return fail("Pick which date of birth you're recording.");
   const ticket = await getTicket(Number(params.ticketId));
@@ -45,15 +44,9 @@ export async function POST(request: Request, { params }: { params: { ticketId: s
   if (!dob || dob.getUTCFullYear() < 1900 || dob.getTime() > Date.now()) return fail("Type the date like 10/12/2001.");
   if (!repeat || repeat.toISOString().slice(0, 10) !== dob.toISOString().slice(0, 10)) return fail("The two dates don't match. Type it the same way twice.");
 
-  // A fresh code from their authenticator app (or a backup code) for every save
+  // The real signed-in admin (not someone the owner is viewing the site as)
   const real = await getRealUser().catch(() => null);
   if (!real || String(real.discordId ?? "") !== admin.discordId) return fail("Sign in with your own admin account to do this.", 403);
-  try {
-    if (!(await checkSecondFactor(real, String(body.code ?? "").replace(/\s+/g, "")))) return fail("That 2FA code isn't right (or was already used). Try the next one.", 403);
-  } catch (error) {
-    if (error instanceof TwoFactorError) return fail(error.message, error.status);
-    throw error;
-  }
 
   const iso = dob.toISOString().slice(0, 10);
   const mdy = `${iso.slice(5, 7)}/${iso.slice(8, 10)}/${iso.slice(0, 4)}`;

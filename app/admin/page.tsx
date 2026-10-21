@@ -4,7 +4,7 @@ import { getCurrentUser, getRealUser } from "../../lib/auth";
 import { ShieldAlert } from "lucide-react";
 import { getDiscordInviteSummary } from "../../lib/discord";
 import { SiteNav } from "../site-nav";
-import { canDeleteNsfwTickets } from "../../lib/ticket-delete";
+import { canDeleteTickets } from "../../lib/ticket-delete";
 import { canManageGiveaways } from "../../lib/giveaway-access";
 import { AdminClient } from "./admin-client";
 
@@ -31,7 +31,7 @@ export default async function AdminPage() {
               </p>
             </div>
           ) : null}
-          <AdminClient adminName={panel.name} level={panel.level} canDeleteNsfw={canDeleteNsfwTickets(panel.level)} canGiveaways={await canManageGiveaways(panel)} />
+          <AdminClient adminName={panel.name} level={panel.level} canDeleteNsfw={await canDeleteTickets(panel)} canGiveaways={await canManageGiveaways(panel)} />
         </>
       ) : (
         <section className="store-gate">

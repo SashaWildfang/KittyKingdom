@@ -1,4 +1,4 @@
-// Deleting closed tickets: admins from the website (Admin → Tickets or a member's profile), and the automatic
+// Deleting closed tickets: owners from the website (Admin → Tickets or a member's profile), and the automatic
 // clean-up of people who left (lib/ticket-autoclean.ts). Removes the ticket record and its transcript upload
 // (zip + media parts) in the transcript log channel.
 // Open tickets are closed in Discord instead. After any deletion the remaining tickets are renumbered so
@@ -7,7 +7,7 @@
 
 import type { Document, WithId } from "mongodb";
 import type { PanelUser } from "./admin";
-import { deleteChannelMessage, postChannelMessage } from "./discord-member";
+import { deleteChannelMessage, memberRoleIdsCached, postChannelMessage } from "./discord-member";
 import { getBotCollection, getMongoClient } from "./mongodb";
 import { TRANSCRIPT_CHANNEL_ID } from "./transcript-store";
 
@@ -16,9 +16,18 @@ const NSFW = /nsfw/i;
 // Sasha (server owner): used by the owner-only database tools elsewhere
 export const OWNER_DISCORD_ID = "164577223162986498";
 
-/** Every admin can delete closed tickets, NSFW verification tickets included. */
-export function canDeleteNsfwTickets(level: string | null | undefined) {
-  return level === "admin";
+// The Owner role in the server
+const OWNER_ROLE_ID = "1358473248534167663";
+
+/** Only owners (Sasha, or anyone with the Owner role) can delete tickets, of any type. */
+export async function isTicketOwner(discordId: string | null | undefined) {
+  if (!discordId) return false;
+  if (discordId === OWNER_DISCORD_ID) return true;
+  return ((await memberRoleIdsCached(discordId).catch(() => null)) ?? []).includes(OWNER_ROLE_ID);
+}
+
+export async function canDeleteTickets(panel: { level: string; discordId: string } | null | undefined) {
+  return Boolean(panel && panel.level === "admin" && (await isTicketOwner(panel.discordId)));
 }
 
 export class TicketDeleteError extends Error {
@@ -103,7 +112,7 @@ export async function renumberTickets() {
 
 export async function deleteTicket(actor: PanelUser, ticketId: number, expect: { created?: string | null; openedBy?: string | null } = {}) {
   if (!Number.isInteger(ticketId) || ticketId < 0) throw new TicketDeleteError("That isn't a ticket number.");
-  if (actor.level !== "admin") throw new TicketDeleteError("Only admins can delete tickets.", 403);
+  if (actor.level !== "admin" || !(await isTicketOwner(actor.discordId))) throw new TicketDeleteError("Only the owner can delete tickets.", 403);
   const resolved = await getBotCollection("resolvedTickets");
   const idMatch = { ticket_id: { $in: [ticketId, String(ticketId)] } } as never;
   const doc = await resolved.findOne(idMatch);

@@ -60,12 +60,9 @@
 .dobd-option.is-on svg { color: var(--ember); }
 .dobd-option:disabled { cursor: not-allowed; opacity: 0.5; }
 .dobd-dates { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
-.dobd-dates label, .dobd-code { display: grid; gap: 0.3rem; font-size: 0.8rem; font-weight: 700; color: var(--muted); }
-.dobd-code > span { display: inline-flex; align-items: center; gap: 0.3rem; }
-.dobd-code small { font-weight: 500; font-size: 0.74rem; }
+.dobd-dates label { display: grid; gap: 0.3rem; font-size: 0.8rem; font-weight: 700; color: var(--muted); }
 .dobd input:not([type="checkbox"]) { border: 1px solid var(--line); border-radius: 0.65rem; background: var(--panel-strong); color: var(--text); font: inherit; font-size: 1rem; font-weight: 700; letter-spacing: 0.04em; padding: 0.55rem 0.65rem; }
 .dobd input:not([type="checkbox"]):focus { border-color: var(--ember); outline: none; }
-.dobd-code input { max-width: 11rem; letter-spacing: 0.2em !important; }
 .dobd-note { color: var(--muted); font-size: 0.8rem; }
 .dobd-note.is-bad, .dobd-age.is-bad { color: #ff9b9b; }
 .dobd-age { display: inline-flex; align-items: center; gap: 0.3rem; font-weight: 800; font-size: 0.9rem; }

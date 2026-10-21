@@ -5,13 +5,13 @@ import { AlertTriangle, Trash2, X } from "lucide-react";
 import { createContext, useContext, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
-/** True for admins, who can delete NSFW verification tickets too (the server checks as well). */
+/** True for owners: the only ones who can delete tickets, of any type (the server checks as well). */
 export const TicketDeletePermissions = createContext(false);
-/** True for admins. Other staff can look at tickets but not delete them (the server checks too). */
+/** True for admins (they can record DOBs and so on). Deleting needs TicketDeletePermissions (owners). */
 export const TicketCanDelete = createContext(false);
 
 /**
- * Delete a closed ticket and its transcript (admins). Opens a confirm dialog first; NSFW tickets also ask
+ * Delete a closed ticket and its transcript (owners only). Opens a confirm dialog first; NSFW tickets also ask
  * for the ticket number to be typed. Open tickets are closed in Discord instead.
  */
 export function DeleteTicketButton({
@@ -28,7 +28,8 @@ export function DeleteTicketButton({
   const mayDeleteNsfw = useContext(TicketDeletePermissions);
   const canDelete = useContext(TicketCanDelete);
   const nsfw = /nsfw/i.test(ticket.type);
-  if (ticket.status === "Open" || !canDelete || (nsfw && !mayDeleteNsfw)) return null;
+  // Owners only, for every ticket type
+  if (ticket.status === "Open" || !canDelete || !mayDeleteNsfw) return null;
 
   return (
     <>
