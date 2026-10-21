@@ -62,20 +62,28 @@ export async function POST(request: Request, { params }: { params: { ticketId: s
     const app = await getJoinApplication(ticket.openedBy);
     if (!app?._id) return fail("They don't have a join application to add it to.", 404);
     if (applicationBirthday(app).birthDate) return fail("Their join application already has a date of birth. It can't be changed here.", 409);
-    await (await getJoinApplicationsCollection()).updateOne(
-      { _id: app._id } as never,
+    // Only if nobody filled it in meanwhile (two admins saving at once: the second one gets the 409)
+    const res = await (await getJoinApplicationsCollection()).updateOne(
+      { _id: app._id, dobSetAt: { $exists: false } } as never,
       { $set: { dateOfBirth: mdy, dobSetBy: admin.discordId, dobSetByName: admin.name, dobSetAt: now, dobSetVia: "website", dobSetTicket: ticket.ticketId } },
     );
+    if (!res.modifiedCount) return fail("Their join application already has a date of birth. It can't be changed here.", 409);
   } else {
     const users = await getBotCollection("users");
     const filter = { discordId: { $in: [Long.fromString(ticket.openedBy), ticket.openedBy] } } as never;
-    const existing = await users.findOne(filter, { projection: { nsfwIdDob: 1 } });
-    if (existing?.nsfwIdDob) return fail("An ID date of birth is already recorded for them. It can't be changed here.", 409);
-    await users.updateOne(
-      filter,
-      { $set: { nsfwIdDob: iso, nsfwIdRecordedBy: admin.discordId, nsfwIdRecordedVia: "website", nsfwIdRecordedAt: now, nsfwIdRecordedTicket: ticket.ticketId }, $setOnInsert: { discordId: Long.fromString(ticket.openedBy) } },
-      { upsert: true },
-    );
+    const taken = () => fail("An ID date of birth is already recorded for them. It can't be changed here.", 409);
+    const fields = { nsfwIdDob: iso, nsfwIdRecordedBy: admin.discordId, nsfwIdRecordedVia: "website", nsfwIdRecordedAt: now, nsfwIdRecordedTicket: ticket.ticketId };
+    const existing = await users.findOne(filter, { projection: { _id: 1, nsfwIdDob: 1 } });
+    if (existing?.nsfwIdDob) return taken();
+    if (existing) {
+      // Only if it's still empty (two admins saving at once: the second one gets the 409)
+      const res = await users.updateOne({ _id: existing._id, nsfwIdDob: { $in: [null, ""] } } as never, { $set: fields });
+      if (!res.modifiedCount) return taken();
+    } else {
+      // No bot record yet: create it, unless one appeared meanwhile
+      const res = await users.updateOne(filter, { $setOnInsert: { discordId: Long.fromString(ticket.openedBy), ...fields } }, { upsert: true });
+      if (!res.upsertedCount) return taken();
+    }
   }
 
   const age = calculateAge(dob);
