@@ -1,22 +1,28 @@
-// Admin → Tickets: a short AI description of each ticket (a headline and 2–3 specific sentences).
+// Admin → Tickets: a one-line AI description of each ticket ("Asked about an announcement, Sasha explained
+// why it was made"). Staff who want more open the ticket.
 // Claude reads the conversation and up to MAX_IMAGES screenshots: from the live Discord channel while
 // the ticket is open, and from its transcript once it's closed. Summaries are saved, so each ticket is
 // only read again when something new happened (a new message, or the transcript arriving).
 //
-// Privacy: NSFW verification tickets hold ID photos, so their images are never sent, and the AI is
-// told to leave out ages, birthdays, real names, ID numbers and other personal details.
+// Privacy: NSFW verification tickets hold ID photos, so their images are never sent. Their outcome comes
+// from the server instead: whether the member has the 18+ Verified role now.
 //
 // website.ticket_summaries {_id: ticketId, headline, summary, key, messages, images, model, generatedAt, checkedAt}
 
 import { parse, type HTMLElement } from "node-html-parser";
 import type { PanelUser } from "./admin";
 import { AI_MODEL, AiError, aiEnabled, askClaude, type AiImage, type AiPart } from "./ai";
+import { memberRoleIdsCached } from "./discord-member";
 import { getMongoClient } from "./mongodb";
 import { ticketLive } from "./ticket-live";
 import { getTicket, isNsfwTicket, type Ticket } from "./tickets";
 import { openTranscriptFile } from "./transcript-store";
 
-const MAX_IMAGES = 6;
+const MAX_IMAGES = 4;
+/** Bump when the wording rules change: saved descriptions from an older version are written again */
+const VERSION = 2;
+const ADULT_VERIFIED_ROLE = "1358469974552870913";
+const MEMBER_ROLE = "1358469854725931038";
 const MAX_IMAGE_BYTES = 3_500_000;
 const MAX_TEXT = 24_000;
 const DAILY_LIMIT = Number(process.env.TICKET_SUMMARY_DAILY_LIMIT || 400);
@@ -33,7 +39,7 @@ export class SummaryError extends Error {
 
 export type TicketSummary = { ticketId: number; headline: string; summary: string; generatedAt: string | null; checkedAt: string | null; images: number; messages: number; stale: boolean };
 
-type Doc = { _id: number; headline: string; summary: string; key: string; messages: number; images: number; model: string; generatedAt: Date; checkedAt: Date };
+type Doc = { _id: number; headline: string; summary: string; key: string; version?: number; messages: number; images: number; model: string; generatedAt: Date; checkedAt: Date };
 
 async function col() {
   const client = await getMongoClient();
@@ -127,17 +133,22 @@ async function fromTranscript(ticket: Ticket): Promise<Source | null> {
 }
 
 // ------------------------------------------------------------------ asking Claude
-const SYSTEM = `You write short descriptions of Discord support tickets for the staff team of Bear Nation, an 18+ furry community server, so staff can tell what each ticket was about at a glance.
+const SYSTEM = `You label Discord support tickets for the staff of Bear Nation, an 18+ furry community server, so staff can tell tickets apart at a glance. Staff open the ticket themselves if they want details.
 
-Reply with JSON only: {"headline": "...", "summary": "..."}
-- headline: at most 9 words, specific (e.g. "Report: harassment in #general by a new member", "Lost 5,000 Leaves after a store purchase bug", "Asked to change their verified 18+ role").
-- summary: 2–3 sentences. Be concrete: what the member wanted or reported, the key details (names of people involved, channels, amounts, items, rule numbers, dates), what any screenshots actually show, what staff said or did, and how it ended (or that it's still waiting on someone).
-- Refer to the member who opened it as "the member" (or by their display name), and to staff by display name.
-- Never include ages, birthdays, real names, addresses, ID numbers, or anything read off an ID document or other personal documents. For verification tickets just say whether it was approved, denied or is pending, and why if staff said.
-- Don't guess. If there's very little in the ticket, say so briefly.`;
+Reply with ONE short plain sentence, at most 15 words. No JSON, no quotes, no headline, no labels, no lists.
+- Say what the member wanted and what happened, past tense, like:
+  "Asked about an announcement, Sasha explained why it was made."
+  "Reported spam DMs from a new member with screenshots, Kai banned them."
+  "Lost 2,000 Leaves to a store bug, refunded by Sasha."
+  "Wanted to join the staff team, still waiting on an admin."
+- Use staff display names. Call the member "the member" or leave them out.
+- Mention screenshots only if they matter, in a few words ("with screenshots of the DMs").
+- Never include ages, birthdays, real names, addresses or ID numbers.
+- 18+ verification tickets: just the result, e.g. "18+ verification, approved (now 18+ Verified)." or "18+ verification, denied: ID unreadable." Use the "Server check" line for whether they're verified now.
+- If there's almost nothing in the ticket, say so in a few words ("Opened, no messages sent.").`;
 
-function buildText(ticket: Ticket, lines: Line[], refs: Map<string, number>) {
-  const head = `Ticket #${ticket.ticketId} · type: ${ticket.type} · topic: ${ticket.topic || "none"} · status: ${ticket.status}${ticket.escalated ? " · escalated" : ""}`;
+function buildText(ticket: Ticket, lines: Line[], refs: Map<string, number>, serverCheck: string | null) {
+  const head = `Ticket #${ticket.ticketId} · type: ${ticket.type} · topic: ${ticket.topic || "none"} · status: ${ticket.status}${ticket.escalated ? " · escalated" : ""}${serverCheck ? `\nServer check: ${serverCheck}` : ""}`;
   const rows = lines.map((l) => {
     const pics = l.images.map((r) => (refs.has(r) ? ` [image ${refs.get(r)}]` : " [image not included]")).join("");
     const who = l.role === "bot" ? `${l.author} (bot)` : l.role === "opener" ? `${l.author} (member who opened it)` : l.role === "staff" ? `${l.author} (staff)` : l.author;
@@ -149,19 +160,34 @@ function buildText(ticket: Ticket, lines: Line[], refs: Map<string, number>) {
   return `${head}\n\nConversation:\n${body}`;
 }
 
+/** The one-line description, cleaned of anything that isn't the sentence (JSON, quotes, labels, code fences). */
 function parseReply(text: string) {
-  const json = text.match(/\{[\s\S]*\}/)?.[0];
-  try {
-    const v = JSON.parse(json ?? "") as { headline?: unknown; summary?: unknown };
-    const headline = squash(String(v.headline ?? "")).slice(0, 120);
-    const summary = squash(String(v.summary ?? "")).slice(0, 900);
-    if (headline || summary) return { headline, summary };
-  } catch {
-    // fall through
+  let out = text.trim().replace(/^```\w*|```$/g, "").trim();
+  // Older habits: {"headline": "...", "summary": "..."}: keep the shortest useful part
+  if (/^\{[\s\S]*\}$/.test(out)) {
+    try {
+      const v = JSON.parse(out) as Record<string, unknown>;
+      out = String(v.description ?? v.headline ?? v.summary ?? Object.values(v)[0] ?? "");
+    } catch {
+      out = out.replace(/"(headline|summary|description)"\s*:\s*/gi, "").replace(/[{}"]/g, " ");
+    }
   }
-  const plain = squash(text);
-  if (!plain) throw new AiError("The AI didn't send a description back.");
-  return { headline: plain.split(/(?<=[.!?])\s/)[0].slice(0, 120), summary: plain.slice(0, 900) };
+  out = squash(out.replace(/^(headline|summary|description|label)\s*[:\-–]\s*/i, "").replace(/^["'“”]+|["'“”]+$/g, ""));
+  // One sentence, ~20 words at most
+  const first = out.match(/^.*?[.!?](?=\s|$)/)?.[0] ?? out;
+  const words = first.split(" ");
+  const line = words.length > 22 ? `${words.slice(0, 20).join(" ")}…` : first;
+  if (!line) throw new AiError("The AI didn't send a description back.");
+  return { headline: line.slice(0, 200), summary: "" };
+}
+
+/** For 18+ verification tickets: the result, read from the server rather than from the ID photos. */
+async function serverCheck(ticket: Ticket) {
+  if (!isNsfwTicket(ticket.type) || !ticket.openedBy) return null;
+  const roles = await memberRoleIdsCached(ticket.openedBy).catch(() => null);
+  if (!roles) return "the member isn't in the server any more (or couldn't be checked).";
+  if (roles.includes(ADULT_VERIFIED_ROLE)) return "the member HAS the 18+ Verified role now.";
+  return `the member does NOT have the 18+ Verified role${roles.includes(MEMBER_ROLE) ? " (they are a verified member)" : ""}.`;
 }
 
 // ------------------------------------------------------------------ public
@@ -184,7 +210,12 @@ export async function savedSummaries(tickets: Ticket[]) {
   for (const t of tickets) {
     const d = byId.get(t.ticketId);
     if (!d) continue;
-    const stale = t.status === "Open" ? Date.now() - (d.checkedAt?.getTime() ?? 0) > RECHECK_MS : Boolean(t.transcriptId) && d.key !== `t:${t.transcriptId}`;
+    const sinceCheck = Date.now() - (d.checkedAt?.getTime() ?? 0);
+    const stale =
+      (d.version ?? 1) !== VERSION ||
+      (t.status === "Open" ? sinceCheck > RECHECK_MS : Boolean(t.transcriptId) && d.key.split("|")[0] !== `t:${t.transcriptId}`) ||
+      // 18+ verification: look at the member's roles again once a day (no AI call unless they changed)
+      (isNsfwTicket(t.type) && sinceCheck > 86_400_000);
     out[t.ticketId] = view(d, stale);
   }
   return out;
@@ -203,7 +234,10 @@ export async function summarizeTicket(ticketId: number, panel: PanelUser, force 
     if (saved) return view(saved, false);
     throw new SummaryError(ticket.transcriptId ? "Couldn't read this ticket's transcript." : "There's nothing left to read: this ticket has no transcript.", 404);
   }
-  if (saved && saved.key === source.key && !force) {
+  // 18+ verification tickets: their result depends on the member's roles, so that's part of the key too
+  const check = await serverCheck(ticket);
+  const key = check ? `${source.key}|${check}` : source.key;
+  if (saved && saved.key === key && (saved.version ?? 1) === VERSION && !force) {
     await c.updateOne({ _id: ticketId }, { $set: { checkedAt: new Date() } });
     return view({ ...saved, checkedAt: new Date() }, false);
   }
@@ -230,11 +264,11 @@ export async function summarizeTicket(ticketId: number, panel: PanelUser, force 
       parts.push({ type: "text", text: `[image ${refs.size}]` }, { type: "image", image: img });
     }
   }
-  parts.unshift({ type: "text", text: buildText(ticket, source.lines, refs) });
+  parts.unshift({ type: "text", text: buildText(ticket, source.lines, refs, check) });
 
-  const reply = parseReply(await askClaude({ system: SYSTEM, parts, maxTokens: 500 }));
+  const reply = parseReply(await askClaude({ system: SYSTEM, parts, maxTokens: 120 }));
   const now = new Date();
-  const doc: Doc = { _id: ticketId, ...reply, key: source.key, messages: source.lines.length, images: refs.size, model: AI_MODEL, generatedAt: now, checkedAt: now };
+  const doc: Doc = { _id: ticketId, ...reply, key, version: VERSION, messages: source.lines.length, images: refs.size, model: AI_MODEL, generatedAt: now, checkedAt: now };
   await c.replaceOne({ _id: ticketId }, doc, { upsert: true });
   return view(doc, false);
 }
