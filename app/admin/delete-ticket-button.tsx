@@ -115,10 +115,13 @@ function ConfirmDelete({
         </ul>
         {nsfw ? (
           <label className="tkd-typed">
-            <span>
-              <AlertTriangle size={14} aria-hidden="true" /> This is an 18+ verification ticket. Type <b>{ticket.ticketId}</b> to confirm.
+            <span className="tkd-typed-note">
+              <AlertTriangle size={14} aria-hidden="true" /> This is an 18+ verification ticket.
             </span>
-            <input autoFocus inputMode="numeric" value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={String(ticket.ticketId)} disabled={busy} />
+            <span className="tkd-typed-ask">
+              To confirm, type <b>{ticket.ticketId}</b>
+            </span>
+            <input autoFocus inputMode="numeric" value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={String(ticket.ticketId)} disabled={busy} aria-label={`Type ${ticket.ticketId} to confirm`} />
           </label>
         ) : null}
         {error ? <p className="tkd-error">{error}</p> : null}

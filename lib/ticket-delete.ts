@@ -35,10 +35,17 @@ async function removeTicket(actor: PanelUser, doc: WithId<Document>, how: "singl
   const messageIds = [snowflake(doc.transcript_id), ...((Array.isArray(doc.transcript_parts) ? doc.transcript_parts : []) as unknown[]).map(snowflake)].filter(
     (id): id is string => Boolean(id),
   );
-  // The transcript upload first: if Discord refuses, nothing is deleted and it can be retried
+  // The transcript upload first. The uploads are the Ticket Bot's own messages: if this bot isn't allowed to
+  // delete them (no Manage Messages there), the Ticket Bot is asked to (it can always delete its own).
+  const handOff: string[] = [];
   for (const id of messageIds) {
     const res = await deleteChannelMessage(TRANSCRIPT_CHANNEL_ID, id, `Ticket #${ticketId} deleted from the website by ${actor.name}`);
-    if (!res.ok && res.status !== 404) throw new TicketDeleteError(`Discord wouldn't delete ticket #${ticketId}'s transcript. Nothing was deleted for it; try again in a minute.`, 502);
+    if (res.ok) continue;
+    if (res.forbidden) handOff.push(id);
+    else throw new TicketDeleteError(`Discord is busy and didn't delete ticket #${ticketId}'s transcript (error ${res.status || "network"}). Nothing was deleted for it; try again in a minute.`, 502);
+  }
+  if (handOff.length) {
+    await (await getBotCollection("transcript_delete_queue")).insertOne({ channelId: TRANSCRIPT_CHANNEL_ID, messageIds: handOff, ticketId, by: actor.discordId, status: "pending", tries: 0, createdAt: new Date() });
   }
   const removed = await (await getBotCollection("resolvedTickets")).deleteOne({ _id: doc._id });
   if (!removed.deletedCount) throw new TicketDeleteError(`Ticket #${ticketId} couldn't be deleted.`, 409);
@@ -53,7 +60,7 @@ async function removeTicket(actor: PanelUser, doc: WithId<Document>, how: "singl
     .collection("admin_audit")
     .insertOne({ at: new Date(), action: how === "cleanup" ? "ticket-cleanup" : "ticket-delete", ticketId, ticketType: String(doc.ticket_type ?? "support"), openedBy: snowflake(doc.opened_by), transcriptMessages: messageIds, adminDiscordId: actor.discordId, adminName: actor.name })
     .catch(() => undefined);
-  return messageIds.length;
+  return { uploads: messageIds.length, handedOff: handOff.length };
 }
 
 /**
@@ -99,7 +106,7 @@ export async function deleteTicket(actor: PanelUser, ticketId: number, expect: {
     throw new TicketDeleteError(`Ticket numbers changed since this page loaded (#${ticketId} is a different ticket now). Reload and try again.`, 409);
   }
   const type = String(doc.ticket_type ?? "support");
-  const uploads = await removeTicket(actor, doc, "single");
+  const { uploads, handedOff } = await removeTicket(actor, doc, "single");
   const renumbered = await renumberTickets();
 
   const openedBy = snowflake(doc.opened_by);
@@ -125,7 +132,7 @@ export async function deleteTicket(actor: PanelUser, ticketId: number, expect: {
     ],
   }).catch(() => false);
 
-  return { message: `Ticket #${ticketId} deleted.${renumbered.moved ? ` ${renumbered.moved} later ticket${renumbered.moved === 1 ? "" : "s"} moved down one number.` : ""}`, renumbered };
+  return { message: `Ticket #${ticketId} deleted.${handedOff ? " The Ticket Bot is removing its transcript from Discord." : ""}${renumbered.moved ? ` ${renumbered.moved} later ticket${renumbered.moved === 1 ? "" : "s"} moved down one number.` : ""}`, renumbered };
 }
 
 // ------------------------------------------------------------------ clean-up (bulk delete old tickets)
@@ -152,11 +159,25 @@ async function cleanupMatch(f: CleanupFilter): Promise<Document> {
 export async function cleanupPreview(f: CleanupFilter) {
   const resolved = await getBotCollection("resolvedTickets");
   const match = await cleanupMatch(f);
-  const [count, sample] = await Promise.all([
+  const [count, sample, byType, span] = await Promise.all([
     resolved.countDocuments(match),
     resolved.find(match, { projection: { ticket_id: 1, ticket_type: 1, created: 1, opened_by: 1 } }).sort({ ticket_id: 1 }).limit(8).toArray(),
+    resolved.aggregate([{ $match: match }, { $group: { _id: "$ticket_type", n: { $sum: 1 } } }, { $sort: { n: -1 } }]).toArray(),
+    resolved.aggregate([{ $match: match }, { $group: { _id: null, first: { $min: "$created" }, last: { $max: "$created" }, low: { $min: "$ticket_id" }, high: { $max: "$ticket_id" } } }]).toArray(),
   ]);
-  return { count, sample: sample.map((d) => ({ ticketId: Number(d.ticket_id), type: String(d.ticket_type ?? "support"), created: d.created instanceof Date ? d.created.toISOString() : null })) };
+  const months = Math.max(1, Math.min(120, Math.round(f.olderThanMonths)));
+  const before = new Date();
+  before.setUTCMonth(before.getUTCMonth() - months);
+  const iso = (d: unknown) => (d instanceof Date ? d.toISOString() : null);
+  return {
+    count,
+    before: before.toISOString(),
+    byType: byType.map((t) => ({ type: String(t._id ?? "support"), count: Number(t.n) })),
+    oldest: iso(span[0]?.first),
+    newest: iso(span[0]?.last),
+    range: span[0] ? { low: Number(span[0].low), high: Number(span[0].high) } : null,
+    sample: sample.map((d) => ({ ticketId: Number(d.ticket_id), type: String(d.ticket_type ?? "support"), created: iso(d.created) })),
+  };
 }
 
 /** Deletes up to `limit` matching tickets (the page calls this until nothing's left, then finishes). */
