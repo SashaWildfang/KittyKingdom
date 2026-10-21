@@ -29,7 +29,7 @@ export async function people(ids: (string | null | undefined)[]): Promise<Record
 export function dateRange(params: URLSearchParams) {
   const range = params.get("range");
   const now = Date.now();
-  const days = { "24h": 1, "7d": 7, "30d": 30, "90d": 90, "1y": 365 }[range ?? ""] as number | undefined;
+  const days = { "24h": 1, "7d": 7, "30d": 30, "90d": 90, "6m": 182, "1y": 365, "2y": 730 }[range ?? ""] as number | undefined;
   const from = params.get("from") ? new Date(params.get("from")!) : days ? new Date(now - days * 86_400_000) : null;
   const to = params.get("to") ? new Date(params.get("to")!) : null;
   return {

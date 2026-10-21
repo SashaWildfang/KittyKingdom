@@ -31,7 +31,8 @@ export async function DELETE(request: Request, { params }: { params: { ticketId:
   const twoFactor = await requireTwoFactorForAction();
   if (twoFactor) return twoFactor;
   try {
-    const result = await deleteTicket(admin, Number(params.ticketId));
+    const q = new URL(request.url).searchParams;
+    const result = await deleteTicket(admin, Number(params.ticketId), { created: q.get("created"), openedBy: q.get("openedBy") });
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
     if (error instanceof TicketDeleteError) return NextResponse.json({ ok: false, error: error.message }, { status: error.status });

@@ -1,36 +1,55 @@
-// Admin → Tickets: a short AI description of each ticket ("Asked about an announcement, Sasha explained
-// why it was made"; manual tickets get a bit more). 18+ verification tickets: "Verified by Oberon. DOB
-// 10/12/2001 (Age: 25)" plus flags. Staff who want more open the ticket.
-// Claude reads the conversation and up to MAX_IMAGES screenshots: from the live Discord channel while
-// the ticket is open, and from its transcript once it's closed. Summaries are saved, so each ticket is
-// only read again when something new happened (a new message, or the transcript arriving).
+// Admin → Tickets: a short description of each ticket, shown under it.
+//  - Most tickets: one AI sentence ("Asked about an announcement, Sasha explained why it was made").
+//  - Manual tickets (opened by staff): 1–3 sentences from the stronger model, with why it was opened.
+//  - 18+ verification tickets: no AI at all. Built from our own data: "Verified by Oberon · Age Provided:
+//    24, ID Age: 24 ✓", from the join application, the verification record the Ticket Bot saves
+//    (users.nsfwIdDob, typed in by staff from the ID), their roles and whether they sent photos.
+// Each description also gets tags (codes like "no-photo", "dob-mismatch") that the page can filter by.
+// The AI reads the conversation and screenshots (from the live channel while open, the transcript once
+// closed). ID photos are never sent anywhere.
 //
-// Privacy: 18+ verification tickets hold ID photos, so their images are never sent. The AI reads the chat
-// for the result; the DOB comes from the member's join application, and the age, flags and whether they
-// have the 18+ Verified role are worked out here.
-//
-// website.ticket_summaries {_id: ticketId, headline, summary, key, messages, images, model, generatedAt, checkedAt}
+// website.ticket_summaries {_id: ticketId, headline, flags, tags, key, version, messages, images, model, generatedAt, checkedAt}
 
+import { Long } from "mongodb";
 import { parse, type HTMLElement } from "node-html-parser";
 import type { PanelUser } from "./admin";
-import { AI_MODEL, AiError, aiEnabled, askClaude, type AiImage, type AiPart } from "./ai";
+import { people } from "./admin-people";
+import { AI_MODEL, AI_MODEL_DETAILED, AiError, aiEnabled, askClaude, type AiImage, type AiPart } from "./ai";
 import { calculateAge, parseAge } from "./dates";
 import { memberRoleIdsCached } from "./discord-member";
 import { applicationBirthday, getJoinApplication } from "./join-application";
-import { getMongoClient } from "./mongodb";
+import { getBotCollection, getMongoClient } from "./mongodb";
+import { notify } from "./notifications";
 import { ticketLive } from "./ticket-live";
 import { getTicket, isNsfwTicket, type Ticket } from "./tickets";
 import { openTranscriptFile } from "./transcript-store";
 
-const MAX_IMAGES = 4;
 /** Bump when the wording rules change: saved descriptions from an older version are written again */
-const VERSION = 3;
+const VERSION = 4;
+const MAX_IMAGES = 20;
+const MAX_IMAGE_BYTES = 3_750_000;
+const MAX_TEXT = 150_000;
+/** 0 = no daily limit (TICKET_SUMMARY_DAILY_LIMIT sets one) */
+const DAILY_LIMIT = Number(process.env.TICKET_SUMMARY_DAILY_LIMIT || 0);
 const ADULT_VERIFIED_ROLE = "1358469974552870913";
-const MAX_IMAGE_BYTES = 3_500_000;
-const MAX_TEXT = 24_000;
-const DAILY_LIMIT = Number(process.env.TICKET_SUMMARY_DAILY_LIMIT || 400);
 /** Open tickets are checked for new messages at most this often */
 export const RECHECK_MS = 10 * 60_000;
+/** 18+ tickets cost nothing to rebuild (no AI): their roles / records are looked at again this often */
+const NSFW_RECHECK_MS = 60 * 60_000;
+
+/** Every tag the page can filter by. `bad` ones show red and some notify admins. */
+export const TICKET_TAGS: Record<string, { label: string; bad: boolean }> = {
+  "dob-mismatch": { label: "DOB mismatch", bad: true },
+  "under-18": { label: "Under 18", bad: true },
+  "no-photo": { label: "No photo submitted", bad: true },
+  "no-join-app": { label: "No join application", bad: true },
+  "no-app-dob": { label: "No DOB on join app", bad: true },
+  "app-age-mismatch": { label: "Join app age ≠ its DOB", bad: true },
+  "no-role": { label: "Verified, no 18+ role", bad: true },
+  "id-not-recorded": { label: "ID DOB not recorded", bad: false },
+  left: { label: "Left the server", bad: false },
+  deleted: { label: "Deleted account", bad: false },
+};
 
 export class SummaryError extends Error {
   status: number;
@@ -40,16 +59,16 @@ export class SummaryError extends Error {
   }
 }
 
-export type TicketSummary = { ticketId: number; headline: string; summary: string; flags: string[]; generatedAt: string | null; checkedAt: string | null; images: number; messages: number; stale: boolean };
+export type TicketSummary = { ticketId: number; headline: string; summary: string; flags: string[]; tags: string[]; generatedAt: string | null; checkedAt: string | null; images: number; messages: number; stale: boolean };
 
-type Doc = { _id: number; headline: string; summary: string; flags?: string[]; key: string; version?: number; messages: number; images: number; model: string; generatedAt: Date; checkedAt: Date };
+type Doc = { _id: number; headline: string; summary: string; flags?: string[]; tags?: string[]; key: string; version?: number; messages: number; images: number; model: string; generatedAt: Date; checkedAt: Date; notified?: boolean };
 
 async function col() {
   const client = await getMongoClient();
   return client.db(process.env.MONGODB_DB ?? "website").collection<Doc>("ticket_summaries");
 }
 
-type Line = { author: string; role: "opener" | "staff" | "bot" | "other"; time: string; text: string; images: string[] };
+type Line = { author: string; authorId: string | null; role: "opener" | "staff" | "bot" | "other"; time: string; text: string; images: string[] };
 type Source = { key: string; lines: Line[]; loadImage: (ref: string) => Promise<AiImage | null> };
 
 const TYPES: Record<string, AiImage["mediaType"]> = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp" };
@@ -76,6 +95,7 @@ async function fromChannel(ticket: Ticket): Promise<Source | null> {
   if (!live || live.gone || !live.messages.length) return null;
   const lines: Line[] = live.messages.map((m) => ({
     author: m.author,
+    authorId: m.authorId,
     role: m.bot ? "bot" : m.authorId === ticket.openedBy ? "opener" : "staff",
     time: m.at,
     text: squash(
@@ -115,6 +135,7 @@ async function fromTranscript(ticket: Ticket): Promise<Source | null> {
       .filter((src, i, all) => src && all.indexOf(src) === i && mediaTypeOf(src) && !/^avatars\/|emojis\//.test(src));
     return {
       author: name,
+      authorId: authorId || null,
       role: bot ? "bot" : authorId && authorId === ticket.openedBy ? "opener" : staff ? "staff" : "other",
       time: squash(author?.querySelector(".timestamp")?.text ?? ""),
       text: squash([content, ...embeds].filter(Boolean).join(" | ")),
@@ -136,7 +157,7 @@ async function fromTranscript(ticket: Ticket): Promise<Source | null> {
 }
 
 // ------------------------------------------------------------------ asking Claude
-const COMMON = `You write short labels for Discord support tickets for the staff of Bear Nation, an 18+ furry community server, so staff can tell tickets apart at a glance. Staff open the ticket themselves for details. Use staff display names. Call the member "the member" or leave them out. Never include ages, birthdays, real names, addresses or ID numbers.`;
+const COMMON = `You write short labels for Discord support tickets for the staff of Bear Nation, an 18+ furry community server, so staff can tell tickets apart at a glance. Staff open the ticket themselves for details. Use staff display names. Call the member "the member" or leave them out. Never include ages, birthdays, real names, addresses or ID numbers. Always write a label from what's there, even if the ticket is messy; never say you can't.`;
 
 const SYSTEM_GENERAL = `${COMMON}
 
@@ -145,28 +166,22 @@ Reply with ONE plain sentence, at most 18 words. No JSON, no quotes, no labels. 
 "Reported spam DMs from a new member with screenshots, Kai banned them."
 "Lost 2,000 Leaves to a store bug, refunded by Sasha."
 "Wanted to join the staff team, still waiting on an admin."
-Mention screenshots only if they matter, saying what they show in a few words. If there's almost nothing: "Opened, no messages sent."`;
+Mention screenshots only if they matter, saying what they show in a few words. If there's truly nothing: "Opened, no messages sent."`;
 
 const SYSTEM_MANUAL = `${COMMON}
 
-This is a manual ticket: staff opened it themselves to deal with something specific about a member. Reply with 1–2 plain sentences, at most 35 words. No JSON, no quotes, no labels. Say why staff opened it (the issue, who's involved, what the screenshots show), what was said, and how it ended:
+This is a manual ticket: a staff member opened it themselves to deal with something about a member (a rule break, a report against them, a question, an appeal, a check-in…). The first bot message may only say it was opened by staff: the reason is in what people say after it and in the screenshots, so read all of it.
+
+Reply with 1–3 plain sentences, at most 50 words. No JSON, no quotes, no labels. Cover: why staff opened it (the issue, who's involved, what the screenshots show), what was said, and how it ended or what it's waiting on:
 "Sasha opened it over insults in #general (screenshots of three messages); the member apologized and got a warning."
-"Kibby asked the member about an alt account seen in VC; they admitted it and the alt was banned."`;
-
-const SYSTEM_NSFW = `You read the conversation of an 18+ (NSFW) verification ticket for the staff of Bear Nation, an 18+ furry community server. The member sends an ID photo (and usually a selfie) and staff check they're 18 or older. You only see the text, not the photos.
-
-Reply with JSON only, nothing before or after it:
-{"result": "verified" | "denied" | "pending" | "no-id", "by": "display name of the staff member who verified or denied, or null", "issues": [], "note": null}
-- result: "verified" if staff approved them / gave access, "denied" if staff refused, "pending" if still waiting on staff, "no-id" if the member never sent an ID.
-- issues: short problems staff mentioned in the chat, e.g. "ID photo blurry", "no selfie", "ID expired", "staff unsure the ID is real". Empty list if none.
-- note: for denied or no-id, the reason in under 8 words; otherwise null.
-- Never include ages, birthdays, names or ID numbers.`;
+"Kibby asked the member about an alt account seen in VC; they admitted it and the alt was banned."
+"Spindle checked in after reports of DM harassment (two screenshots); the member denied it and staff are still reviewing."`;
 
 function buildText(ticket: Ticket, lines: Line[], refs: Map<string, number>) {
   const head = `Ticket #${ticket.ticketId} · type: ${ticket.type} · topic: ${ticket.topic || "none"} · status: ${ticket.status}${ticket.escalated ? " · escalated" : ""}`;
   const rows = lines.map((l) => {
     const pics = l.images.map((r) => (refs.has(r) ? ` [image ${refs.get(r)}]` : " [image]")).join("");
-    const who = l.role === "bot" ? `${l.author} (bot)` : l.role === "opener" ? `${l.author} (member who opened it)` : l.role === "staff" ? `${l.author} (staff)` : l.author;
+    const who = l.role === "bot" ? `${l.author} (bot)` : l.role === "opener" ? `${l.author} (member the ticket is for)` : l.role === "staff" ? `${l.author} (staff)` : l.author;
     return `${l.time ? `[${l.time}] ` : ""}${who}: ${l.text || "(no text)"}${pics}`;
   });
   let body = rows.join("\n");
@@ -186,81 +201,82 @@ function plainLine(text: string, maxSentences: number, maxWords: number) {
   const sentences = out.match(/[^.!?]+[.!?]+(?=\s|$)/g) ?? [out];
   let line = squash(sentences.slice(0, maxSentences).join(" ")) || out;
   const words = line.split(" ");
-  if (words.length > maxWords + 4) line = `${words.slice(0, maxWords).join(" ")}…`;
+  if (words.length > maxWords + 6) line = `${words.slice(0, maxWords).join(" ")}…`;
   if (!line) throw new AiError("The AI didn't send a description back.");
-  return line.slice(0, 300);
+  return line.slice(0, 400);
 }
 
-type NsfwFacts = { roles: string[] | null; hasApp: boolean; joinDob: Date | null; joinAge: number | null; statedAge: number | null; appliedAt: Date | null };
-
-/** For 18+ verification tickets: the member's roles now, and the birthday from their join application. */
-async function nsfwFacts(ticket: Ticket): Promise<NsfwFacts | null> {
-  if (!isNsfwTicket(ticket.type) || !ticket.openedBy) return null;
-  const [roles, app] = await Promise.all([memberRoleIdsCached(ticket.openedBy).catch(() => null), getJoinApplication(ticket.openedBy)]);
-  const birth = applicationBirthday(app);
-  const at = app?.submittedAt ? new Date(String(app.submittedAt instanceof Date ? app.submittedAt.toISOString() : app.submittedAt)) : null;
-  return { roles, hasApp: Boolean(app), joinDob: birth.birthDate, joinAge: birth.age, statedAge: parseAge(birth.raw) ?? statedAgeOf(birth.raw), appliedAt: at && !Number.isNaN(at.getTime()) ? at : null };
-}
-
-/** "22, 10/12/2001" or "22 - 10/12/2001": the age they wrote before the date. */
+// ------------------------------------------------------------------ 18+ verification (no AI)
+/** "22, 10/12/2001" or "22 - 10/12/2001": the age they wrote before the date (a plain date isn't an age). */
 const statedAgeOf = (raw: string | null) => {
-  // A plain date ("25/12/1990", "12-25-1990") isn't an age
   if (!raw || /^\s*\d{1,4}[/.\-]\d{1,2}[/.\-]\d{1,4}/.test(raw)) return null;
   const m = /^\s*(\d{2})\s*(?:,|\s[-–|]\s|\band\b|\s+\d)/i.exec(raw);
   const n = m ? Number(m[1]) : NaN;
   return n >= 13 && n <= 99 ? n : null;
 };
-
 const mdy = (d: Date) => `${String(d.getUTCMonth() + 1).padStart(2, "0")}/${String(d.getUTCDate()).padStart(2, "0")}/${d.getUTCFullYear()}`;
+const sameDay = (a: Date, b: Date) => a.toISOString().slice(0, 10) === b.toISOString().slice(0, 10);
+const isoDate = (v: unknown) => {
+  const m = typeof v === "string" ? /^(\d{4})-(\d{2})-(\d{2})/.exec(v) : null;
+  const d = m ? new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]))) : v instanceof Date ? v : null;
+  return d && !Number.isNaN(d.getTime()) ? d : null;
+};
 
-/** "Verified by Oberon. DOB 10/12/2001 (Age: 25)" (DOB from their join application), plus flags worked out here. */
-function nsfwLine(text: string, facts: NsfwFacts) {
-  const raw = text.match(/\{[\s\S]*\}?/)?.[0] ?? "";
-  let r: { result?: string; by?: string | null; issues?: string[]; note?: string | null } = {};
-  // The reply can be cut off before its closing brace: try closing it, else read the fields one by one
-  const tries = [raw, `${raw}}`, `${raw}"}`, `${raw}"]}`, `${raw}]}`];
-  const parsed = tries.map((t) => {
-    try {
-      return JSON.parse(t) as typeof r;
-    } catch {
-      return null;
-    }
-  }).find(Boolean);
-  if (parsed) r = parsed;
-  else {
-    const pick = (k: string) => new RegExp(`"${k}"\\s*:\\s*"([^"]*)"`).exec(raw)?.[1];
-    const list = /"issues"\s*:\s*\[([^\]]*)/.exec(raw)?.[1] ?? "";
-    r = { result: pick("result"), by: pick("by"), note: pick("note"), issues: Array.from(list.matchAll(/"([^"]+)"/g), (m) => m[1]) };
-  }
-  const by = r.by && r.by !== "null" ? r.by : "staff";
-  const note = r.note && r.note !== "null" ? r.note.replace(/[.\s]+$/, "") : "";
-  let line = !r.result
-    ? plainLine(text, 1, 14)
-    : r.result === "verified"
-      ? `Verified by ${by}.`
-      : r.result === "denied"
-        ? `Denied by ${by}${note ? `: ${note}` : ""}.`
-        : r.result === "no-id"
-          ? `No ID sent${note ? `: ${note}` : ""}.`
-          : "Waiting for review.";
+async function nsfwDescription(ticket: Ticket, source: Source | null) {
+  const id = ticket.openedBy;
+  const [roles, app, record, who] = await Promise.all([
+    id ? memberRoleIdsCached(id).catch(() => null) : Promise.resolve(null),
+    id ? getJoinApplication(id) : Promise.resolve(null),
+    // The bot stores ids as 64-bit numbers (a plain JS number would round them)
+    id ? getBotCollection("users").then((c) => c.findOne({ discordId: { $in: [Long.fromString(id), id] } } as never, { projection: { nsfwVerifiedBy: 1, nsfwVerifiedAt: 1, nsfwIdDob: 1 } })).catch(() => null) : Promise.resolve(null),
+    id ? people([id]).catch(() => ({}) as Record<string, { deleted?: boolean; inServer?: boolean }>) : Promise.resolve({} as Record<string, { deleted?: boolean; inServer?: boolean }>),
+  ]);
+  const verifiedBy = record?.nsfwVerifiedBy ? String(record.nsfwVerifiedBy) : null;
+  const verifierName = verifiedBy ? ((await people([verifiedBy]).catch(() => ({}) as Record<string, { name?: string }>))[verifiedBy]?.name ?? "staff") : null;
+  const birth = applicationBirthday(app);
+  const appDob = birth.birthDate;
+  const idDob = isoDate(record?.nsfwIdDob);
+  const has18 = Boolean(roles?.includes(ADULT_VERIFIED_ROLE));
+  const verified = Boolean(record?.nsfwVerifiedAt) || has18;
+  // Photos the member sent: the opener's, or on old transcripts without author ids, anyone who isn't staff or the bot
+  const lines = source?.lines ?? [];
+  const hasOpener = lines.some((l) => l.role === "opener");
+  const photos = lines.filter((l) => (hasOpener ? l.role === "opener" : l.role === "other")).reduce((n, l) => n + l.images.length, 0);
+
+  const tags: string[] = [];
+  const parts: string[] = [];
+  parts.push(verified ? `Verified by ${verifierName ?? "staff"}` : ticket.status === "Open" ? "Waiting for review" : "Not verified");
+  const appAge = appDob ? calculateAge(appDob) : birth.age;
+  const idAge = idDob ? calculateAge(idDob) : null;
+  const match = appDob && idDob ? sameDay(appDob, idDob) : appAge !== null && idAge !== null ? appAge === idAge : null;
+  parts.push(`Age Provided: ${appAge ?? "?"}, ID Age: ${idAge ?? "not recorded"}${match === true ? " ✓" : match === false ? " ✗" : ""}`);
   const flags: string[] = [];
-  if (facts.joinDob) {
-    const age = calculateAge(facts.joinDob);
-    line += ` DOB ${mdy(facts.joinDob)} (Age: ${age})`;
-    if (age < 18) flags.push("Join app says under 18");
-    // The age they wrote vs the DOB they wrote, as of the day they applied
-    if (facts.statedAge !== null && facts.appliedAt && Math.abs(facts.statedAge - calculateAge(facts.joinDob, facts.appliedAt)) >= 1) flags.push(`Join app age (${facts.statedAge}) doesn't match its DOB`);
-  } else if (facts.joinAge !== null) {
-    line += ` Age ${facts.joinAge} (join app, no DOB)`;
-    if (facts.joinAge < 18) flags.push("Join app says under 18");
-  } else {
-    flags.push(facts.hasApp ? "No DOB on the join app" : "No join application found");
+  if (!app) tags.push("no-join-app");
+  else if (!appDob) tags.push("no-app-dob");
+  if (match === false) {
+    tags.push("dob-mismatch");
+    flags.push(`DOB mismatch: join app ${appDob ? mdy(appDob) : `age ${appAge}`}, ID ${idDob ? mdy(idDob) : `age ${idAge}`}`);
   }
-  if (facts.roles === null) line += " Left the server.";
-  else if (r.result === "verified" && !facts.roles.includes(ADULT_VERIFIED_ROLE)) flags.push("Doesn't have the 18+ Verified role");
-  else if (r.result === "denied" && facts.roles.includes(ADULT_VERIFIED_ROLE)) flags.push("Denied here but has the 18+ Verified role");
-  for (const issue of (Array.isArray(r.issues) ? r.issues : []).slice(0, 3)) if (typeof issue === "string" && issue.trim()) flags.push(squash(issue).slice(0, 60));
-  return { line, flags };
+  if ((appAge !== null && appAge < 18) || (idAge !== null && idAge < 18)) tags.push("under-18");
+  const stated = statedAgeOf(birth.raw) ?? parseAge(birth.raw);
+  const appliedAt = isoDate(app?.submittedAt instanceof Date ? app.submittedAt : typeof app?.submittedAt === "string" ? app.submittedAt : null);
+  if (stated !== null && appDob && appliedAt && Math.abs(stated - calculateAge(appDob, appliedAt)) >= 1) tags.push("app-age-mismatch");
+  if (source && photos === 0) tags.push("no-photo");
+  if (verified && !idDob) tags.push("id-not-recorded");
+  const person = id ? who[id] : undefined;
+  if (person?.deleted) tags.push("deleted");
+  else if (roles === null) tags.push("left");
+  else if (verified && !has18) tags.push("no-role");
+  for (const t of tags) if (TICKET_TAGS[t] && !(t === "dob-mismatch")) flags.push(TICKET_TAGS[t].label);
+  const key = `nsfw|${source?.key ?? "-"}|${verifiedBy ?? "-"}|${idDob?.toISOString().slice(0, 10) ?? "-"}|${appDob?.toISOString().slice(0, 10) ?? appAge ?? "-"}|${appAge}|${idAge}|${roles === null ? "left" : has18 ? "18" : "no"}|${photos}`;
+  return { line: parts.join(" · "), flags, tags, key, photos };
+}
+
+/** Admins (from the staff list the bot keeps) for alerts like a DOB mismatch. */
+async function adminIds() {
+  const client = await getMongoClient();
+  const staff = await client.db(process.env.MONGODB_DB ?? "website").collection("staff").find({ role: { $regex: /^(owner|admin|sr\.? ?admin)$/i } }, { projection: { _id: 1 } }).toArray().catch(() => []);
+  return staff.map((s) => String(s._id)).filter((x) => /^\d{15,21}$/.test(x));
 }
 
 // ------------------------------------------------------------------ public
@@ -269,6 +285,7 @@ const view = (d: Doc, stale: boolean): TicketSummary => ({
   headline: d.headline,
   summary: d.summary,
   flags: d.flags ?? [],
+  tags: d.tags ?? [],
   generatedAt: d.generatedAt?.toISOString() ?? null,
   checkedAt: d.checkedAt?.toISOString() ?? null,
   images: d.images ?? 0,
@@ -287,69 +304,98 @@ export async function savedSummaries(tickets: Ticket[]) {
     const sinceCheck = Date.now() - (d.checkedAt?.getTime() ?? 0);
     const stale =
       (d.version ?? 1) !== VERSION ||
-      (t.status === "Open" ? sinceCheck > RECHECK_MS : Boolean(t.transcriptId) && d.key.split("|")[0] !== `t:${t.transcriptId}`) ||
-      // 18+ verification: look at the member's roles and join app again once a day (no AI call unless they changed)
-      (isNsfwTicket(t.type) && sinceCheck > 86_400_000);
+      (isNsfwTicket(t.type)
+        ? sinceCheck > (t.status === "Open" ? RECHECK_MS : NSFW_RECHECK_MS)
+        : t.status === "Open"
+          ? sinceCheck > RECHECK_MS
+          : Boolean(t.transcriptId) && d.key.split("|")[0] !== `t:${t.transcriptId}`);
     out[t.ticketId] = view(d, stale);
   }
   return out;
 }
 
-/** Reads the ticket and writes (or refreshes) its summary. Only calls the AI when something changed. */
+/** Ticket numbers whose description has any of these tags (for the page's tag filter). */
+export async function ticketIdsWithTags(tags: string[]) {
+  if (!tags.length) return null;
+  const docs = await (await col()).find({ tags: { $in: tags } }, { projection: { _id: 1 } }).toArray();
+  return docs.map((d) => d._id);
+}
+
+/** How many tickets have each tag (for the filter menu). */
+export async function tagCounts() {
+  const rows = await (await col()).aggregate([{ $unwind: "$tags" }, { $group: { _id: "$tags", n: { $sum: 1 } } }]).toArray();
+  return Object.fromEntries(rows.map((r) => [String(r._id), Number(r.n)])) as Record<string, number>;
+}
+
+/** Reads the ticket and writes (or refreshes) its description. Only calls the AI when something changed. */
 export async function summarizeTicket(ticketId: number, panel: PanelUser, force = false): Promise<TicketSummary> {
-  if (!aiEnabled()) throw new SummaryError("AI summaries are off: add ANTHROPIC_API_KEY in Vercel.", 503);
   const ticket = await getTicket(ticketId);
   if (!ticket || (panel.level !== "admin" && isNsfwTicket(ticket.type))) throw new SummaryError("Ticket not found.", 404);
   const c = await col();
   const saved = await c.findOne({ _id: ticketId });
+  const now = new Date();
 
   const source = ticket.status === "Open" ? ((await fromChannel(ticket)) ?? (await fromTranscript(ticket))) : ((await fromTranscript(ticket)) ?? (await fromChannel(ticket)));
+
+  // 18+ verification: built from our own records, no AI (and never the ID photos)
+  if (isNsfwTicket(ticket.type)) {
+    const d = await nsfwDescription(ticket, source);
+    if (saved && saved.key === d.key && (saved.version ?? 1) === VERSION && !force) {
+      await c.updateOne({ _id: ticketId }, { $set: { checkedAt: now } });
+      return view({ ...saved, checkedAt: now }, false);
+    }
+    const doc: Doc = { _id: ticketId, headline: d.line, summary: "", flags: d.flags, tags: d.tags, key: d.key, version: VERSION, messages: source?.lines.length ?? 0, images: 0, model: "records", generatedAt: now, checkedAt: now, notified: saved?.notified };
+    // A closed ticket with a DOB mismatch, someone under 18 or no photos: tell the admins (once)
+    const alarming = d.tags.filter((t) => ["dob-mismatch", "under-18", "no-photo"].includes(t));
+    if (ticket.status !== "Open" && alarming.length && !saved?.notified) {
+      doc.notified = true;
+      const title = `⚠️ 18+ ticket #${ticketId}: ${alarming.map((t) => TICKET_TAGS[t].label).join(", ")}`;
+      for (const to of await adminIds()) await notify(to, { type: "system", title, body: d.line, link: `/admin?tab=tickets&search=${ticketId}`, key: `ticket-flag:${ticketId}` }).catch(() => undefined);
+    }
+    await c.replaceOne({ _id: ticketId }, doc, { upsert: true });
+    return view(doc, false);
+  }
+
+  if (!aiEnabled()) throw new SummaryError("AI summaries are off: add ANTHROPIC_API_KEY in Vercel.", 503);
   if (!source) {
     if (saved) return view(saved, false);
     throw new SummaryError(ticket.transcriptId ? "Couldn't read this ticket's transcript." : "There's nothing left to read: this ticket has no transcript.", 404);
   }
-  // 18+ verification: the member's roles and join-app birthday are part of the key (a change rewrites the line)
-  const facts = await nsfwFacts(ticket);
-  // (the age shown is part of it too, so a birthday updates the line)
-  const key = facts
-    ? `${source.key}|${facts.roles === null ? "left" : facts.roles.includes(ADULT_VERIFIED_ROLE) ? "18+" : "no18"}|${facts.joinDob?.toISOString().slice(0, 10) ?? "-"}:${facts.joinDob ? calculateAge(facts.joinDob) : (facts.joinAge ?? "-")}:${facts.statedAge ?? "-"}`
-    : source.key;
-  if (saved && saved.key === key && (saved.version ?? 1) === VERSION && !force) {
-    await c.updateOne({ _id: ticketId }, { $set: { checkedAt: new Date() } });
-    return view({ ...saved, checkedAt: new Date() }, false);
+  if (saved && saved.key === source.key && (saved.version ?? 1) === VERSION && !force) {
+    await c.updateOne({ _id: ticketId }, { $set: { checkedAt: now } });
+    return view({ ...saved, checkedAt: now }, false);
   }
 
-  // Every call to the AI counts (refreshes too), per UTC day
-  const usage = (await getMongoClient()).db(process.env.MONGODB_DB ?? "website").collection<{ _id: string; n: number }>("ai_usage");
-  const day = `ticket-summary:${new Date().toISOString().slice(0, 10)}`;
-  const used = await usage.findOneAndUpdate({ _id: day }, { $inc: { n: 1 } }, { upsert: true, returnDocument: "after" });
-  if ((used?.n ?? 1) > DAILY_LIMIT) {
-    await usage.updateOne({ _id: day }, { $inc: { n: -1 } });
-    throw new SummaryError(`The daily limit of ${DAILY_LIMIT} ticket summaries has been reached. Try again tomorrow.`, 429);
+  if (DAILY_LIMIT > 0) {
+    // Every call to the AI counts (refreshes too), per UTC day
+    const usage = (await getMongoClient()).db(process.env.MONGODB_DB ?? "website").collection<{ _id: string; n: number }>("ai_usage");
+    const day = `ticket-summary:${now.toISOString().slice(0, 10)}`;
+    const used = await usage.findOneAndUpdate({ _id: day }, { $inc: { n: 1 } }, { upsert: true, returnDocument: "after" });
+    if ((used?.n ?? 1) > DAILY_LIMIT) {
+      await usage.updateOne({ _id: day }, { $inc: { n: -1 } });
+      throw new SummaryError(`The daily limit of ${DAILY_LIMIT} ticket summaries has been reached. Try again tomorrow.`, 429);
+    }
   }
 
-  // Screenshots (never from 18+ verification tickets: those are ID photos): the member's first, then staff's, then the bot's
+  // Screenshots: the member's first, then staff's, then the bot's
   const refs = new Map<string, number>();
   const parts: AiPart[] = [];
-  if (!isNsfwTicket(ticket.type)) {
-    const order = (role: Line["role"]) => (role === "opener" ? 0 : role === "bot" ? 2 : 1);
-    const ordered = [...source.lines].sort((a, b) => order(a.role) - order(b.role)).flatMap((l) => l.images);
-    for (const ref of ordered) {
-      if (refs.size >= MAX_IMAGES || refs.has(ref)) continue;
-      const img = await source.loadImage(ref);
-      if (!img) continue;
-      refs.set(ref, refs.size + 1);
-      parts.push({ type: "text", text: `[image ${refs.size}]` }, { type: "image", image: img });
-    }
+  const order = (role: Line["role"]) => (role === "opener" ? 0 : role === "bot" ? 2 : 1);
+  const ordered = [...source.lines].sort((a, b) => order(a.role) - order(b.role)).flatMap((l) => l.images);
+  for (const ref of ordered) {
+    if (refs.size >= MAX_IMAGES || refs.has(ref)) continue;
+    const img = await source.loadImage(ref);
+    if (!img) continue;
+    refs.set(ref, refs.size + 1);
+    parts.push({ type: "text", text: `[image ${refs.size}]` }, { type: "image", image: img });
   }
   parts.unshift({ type: "text", text: buildText(ticket, source.lines, refs) });
 
   const manual = /manual/i.test(ticket.type);
-  const system = facts ? SYSTEM_NSFW : manual ? SYSTEM_MANUAL : SYSTEM_GENERAL;
-  const text = await askClaude({ system, parts, maxTokens: facts ? 250 : manual ? 200 : 120 });
-  const { line, flags } = facts ? nsfwLine(text, facts) : { line: plainLine(text, manual ? 2 : 1, manual ? 38 : 20), flags: [] as string[] };
-  const now = new Date();
-  const doc: Doc = { _id: ticketId, headline: line, summary: "", flags, key, version: VERSION, messages: source.lines.length, images: refs.size, model: AI_MODEL, generatedAt: now, checkedAt: now };
+  const model = manual ? AI_MODEL_DETAILED : AI_MODEL;
+  const text = await askClaude({ system: manual ? SYSTEM_MANUAL : SYSTEM_GENERAL, parts, maxTokens: manual ? 400 : 200, model });
+  const line = plainLine(text, manual ? 3 : 1, manual ? 55 : 22);
+  const doc: Doc = { _id: ticketId, headline: line, summary: "", flags: [], tags: [], key: source.key, version: VERSION, messages: source.lines.length, images: refs.size, model, generatedAt: now, checkedAt: now };
   await c.replaceOne({ _id: ticketId }, doc, { upsert: true });
   return view(doc, false);
 }

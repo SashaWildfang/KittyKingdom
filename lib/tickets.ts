@@ -37,6 +37,10 @@ export type TicketQuery = {
   summary?: boolean;
   /** Leave out NSFW verification tickets (staff who aren't admins never see them) */
   excludeNsfw?: boolean;
+  /** Who opened it: still in the server, left, or a deleted Discord account */
+  opener?: "in" | "left" | "deleted";
+  /** Only these ticket numbers (e.g. the ones with a description tag) */
+  ticketIds?: number[] | null;
 };
 
 /** NSFW verification tickets hold ID photos: only admins can see them. */
@@ -61,6 +65,17 @@ function toTicket(doc: Document): Ticket {
     transcriptId: snowflake(typeof doc.transcript_id === "string" ? doc.transcript_id : null),
     escalated: Boolean(doc.is_escalated),
   };
+}
+
+/** Discord ids in the member directory by state: still in the server, left, or a deleted Discord account. */
+async function openersBy(state: "in" | "left" | "deleted"): Promise<string[]> {
+  const client = await getMongoClient();
+  const dir = client.db(process.env.MONGODB_DB ?? "website").collection("member_directory");
+  const deleted = { $or: [{ username: null }, { username: { $regex: /^deleted_user_/i } }, { displayName: { $regex: /^deleted user$/i } }] };
+  const filter =
+    state === "in" ? { inServer: true } : state === "deleted" ? { ...deleted, _id: { $regex: /^\d{15,21}$/ } } : { inServer: false, _id: { $regex: /^\d{15,21}$/ }, username: { $nin: [null], $not: /^deleted_user_/i } };
+  const docs = await dir.find(filter as never, { projection: { _id: 1 } }).toArray();
+  return docs.map((d) => String(d._id));
 }
 
 async function idsMatchingName(search: string): Promise<string[]> {
@@ -117,6 +132,10 @@ export async function queryTickets(q: TicketQuery) {
   if (q.staffId) and.push({ $or: [{ claimed_by: q.staffId }, { resolved_by: q.staffId }, { escalated_by: q.staffId }] });
   if (q.from || q.to) and.push({ created: { ...(q.from ? { $gte: q.from } : {}), ...(q.to ? { $lte: q.to } : {}) } });
   if (q.hasTranscript) and.push({ transcript_id: { $type: "string", $regex: /^\d{15,21}$/ } });
+  if (q.ticketIds) and.push({ ticket_id: { $in: q.ticketIds } });
+  if (q.opener) {
+    and.push({ opened_by: { $in: await openersBy(q.opener) } });
+  }
 
   const search = q.search?.trim().replace(/^#/, "").slice(0, 100);
   if (search) {
@@ -147,6 +166,7 @@ export async function queryTickets(q: TicketQuery) {
         $facet: {
           rows: [{ $sort: { [sortField]: order, ticket_id: order } }, { $skip: (page - 1) * pageSize }, { $limit: pageSize }],
           total: [{ $count: "n" }],
+          statusCounts: [{ $group: { _id: "$status", n: { $sum: 1 } } }],
           ...(q.summary
             ? {
                 byStatus: [{ $group: { _id: "$status", n: { $sum: 1 } } }],
@@ -179,6 +199,7 @@ export async function queryTickets(q: TicketQuery) {
   return {
     rows: ((result?.rows ?? []) as Document[]).map(toTicket) as Ticket[],
     total: result?.total?.[0]?.n ?? 0,
+    statusCounts: Object.fromEntries(((result?.statusCounts ?? []) as Document[]).map((d) => [String(d._id ?? "Unknown"), d.n as number])) as Record<string, number>,
     page,
     pageSize,
     summary: q.summary
