@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, FileText, RefreshCw, Search, Sparkles } from "lucide-react";
+import { AlertTriangle, Eye, FileText, RefreshCw, Search, Sparkles } from "lucide-react";
 import "./ticket-summary.css";
 import { useEffect, useRef, useState } from "react";
 import type { TicketSummary } from "../../lib/ticket-summary";
@@ -124,8 +124,13 @@ function SummaryLine({ s, onRefresh }: { s: SummaryState | undefined; onRefresh:
     <div className="tks-line" onClick={(e) => e.stopPropagation()}>
       <Sparkles size={14} className="tks-icon" aria-hidden="true" />
       {sum ? (
-        <span className="tks-text" title={sum.headline}>
+        <span className="tks-text">
           {sum.headline}
+          {sum.flags?.map((f) => (
+            <span key={f} className="tks-flag">
+              <AlertTriangle size={11} aria-hidden="true" /> {f}
+            </span>
+          ))}
         </span>
       ) : (
         <span className="tks-text is-muted">{s?.busy ? "Reading the ticket…" : s?.error}</span>
@@ -309,8 +314,9 @@ export function TicketsTab({
               </th>
             </tr>
           </thead>
-          <tbody>
-            {(data?.rows ?? []).filter((t) => !deleted.includes(t.ticketId)).flatMap((t) => [
+          {/* One <tbody> per ticket: its row and the description under it read (and highlight) as one */}
+            {(data?.rows ?? []).filter((t) => !deleted.includes(t.ticketId)).map((t) => (
+            <tbody key={t.ticketId} className="tks-group">
               <tr key={t.ticketId} onClick={() => t.transcriptId && onOpenTranscript(t.ticketId)} className={t.transcriptId ? "is-clickable" : undefined}>
                 <td>
                   <strong>#{t.ticketId}</strong>
@@ -354,14 +360,16 @@ export function TicketsTab({
                 <td className="adm-ticket-actions">
                   <DeleteTicketButton ticket={t} onDeleted={onDeleted} />
                 </td>
-              </tr>,
-              <tr key={`${t.ticketId}-sum`} className="tks-row" onClick={() => t.transcriptId && onOpenTranscript(t.ticketId)}>
+              </tr>
+              <tr className="tks-row" onClick={() => t.transcriptId && onOpenTranscript(t.ticketId)}>
                 <td />
                 <td colSpan={8}>
                   <SummaryLine s={summaries.state[t.ticketId]} onRefresh={() => void summaries.refresh(t.ticketId)} />
                 </td>
-              </tr>,
-            ])}
+              </tr>
+            </tbody>
+            ))}
+          <tbody>
             {!loading && data && !data.rows.length ? (
               <tr>
                 <td colSpan={9} className="adm-empty">
