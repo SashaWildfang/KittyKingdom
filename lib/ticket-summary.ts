@@ -233,7 +233,12 @@ async function nsfwDescription(ticket: Ticket, source: Source | null) {
   ]);
   // Leaving resets verification (Moderation db/verification_reset.py): fall back to the last 18+ verification
   // in their history so older tickets still show what happened
-  const past = ((record?.verificationHistory ?? []) as Record<string, unknown>[]).filter((h) => h.nsfwVerifiedAt || h.nsfwVerifiedBy).pop() ?? null;
+  // …but only for a ticket from before that reset (a new ticket after they came back is a fresh check)
+  const opened = ticket.created ? new Date(ticket.created).getTime() : 0;
+  const past =
+    ((record?.verificationHistory ?? []) as Record<string, unknown>[])
+      .filter((h) => (h.nsfwVerifiedAt || h.nsfwVerifiedBy) && h.resetAt instanceof Date && h.resetAt.getTime() > opened)
+      .shift() ?? null;
   const fromHistory = !record?.nsfwVerifiedAt && !record?.nsfwVerifiedBy && Boolean(past);
   const rec = (fromHistory ? past : record) as Record<string, unknown> | null;
   const verifiedBy = rec?.nsfwVerifiedBy ? String(rec.nsfwVerifiedBy) : null;
@@ -277,7 +282,7 @@ async function nsfwDescription(ticket: Ticket, source: Source | null) {
   else if (roles === null) tags.push("left");
   else if (verified && !has18 && !fromHistory) tags.push("no-role");
   for (const t of tags) if (TICKET_TAGS[t] && !(t === "dob-mismatch")) flags.push(TICKET_TAGS[t].label);
-  const key = `nsfw|${source?.key ?? "-"}|${verifiedBy ?? "-"}|${idDob?.toISOString().slice(0, 10) ?? "-"}|${appDob?.toISOString().slice(0, 10) ?? appAge ?? "-"}|${appAge}|${idAge}|${roles === null ? "left" : has18 ? "18" : "no"}|${photos}`;
+  const key = `nsfw|${fromHistory ? "h" : "c"}|${source?.key ?? "-"}|${verifiedBy ?? "-"}|${idDob?.toISOString().slice(0, 10) ?? "-"}|${appDob?.toISOString().slice(0, 10) ?? appAge ?? "-"}|${appAge}|${idAge}|${roles === null ? "left" : has18 ? "18" : "no"}|${photos}`;
   return { line: parts.join(" · "), flags, tags, key, photos };
 }
 
