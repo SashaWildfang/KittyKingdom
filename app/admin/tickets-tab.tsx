@@ -95,9 +95,9 @@ function useTicketSummaries(rows: Ticket[]) {
       const r = await fetch(`/api/admin/tickets/${id}/summary`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ force, key: keys.current.get(id) }) });
       const j = await r.json().catch(() => ({ ok: false, error: "Request failed." }));
       if (!r.ok || !j.ok) throw new Error(j.error ?? "Couldn't describe this ticket.");
-      // Saved under the ticket's current number (it may have been renumbered while this ran)
-      const now = Number(j.summary?.ticketId ?? id);
-      setState((s) => ({ ...s, [id]: now === id ? { summary: j.summary } : { busy: false }, [now]: { summary: j.summary } }));
+      // Shown on the row that asked for it: the request was for that row's ticket (by key), even if its number
+      // has since changed on the server. The list reloads with the new numbers every few seconds.
+      setState((s) => ({ ...s, [id]: { summary: j.summary } }));
     } catch (e) {
       setState((s) => ({ ...s, [id]: { ...s[id], busy: false, error: e instanceof Error ? e.message : "Couldn't describe this ticket." } }));
     }
