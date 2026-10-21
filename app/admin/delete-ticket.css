@@ -15,14 +15,20 @@
   animation: tkd-pop 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .tkd.is-wide { width: min(36rem, 100%); border-color: var(--line); }
-.tkd h3 { margin: 0; font-size: 1.15rem; }
+.tkd { justify-items: center; text-align: center; }
+.tkd > * { width: 100%; }
+.tkd > .tkd-icon { width: 3rem; }
+.tkd > .tkd-close { width: 2rem; }
+.tkd h3 { margin: 0; font-size: 1.2rem; }
 .tkd p { margin: 0; }
 .tkd-close { position: absolute; top: 0.9rem; right: 0.9rem; display: grid; place-items: center; width: 2rem; height: 2rem; border: 1px solid var(--line); border-radius: 0.6rem; background: var(--panel-strong); color: var(--muted); cursor: pointer; }
 .tkd-icon { display: grid; place-items: center; width: 3rem; height: 3rem; border-radius: 1rem; background: rgba(255, 107, 107, 0.15); color: #ff8a8a; }
 .tkd-type { color: var(--muted); font-size: 0.85rem; }
-.tkd-list { display: grid; gap: 0.35rem; margin: 0; padding-left: 1.1rem; color: var(--muted); font-size: 0.86rem; line-height: 1.45; }
-.tkd-typed { display: grid; gap: 0.4rem; border: 1px solid rgba(255, 196, 0, 0.35); border-radius: 0.8rem; background: rgba(255, 196, 0, 0.07); font-size: 0.85rem; padding: 0.65rem 0.75rem; }
-.tkd-typed span { display: flex; align-items: center; gap: 0.35rem; }
+.tkd-list { display: grid; gap: 0.35rem; margin: 0; border: 1px solid var(--line); border-radius: 0.85rem; background: var(--panel-strong); color: var(--muted); font-size: 0.85rem; line-height: 1.45; padding: 0.7rem 0.85rem 0.7rem 1.9rem; text-align: left; }
+.tkd-typed { display: grid; justify-items: center; gap: 0.45rem; border: 1px solid rgba(255, 196, 0, 0.35); border-radius: 0.85rem; background: rgba(255, 196, 0, 0.07); font-size: 0.86rem; padding: 0.75rem; }
+.tkd-typed-note { display: inline-flex; align-items: center; gap: 0.35rem; color: #ffd36b; font-weight: 700; }
+.tkd-typed-ask b { color: var(--text); }
+.tkd-typed input { width: min(11rem, 100%); font-size: 1.1rem !important; font-weight: 800; letter-spacing: 0.08em; text-align: center; }
 .tkd-typed input, .tkd input[type="number"], .tkd select {
   border: 1px solid var(--line);
   border-radius: 0.65rem;
@@ -33,7 +39,8 @@
 }
 .tkd-typed input:focus { border-color: #ff8a8a; outline: none; }
 .tkd-error { border-radius: 0.7rem; background: rgba(255, 107, 107, 0.12); color: #ff9b9b; font-size: 0.85rem; padding: 0.5rem 0.7rem; }
-.tkd-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; margin-top: 0.25rem; }
+.tkd-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.25rem; }
+.tkd-actions .adm-btn { justify-content: center; }
 @keyframes tkd-fade { from { opacity: 0; } }
 @keyframes tkd-pop { from { opacity: 0; transform: translateY(8px) scale(0.98); } }
 @media (prefers-reduced-motion: reduce) { .tkd-wrap, .tkd { animation: none; } }

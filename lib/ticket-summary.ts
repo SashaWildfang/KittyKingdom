@@ -25,7 +25,7 @@ import { getTicket, isNsfwTicket, type Ticket } from "./tickets";
 import { openTranscriptFile } from "./transcript-store";
 
 /** Bump when the wording rules change: saved descriptions from an older version are written again */
-const VERSION = 4;
+const VERSION = 5;
 const MAX_IMAGES = 20;
 const MAX_IMAGE_BYTES = 3_750_000;
 const MAX_TEXT = 150_000;
@@ -245,7 +245,10 @@ async function nsfwDescription(ticket: Ticket, source: Source | null) {
 
   const tags: string[] = [];
   const parts: string[] = [];
-  parts.push(verified ? `Verified by ${verifierName ?? "staff"}` : ticket.status === "Open" ? "Waiting for review" : "Not verified");
+  // Who verified them is already in the Handled by column, so it's only written when nobody's listed there
+  const handled = Boolean(ticket.claimedBy || ticket.resolvedBy);
+  if (!verified) parts.push(ticket.status === "Open" ? "Waiting for review" : "Not verified");
+  else if (!handled) parts.push(`Verified by ${verifierName ?? "staff"}`);
   const appAge = appDob ? calculateAge(appDob) : birth.age;
   const idAge = idDob ? calculateAge(idDob) : null;
   const match = appDob && idDob ? sameDay(appDob, idDob) : appAge !== null && idAge !== null ? appAge === idAge : null;
