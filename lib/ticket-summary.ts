@@ -381,9 +381,12 @@ export async function refreshOutdatedNsfw(budgetMs = 4_000, limit = 25) {
     try {
       await summarizeTicket(d._id, system, false, d.ticketKey ?? null);
       done += 1;
-    } catch {
-      // Deleted or unreadable ticket: drop the old description so it isn't counted
-      await (await col()).deleteOne({ _id: d._id, key: { $not: /^nsfw3\|/ } } as never).catch(() => undefined);
+    } catch (error) {
+      // Only a ticket that's really gone loses its old description; anything else (database busy, the ticket
+      // lock taking too long) is left alone and tried again on a later run
+      if (error instanceof SummaryError && error.status === 404) {
+        await (await col()).deleteOne({ _id: d._id, key: { $not: /^nsfw3\|/ } } as never).catch(() => undefined);
+      }
     }
   }
   return done;
