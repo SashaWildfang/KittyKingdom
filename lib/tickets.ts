@@ -2,12 +2,14 @@
 // which the ticket bot posts as a zipped web page in the transcript log channel (read by
 // ./transcript-store).
 
-import type { Document } from "mongodb";
+import { ObjectId, type Document } from "mongodb";
 import { getBotCollection, getMongoClient } from "./mongodb";
 import { userTimeZone } from "./timezone";
 
 export type Ticket = {
   ticketId: number;
+  /** The ticket's database id: never changes (the number can, when tickets are renumbered) */
+  key: string;
   type: string;
   topic: string;
   status: string;
@@ -53,6 +55,7 @@ const snowflake = (value: unknown) => (typeof value === "string" && /^\d{15,21}$
 function toTicket(doc: Document): Ticket {
   return {
     ticketId: Number(doc.ticket_id),
+    key: String(doc._id),
     type: String(doc.ticket_type ?? "support"),
     topic: String(doc.topic ?? ""),
     status: String(doc.status ?? "Unknown"),
@@ -254,6 +257,20 @@ export async function getTicket(ticketId: number): Promise<Ticket | null> {
   const { col, union } = await ticketsPipelineBase();
   const [doc] = await col.aggregate([...union, { $match: { ticket_id: ticketId } }, { $limit: 1 }]).toArray();
   return doc ? toTicket(doc) : null;
+}
+
+/** A ticket by its database id, whatever its number is now (numbers move when tickets are renumbered). */
+export async function getTicketByKey(key: string | null | undefined): Promise<Ticket | null> {
+  if (!key || !ObjectId.isValid(key)) return null;
+  const { col, union } = await ticketsPipelineBase();
+  const [doc] = await col.aggregate([...union, { $match: { _id: new ObjectId(key) } }, { $limit: 1 }]).toArray();
+  return doc ? toTicket(doc) : null;
+}
+
+/** By key when the page sent one (safe even if numbers changed since it loaded), else by number. */
+export async function findTicket(ticketId: number, key?: string | null): Promise<Ticket | null> {
+  if (key) return getTicketByKey(key);
+  return Number.isInteger(ticketId) && ticketId > 0 ? getTicket(ticketId) : null;
 }
 
 export async function ticketStats(q: { from?: Date | null; to?: Date | null; unit: "day" | "week" | "month" }) {

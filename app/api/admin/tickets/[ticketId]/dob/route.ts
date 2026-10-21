@@ -9,7 +9,7 @@ import { applicationBirthday, getJoinApplication } from "../../../../../../lib/j
 import { getBotCollection, getJoinApplicationsCollection, getMongoClient } from "../../../../../../lib/mongodb";
 import { STAFF_LOG_CHANNEL_ID } from "../../../../../../lib/ticket-delete";
 import { summarizeTicket } from "../../../../../../lib/ticket-summary";
-import { getTicket, isNsfwTicket } from "../../../../../../lib/tickets";
+import { findTicket, isNsfwTicket } from "../../../../../../lib/tickets";
 
 export const dynamic = "force-dynamic";
 
@@ -30,10 +30,11 @@ export async function POST(request: Request, { params }: { params: { ticketId: s
   const no2fa = await requireTwoFactorForAction();
   if (no2fa) return no2fa;
 
-  const body = (await request.json().catch(() => ({}))) as { kind?: string; dob?: string; repeat?: string; checked?: boolean; openedBy?: string };
+  const body = (await request.json().catch(() => ({}))) as { kind?: string; dob?: string; repeat?: string; checked?: boolean; openedBy?: string; key?: string };
   const kind = body.kind === "app" || body.kind === "id" ? body.kind : null;
   if (!kind) return fail("Pick which date of birth you're recording.");
-  const ticket = await getTicket(Number(params.ticketId));
+  // By key when the page sent one (the number may have moved since it loaded)
+  const ticket = await findTicket(Number(params.ticketId), body.key ?? null);
   if (!ticket || !isNsfwTicket(ticket.type) || !ticket.openedBy) return fail("That isn't an 18+ verification ticket.", 404);
   // Ticket numbers move after deletions: make sure this is still the member the page showed
   if (body.openedBy !== ticket.openedBy) return fail("Ticket numbers changed since this page loaded. Reload and try again.", 409);
@@ -102,6 +103,6 @@ export async function POST(request: Request, { params }: { params: { ticketId: s
     ],
   }).catch(() => false);
 
-  const summary = await summarizeTicket(ticket.ticketId, admin, true);
+  const summary = await summarizeTicket(ticket.ticketId, admin, true, ticket.key);
   return NextResponse.json({ ok: true, summary, age });
 }

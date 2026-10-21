@@ -115,6 +115,8 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
   const [tab, setTab] = useState<Tab>("overview");
   const [member, setMember] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<number | null>(null);
+  // The ticket's database id when opened from a list, so the right one opens even if numbers have moved since
+  const [transcriptKey, setTranscriptKey] = useState<string | null>(null);
   const [lookup, setLookup] = useState("");
   const [drill, setDrill] = useState<Drill | null>(null);
   // Admin → Messages: the open chat, and whose chats the list is narrowed to
@@ -253,7 +255,10 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
   }, [tab, member, transcript, urlRead, chat]);
 
   const openMember = useCallback((id: string) => setMember(id), []);
-  const openTranscript = useCallback((id: number) => setTranscript(id), []);
+  const openTranscript = useCallback((id: number, key?: string | null) => {
+    setTranscriptKey(key ?? null);
+    setTranscript(id);
+  }, []);
 
   function submitLookup(text: string) {
     const value = text.trim().replace(/[<@!>]/g, "");
@@ -471,7 +476,7 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
               }}
             />, document.body) : null}
       {transcript
-        ? createPortal(<TranscriptViewer ticketId={transcript} onClose={() => setTranscript(null)} onOpenMember={openMember} />, document.body)
+        ? createPortal(<TranscriptViewer ticketId={transcript} ticketKey={transcriptKey} onClose={() => (setTranscript(null), setTranscriptKey(null))} onOpenMember={openMember} />, document.body)
         : null}
     </div>
     </TicketCanDelete.Provider>
