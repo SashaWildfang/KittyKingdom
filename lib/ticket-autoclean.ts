@@ -1,5 +1,5 @@
 // Tickets from people who left are deleted automatically: every closed ticket they opened (NSFW verification
-// included) and its transcript upload, once the grace period after they left has passed (Admin → Bots →
+// included, but never ones staff opened with /ticket create) and its transcript upload, once the grace period after they left has passed (Admin → Bots →
 // Ticket Bot → Leaver clean-up). If they rejoin in time, nothing is deleted.
 //
 // Runs off the Main Bot's minute check (app/api/status/ping), a few tickets at a time, so the first run works
@@ -79,7 +79,9 @@ export async function runTicketAutoCleanup(budgetMs = 8_000) {
     const here = new Set(members);
 
     const resolved = await getBotCollection("resolvedTickets");
-    const openers = (await resolved.distinct("opened_by")).map(String).filter((id) => /^\d{15,21}$/.test(id) && !here.has(id));
+    // Tickets staff opened themselves (/ticket create) are never deleted automatically
+    const AUTO = { manual_ticket: { $ne: true } } as never;
+    const openers = (await resolved.distinct("opened_by", AUTO)).map(String).filter((id) => /^\d{15,21}$/.test(id) && !here.has(id));
     if (!openers.length) return;
     const dir = (await getMongoClient()).db(process.env.MONGODB_DB ?? "website").collection<{ _id: string; leftAt?: Date | null }>("member_directory");
     const leftAt = new Map((await dir.find({ _id: { $in: openers } }, { projection: { leftAt: 1 } }).toArray()).map((d) => [d._id, d.leftAt ?? null]));
@@ -96,7 +98,7 @@ export async function runTicketAutoCleanup(budgetMs = 8_000) {
         break;
       }
       if ((await isInServer(id)) !== false) continue; // back already, or Discord couldn't say
-      const docs = await resolved.find({ opened_by: id }).sort({ ticket_id: 1 }).toArray();
+      const docs = await resolved.find({ opened_by: id, manual_ticket: { $ne: true } } as never).sort({ ticket_id: 1 }).toArray();
       let removedAny = false;
       for (const doc of docs) {
         if (Date.now() > deadline) {

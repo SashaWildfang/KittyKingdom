@@ -723,7 +723,7 @@ const TICKETING: BotDef = {
       key: "leaverCleanup",
       title: "Leaver clean-up",
       icon: "trash",
-      about: "When a member leaves the server, every closed ticket they opened (NSFW verification tickets included) and its transcript are deleted automatically once the grace period has passed. Each clean-up is posted in the ticket log.",
+      about: "When a member leaves the server, every closed ticket they opened (NSFW verification tickets included) and its transcript are deleted automatically once the grace period has passed. Tickets staff opened with /ticket create are always kept. Each clean-up is posted in the ticket log.",
       fields: [
         { key: "tickets.leaverCleanup", label: "Delete tickets from members who leave", help: "Their join application and 18+ verification are reset when they leave too, so they start fresh if they come back.", type: "toggle", default: true },
         { key: "tickets.leaverGraceDays", label: "Grace period", help: "How long to wait after someone leaves. If they rejoin in time, nothing is deleted.", type: "number", default: 3, min: 0, max: 90, unit: "days" },
