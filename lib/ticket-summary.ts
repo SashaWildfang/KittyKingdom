@@ -16,7 +16,7 @@ import type { PanelUser } from "./admin";
 import { people } from "./admin-people";
 import { AI_MODEL, AI_MODEL_DETAILED, AiError, aiEnabled, askClaude, type AiImage, type AiPart } from "./ai";
 import { calculateAge, parseAge } from "./dates";
-import { memberRoleIdsCached } from "./discord-member";
+import { isInServer, memberRoleIdsCached } from "./discord-member";
 import { applicationBirthday, getJoinApplication } from "./join-application";
 import { getBotCollection, getMongoClient } from "./mongodb";
 import { notify } from "./notifications";
@@ -246,6 +246,8 @@ async function nsfwDescription(ticket: Ticket, source: Source | null) {
   const birth = applicationBirthday(app);
   const appDob = birth.birthDate;
   const idDob = isoDate(rec?.nsfwIdDob);
+  // A failed role lookup (Discord busy) isn't "they left": only Discord's "Unknown Member" counts as gone
+  const membership: "in" | "out" | "unknown" = roles !== null ? "in" : !id ? "unknown" : await isInServer(id).then((v) => (v === true ? "in" : v === false ? "out" : "unknown")).catch(() => "unknown" as const);
   const has18 = Boolean(roles?.includes(ADULT_VERIFIED_ROLE));
   const verified = Boolean(rec?.nsfwVerifiedAt || rec?.nsfwVerifiedBy) || has18;
   // Photos the member sent: the opener's, or on old transcripts without author ids, anyone who isn't staff or the bot
@@ -279,12 +281,16 @@ async function nsfwDescription(ticket: Ticket, source: Source | null) {
   if (verified && !idDob) tags.push("id-not-recorded");
   const person = id ? who[id] : undefined;
   if (person?.deleted) tags.push("deleted");
-  else if (roles === null) tags.push("left");
-  else if (verified && !has18 && !fromHistory) tags.push("no-role");
+  else if (membership === "out") tags.push("left");
+  // Only when their roles were actually read (not when the lookup failed)
+  else if (roles !== null && verified && !has18 && !fromHistory) tags.push("no-role");
   for (const t of tags) if (TICKET_TAGS[t] && !(t === "dob-mismatch")) flags.push(TICKET_TAGS[t].label);
-  const key = `nsfw|${fromHistory ? "h" : "c"}|${source?.key ?? "-"}|${verifiedBy ?? "-"}|${idDob?.toISOString().slice(0, 10) ?? "-"}|${appDob?.toISOString().slice(0, 10) ?? appAge ?? "-"}|${appAge}|${idAge}|${roles === null ? "left" : has18 ? "18" : "no"}|${photos}`;
+  const key = `nsfw2|${fromHistory ? "h" : "c"}|${source?.key ?? "-"}|${verifiedBy ?? "-"}|${idDob?.toISOString().slice(0, 10) ?? "-"}|${appDob?.toISOString().slice(0, 10) ?? appAge ?? "-"}|${appAge}|${idAge}|${membership === "out" ? "left" : roles === null ? "?" : has18 ? "18" : "no"}|${photos}`;
   return { line: parts.join(" · "), flags, tags, key, photos };
 }
+
+/** Opens the ticket's transcript, with the dashboard filtered to just that ticket behind it. */
+export const ticketLink = (ticketId: number) => `/admin?tab=tickets&search=%23${ticketId}&ticket=${ticketId}`;
 
 /** Admins (from the staff list the bot keeps) for alerts like a DOB mismatch. */
 async function adminIds() {
@@ -319,7 +325,8 @@ export async function savedSummaries(tickets: Ticket[]) {
     const stale =
       (d.version ?? 1) !== VERSION ||
       (isNsfwTicket(t.type)
-        ? sinceCheck > (t.status === "Open" ? RECHECK_MS : NSFW_RECHECK_MS)
+        ? // nsfw2: rebuilt since a failed role lookup stopped counting as "left the server"
+          !d.key.startsWith("nsfw2|") || sinceCheck > (t.status === "Open" ? RECHECK_MS : NSFW_RECHECK_MS)
         : t.status === "Open"
           ? sinceCheck > RECHECK_MS
           : Boolean(t.transcriptId) && d.key.split("|")[0] !== `t:${t.transcriptId}`);
@@ -364,7 +371,7 @@ export async function summarizeTicket(ticketId: number, panel: PanelUser, force 
     if (ticket.status !== "Open" && alarming.length && !saved?.notified) {
       doc.notified = true;
       const title = `⚠️ 18+ ticket #${ticketId}: ${alarming.map((t) => TICKET_TAGS[t].label).join(", ")}`;
-      for (const to of await adminIds()) await notify(to, { type: "system", title, body: d.line, link: `/admin?tab=tickets&search=${ticketId}`, key: `ticket-flag:${ticketId}` }).catch(() => undefined);
+      for (const to of await adminIds()) await notify(to, { type: "system", title, body: d.line, link: ticketLink(ticketId), key: `ticket-flag:${ticketId}` }).catch(() => undefined);
     }
     await c.replaceOne({ _id: ticketId }, doc, { upsert: true });
     return view(doc, false);

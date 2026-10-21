@@ -749,6 +749,7 @@ const TICKETING: BotDef = {
       fields: [
         { key: "nsfw.role", label: "18+ Verified role", help: "Given when staff verify someone.", type: "role", default: "1358469974552870913" },
         { key: "nsfw.memberRole", label: "Required role", help: "Only members with this role can be verified.", type: "role", default: "1358469854725931038" },
+        { key: "nsfw.skipEmptyTranscripts", label: "No transcript without pictures", help: "When an 18+ verification ticket is deleted and the member never sent a picture (and isn't 18+ verified), no transcript is saved, even if staff talked in it.", type: "toggle", default: true },
         { key: "nsfw.welcome", label: "Welcome message", help: "Welcome newly verified members on the 18+ side.", type: "toggle", default: true },
         { key: "nsfw.welcomeChannel", label: "Welcome channel", help: "", type: "channel", channelKind: "text", default: "1358487735811182682" },
         { key: "nsfw.welcomeBanner", label: "Welcome banner", help: "The animated image shown above the 18+ welcome message: a link to a GIF or picture (wide, about 640×256 looks best). Reset it to go back to the neon banner.", type: "text", default: "https://bear-nation.net/banners/18plus-welcome.gif", maxLength: 400 },

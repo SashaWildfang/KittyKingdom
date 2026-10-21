@@ -85,6 +85,18 @@ export async function renumberTickets() {
     await summaries.deleteMany({ _id: { $in: moves.map((m) => m.from).concat(moves.map((m) => m.to)) } });
     const moved = moves.map((m) => byId.get(m.from) && { ...byId.get(m.from)!, _id: m.to, checkedAt: new Date(0) }).filter(Boolean) as (Document & { _id: number })[];
     if (moved.length) await summaries.insertMany(moved).catch(() => undefined);
+    // Bell notifications about a ticket ("18+ ticket #31: no photo") follow it to its new number
+    const notes = (await getMongoClient()).db(process.env.MONGODB_DB ?? "website").collection("notifications");
+    const to = new Map(moves.map((m) => [m.from, m.to]));
+    const affected = await notes.find({ key: { $in: moves.map((m) => `ticket-flag:${m.from}`) } }, { projection: { key: 1, title: 1 } }).toArray();
+    for (const n of affected) {
+      const from = Number(String(n.key).split(":")[1]);
+      const next = to.get(from);
+      if (!next) continue;
+      await notes
+        .updateOne({ _id: n._id }, { $set: { key: `ticket-flag:${next}`, link: `/admin?tab=tickets&search=%23${next}&ticket=${next}`, title: String(n.title ?? "").replace(`#${from}`, `#${next}`) } })
+        .catch(() => undefined);
+    }
   }
   return { total: rows.length, moved: moves.length };
 }
