@@ -31,7 +31,7 @@ export default async function AdminPage() {
               </p>
             </div>
           ) : null}
-          <AdminClient adminName={panel.name} level={panel.level} canDeleteNsfw={canDeleteNsfwTickets(panel.discordId)} canGiveaways={await canManageGiveaways(panel)} />
+          <AdminClient adminName={panel.name} level={panel.level} canDeleteNsfw={canDeleteNsfwTickets(panel.level)} canGiveaways={await canManageGiveaways(panel)} />
         </>
       ) : (
         <section className="store-gate">

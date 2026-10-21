@@ -1,14 +1,15 @@
 "use client";
 
-import { AlertTriangle, Eye, FileText, RefreshCw, Search, Sparkles } from "lucide-react";
+import { AlertTriangle, BrushCleaning, Eye, FileText, RefreshCw, Search, Sparkles, Ticket as TicketIcon, Trash2, UserX, X } from "lucide-react";
 import "./ticket-summary.css";
-import { useEffect, useRef, useState } from "react";
+import "./delete-ticket.css";
+import { useContext, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { TicketSummary } from "../../lib/ticket-summary";
 import {
   LiveBadge,
   Pager,
   PersonLink,
-  RANGES,
   TICKET_COLORS,
   actionColor,
   formatDate,
@@ -20,25 +21,56 @@ import {
   type People,
   type Ticket,
 } from "./admin-shared";
-import { DeleteTicketButton } from "./delete-ticket-button";
+import { DeleteTicketButton, TicketCanDelete, TicketDeletePermissions } from "./delete-ticket-button";
 import { OpenTickets } from "./ticket-live";
 
-type Result = { rows: Ticket[]; total: number; page: number; pageSize: number; people: People };
+type Result = { rows: Ticket[]; total: number; page: number; pageSize: number; people: People; statusCounts: Record<string, number>; tagCounts: Record<string, number> | null };
 type SortKey = "ticketId" | "created" | "resolvedAt" | "type";
+type Opener = "any" | "in" | "left" | "deleted";
 
 type Filters = {
   search: string;
   types: string[];
   statuses: string[];
+  tags: string[];
   range: string;
+  opener: Opener;
   transcriptsOnly: boolean;
   sort: SortKey;
   order: "asc" | "desc";
   pageSize: number;
 };
 
-const DEFAULTS: Filters = { search: "", types: [], statuses: [], range: "all", transcriptsOnly: false, sort: "ticketId", order: "desc", pageSize: 25 };
+const DEFAULTS: Filters = { search: "", types: [], statuses: [], tags: [], range: "all", opener: "any", transcriptsOnly: false, sort: "ticketId", order: "desc", pageSize: 25 };
 const STATUSES = ["Open", "Closed", "Finalized"];
+const RANGES: [string, string][] = [
+  ["all", "Any time"],
+  ["7d", "Last 7 days"],
+  ["30d", "Last month"],
+  ["90d", "Last 3 months"],
+  ["6m", "Last 6 months"],
+  ["1y", "Last 12 months"],
+  ["2y", "Last 2 years"],
+];
+const OPENERS: [Opener, string][] = [
+  ["any", "Opened by anyone"],
+  ["in", "Still in the server"],
+  ["left", "Left the server"],
+  ["deleted", "Deleted Discord account"],
+];
+/** Tags on descriptions (lib/ticket-summary TICKET_TAGS): label and whether it's a problem */
+const TAGS: Record<string, { label: string; bad: boolean }> = {
+  "dob-mismatch": { label: "DOB mismatch", bad: true },
+  "under-18": { label: "Under 18", bad: true },
+  "no-photo": { label: "No photo submitted", bad: true },
+  "no-join-app": { label: "No join application", bad: true },
+  "no-app-dob": { label: "No DOB on join app", bad: true },
+  "app-age-mismatch": { label: "Join app age ≠ its DOB", bad: true },
+  "no-role": { label: "Verified, no 18+ role", bad: true },
+  "id-not-recorded": { label: "ID DOB not recorded", bad: false },
+  left: { label: "Left the server", bad: false },
+  deleted: { label: "Deleted account", bad: false },
+};
 
 type SummaryState = { summary?: TicketSummary; busy?: boolean; error?: string };
 
@@ -88,10 +120,11 @@ function useTicketSummaries(rows: Ticket[]) {
         for (const [id, sum] of Object.entries(saved)) next[Number(id)] = { ...next[Number(id)], summary: sum };
         return next;
       });
-      if (!r.enabled) return;
-      // Missing or outdated ones (only tickets there's something to read for), two at a time
+      // Missing or outdated ones (only tickets there's something to read for), two at a time. Without an
+      // API key only 18+ verification tickets are done (they're built from our records, no AI).
       for (const t of rows) {
-        if ((t.transcriptId || t.status === "Open") && (!saved[t.ticketId] || saved[t.ticketId].stale) && !queued.current.has(t.ticketId)) {
+        if (!r.enabled && !/nsfw/i.test(t.type)) continue;
+        if ((t.transcriptId || t.status === "Open" || /nsfw/i.test(t.type)) && (!saved[t.ticketId] || saved[t.ticketId].stale) && !queued.current.has(t.ticketId)) {
           todo.push(t.ticketId);
           queued.current.add(t.ticketId);
         }
@@ -126,11 +159,14 @@ function SummaryLine({ s, onRefresh }: { s: SummaryState | undefined; onRefresh:
       {sum ? (
         <span className="tks-text">
           {sum.headline}
-          {sum.flags?.map((f) => (
-            <span key={f} className="tks-flag">
-              <AlertTriangle size={11} aria-hidden="true" /> {f}
-            </span>
-          ))}
+          {sum.flags?.map((f) => {
+            const tag = Object.values(TAGS).find((t) => t.label === f);
+            return (
+              <span key={f} className={`tks-flag${tag && !tag.bad ? " is-info" : ""}`}>
+                {tag && !tag.bad ? null : <AlertTriangle size={11} aria-hidden="true" />} {f}
+              </span>
+            );
+          })}
         </span>
       ) : (
         <span className="tks-text is-muted">{s?.busy ? "Reading the ticket…" : s?.error}</span>
@@ -159,18 +195,26 @@ export function TicketsTab({
   onOpenTranscript: (ticketId: number) => void;
   initialSearch?: string;
 }) {
-  const [filters, setFilters] = useStored<Filters>("tickets-filters", DEFAULTS);
+  const [stored, setFilters] = useStored<Filters>("tickets-filters-v2", DEFAULTS);
+  const filters = { ...DEFAULTS, ...stored };
   const [page, setPage] = useState(1);
   const [searchText, setSearchText] = useState(filters.search);
+  const [cleanup, setCleanup] = useState(false);
+  const canDelete = useContext(TicketCanDelete);
 
   useEffect(() => {
     if (initialSearch) setSearchText(initialSearch);
   }, [initialSearch]);
+  // ?search=123 (e.g. from a notification) opens straight onto that ticket
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("search");
+    if (q) setSearchText(q);
+  }, []);
 
   useEffect(() => {
     const t = window.setTimeout(() => {
       if (searchText !== filters.search) {
-        setFilters((f) => ({ ...f, search: searchText }));
+        setFilters((f) => ({ ...DEFAULTS, ...f, search: searchText }));
         setPage(1);
       }
     }, 300);
@@ -181,12 +225,15 @@ export function TicketsTab({
     search: filters.search,
     types: filters.types.join(","),
     statuses: filters.statuses.join(","),
+    tags: filters.tags.join(","),
     hasTranscript: filters.transcriptsOnly ? "1" : "0",
     sort: filters.sort,
     order: filters.order,
     page: String(page),
     pageSize: String(filters.pageSize),
+    tagCounts: "1",
     ...(filters.range !== "all" ? { range: filters.range } : {}),
+    ...(filters.opener !== "any" ? { opener: filters.opener } : {}),
   });
   const { data, error, loading, updatedAt, reload } = useLive<Result>(`/api/admin/tickets?${params}`, 15_000);
   const summaries = useTicketSummaries(data?.rows ?? []);
@@ -198,84 +245,126 @@ export function TicketsTab({
     window.addEventListener("kk-ticket-deleted", onAnyDelete);
     return () => window.removeEventListener("kk-ticket-deleted", onAnyDelete);
   }, []);
-  const onDeleted = (id: number) => {
+  // Numbers shift after a deletion, so the hidden ones are only hidden until the list reloads
+  useEffect(() => setDeleted([]), [data]);
+  const onDeleted = (id: number, message?: string) => {
     setDeleted((d) => [...d, id]);
-    setNotice(`Ticket #${id} and its transcript were deleted. It's logged in the bot logs channel.`);
+    setNotice(message ?? `Ticket #${id} and its transcript were deleted.`);
     reload();
   };
 
   const update = (patch: Partial<Filters>) => {
-    setFilters((f) => ({ ...f, ...patch }));
+    setFilters((f) => ({ ...DEFAULTS, ...f, ...patch }));
     setPage(1);
   };
   const toggle = (list: string[], value: string) => (list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
   const sortBy = (key: SortKey) => update({ sort: key, order: filters.sort === key && filters.order === "desc" ? "asc" : "desc" });
   const arrow = (key: SortKey) => (filters.sort === key ? (filters.order === "desc" ? " ↓" : " ↑") : "");
   const people = data?.people ?? {};
+  const counts = data?.statusCounts ?? {};
+  const tagCounts = data?.tagCounts ?? {};
+  const flagged = Object.entries(tagCounts).reduce((n, [k, v]) => n + (TAGS[k]?.bad ? v : 0), 0);
+  const statuses = STATUSES.filter((st) => (counts[st] ?? 0) > 0 || filters.statuses.includes(st));
+  const tagKeys = Object.keys(TAGS).filter((k) => (tagCounts[k] ?? 0) > 0 || filters.tags.includes(k));
+  const active = filters.types.length + filters.statuses.length + filters.tags.length + (filters.range !== "all" ? 1 : 0) + (filters.opener !== "any" ? 1 : 0) + (filters.transcriptsOnly ? 1 : 0);
+  const rows = (data?.rows ?? []).filter((t) => !deleted.includes(t.ticketId));
 
   return (
-    <div className="adm-panel">
+    <div className="adm-panel tk">
       {readOnly ? (
         <p className="adm-notice adm-tickets-readonly" role="note">
           <Eye size={15} aria-hidden="true" /> <b>View only.</b> You can read every ticket and transcript. NSFW verification tickets are only visible to admins.
         </p>
       ) : null}
-      <OpenTickets onOpenMember={onOpenMember} />
-      <div className="adm-filters">
-        <label className="adm-search">
-          <Search size={16} aria-hidden="true" />
-          <input
-            type="search"
-            placeholder="Ticket #, member name or ID, staff, topic…"
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-          />
-        </label>
-        <select className="adm-select" value={filters.range} onChange={(e) => update({ range: e.target.value })} aria-label="Date range">
-          {RANGES.map((r) => (
-            <option key={r.key} value={r.key}>
-              {r.label}
-            </option>
-          ))}
-        </select>
-        <select className="adm-select" value={filters.pageSize} onChange={(e) => update({ pageSize: Number(e.target.value) })} aria-label="Rows per page">
-          {[10, 25, 50, 100].map((n) => (
-            <option key={n} value={n}>
-              {n} rows
-            </option>
-          ))}
-        </select>
-        <button type="button" className={`adm-chip-btn${filters.transcriptsOnly ? " is-active" : ""}`} onClick={() => update({ transcriptsOnly: !filters.transcriptsOnly })}>
-          <FileText size={15} aria-hidden="true" /> With transcript
-        </button>
-        <LiveBadge updatedAt={updatedAt} loading={loading} />
-      </div>
 
-      <div className="adm-chips">
-        {typesAvailable.map((type, i) => (
-          <button
-            key={type}
-            type="button"
-            className={`adm-chip${filters.types.includes(type) ? " is-on" : ""}`}
-            style={{ "--c": TICKET_COLORS[type] ?? actionColor(type, i + 3) } as React.CSSProperties}
-            onClick={() => update({ types: toggle(filters.types, type) })}
-          >
-            {prettyAction(type)}
+      <header className="tk-head">
+        <div className="tk-kpis">
+          <div className="tk-kpi">
+            <TicketIcon size={16} aria-hidden="true" />
+            <b>{data ? (Object.values(counts).reduce((a, b) => a + b, 0)).toLocaleString() : "…"}</b>
+            <span>{active ? "matching" : "tickets"}</span>
+          </div>
+          <div className="tk-kpi is-open">
+            <i aria-hidden="true" />
+            <b>{data ? (counts.Open ?? 0) : "…"}</b>
+            <span>open</span>
+          </div>
+          <button type="button" className={`tk-kpi is-flag${filters.tags.length && filters.tags.every((t) => TAGS[t]?.bad) ? " is-on" : ""}`} onClick={() => update({ tags: filters.tags.length ? [] : Object.keys(TAGS).filter((k) => TAGS[k].bad && (tagCounts[k] ?? 0) > 0) })} disabled={!flagged && !filters.tags.length}>
+            <AlertTriangle size={15} aria-hidden="true" />
+            <b>{flagged}</b>
+            <span>flagged</span>
           </button>
-        ))}
-        <span className="adm-chips-sep" />
-        {STATUSES.map((status) => (
-          <button
-            key={status}
-            type="button"
-            className={`adm-chip${filters.statuses.includes(status) ? " is-on" : ""}`}
-            style={{ "--c": status === "Open" ? "#46a758" : "#8b8d98" } as React.CSSProperties}
-            onClick={() => update({ statuses: toggle(filters.statuses, status) })}
-          >
-            {status}
+        </div>
+        <div className="tk-head-actions">
+          <LiveBadge updatedAt={updatedAt} loading={loading} />
+          {canDelete && !readOnly ? (
+            <button type="button" className="adm-btn adm-btn--small adm-btn--ghost" onClick={() => setCleanup(true)}>
+              <BrushCleaning size={14} aria-hidden="true" /> Clean up old tickets
+            </button>
+          ) : null}
+        </div>
+      </header>
+
+      <OpenTickets onOpenMember={onOpenMember} />
+
+      <section className="tk-filters" aria-label="Filters">
+        <div className="tk-filter-row">
+          <label className="adm-search tk-search">
+            <Search size={16} aria-hidden="true" />
+            <input type="search" placeholder="Ticket #, member name or ID, staff, topic…" value={searchText} onChange={(e) => setSearchText(e.target.value)} />
+          </label>
+          <select className="adm-select" value={filters.range} onChange={(e) => update({ range: e.target.value })} aria-label="Opened when">
+            {RANGES.map(([k, l]) => (
+              <option key={k} value={k}>
+                {l}
+              </option>
+            ))}
+          </select>
+          <select className="adm-select" value={filters.opener} onChange={(e) => update({ opener: e.target.value as Opener })} aria-label="Who opened it">
+            {OPENERS.map(([k, l]) => (
+              <option key={k} value={k}>
+                {l}
+              </option>
+            ))}
+          </select>
+          <button type="button" className={`adm-chip-btn${filters.transcriptsOnly ? " is-active" : ""}`} onClick={() => update({ transcriptsOnly: !filters.transcriptsOnly })}>
+            <FileText size={15} aria-hidden="true" /> With transcript
           </button>
-        ))}
-      </div>
+          {active ? (
+            <button type="button" className="adm-btn adm-btn--small adm-btn--ghost" onClick={() => (update({ ...DEFAULTS, pageSize: filters.pageSize }), setSearchText(""))}>
+              <X size={14} aria-hidden="true" /> Clear {active} filter{active === 1 ? "" : "s"}
+            </button>
+          ) : null}
+        </div>
+        <div className="tk-filter-row tk-chip-row">
+          <span className="tk-chip-label">Type</span>
+          {typesAvailable.map((type, i) => (
+            <button key={type} type="button" className={`adm-chip${filters.types.includes(type) ? " is-on" : ""}`} style={{ "--c": TICKET_COLORS[type] ?? actionColor(type, i + 3) } as React.CSSProperties} onClick={() => update({ types: toggle(filters.types, type) })}>
+              {prettyAction(type)}
+            </button>
+          ))}
+          {statuses.length > 1 || filters.statuses.length ? (
+            <>
+              <span className="tk-chip-label">Status</span>
+              {statuses.map((status) => (
+                <button key={status} type="button" className={`adm-chip${filters.statuses.includes(status) ? " is-on" : ""}`} style={{ "--c": status === "Open" ? "#46a758" : "#8b8d98" } as React.CSSProperties} onClick={() => update({ statuses: toggle(filters.statuses, status) })}>
+                  {status} <small>{counts[status] ?? 0}</small>
+                </button>
+              ))}
+            </>
+          ) : null}
+        </div>
+        {tagKeys.length ? (
+          <div className="tk-filter-row tk-chip-row">
+            <span className="tk-chip-label">Tags</span>
+            {tagKeys.map((k) => (
+              <button key={k} type="button" className={`adm-chip tk-tag${TAGS[k].bad ? " is-bad" : ""}${filters.tags.includes(k) ? " is-on" : ""}`} style={{ "--c": TAGS[k].bad ? "#e5484d" : "#8b8d98" } as React.CSSProperties} onClick={() => update({ tags: toggle(filters.tags, k) })}>
+                {TAGS[k].bad ? <AlertTriangle size={12} aria-hidden="true" /> : k === "left" || k === "deleted" ? <UserX size={12} aria-hidden="true" /> : null} {TAGS[k].label} <small>{tagCounts[k] ?? 0}</small>
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </section>
 
       {error ? <p className="adm-error">{error}</p> : null}
       {notice ? (
@@ -283,12 +372,12 @@ export function TicketsTab({
           {notice}
         </p>
       ) : null}
-
       {summaries.enabled === false ? (
         <p className="tks-off">
           <Sparkles size={14} aria-hidden="true" /> AI ticket descriptions are switched off. Add an <code>ANTHROPIC_API_KEY</code> in Vercel (Settings → Environment Variables) and redeploy to turn them on.
         </p>
       ) : null}
+
       <div className="adm-table-wrap">
         <table className="adm-table tks-table">
           <thead>
@@ -308,16 +397,15 @@ export function TicketsTab({
                 <button type="button" onClick={() => sortBy("resolvedAt")}>Took{arrow("resolvedAt")}</button>
               </th>
               <th>Status</th>
-              <th>Transcript</th>
               <th>
-                <span className="adm-sr">Delete</span>
+                <span className="adm-sr">Actions</span>
               </th>
             </tr>
           </thead>
           {/* One <tbody> per ticket: its row and the description under it read (and highlight) as one */}
-            {(data?.rows ?? []).filter((t) => !deleted.includes(t.ticketId)).map((t) => (
+          {rows.map((t) => (
             <tbody key={t.ticketId} className="tks-group">
-              <tr key={t.ticketId} onClick={() => t.transcriptId && onOpenTranscript(t.ticketId)} className={t.transcriptId ? "is-clickable" : undefined}>
+              <tr onClick={() => t.transcriptId && onOpenTranscript(t.ticketId)} className={t.transcriptId ? "is-clickable" : undefined}>
                 <td>
                   <strong>#{t.ticketId}</strong>
                 </td>
@@ -341,7 +429,7 @@ export function TicketsTab({
                 <td>
                   <span className={`adm-status${t.status === "Open" ? " adm-status--active" : ""}`}>{t.status === "Open" ? "● Open" : t.status}</span>
                 </td>
-                <td>
+                <td className="tk-actions">
                   {t.transcriptId ? (
                     <button
                       type="button"
@@ -354,25 +442,23 @@ export function TicketsTab({
                       <FileText size={13} aria-hidden="true" /> View
                     </button>
                   ) : (
-                    <span className="adm-muted">None</span>
+                    <span className="adm-muted tk-none">No transcript</span>
                   )}
-                </td>
-                <td className="adm-ticket-actions">
                   <DeleteTicketButton ticket={t} onDeleted={onDeleted} />
                 </td>
               </tr>
               <tr className="tks-row" onClick={() => t.transcriptId && onOpenTranscript(t.ticketId)}>
                 <td />
-                <td colSpan={8}>
+                <td colSpan={7}>
                   <SummaryLine s={summaries.state[t.ticketId]} onRefresh={() => void summaries.refresh(t.ticketId)} />
                 </td>
               </tr>
             </tbody>
-            ))}
+          ))}
           <tbody>
-            {!loading && data && !data.rows.length ? (
+            {!loading && data && !rows.length ? (
               <tr>
-                <td colSpan={9} className="adm-empty">
+                <td colSpan={8} className="adm-empty">
                   No tickets match these filters.
                 </td>
               </tr>
@@ -380,7 +466,7 @@ export function TicketsTab({
             {!data && loading
               ? Array.from({ length: 6 }, (_, i) => (
                   <tr key={i} className="adm-row-skeleton">
-                    <td colSpan={9} />
+                    <td colSpan={8} />
                   </tr>
                 ))
               : null}
@@ -388,7 +474,189 @@ export function TicketsTab({
         </table>
       </div>
 
-      {data ? <Pager page={page} total={data.total} pageSize={data.pageSize} onPage={setPage} /> : null}
+      {data ? (
+        <div className="tk-foot">
+          <Pager page={page} total={data.total} pageSize={data.pageSize} onPage={setPage} />
+          <select className="adm-select" value={filters.pageSize} onChange={(e) => update({ pageSize: Number(e.target.value) })} aria-label="Rows per page">
+            {[10, 25, 50, 100].map((n) => (
+              <option key={n} value={n}>
+                {n} per page
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
+
+      {cleanup ? <CleanupDialog typesAvailable={typesAvailable} onClose={() => setCleanup(false)} onDone={(msg) => (setNotice(msg), reload())} /> : null}
     </div>
+  );
+}
+
+/** Bulk-delete old closed tickets (admins): pick what, see how many, type the number to confirm. */
+function CleanupDialog({ typesAvailable, onClose, onDone }: { typesAvailable: string[]; onClose: () => void; onDone: (message: string) => void }) {
+  const mayNsfw = useContext(TicketDeletePermissions);
+  const [months, setMonths] = useState(12);
+  const [includeNsfw, setIncludeNsfw] = useState(false);
+  const [types, setTypes] = useState<string[]>([]);
+  const [opener, setOpener] = useState<"any" | "left" | "deleted" | "gone">("any");
+  const [preview, setPreview] = useState<{ count: number; sample: { ticketId: number; type: string; created: string | null }[] } | null>(null);
+  const [typed, setTyped] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const filter = { olderThanMonths: months, includeNsfw: includeNsfw && mayNsfw, types, opener };
+
+  const post = async (body: Record<string, unknown>) => {
+    const r = await fetch("/api/admin/tickets/cleanup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...filter, ...body }) });
+    const j = await r.json().catch(() => ({ ok: false, error: "Request failed." }));
+    if (!r.ok || !j.ok) throw new Error(j.error ?? "Request failed.");
+    return j;
+  };
+  // Count again whenever the choice changes
+  useEffect(() => {
+    let cancelled = false;
+    setPreview(null);
+    setTyped("");
+    const t = window.setTimeout(() => {
+      post({ step: "preview" })
+        .then((p) => !cancelled && setPreview(p))
+        .catch((e) => !cancelled && setError(e.message));
+    }, 250);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [months, includeNsfw, types.join(","), opener]);
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && !busy && onClose();
+    window.addEventListener("keydown", esc);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", esc);
+    };
+  }, [busy, onClose]);
+
+  const run = async () => {
+    if (!preview?.count) return;
+    setBusy(true);
+    setError(null);
+    let done = 0;
+    setProgress({ done, total: preview.count });
+    try {
+      for (let guard = 0; guard < 500; guard++) {
+        const r = await post({ step: "batch" });
+        done += r.deleted;
+        setProgress({ done, total: preview.count });
+        if (!r.remaining || !r.deleted) break;
+      }
+      const fin = await post({ step: "finish", deleted: done });
+      onDone(`Cleaned up ${done} old ticket${done === 1 ? "" : "s"}. ${fin.total} left, numbered 1–${fin.total}.`);
+      onClose();
+    } catch (e) {
+      setError(`${e instanceof Error ? e.message : "The clean-up stopped."} ${done ? `${done} were deleted before it stopped.` : ""}`);
+      setBusy(false);
+      if (done) await post({ step: "finish", deleted: done }).catch(() => undefined);
+    }
+  };
+
+  return createPortal(
+    <div className="tkd-wrap" onMouseDown={(e) => e.target === e.currentTarget && !busy && onClose()}>
+      <div className="tkd is-wide" role="dialog" aria-modal="true" aria-labelledby="tkc-title">
+        <button type="button" className="tkd-close" onClick={onClose} disabled={busy} aria-label="Close">
+          <X size={18} />
+        </button>
+        <span className="tkd-icon" aria-hidden="true">
+          <BrushCleaning size={22} />
+        </span>
+        <h3 id="tkc-title">Clean up old tickets</h3>
+        <p className="tkd-type">Deletes closed tickets and their transcripts for good. Open tickets are never touched. The rest are renumbered afterwards so there are no gaps.</p>
+        <div className="tkc-grid">
+          <label>
+            <span>Closed more than</span>
+            <select value={months} onChange={(e) => setMonths(Number(e.target.value))} disabled={busy}>
+              {[1, 3, 6, 12, 18, 24, 36].map((m) => (
+                <option key={m} value={m}>
+                  {m} month{m === 1 ? "" : "s"} ago
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>Opened by</span>
+            <select value={opener} onChange={(e) => setOpener(e.target.value as typeof opener)} disabled={busy}>
+              <option value="any">Anyone</option>
+              <option value="gone">Members who aren&apos;t here any more</option>
+              <option value="left">Members who left</option>
+              <option value="deleted">Deleted Discord accounts</option>
+            </select>
+          </label>
+        </div>
+        <div className="tkc-types">
+          <span>Types (none picked = all)</span>
+          <div>
+            {typesAvailable
+              .filter((t) => !/nsfw/i.test(t))
+              .map((t) => (
+                <button key={t} type="button" className={`adm-chip${types.includes(t) ? " is-on" : ""}`} onClick={() => setTypes((x) => (x.includes(t) ? x.filter((y) => y !== t) : [...x, t]))} disabled={busy}>
+                  {prettyAction(t)}
+                </button>
+              ))}
+          </div>
+        </div>
+        {mayNsfw ? (
+          <label className="tkc-check">
+            <input type="checkbox" checked={includeNsfw} onChange={(e) => setIncludeNsfw(e.target.checked)} disabled={busy} /> Include 18+ verification tickets
+          </label>
+        ) : null}
+        <div className="tkc-preview">
+          {preview ? (
+            preview.count ? (
+              <>
+                <b>
+                  {preview.count} ticket{preview.count === 1 ? "" : "s"} will be deleted
+                </b>
+                <small>
+                  e.g. {preview.sample.map((x) => `#${x.ticketId}`).join(", ")}
+                  {preview.count > preview.sample.length ? "…" : ""}
+                </small>
+              </>
+            ) : (
+              <b className="is-none">Nothing matches.</b>
+            )
+          ) : (
+            <span className="adm-muted">Counting…</span>
+          )}
+        </div>
+        {preview?.count ? (
+          <label className="tkd-typed">
+            <span>
+              <AlertTriangle size={14} aria-hidden="true" /> Type <b>{preview.count}</b> to confirm.
+            </span>
+            <input inputMode="numeric" value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={String(preview.count)} disabled={busy} />
+          </label>
+        ) : null}
+        {progress ? (
+          <div className="tkc-progress" role="progressbar" aria-valuemin={0} aria-valuemax={progress.total} aria-valuenow={progress.done}>
+            <i style={{ width: `${Math.round((100 * progress.done) / Math.max(1, progress.total))}%` }} />
+            <span>
+              {progress.done} / {progress.total}
+            </span>
+          </div>
+        ) : null}
+        {error ? <p className="tkd-error">{error}</p> : null}
+        <div className="tkd-actions">
+          <button type="button" className="adm-btn adm-btn--ghost" onClick={onClose} disabled={busy}>
+            Cancel
+          </button>
+          <button type="button" className="adm-btn adm-btn--danger" onClick={() => void run()} disabled={busy || !preview?.count || typed.trim() !== String(preview.count)}>
+            <Trash2 size={15} aria-hidden="true" /> {busy ? "Deleting…" : `Delete ${preview?.count ?? ""} ticket${preview?.count === 1 ? "" : "s"}`}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
   );
 }
