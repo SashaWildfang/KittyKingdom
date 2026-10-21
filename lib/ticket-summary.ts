@@ -16,7 +16,7 @@ import type { PanelUser } from "./admin";
 import { people } from "./admin-people";
 import { AI_MODEL, AI_MODEL_DETAILED, AiError, aiEnabled, askClaude, type AiImage, type AiPart } from "./ai";
 import { calculateAge, parseAge } from "./dates";
-import { isInServer, memberRoleIdsCached } from "./discord-member";
+import { isInServer, memberRoleIdsCached, memberRoleIdsFresh } from "./discord-member";
 import { applicationBirthday, getJoinApplication } from "./join-application";
 import { getBotCollection, getMongoClient } from "./mongodb";
 import { notify } from "./notifications";
@@ -37,6 +37,7 @@ const ADULT_VERIFIED_ROLE = "1358469974552870913";
 export const RECHECK_MS = 10 * 60_000;
 /** 18+ tickets cost nothing to rebuild (no AI): their roles / records are looked at again this often */
 const NSFW_RECHECK_MS = 60 * 60_000;
+const ROLE_RECHECK_MS = 3 * 60_000;
 
 /** Every tag the page can filter by. `bad` ones show red and some notify admins. */
 export const TICKET_TAGS: Record<string, { label: string; bad: boolean }> = {
@@ -230,13 +231,14 @@ const isoDate = (v: unknown) => {
 
 async function nsfwDescription(ticket: Ticket, source: Source | null) {
   const id = ticket.openedBy;
-  const [roles, app, record, who] = await Promise.all([
+  const [rolesCached, app, record, who] = await Promise.all([
     id ? memberRoleIdsCached(id).catch(() => null) : Promise.resolve(null),
     id ? getJoinApplication(id) : Promise.resolve(null),
     // The bot stores ids as 64-bit numbers (a plain JS number would round them)
     id ? getBotCollection("users").then((c) => c.findOne({ discordId: { $in: [Long.fromString(id), id] } } as never, { projection: { nsfwVerifiedBy: 1, nsfwVerifiedAt: 1, nsfwIdDob: 1, verificationHistory: 1 } })).catch(() => null) : Promise.resolve(null),
     id ? people([id]).catch(() => ({}) as Record<string, { deleted?: boolean; inServer?: boolean }>) : Promise.resolve({} as Record<string, { deleted?: boolean; inServer?: boolean }>),
   ]);
+  let roles = rolesCached;
   // Leaving resets verification (Moderation db/verification_reset.py): fall back to the last 18+ verification
   // in their history so older tickets still show what happened
   // …but only for a ticket from before that reset (a new ticket after they came back is a fresh check)
@@ -254,7 +256,16 @@ async function nsfwDescription(ticket: Ticket, source: Source | null) {
   const idDob = isoDate(rec?.nsfwIdDob);
   // A failed role lookup (Discord busy) isn't "they left": only Discord's "Unknown Member" counts as gone
   const membership: "in" | "out" | "unknown" = roles !== null ? "in" : !id ? "unknown" : await isInServer(id).then((v) => (v === true ? "in" : v === false ? "out" : "unknown")).catch(() => "unknown" as const);
-  const has18 = Boolean(roles?.includes(ADULT_VERIFIED_ROLE));
+  let has18 = Boolean(roles?.includes(ADULT_VERIFIED_ROLE));
+  // About to say "verified, no 18+ role" from cached roles: ask Discord directly first (the role may have
+  // been given back a moment ago, e.g. at the end of a re-verification)
+  if (id && roles !== null && !has18 && (record?.nsfwVerifiedAt || record?.nsfwVerifiedBy)) {
+    const fresh = await memberRoleIdsFresh(id).catch(() => undefined);
+    if (fresh) {
+      roles = fresh;
+      has18 = fresh.includes(ADULT_VERIFIED_ROLE);
+    }
+  }
   const reverifying = Boolean(id && !has18) && Boolean(await getBotCollection("activeTickets").then((c) => c.findOne({ opened_by: id }, { projection: { _id: 1 } })).catch(() => null));
   const verified = Boolean(rec?.nsfwVerifiedAt || rec?.nsfwVerifiedBy) || has18;
   // Photos the member sent: the opener's, or on old transcripts without author ids, anyone who isn't staff or the bot
@@ -345,7 +356,9 @@ export async function savedSummaries(tickets: Ticket[]) {
           sinceCheck > (t.status === "Open" ? RECHECK_MS : NSFW_RECHECK_MS) ||
           // Closed (usually right after verifying) or the record changed since this was written
           (t.resolvedAt !== null && new Date(t.resolvedAt).getTime() > (d.checkedAt?.getTime() ?? 0)) ||
-          (changedAt.get(t.openedBy ?? "") ?? 0) > (d.checkedAt?.getTime() ?? 0)
+          (changedAt.get(t.openedBy ?? "") ?? 0) > (d.checkedAt?.getTime() ?? 0) ||
+          // Roles aren't in our database: a "no 18+ role" flag is checked again every few minutes
+          (Boolean(d.tags?.includes("no-role")) && sinceCheck > ROLE_RECHECK_MS)
         : t.status === "Open"
           ? sinceCheck > RECHECK_MS
           : Boolean(t.transcriptId) && d.key.split("|")[0] !== `t:${t.transcriptId}`);

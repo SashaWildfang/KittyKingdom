@@ -178,6 +178,29 @@ const roleInflight = new Map<string, Promise<string[] | null>>();
 const ROLE_TTL_MS = 120_000;
 
 /** A member's role ids, cached for two minutes (for checks that run on every page, like the Dating tab). */
+/**
+ * A member's roles straight from Discord (no caching), for decisions that must be right now, e.g. before
+ * flagging someone as "verified, no 18+ role" right after the role was given back. Null if they're not in the
+ * server; undefined if Discord couldn't say.
+ */
+export async function memberRoleIdsFresh(discordId: string): Promise<string[] | null | undefined> {
+  const token = botToken();
+  const guild = await guildId();
+  if (!guild || !token) return undefined;
+  try {
+    const res = await fetch(`${DISCORD_API}/guilds/${guild}/members/${discordId}`, { headers: { Authorization: `Bot ${token}` }, cache: "no-store" });
+    if (res.ok) {
+      const roles = ((await res.json()) as { roles?: string[] }).roles ?? [];
+      roleCache.set(discordId, { at: Date.now(), roles });
+      return roles;
+    }
+    if (res.status === 404) return null;
+  } catch {
+    // network trouble
+  }
+  return undefined;
+}
+
 export async function memberRoleIdsCached(discordId: string): Promise<string[] | null> {
   const hit = roleCache.get(discordId);
   if (hit && Date.now() - hit.at < ROLE_TTL_MS) return hit.roles;
