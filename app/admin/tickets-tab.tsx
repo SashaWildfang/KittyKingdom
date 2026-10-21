@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, BrushCleaning, Eye, FileText, RefreshCw, Search, Sparkles, Ticket as TicketIcon, Trash2, UserX, X } from "lucide-react";
+import { AlertTriangle, BrushCleaning, Lock, Eye, FileText, RefreshCw, Search, Sparkles, Ticket as TicketIcon, Trash2, UserX, X } from "lucide-react";
 import "./ticket-summary.css";
 import "./delete-ticket.css";
 import { useContext, useEffect, useRef, useState } from "react";
@@ -21,6 +21,7 @@ import {
   type People,
   type Ticket,
 } from "./admin-shared";
+import { DobDialog } from "./dob-dialog";
 import { DeleteTicketButton, TicketCanDelete, TicketDeletePermissions } from "./delete-ticket-button";
 import { OpenTickets } from "./ticket-live";
 
@@ -151,28 +152,15 @@ function useTicketSummaries(rows: Ticket[]) {
 
 function SummaryLine({ s, onRefresh, ticket, canEdit, onSummary }: { s: SummaryState | undefined; onRefresh: () => void; ticket?: Ticket; canEdit?: boolean; onSummary?: (sum: TicketSummary) => void }) {
   const sum = s?.summary;
-  // Which date an admin is filling in: the one on the ID, or the one missing from the join application
-  const [dobOpen, setDobOpen] = useState<"id" | "app" | null>(null);
-  const [dob, setDob] = useState("");
-  const [dobBusy, setDobBusy] = useState(false);
-  const [dobErr, setDobErr] = useState<string | null>(null);
-  // Older 18+ tickets: an admin can record the DOB on the ID after looking at it in the transcript
-  const canAddDob = Boolean(canEdit && ticket && sum?.tags?.includes("id-not-recorded"));
-  // …and fill in the DOB when the join application doesn't have one
-  const canAddAppDob = Boolean(canEdit && ticket && sum?.tags?.includes("no-app-dob"));
-  const saveDob = async () => {
-    if (!ticket || !dobOpen) return;
-    setDobBusy(true);
-    setDobErr(null);
-    const r = await fetch(`/api/admin/tickets/${ticket.ticketId}/${dobOpen === "app" ? "app-dob" : "id-dob"}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dob, openedBy: ticket.openedBy }) })
-      .then((x) => x.json())
-      .catch(() => null);
-    setDobBusy(false);
-    if (!r?.ok) return setDobErr(r?.error ?? "Couldn't save that.");
-    setDobOpen(null);
-    setDob("");
-    onSummary?.(r.summary);
+  // Admins can record a missing date of birth (the join application's or the ID's) in a locked-down dialog
+  const [dobOpen, setDobOpen] = useState(false);
+  const missing = {
+    app: Boolean(sum?.tags?.includes("no-app-dob")),
+    // The description says "ID Age: not recorded" whenever there's no ID date on file (verified or not)
+    id: Boolean(sum?.tags?.includes("id-not-recorded") || /ID Age: not recorded/.test(sum?.headline ?? "")),
+    noApp: Boolean(sum?.tags?.includes("no-join-app")),
   };
+  const canRecordDob = Boolean(canEdit && ticket && (missing.app || missing.id));
   // Nothing to show yet (or ever: AI off, or no transcript left to read)
   if (!sum && !s?.busy && !s?.error) return null;
   return (
@@ -194,34 +182,12 @@ function SummaryLine({ s, onRefresh, ticket, canEdit, onSummary }: { s: SummaryS
         <span className="tks-text is-muted">{s?.busy ? "Reading the ticket…" : s?.error}</span>
       )}
       {s?.busy && sum ? <span className="tks-busy">Updating…</span> : null}
-      {canAddAppDob && !dobOpen ? (
-        <button type="button" className="tks-adddob" onClick={() => setDobOpen("app")} title="Their join application has no date of birth: type the one they gave (or the one on their ID)">
-          Set join app DOB
+      {canRecordDob ? (
+        <button type="button" className="tks-adddob" onClick={() => setDobOpen(true)} title="Record a missing date of birth (2FA code needed)">
+          <Lock size={11} aria-hidden="true" /> Record DOB
         </button>
       ) : null}
-      {canAddDob && !dobOpen ? (
-        <button type="button" className="tks-adddob" onClick={() => setDobOpen("id")} title="Look at the ID in the transcript, then type the date of birth printed on it">
-          Add ID DOB
-        </button>
-      ) : null}
-      {dobOpen ? (
-        <form
-          className="tks-dobform"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (dob.trim() && !dobBusy) void saveDob();
-          }}
-        >
-          <input autoFocus value={dob} onChange={(e) => setDob(e.target.value)} placeholder={dobOpen === "app" ? "DOB for the join app, e.g. 10/12/2001" : "DOB on the ID, e.g. 10/12/2001"} aria-label={dobOpen === "app" ? "Date of birth for the join application" : "Date of birth on the ID"} />
-          <button type="submit" className="adm-btn adm-btn--tiny" disabled={!dob.trim() || dobBusy}>
-            {dobBusy ? "Saving…" : "Save"}
-          </button>
-          <button type="button" className="adm-btn adm-btn--tiny adm-btn--ghost" onClick={() => (setDobOpen(null), setDobErr(null))}>
-            Cancel
-          </button>
-          {dobErr ? <span className="tks-doberr">{dobErr}</span> : null}
-        </form>
-      ) : null}
+      {dobOpen && ticket ? <DobDialog ticket={ticket} missing={missing} onClose={() => setDobOpen(false)} onSaved={(summary) => onSummary?.(summary)} /> : null}
       {!s?.busy ? (
         <button type="button" className="tks-refresh" onClick={onRefresh} title={sum ? "Read it again" : "Try again"} aria-label="Describe again">
           <RefreshCw size={12} />

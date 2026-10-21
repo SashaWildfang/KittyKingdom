@@ -44,3 +44,32 @@
 @keyframes tkd-fade { from { opacity: 0; } }
 @keyframes tkd-pop { from { opacity: 0; transform: translateY(8px) scale(0.98); } }
 @media (prefers-reduced-motion: reduce) { .tkd-wrap, .tkd { animation: none; } }
+
+/* Record a date of birth (dob-dialog.tsx) */
+.tkd.dobd { width: min(30rem, 100%); border-color: rgba(var(--ember-rgb), 0.4); text-align: left; justify-items: stretch; }
+.tkd.dobd > .tkd-icon { justify-self: center; }
+.tkd.dobd h3, .tkd.dobd .tkd-type { text-align: center; }
+.dobd-icon { background: rgba(var(--ember-rgb), 0.16) !important; color: var(--ember) !important; }
+.dobd-options { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+.dobd-option { display: flex; align-items: flex-start; gap: 0.55rem; border: 1px solid var(--line); border-radius: 0.85rem; background: var(--panel-strong); color: var(--text); cursor: pointer; font: inherit; padding: 0.65rem 0.7rem; text-align: left; }
+.dobd-option svg { flex: none; margin-top: 0.1rem; color: var(--muted); }
+.dobd-option span { display: grid; gap: 0.1rem; }
+.dobd-option b { font-size: 0.88rem; }
+.dobd-option small { color: var(--muted); font-size: 0.74rem; line-height: 1.35; }
+.dobd-option.is-on { border-color: var(--ember); background: rgba(var(--ember-rgb), 0.14); }
+.dobd-option.is-on svg { color: var(--ember); }
+.dobd-option:disabled { cursor: not-allowed; opacity: 0.5; }
+.dobd-dates { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+.dobd-dates label, .dobd-code { display: grid; gap: 0.3rem; font-size: 0.8rem; font-weight: 700; color: var(--muted); }
+.dobd-code > span { display: inline-flex; align-items: center; gap: 0.3rem; }
+.dobd-code small { font-weight: 500; font-size: 0.74rem; }
+.dobd input:not([type="checkbox"]) { border: 1px solid var(--line); border-radius: 0.65rem; background: var(--panel-strong); color: var(--text); font: inherit; font-size: 1rem; font-weight: 700; letter-spacing: 0.04em; padding: 0.55rem 0.65rem; }
+.dobd input:not([type="checkbox"]):focus { border-color: var(--ember); outline: none; }
+.dobd-code input { max-width: 11rem; letter-spacing: 0.2em !important; }
+.dobd-note { color: var(--muted); font-size: 0.8rem; }
+.dobd-note.is-bad, .dobd-age.is-bad { color: #ff9b9b; }
+.dobd-age { display: inline-flex; align-items: center; gap: 0.3rem; font-weight: 800; font-size: 0.9rem; }
+.dobd-check { display: flex; align-items: flex-start; gap: 0.5rem; border: 1px solid var(--line); border-radius: 0.75rem; background: var(--panel-strong); font-size: 0.84rem; padding: 0.6rem 0.7rem; cursor: pointer; }
+.dobd-check input { margin-top: 0.15rem; accent-color: var(--ember); }
+.dobd-rules { font-size: 0.78rem; }
+@media (max-width: 480px) { .dobd-options, .dobd-dates { grid-template-columns: 1fr; } }
