@@ -25,7 +25,7 @@ import { getTicket, isNsfwTicket, type Ticket } from "./tickets";
 import { openTranscriptFile } from "./transcript-store";
 
 /** Bump when the wording rules change: saved descriptions from an older version are written again */
-const VERSION = 5;
+const VERSION = 6;
 const MAX_IMAGES = 20;
 const MAX_IMAGE_BYTES = 3_750_000;
 const MAX_TEXT = 150_000;
@@ -228,16 +228,26 @@ async function nsfwDescription(ticket: Ticket, source: Source | null) {
     id ? memberRoleIdsCached(id).catch(() => null) : Promise.resolve(null),
     id ? getJoinApplication(id) : Promise.resolve(null),
     // The bot stores ids as 64-bit numbers (a plain JS number would round them)
-    id ? getBotCollection("users").then((c) => c.findOne({ discordId: { $in: [Long.fromString(id), id] } } as never, { projection: { nsfwVerifiedBy: 1, nsfwVerifiedAt: 1, nsfwIdDob: 1 } })).catch(() => null) : Promise.resolve(null),
+    id ? getBotCollection("users").then((c) => c.findOne({ discordId: { $in: [Long.fromString(id), id] } } as never, { projection: { nsfwVerifiedBy: 1, nsfwVerifiedAt: 1, nsfwIdDob: 1, verificationHistory: 1 } })).catch(() => null) : Promise.resolve(null),
     id ? people([id]).catch(() => ({}) as Record<string, { deleted?: boolean; inServer?: boolean }>) : Promise.resolve({} as Record<string, { deleted?: boolean; inServer?: boolean }>),
   ]);
-  const verifiedBy = record?.nsfwVerifiedBy ? String(record.nsfwVerifiedBy) : null;
+  // Leaving resets verification (Moderation db/verification_reset.py): fall back to the last 18+ verification
+  // in their history so older tickets still show what happened
+  // …but only for a ticket from before that reset (a new ticket after they came back is a fresh check)
+  const opened = ticket.created ? new Date(ticket.created).getTime() : 0;
+  const past =
+    ((record?.verificationHistory ?? []) as Record<string, unknown>[])
+      .filter((h) => (h.nsfwVerifiedAt || h.nsfwVerifiedBy) && h.resetAt instanceof Date && h.resetAt.getTime() > opened)
+      .shift() ?? null;
+  const fromHistory = !record?.nsfwVerifiedAt && !record?.nsfwVerifiedBy && Boolean(past);
+  const rec = (fromHistory ? past : record) as Record<string, unknown> | null;
+  const verifiedBy = rec?.nsfwVerifiedBy ? String(rec.nsfwVerifiedBy) : null;
   const verifierName = verifiedBy ? ((await people([verifiedBy]).catch(() => ({}) as Record<string, { name?: string }>))[verifiedBy]?.name ?? "staff") : null;
   const birth = applicationBirthday(app);
   const appDob = birth.birthDate;
-  const idDob = isoDate(record?.nsfwIdDob);
+  const idDob = isoDate(rec?.nsfwIdDob);
   const has18 = Boolean(roles?.includes(ADULT_VERIFIED_ROLE));
-  const verified = Boolean(record?.nsfwVerifiedAt) || has18;
+  const verified = Boolean(rec?.nsfwVerifiedAt || rec?.nsfwVerifiedBy) || has18;
   // Photos the member sent: the opener's, or on old transcripts without author ids, anyone who isn't staff or the bot
   const lines = source?.lines ?? [];
   const hasOpener = lines.some((l) => l.role === "opener");
@@ -248,6 +258,7 @@ async function nsfwDescription(ticket: Ticket, source: Source | null) {
   // Who verified them is already in the Handled by column, so it's only written when nobody's listed there
   const handled = Boolean(ticket.claimedBy || ticket.resolvedBy);
   if (!verified) parts.push(ticket.status === "Open" ? "Waiting for review" : "Not verified");
+  else if (fromHistory) parts.push(handled ? "Verified (reset when they left)" : `Verified by ${verifierName ?? "staff"} (reset when they left)`);
   else if (!handled) parts.push(`Verified by ${verifierName ?? "staff"}`);
   const appAge = appDob ? calculateAge(appDob) : birth.age;
   const idAge = idDob ? calculateAge(idDob) : null;
@@ -269,9 +280,9 @@ async function nsfwDescription(ticket: Ticket, source: Source | null) {
   const person = id ? who[id] : undefined;
   if (person?.deleted) tags.push("deleted");
   else if (roles === null) tags.push("left");
-  else if (verified && !has18) tags.push("no-role");
+  else if (verified && !has18 && !fromHistory) tags.push("no-role");
   for (const t of tags) if (TICKET_TAGS[t] && !(t === "dob-mismatch")) flags.push(TICKET_TAGS[t].label);
-  const key = `nsfw|${source?.key ?? "-"}|${verifiedBy ?? "-"}|${idDob?.toISOString().slice(0, 10) ?? "-"}|${appDob?.toISOString().slice(0, 10) ?? appAge ?? "-"}|${appAge}|${idAge}|${roles === null ? "left" : has18 ? "18" : "no"}|${photos}`;
+  const key = `nsfw|${fromHistory ? "h" : "c"}|${source?.key ?? "-"}|${verifiedBy ?? "-"}|${idDob?.toISOString().slice(0, 10) ?? "-"}|${appDob?.toISOString().slice(0, 10) ?? appAge ?? "-"}|${appAge}|${idAge}|${roles === null ? "left" : has18 ? "18" : "no"}|${photos}`;
   return { line: parts.join(" · "), flags, tags, key, photos };
 }
 
