@@ -69,3 +69,7 @@ button.tk-kpi { cursor: pointer; }
 .tk-autoclean:hover { border-color: var(--ember); color: var(--text); }
 .tk-autoclean svg { color: var(--ember); }
 .tk-autoclean.is-off svg { color: var(--muted); }
+/* "Record DOB" on 18+ tickets missing a date of birth (opens the locked-down dialog) */
+.tks-adddob { display: inline-flex; align-items: center; gap: 0.3rem; flex: none; border: 1px solid rgba(var(--ember-rgb), 0.45); border-radius: 999px; background: rgba(var(--ember-rgb), 0.12); color: var(--text); cursor: pointer; font: inherit; font-size: 0.72rem; font-weight: 800; padding: 0.15rem 0.55rem; }
+.tks-adddob:hover { background: rgba(var(--ember-rgb), 0.24); }
+.tks-adddob svg { color: var(--ember); }
