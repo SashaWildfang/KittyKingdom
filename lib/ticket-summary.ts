@@ -210,8 +210,12 @@ export async function savedSummaries(tickets: Ticket[]) {
   for (const t of tickets) {
     const d = byId.get(t.ticketId);
     if (!d) continue;
+    const sinceCheck = Date.now() - (d.checkedAt?.getTime() ?? 0);
     const stale =
-      (d.version ?? 1) !== VERSION || (t.status === "Open" ? Date.now() - (d.checkedAt?.getTime() ?? 0) > RECHECK_MS : Boolean(t.transcriptId) && d.key !== `t:${t.transcriptId}`);
+      (d.version ?? 1) !== VERSION ||
+      (t.status === "Open" ? sinceCheck > RECHECK_MS : Boolean(t.transcriptId) && d.key.split("|")[0] !== `t:${t.transcriptId}`) ||
+      // 18+ verification: look at the member's roles again once a day (no AI call unless they changed)
+      (isNsfwTicket(t.type) && sinceCheck > 86_400_000);
     out[t.ticketId] = view(d, stale);
   }
   return out;
@@ -230,7 +234,10 @@ export async function summarizeTicket(ticketId: number, panel: PanelUser, force 
     if (saved) return view(saved, false);
     throw new SummaryError(ticket.transcriptId ? "Couldn't read this ticket's transcript." : "There's nothing left to read: this ticket has no transcript.", 404);
   }
-  if (saved && saved.key === source.key && (saved.version ?? 1) === VERSION && !force) {
+  // 18+ verification tickets: their result depends on the member's roles, so that's part of the key too
+  const check = await serverCheck(ticket);
+  const key = check ? `${source.key}|${check}` : source.key;
+  if (saved && saved.key === key && (saved.version ?? 1) === VERSION && !force) {
     await c.updateOne({ _id: ticketId }, { $set: { checkedAt: new Date() } });
     return view({ ...saved, checkedAt: new Date() }, false);
   }
@@ -257,11 +264,11 @@ export async function summarizeTicket(ticketId: number, panel: PanelUser, force 
       parts.push({ type: "text", text: `[image ${refs.size}]` }, { type: "image", image: img });
     }
   }
-  parts.unshift({ type: "text", text: buildText(ticket, source.lines, refs, await serverCheck(ticket)) });
+  parts.unshift({ type: "text", text: buildText(ticket, source.lines, refs, check) });
 
   const reply = parseReply(await askClaude({ system: SYSTEM, parts, maxTokens: 120 }));
   const now = new Date();
-  const doc: Doc = { _id: ticketId, ...reply, key: source.key, version: VERSION, messages: source.lines.length, images: refs.size, model: AI_MODEL, generatedAt: now, checkedAt: now };
+  const doc: Doc = { _id: ticketId, ...reply, key, version: VERSION, messages: source.lines.length, images: refs.size, model: AI_MODEL, generatedAt: now, checkedAt: now };
   await c.replaceOne({ _id: ticketId }, doc, { upsert: true });
   return view(doc, false);
 }
