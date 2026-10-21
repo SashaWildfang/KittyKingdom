@@ -473,6 +473,7 @@ const MODERATION: BotDef = {
         { key: "join.purgeTime", label: "…at", help: "Applies within a minute, no restart needed. If the bot was offline at that time, it clears as soon as it's back.", type: "select", default: "00:00", options: PURGE_TIMES },
         { key: "join.purgeTimezone", label: "…in time zone", help: "", type: "timezone", default: "UTC" },
         { key: "join.welcomeChannel", label: "Welcome / verify channel", help: "Where new members verify and get denial notices.", type: "channel", default: "1358486077916057691" },
+        { key: "join.welcomeBanner", label: "Welcome banner", help: "The animated image shown above the welcome card: a link to a GIF or picture (wide, about 640×256 looks best). Reset it to go back to the Bear Nation banner.", type: "text", default: "https://bear-nation.net/banners/welcome.gif", maxLength: 400 },
         { key: "join.applicationsChannel", label: "Applications channel", help: "Where staff review join forms.", type: "channel", default: "1381975737808191599" },
         { key: "join.joinLogChannel", label: "Join log channel", help: "Where joins are logged.", type: "channel", default: "1358485536511234164" },
         { key: "join.reminderChannel", label: "Unverified chat channel", help: "The reminder ping and the daily clear-out happen here.", type: "channel", default: "1487886250114547762" },
@@ -732,11 +733,12 @@ const TICKETING: BotDef = {
       key: "staffApps",
       title: "Staff applications",
       icon: "clipboard",
-      about: "Who can open a staff application ticket.",
+      about: "Who can open a staff application ticket. The #apply-for-staff panel shows these requirements: repost it with /create_staff_panel after changing them.",
       fields: [
         { key: "staffApps.enabled", label: "Applications open", help: "Turn off to close staff applications (the button explains they're closed).", type: "toggle", default: true },
         { key: "staffApps.minLevel", label: "Minimum level", help: "", type: "number", default: 5, min: 0, max: 200 },
         { key: "staffApps.minDays", label: "Minimum time in the server", help: "", type: "number", default: 30, min: 0, max: 3650, unit: "days" },
+        { key: "staffApps.requireWebsite", label: "Require a linked website account", help: "Applicants need a bear-nation.net account with a verified email, linked to their Discord. The panel lists it as a requirement (repost it with /create_staff_panel after changing this).", type: "toggle", default: true },
       ],
     },
     {
@@ -749,6 +751,7 @@ const TICKETING: BotDef = {
         { key: "nsfw.memberRole", label: "Required role", help: "Only members with this role can be verified.", type: "role", default: "1358469854725931038" },
         { key: "nsfw.welcome", label: "Welcome message", help: "Welcome newly verified members on the 18+ side.", type: "toggle", default: true },
         { key: "nsfw.welcomeChannel", label: "Welcome channel", help: "", type: "channel", channelKind: "text", default: "1358487735811182682" },
+        { key: "nsfw.welcomeBanner", label: "Welcome banner", help: "The animated image shown above the 18+ welcome message: a link to a GIF or picture (wide, about 640×256 looks best). Reset it to go back to the neon banner.", type: "text", default: "https://bear-nation.net/banners/18plus-welcome.gif", maxLength: 400 },
       ],
     },
     {
