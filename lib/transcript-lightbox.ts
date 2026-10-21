@@ -28,7 +28,7 @@ export const LIGHTBOX_SCRIPT = String.raw`<script>
   document.head.appendChild(css);
 
   var box = null, img, stage, count, zoomLabel, list = [], index = 0;
-  var scale = 1, fit = 1, x = 0, y = 0, pointers = {}, last = null, pinch = null, moved = false;
+  var scale = 1, fit = 1, x = 0, y = 0, pointers = {}, last = null, pinch = null, moved = false, downOnBackdrop = false;
 
   function paint() {
     img.style.transform = "translate(" + x + "px," + y + "px) scale(" + scale + ")";
@@ -129,16 +129,21 @@ export const LIGHTBOX_SCRIPT = String.raw`<script>
         else if (act === "next") show(index + 1);
         return;
       }
-      // A plain click on the dark area (not the end of a drag) closes
-      if (!moved && e.target === stage) close();
+      // A plain click that started on the dark area (not on the picture, not the end of a drag) closes.
+      // (Dragging captures the pointer on the stage, so the click's target is the stage either way.)
+      if (!moved && downOnBackdrop && e.target === stage) close();
     });
     stage.addEventListener("wheel", function (e) {
       e.preventDefault();
       var p = point(e);
       zoomAt(Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0025)), p[0], p[1]);
     }, { passive: false });
+    function onPicture(e) {
+      var r = img.getBoundingClientRect();
+      return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+    }
     stage.addEventListener("dblclick", function (e) {
-      if (e.target !== img) return;
+      if (!onPicture(e)) return;
       var p = point(e);
       if (scale > fit * 1.05) reset();
       else zoomAt(Math.max(2.5, 1 / fit), p[0], p[1]);
@@ -146,6 +151,7 @@ export const LIGHTBOX_SCRIPT = String.raw`<script>
     stage.addEventListener("pointerdown", function (e) {
       if (e.target.closest("[data-a]")) return;
       e.preventDefault();
+      if (!Object.keys(pointers).length) downOnBackdrop = e.target === stage && !onPicture(e);
       stage.setPointerCapture(e.pointerId);
       pointers[e.pointerId] = [e.clientX, e.clientY];
       moved = false;
