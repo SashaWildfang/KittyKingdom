@@ -55,24 +55,46 @@ function ageOf(d: Date) {
   return age;
 }
 
+type OnFile = { hasApp: boolean; app: string | null; appAnswer: string | null; id: string | null };
+const showDay = (iso: string | null) => (iso ? `${iso.slice(5, 7)}/${iso.slice(8, 10)}/${iso.slice(0, 4)}` : null);
+
 export function DobDialog({
   ticket,
-  missing,
   onClose,
   onSaved,
 }: {
   ticket: { ticketId: number; key?: string; openedBy?: string | null };
-  /** Which dates are missing (only those can be recorded) */
-  missing: { app: boolean; id: boolean; noApp?: boolean };
   onClose: () => void;
   onSaved: (summary: TicketSummary) => void;
 }) {
-  const [kind, setKind] = useState<Kind | null>(missing.id && !missing.app ? "id" : missing.app && !missing.id ? "app" : null);
+  // What's on file right now (loaded when the dialog opens; a save only goes through if it's still the same)
+  const [onFile, setOnFile] = useState<OnFile | null>(null);
+  const [kind, setKind] = useState<Kind | null>(null);
   const [dob, setDob] = useState("");
   const [repeat, setRepeat] = useState("");
+  const [reason, setReason] = useState("");
   const [checked, setChecked] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let off = false;
+    fetch(`/api/admin/tickets/${ticket.ticketId}/dob${ticket.key ? `?key=${encodeURIComponent(ticket.key)}` : ""}`, { cache: "no-store" })
+      .then((x) => x.json())
+      .then((r) => {
+        if (off) return;
+        if (!r?.ok) return setError(r?.error ?? "Couldn't load the dates on file.");
+        setOnFile(r as OnFile);
+        // Straight to the one that's missing, if only one is
+        if (r.hasApp && !r.app && r.id) setKind("app");
+        else if (r.app && !r.id) setKind("id");
+        else if (!r.hasApp) setKind("id");
+      })
+      .catch(() => !off && setError("Couldn't load the dates on file."));
+    return () => {
+      off = true;
+    };
+  }, [ticket.ticketId, ticket.key]);
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -85,10 +107,13 @@ export function DobDialog({
     };
   }, [busy, onClose]);
 
+  const current = kind && onFile ? (kind === "app" ? onFile.app : onFile.id) : null;
+  const editing = Boolean(current);
   const date = parseMdy(dob);
   const same = Boolean(date && parseMdy(repeat)?.getTime() === date.getTime());
+  const unchanged = Boolean(date && current && date.toISOString().slice(0, 10) === current);
   const age = date ? ageOf(date) : null;
-  const ready = Boolean(kind && date && same && checked && !busy);
+  const ready = Boolean(kind && onFile && date && same && !unchanged && checked && (!editing || reason.trim().length >= 3) && !busy);
 
   async function save() {
     if (!ready || !kind) return;
@@ -97,7 +122,7 @@ export function DobDialog({
     const r = await fetch(`/api/admin/tickets/${ticket.ticketId}/dob`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ kind, dob, repeat, checked, openedBy: ticket.openedBy, key: ticket.key }),
+      body: JSON.stringify({ kind, dob, repeat, checked, reason, expect: current, openedBy: ticket.openedBy, key: ticket.key }),
     })
       .then((x) => x.json())
       .catch(() => null);
@@ -110,14 +135,22 @@ export function DobDialog({
     onClose();
   }
 
-  const option = (k: Kind, icon: React.ReactNode, title: string, note: string) => {
-    const open = k === "app" ? missing.app : missing.id;
+  const option = (k: Kind, icon: React.ReactNode, title: string) => {
+    const value = onFile ? (k === "app" ? onFile.app : onFile.id) : null;
+    const blocked = !onFile || (k === "app" && !onFile.hasApp);
+    const note = !onFile ? "Loading…" : k === "app" && !onFile.hasApp ? "They have no join application" : value ? `On file: ${showDay(value)} · change it` : k === "app" ? "Not on their form · add it" : "Not recorded · add it";
     return (
-      <button type="button" className={`dobd-option${kind === k ? " is-on" : ""}`} disabled={!open || busy} onClick={() => (setKind(k), setChecked(false))} aria-pressed={kind === k}>
+      <button
+        type="button"
+        className={`dobd-option${kind === k ? " is-on" : ""}`}
+        disabled={blocked || busy}
+        onClick={() => (setKind(k), setChecked(false), setReason(""), setDob(""), setRepeat(""), setError(null))}
+        aria-pressed={kind === k}
+      >
         {icon}
         <span>
           <b>{title}</b>
-          <small>{open ? note : k === "app" && missing.noApp ? "They have no join application" : "Already recorded (can't be changed here)"}</small>
+          <small>{note}</small>
         </span>
       </button>
     );
@@ -141,19 +174,25 @@ export function DobDialog({
         <span className="tkd-icon dobd-icon" aria-hidden="true">
           <Lock size={22} />
         </span>
-        <h3 id="dobd-title">Record a date of birth</h3>
+        <h3 id="dobd-title">{editing ? "Correct a date of birth" : "Record a date of birth"}</h3>
         <p className="tkd-type">Ticket #{ticket.ticketId} · 18+ verification</p>
 
         <div className="dobd-options">
-          {option("app", <ScrollText size={18} aria-hidden="true" />, "Join application", "Their form has no date of birth")}
-          {option("id", <IdCard size={18} aria-hidden="true" />, "Their ID", "Read it off the ID in the transcript")}
+          {option("app", <ScrollText size={18} aria-hidden="true" />, "Join application")}
+          {option("id", <IdCard size={18} aria-hidden="true" />, "Their ID")}
         </div>
 
-        {kind ? (
+        {kind && onFile ? (
           <>
+            {editing ? (
+              <p className="dobd-current">
+                On file now: <b>{showDay(current)}</b> (age {ageOf(new Date(`${current}T00:00:00Z`))}). Type the correct date below.
+                {kind === "app" && onFile.appAnswer ? <small>What they wrote on the form: &ldquo;{onFile.appAnswer}&rdquo;</small> : null}
+              </p>
+            ) : null}
             <div className="dobd-dates">
               <label>
-                <span>Date of birth</span>
+                <span>{editing ? "Correct date of birth" : "Date of birth"}</span>
                 <input value={dob} onChange={(e) => setDob(withSlashes(e.target.value, isDelete(e)))} placeholder="MM/DD/YYYY" inputMode="numeric" maxLength={10} autoComplete="off" disabled={busy} autoFocus />
               </label>
               <label>
@@ -163,11 +202,19 @@ export function DobDialog({
             </div>
             {dob && !date ? <p className="dobd-note">Use month/day/year, like 10/12/2001.</p> : null}
             {date && repeat && !same ? <p className="dobd-note is-bad">The two dates don&apos;t match.</p> : null}
+            {unchanged ? <p className="dobd-note is-bad">That&apos;s already the date on file.</p> : null}
             {date && age !== null ? (
               <p className={`dobd-age${age < 18 ? " is-bad" : ""}`}>
                 {age < 18 ? <AlertTriangle size={14} aria-hidden="true" /> : null} Age {age}
                 {age < 18 ? " — under 18. The ticket will be flagged." : ""}
               </p>
+            ) : null}
+
+            {editing ? (
+              <label className="dobd-reason">
+                <span>Why are you changing it?</span>
+                <input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={300} placeholder="e.g. typo when it was recorded" disabled={busy} />
+              </label>
             ) : null}
 
             <label className="dobd-check">
@@ -177,12 +224,12 @@ export function DobDialog({
 
           </>
         ) : (
-          <p className="dobd-note">Pick which date of birth you&apos;re recording.</p>
+          <p className="dobd-note">{onFile ? "Pick which date of birth to record or correct." : error ? "" : "Loading the dates on file…"}</p>
         )}
 
         <ul className="tkd-list dobd-rules">
           <li>Needs two-factor authentication turned on for your account.</li>
-          <li>Once saved it can&apos;t be changed from here.</li>
+          <li>Changing a recorded date needs a reason. The old date is kept in their history.</li>
           <li>It&apos;s logged with your name in the admin log and the ticket log channel.</li>
         </ul>
         {error ? <p className="tkd-error">{error}</p> : null}
@@ -191,7 +238,7 @@ export function DobDialog({
             Cancel
           </button>
           <button type="submit" className="adm-btn" disabled={!ready}>
-            <Lock size={14} aria-hidden="true" /> {busy ? "Saving…" : "Save"}
+            <Lock size={14} aria-hidden="true" /> {busy ? "Saving…" : editing ? "Save correction" : "Save"}
           </button>
         </div>
       </form>
