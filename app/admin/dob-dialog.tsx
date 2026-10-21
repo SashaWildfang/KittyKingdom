@@ -23,10 +23,11 @@ function parseMdy(text: string) {
  * Types the slashes for you: "10" → "10/", "1016" → "10/16/", "10161999" → "10/16/1999", and "1/2/2000" →
  * "01/02/2000". While deleting, nothing is reformatted, so Backspace and Delete work normally.
  */
-function withSlashes(next: string, prev: string) {
-  // Deleting (anywhere in the date): leave what they have alone, so Backspace/Delete always do something.
-  // "1/02/2000" and the like still save (the date check accepts single digits)
-  if (next.length < prev.length) return next.replace(/[^\d/]/g, "").slice(0, 10);
+function withSlashes(next: string, deleting: boolean) {
+  // Deleting (Backspace/Delete/cut, anywhere in the date): leave what they have alone, so it always does
+  // something. "1/02/2000" and the like still save (the date check accepts single digits). Typing and
+  // pasting (even a shorter date over a longer one) are always formatted.
+  if (deleting) return next.replace(/[^\d/]/g, "").slice(0, 10);
   // A slash typed after a single digit pads it ("1/2/2000" → "01/02/2000"), so short dates still work
   const parts = next.replace(/[.\-]/g, "/").split("/");
   const digits = parts
@@ -43,6 +44,9 @@ function withSlashes(next: string, prev: string) {
   out += digits.slice(4, 8);
   return out;
 }
+
+/** Whether this change came from deleting (not typing or pasting). */
+const isDelete = (e: React.ChangeEvent<HTMLInputElement>) => String((e.nativeEvent as InputEvent).inputType ?? "").startsWith("delete");
 
 function ageOf(d: Date) {
   const now = new Date();
@@ -150,11 +154,11 @@ export function DobDialog({
             <div className="dobd-dates">
               <label>
                 <span>Date of birth</span>
-                <input value={dob} onChange={(e) => setDob(withSlashes(e.target.value, dob))} placeholder="MM/DD/YYYY" inputMode="numeric" maxLength={10} autoComplete="off" disabled={busy} autoFocus />
+                <input value={dob} onChange={(e) => setDob(withSlashes(e.target.value, isDelete(e)))} placeholder="MM/DD/YYYY" inputMode="numeric" maxLength={10} autoComplete="off" disabled={busy} autoFocus />
               </label>
               <label>
                 <span>Type it again</span>
-                <input value={repeat} onChange={(e) => setRepeat(withSlashes(e.target.value, repeat))} onPaste={(e) => e.preventDefault()} placeholder="MM/DD/YYYY" inputMode="numeric" maxLength={10} autoComplete="off" disabled={busy} />
+                <input value={repeat} onChange={(e) => setRepeat(withSlashes(e.target.value, isDelete(e)))} onPaste={(e) => e.preventDefault()} placeholder="MM/DD/YYYY" inputMode="numeric" maxLength={10} autoComplete="off" disabled={busy} />
               </label>
             </div>
             {dob && !date ? <p className="dobd-note">Use month/day/year, like 10/12/2001.</p> : null}
