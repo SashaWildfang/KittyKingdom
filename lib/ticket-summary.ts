@@ -255,6 +255,7 @@ async function nsfwDescription(ticket: Ticket, source: Source | null) {
   // A failed role lookup (Discord busy) isn't "they left": only Discord's "Unknown Member" counts as gone
   const membership: "in" | "out" | "unknown" = roles !== null ? "in" : !id ? "unknown" : await isInServer(id).then((v) => (v === true ? "in" : v === false ? "out" : "unknown")).catch(() => "unknown" as const);
   const has18 = Boolean(roles?.includes(ADULT_VERIFIED_ROLE));
+  const reverifying = Boolean(id && !has18) && Boolean(await getBotCollection("activeTickets").then((c) => c.findOne({ opened_by: id }, { projection: { _id: 1 } })).catch(() => null));
   const verified = Boolean(rec?.nsfwVerifiedAt || rec?.nsfwVerifiedBy) || has18;
   // Photos the member sent: the opener's, or on old transcripts without author ids, anyone who isn't staff or the bot
   const lines = source?.lines ?? [];
@@ -282,16 +283,20 @@ async function nsfwDescription(ticket: Ticket, source: Source | null) {
   if ((appAge !== null && appAge < 18) || (idAge !== null && idAge < 18)) tags.push("under-18");
   const stated = statedAgeOf(birth.raw) ?? parseAge(birth.raw);
   const appliedAt = isoDate(app?.submittedAt instanceof Date ? app.submittedAt : typeof app?.submittedAt === "string" ? app.submittedAt : null);
-  if (stated !== null && appDob && appliedAt && Math.abs(stated - calculateAge(appDob, appliedAt)) >= 1) tags.push("app-age-mismatch");
-  if (source && photos === 0) tags.push("no-photo");
+  // Once an admin has set or corrected the form's date of birth, the age they typed next to it no longer counts
+  const dobFixedByStaff = Boolean(app?.dobSetBy);
+  if (!dobFixedByStaff && stated !== null && appDob && appliedAt && Math.abs(stated - calculateAge(appDob, appliedAt)) >= 1) tags.push("app-age-mismatch");
+  // Open tickets haven't got that far yet: only closed ones are flagged for missing photos
+  if (source && photos === 0 && ticket.status !== "Open") tags.push("no-photo");
   if (verified && !idDob) tags.push("id-not-recorded");
   const person = id ? who[id] : undefined;
   if (person?.deleted) tags.push("deleted");
   else if (membership === "out") tags.push("left");
   // Only when their roles were actually read (not when the lookup failed)
-  else if (roles !== null && verified && !has18 && !fromHistory) tags.push("no-role");
+  // Not while they're being re-verified (an 18+ or staff-made ticket of theirs is open right now)
+  else if (roles !== null && verified && !has18 && !fromHistory && !reverifying) tags.push("no-role");
   for (const t of tags) if (TICKET_TAGS[t] && !(t === "dob-mismatch")) flags.push(TICKET_TAGS[t].label);
-  const key = `nsfw2|${fromHistory ? "h" : "c"}|${source?.key ?? "-"}|${verifiedBy ?? "-"}|${idDob?.toISOString().slice(0, 10) ?? "-"}|${appDob?.toISOString().slice(0, 10) ?? appAge ?? "-"}|${appAge}|${idAge}|${membership === "out" ? "left" : roles === null ? "?" : has18 ? "18" : "no"}|${photos}`;
+  const key = `nsfw3|${ticket.status === "Open" ? "o" : "c"}|${reverifying ? "r" : "-"}|${dobFixedByStaff ? "s" : "-"}|${fromHistory ? "h" : "c"}|${source?.key ?? "-"}|${verifiedBy ?? "-"}|${idDob?.toISOString().slice(0, 10) ?? "-"}|${appDob?.toISOString().slice(0, 10) ?? appAge ?? "-"}|${appAge}|${idAge}|${membership === "out" ? "left" : roles === null ? "?" : has18 ? "18" : "no"}|${photos}`;
   return { line: parts.join(" · "), flags, tags, key, photos };
 }
 
@@ -332,8 +337,8 @@ export async function savedSummaries(tickets: Ticket[]) {
     const stale =
       (d.version ?? 1) !== VERSION ||
       (isNsfwTicket(t.type)
-        ? // nsfw2: rebuilt since a failed role lookup stopped counting as "left the server"
-          !d.key.startsWith("nsfw2|") || sinceCheck > (t.status === "Open" ? RECHECK_MS : NSFW_RECHECK_MS)
+        ? // nsfw3: rebuilt since open tickets, re-verifications and staff-corrected DOBs stopped being flagged
+          !d.key.startsWith("nsfw3|") || sinceCheck > (t.status === "Open" ? RECHECK_MS : NSFW_RECHECK_MS)
         : t.status === "Open"
           ? sinceCheck > RECHECK_MS
           : Boolean(t.transcriptId) && d.key.split("|")[0] !== `t:${t.transcriptId}`);
@@ -360,6 +365,31 @@ export async function tagCounts() {
     (await getBotCollection("resolvedTickets")).countDocuments(NO_TRANSCRIPT as never),
   ]);
   return { ...Object.fromEntries(rows.map((r) => [String(r._id), Number(r.n)])), "no-transcript": bare } as Record<string, number>;
+}
+
+/**
+ * Rebuilds 18+ ticket descriptions saved under an older set of rules (records only, never the AI), a few per
+ * call, so the tag filters and their counts catch up without anyone having to open every ticket.
+ */
+export async function refreshOutdatedNsfw(budgetMs = 4_000, limit = 25) {
+  const deadline = Date.now() + budgetMs;
+  const system = { discordId: "", name: "Ticket descriptions", level: "admin", websiteUserId: "" } as PanelUser;
+  const docs = await (await col()).find({ model: "records", key: { $not: /^nsfw3\|/ } }, { projection: { _id: 1, ticketKey: 1 } }).limit(limit).toArray();
+  let done = 0;
+  for (const d of docs) {
+    if (Date.now() > deadline) break;
+    try {
+      await summarizeTicket(d._id, system, false, d.ticketKey ?? null);
+      done += 1;
+    } catch (error) {
+      // Only a ticket that's really gone loses its old description; anything else (database busy, the ticket
+      // lock taking too long) is left alone and tried again on a later run
+      if (error instanceof SummaryError && error.status === 404) {
+        await (await col()).deleteOne({ _id: d._id, key: { $not: /^nsfw3\|/ } } as never).catch(() => undefined);
+      }
+    }
+  }
+  return done;
 }
 
 /** Reads the ticket and writes (or refreshes) its description. Only calls the AI when something changed. */
