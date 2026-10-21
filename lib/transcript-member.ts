@@ -91,7 +91,8 @@ const IMAGE_FILE = /\.(?:png|jpe?g|gif|webp|avif|bmp|heic)$/i;
 // them the way the page expects: links to Discord's CDN that have since expired, names with spaces or odd
 // encoding, other folders. Each picture is matched to its real file so it still shows.
 let zipFiles: string[] = [];
-let zipByBase = new Map<string, string>();
+// File name → files with that name (several uploads are often all called "image.png")
+let zipByBase = new Map<string, string[]>();
 
 function setZipFiles(names: string[]) {
   zipFiles = names.filter((n) => !/(?:^|\/)\.\.(?:\/|$)/.test(n));
@@ -99,7 +100,7 @@ function setZipFiles(names: string[]) {
   for (const n of zipFiles) {
     if (/^(?:avatars|emojis)\//i.test(n)) continue;
     const base = n.split("/").pop()!.toLowerCase();
-    if (!zipByBase.has(base)) zipByBase.set(base, n);
+    zipByBase.set(base, [...(zipByBase.get(base) ?? []), n]);
   }
 }
 
@@ -112,7 +113,7 @@ const tryDecode = (value: string) => {
   }
 };
 
-/** The transcript file a link points at (as a safe relative URL), or null if it isn't one of them. */
+/** The transcript file a link points at (as a safe relative URL), or null if it isn't (unambiguously) one of them. */
 function zipMatch(raw: string): string | null {
   if (!zipFiles.length || !raw) return null;
   const isUrl = /^https?:\/\//i.test(raw);
@@ -122,16 +123,25 @@ function zipMatch(raw: string): string | null {
   const segments = clean.split("/").filter(Boolean);
   const base = (segments.pop() ?? "").toLowerCase();
   if (!base) return null;
-  const exact = zipByBase.get(base);
-  if (exact) return encodePath(exact);
-  // Saved under a prefixed name ("1234_photo.png") or by the Discord attachment id
-  const id = isUrl ? segments.find((p) => /^\d{15,21}$/.test(p) && segments.indexOf(p) === segments.length - 1) : undefined;
-  for (const n of zipFiles) {
-    if (/^(?:avatars|emojis)\//i.test(n)) continue;
-    const b = n.split("/").pop()!.toLowerCase();
-    if (b.endsWith(`_${base}`) || b.endsWith(`-${base}`) || (id && n.includes(id))) return encodePath(n);
+  const media = zipFiles.filter((n) => !/^(?:avatars|emojis)\//i.test(n));
+  // A Discord link (/attachments/<channel>/<attachment id>/<name>): the file saved with that attachment id first
+  const id = isUrl && /^\d{15,21}$/.test(segments[segments.length - 1] ?? "") ? segments[segments.length - 1] : null;
+  if (id) {
+    const byId = media.filter((n) => n.includes(id));
+    if (byId.length === 1) return encodePath(byId[0]);
+    const named = byId.find((n) => n.toLowerCase().endsWith(base));
+    if (named) return encodePath(named);
   }
-  return null;
+  // Then by name, but only when exactly one file has it (never guess between several "image.png")
+  const same = zipByBase.get(base) ?? [];
+  if (same.length === 1) return encodePath(same[0]);
+  if (same.length > 1) return null;
+  // Saved under a prefixed name ("1234_photo.png"), again only if there's just one
+  const prefixed = media.filter((n) => {
+    const b = n.split("/").pop()!.toLowerCase();
+    return b.endsWith(`_${base}`) || b.endsWith(`-${base}`);
+  });
+  return prefixed.length === 1 ? encodePath(prefixed[0]) : null;
 }
 
 /** A media src for a staff copy: the matching transcript file when there is one, else the src if it's safe. */
