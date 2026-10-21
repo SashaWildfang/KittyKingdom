@@ -23,6 +23,8 @@ function local(): string[] {
 
 function saveLocal(s: State) {
   try {
+    // Merge with what other tabs saved meanwhile, so one tab never overwrites another's reads
+    local().forEach((id) => s.ids.add(id));
     window.localStorage.setItem(KEY, JSON.stringify(Array.from(s.ids).slice(-400)));
   } catch {
     // private mode: reads just last for this visit
@@ -69,11 +71,19 @@ export function useEventReads() {
   useEffect(() => {
     let alive = true;
     const refresh = () => void load().then((s) => alive && setIds(new Set(s.ids)));
+    // Another tab marked something read: take its reads too
+    const fromOtherTab = (e: StorageEvent) => {
+      if (e.key !== KEY || !state) return;
+      local().forEach((id) => state!.ids.add(id));
+      refresh();
+    };
     refresh();
     window.addEventListener(EVENT, refresh);
+    window.addEventListener("storage", fromOtherTab);
     return () => {
       alive = false;
       window.removeEventListener(EVENT, refresh);
+      window.removeEventListener("storage", fromOtherTab);
     };
   }, []);
   return ids;
