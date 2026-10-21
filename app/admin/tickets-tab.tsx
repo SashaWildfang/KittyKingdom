@@ -241,7 +241,6 @@ export function TicketsTab({
   const filters = { ...DEFAULTS, ...stored };
   const [page, setPage] = useState(1);
   const [searchText, setSearchText] = useState(filters.search);
-  const [cleanup, setCleanup] = useState(false);
   const canDelete = useContext(TicketCanDelete);
 
   useEffect(() => {
@@ -339,11 +338,7 @@ export function TicketsTab({
         </div>
         <div className="tk-head-actions">
           <LiveBadge updatedAt={updatedAt} loading={loading} />
-          {canDelete && !readOnly ? (
-            <button type="button" className="adm-btn adm-btn--small adm-btn--ghost" onClick={() => setCleanup(true)}>
-              <BrushCleaning size={14} aria-hidden="true" /> Clean up old tickets
-            </button>
-          ) : null}
+          {canDelete && !readOnly ? <AutoCleanBadge /> : null}
         </div>
       </header>
 
@@ -529,226 +524,26 @@ export function TicketsTab({
         </div>
       ) : null}
 
-      {cleanup ? <CleanupDialog typesAvailable={typesAvailable} onClose={() => setCleanup(false)} onDone={(msg) => (setNotice(msg), reload())} /> : null}
     </div>
   );
 }
 
-/** Bulk-delete old closed tickets (admins): pick what, see exactly what goes, type the number to confirm. */
-type CleanupPreview = { count: number; before: string; byType: { type: string; count: number }[]; oldest: string | null; newest: string | null; range: { low: number; high: number } | null; sample: { ticketId: number; type: string; created: string | null }[] };
-const AGES: [number, string][] = [
-  [1, "1 month"],
-  [3, "3 months"],
-  [6, "6 months"],
-  [12, "1 year"],
-  [24, "2 years"],
-  [36, "3 years"],
-];
-const WHO: ["any" | "gone" | "left" | "deleted", string][] = [
-  ["any", "Anyone"],
-  ["gone", "Not in the server"],
-  ["left", "Left"],
-  ["deleted", "Deleted account"],
-];
-const longDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "—");
-
-function CleanupDialog({ typesAvailable, onClose, onDone }: { typesAvailable: string[]; onClose: () => void; onDone: (message: string) => void }) {
-  const mayNsfw = useContext(TicketDeletePermissions);
-  const [months, setMonths] = useState(12);
-  const [includeNsfw, setIncludeNsfw] = useState(false);
-  const [types, setTypes] = useState<string[]>([]);
-  const [opener, setOpener] = useState<"any" | "left" | "deleted" | "gone">("any");
-  const [preview, setPreview] = useState<CleanupPreview | null>(null);
-  const [typed, setTyped] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const filter = { olderThanMonths: months, includeNsfw: includeNsfw && mayNsfw, types, opener };
-
-  const post = async (body: Record<string, unknown>) => {
-    const r = await fetch("/api/admin/tickets/cleanup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...filter, ...body }) });
-    const j = await r.json().catch(() => ({ ok: false, error: "Request failed." }));
-    if (!r.ok || !j.ok) throw new Error(j.error ?? "Request failed.");
-    return j;
-  };
-  // Count again whenever the choice changes
-  useEffect(() => {
-    let cancelled = false;
-    setPreview(null);
-    setTyped("");
-    setError(null);
-    const t = window.setTimeout(() => {
-      post({ step: "preview" })
-        .then((p) => !cancelled && setPreview(p))
-        .catch((e) => !cancelled && setError(e.message));
-    }, 250);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(t);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [months, includeNsfw, types.join(","), opener]);
-  useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && !busy && onClose();
-    window.addEventListener("keydown", esc);
-    return () => {
-      document.body.style.overflow = prev;
-      window.removeEventListener("keydown", esc);
-    };
-  }, [busy, onClose]);
-
-  const run = async () => {
-    if (!preview?.count) return;
-    setBusy(true);
-    setError(null);
-    let done = 0;
-    setProgress({ done, total: preview.count });
-    try {
-      for (let guard = 0; guard < 500; guard++) {
-        const r = await post({ step: "batch" });
-        done += r.deleted;
-        setProgress({ done, total: preview.count });
-        if (!r.remaining || !r.deleted) break;
-      }
-      const fin = await post({ step: "finish", deleted: done });
-      onDone(`Cleaned up ${done} old ticket${done === 1 ? "" : "s"}. ${fin.total} left, numbered 1–${fin.total}.`);
-      onClose();
-    } catch (e) {
-      setError(`${e instanceof Error ? e.message : "The clean-up stopped."} ${done ? `${done} were deleted before it stopped.` : ""}`);
-      setBusy(false);
-      if (done) await post({ step: "finish", deleted: done }).catch(() => undefined);
-    }
-  };
-
-  const max = Math.max(1, ...(preview?.byType.map((t) => t.count) ?? [1]));
-  return createPortal(
-    <div className="tkd-wrap" onMouseDown={(e) => e.target === e.currentTarget && !busy && onClose()}>
-      <div className="tkc" role="dialog" aria-modal="true" aria-labelledby="tkc-title">
-        <button type="button" className="tkd-close" onClick={onClose} disabled={busy} aria-label="Close">
-          <X size={18} />
-        </button>
-        <header className="tkc-head">
-          <span className="tkc-icon" aria-hidden="true">
-            <BrushCleaning size={22} />
-          </span>
-          <div>
-            <h3 id="tkc-title">Clean up old tickets</h3>
-            <p>Deletes closed tickets and their transcripts for good. Open tickets are never touched, and the rest are renumbered afterwards.</p>
-          </div>
-        </header>
-
-        <div className="tkc-body">
-          <section className="tkc-step">
-            <h4>
-              <span>1</span> Closed more than
-            </h4>
-            <div className="tkc-pills" role="radiogroup" aria-label="Closed more than">
-              {AGES.map(([m, l]) => (
-                <button key={m} type="button" role="radio" aria-checked={months === m} className={months === m ? "is-on" : undefined} onClick={() => setMonths(m)} disabled={busy}>
-                  {l}
-                </button>
-              ))}
-            </div>
-            <small>{preview ? `Closed before ${longDate(preview.before)}` : " "}</small>
-          </section>
-
-          <section className="tkc-step">
-            <h4>
-              <span>2</span> Opened by
-            </h4>
-            <div className="tkc-pills" role="radiogroup" aria-label="Opened by">
-              {WHO.map(([k, l]) => (
-                <button key={k} type="button" role="radio" aria-checked={opener === k} className={opener === k ? "is-on" : undefined} onClick={() => setOpener(k)} disabled={busy}>
-                  {l}
-                </button>
-              ))}
-            </div>
-          </section>
-
-          <section className="tkc-step">
-            <h4>
-              <span>3</span> Types <small>(none picked = all)</small>
-            </h4>
-            <div className="tkc-pills is-multi">
-              {typesAvailable
-                .filter((t) => !/nsfw/i.test(t))
-                .map((t) => (
-                  <button key={t} type="button" aria-pressed={types.includes(t)} className={types.includes(t) ? "is-on" : undefined} onClick={() => setTypes((x) => (x.includes(t) ? x.filter((y) => y !== t) : [...x, t]))} disabled={busy}>
-                    {prettyAction(t)}
-                  </button>
-                ))}
-            </div>
-            {mayNsfw ? (
-              <label className={`tkc-switch${includeNsfw ? " is-on" : ""}`}>
-                <input type="checkbox" checked={includeNsfw} onChange={(e) => setIncludeNsfw(e.target.checked)} disabled={busy} />
-                <span>
-                  <b>Include 18+ verification tickets</b>
-                  <small>Off by default: their records stay on the member either way.</small>
-                </span>
-              </label>
-            ) : null}
-          </section>
-        </div>
-
-        <section className={`tkc-summary${preview && !preview.count ? " is-empty" : ""}`} aria-live="polite">
-          {!preview ? (
-            <p className="adm-muted">Counting…</p>
-          ) : !preview.count ? (
-            <p>Nothing matches. Try an older range or more types.</p>
-          ) : (
-            <>
-              <div className="tkc-total">
-                <b>{preview.count}</b>
-                <span>
-                  ticket{preview.count === 1 ? "" : "s"} will be deleted
-                  <small>
-                    opened {longDate(preview.oldest)} – {longDate(preview.newest)}
-                    {preview.range ? ` · #${preview.range.low}–#${preview.range.high}` : ""}
-                  </small>
-                </span>
-              </div>
-              <ul className="tkc-bars">
-                {preview.byType.map((t) => (
-                  <li key={t.type}>
-                    <span>{prettyAction(t.type)}</span>
-                    <i style={{ width: `${Math.max(4, Math.round((100 * t.count) / max))}%`, background: TICKET_COLORS[t.type] ?? "#8b8d98" }} />
-                    <b>{t.count}</b>
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-        </section>
-
-        {preview?.count && !busy ? (
-          <label className="tkd-typed tkc-confirm">
-            <span className="tkd-typed-ask">
-              To confirm, type <b>{preview.count}</b>
-            </span>
-            <input inputMode="numeric" value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={String(preview.count)} aria-label={`Type ${preview.count} to confirm`} />
-          </label>
-        ) : null}
-        {progress ? (
-          <div className="tkc-progress" role="progressbar" aria-valuemin={0} aria-valuemax={progress.total} aria-valuenow={progress.done}>
-            <i style={{ width: `${Math.round((100 * progress.done) / Math.max(1, progress.total))}%` }} />
-            <span>
-              Deleting… {progress.done} / {progress.total}
-            </span>
-          </div>
-        ) : null}
-        {error ? <p className="tkd-error">{error}</p> : null}
-        <div className="tkd-actions">
-          <button type="button" className="adm-btn adm-btn--ghost" onClick={onClose} disabled={busy}>
-            Cancel
-          </button>
-          <button type="button" className="adm-btn adm-btn--danger" onClick={() => void run()} disabled={busy || !preview?.count || typed.trim() !== String(preview.count)}>
-            <Trash2 size={15} aria-hidden="true" /> {busy ? "Deleting…" : preview?.count ? `Delete ${preview.count} ticket${preview.count === 1 ? "" : "s"}` : "Delete"}
-          </button>
-        </div>
-      </div>
-    </div>,
-    document.body,
+/** Admins: tickets from members who left are deleted automatically (see lib/ticket-autoclean.ts). */
+type AutoClean = { enabled: boolean; graceDays: number; lastRunAt: string | null; totalDeleted: number; working: boolean; lastSweep: { at: string | null; tickets: number; nsfw: number; members: number } | null };
+function AutoCleanBadge() {
+  const { data } = useLive<{ ok: boolean; status?: AutoClean }>("/api/admin/tickets/autoclean", 60_000);
+  const s = data?.status;
+  if (!s) return null;
+  const grace = s.graceDays === 0 ? "as soon as they leave" : `${s.graceDays} day${s.graceDays === 1 ? "" : "s"} after they leave`;
+  const last = s.lastSweep?.at ? `Last clean-up ${new Date(s.lastSweep.at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}: ${s.lastSweep.tickets} ticket${s.lastSweep.tickets === 1 ? "" : "s"} from ${s.lastSweep.members} member${s.lastSweep.members === 1 ? "" : "s"}.` : "Nothing deleted yet.";
+  return (
+    <a
+      className={`tk-autoclean${s.enabled ? "" : " is-off"}`}
+      href="/admin?tab=bot-ticketing#leaverCleanup"
+      title={s.enabled ? `Closed tickets and transcripts from members who left are deleted ${grace}. ${last} ${s.totalDeleted} deleted in total. Change it in Bots → Ticket Bot → Leaver clean-up.` : "Automatic leaver clean-up is off. Turn it on in Bots → Ticket Bot → Leaver clean-up."}
+    >
+      <BrushCleaning size={14} aria-hidden="true" />
+      {s.enabled ? (s.working ? "Cleaning up leavers' tickets…" : `Leavers' tickets auto-delete · ${s.graceDays}d`) : "Leaver clean-up off"}
+    </a>
   );
 }

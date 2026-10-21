@@ -33,6 +33,7 @@ export const CATALOG: Record<string, CollectionInfo> = {
   "website.member_directory": { label: "Member list (cached)", group: "members", about: "Names, avatars and who's in the server, refreshed from Discord" },
   "website.panel_access": { label: "Admin panel access", group: "system", protected: true },
   "website.admin_prefs": { label: "Admin panel preferences", group: "system" },
+  "website.job_state": { label: "Background job state", group: "system", about: "Progress of automatic jobs, e.g. deleting tickets from members who left" },
   "website.admin_audit": { label: "Admin action log", group: "moderation", protected: true, about: "Who did what in the admin panel" },
   "website.staff": { label: "Staff page", group: "content", protected: true },
   "website.news": { label: "News posts", group: "content", protected: true },

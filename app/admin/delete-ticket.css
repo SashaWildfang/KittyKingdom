@@ -1,4 +1,4 @@
-/* The confirm dialog for deleting a ticket (and the clean-up dialog in Admin → Tickets) */
+/* The confirm dialog for deleting a ticket */
 .tkd-wrap { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; padding: 1rem; background: rgba(10, 4, 2, 0.6); backdrop-filter: blur(3px); animation: tkd-fade 0.15s ease; }
 .tkd {
   position: relative;

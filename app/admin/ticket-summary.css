@@ -64,43 +64,8 @@ button.tk-kpi { cursor: pointer; }
 .tk-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.6rem; }
 .tks-flag.is-info { border-color: var(--line); background: rgba(var(--cream-rgb), 0.08); color: var(--muted); }
 
-/* Clean-up dialog */
-.tkc { position: relative; display: grid; gap: 0.85rem; width: min(40rem, 100%); max-height: calc(100vh - 2rem); overflow-y: auto; border: 1px solid var(--line); border-radius: 1.3rem; background: linear-gradient(var(--panel), var(--panel)), var(--bg); box-shadow: 0 30px 70px rgba(0, 0, 0, 0.5); padding: 1.4rem; animation: tkd-pop 0.18s cubic-bezier(0.2, 0.8, 0.2, 1); }
-.tkc-head { display: flex; gap: 0.85rem; align-items: flex-start; padding-right: 2.5rem; }
-.tkc-head h3 { margin: 0 0 0.2rem; font-size: 1.2rem; }
-.tkc-head p { margin: 0; color: var(--muted); font-size: 0.86rem; line-height: 1.45; }
-.tkc-icon { display: grid; flex: none; place-items: center; width: 2.9rem; height: 2.9rem; border-radius: 0.95rem; background: rgba(var(--ember-rgb), 0.16); color: var(--ember); }
-.tkc-body { display: grid; gap: 0.8rem; }
-.tkc-step { display: grid; gap: 0.45rem; }
-.tkc-step h4 { display: flex; align-items: center; gap: 0.45rem; margin: 0; font-size: 0.86rem; }
-.tkc-step h4 span { display: grid; place-items: center; width: 1.35rem; height: 1.35rem; border-radius: 50%; background: rgba(var(--ember-rgb), 0.2); color: var(--ember); font-size: 0.72rem; font-weight: 900; }
-.tkc-step h4 small { color: var(--muted); font-weight: 600; }
-.tkc-step > small { color: var(--muted); font-size: 0.76rem; min-height: 1em; }
-.tkc-pills { display: flex; flex-wrap: wrap; gap: 0.35rem; }
-.tkc-pills button { border: 1px solid var(--line); border-radius: 999px; background: var(--panel-strong); color: var(--muted); cursor: pointer; font: inherit; font-size: 0.83rem; font-weight: 700; padding: 0.38rem 0.8rem; }
-.tkc-pills button:hover { color: var(--text); }
-.tkc-pills button.is-on { border-color: var(--ember); background: rgba(var(--ember-rgb), 0.18); color: var(--text); }
-.tkc-switch { display: flex; align-items: flex-start; gap: 0.55rem; margin-top: 0.2rem; border: 1px solid var(--line); border-radius: 0.8rem; cursor: pointer; padding: 0.55rem 0.7rem; }
-.tkc-switch.is-on { border-color: rgba(229, 72, 77, 0.5); background: rgba(229, 72, 77, 0.08); }
-.tkc-switch input { margin-top: 0.15rem; accent-color: #e5484d; }
-.tkc-switch span { display: grid; gap: 0.1rem; }
-.tkc-switch b { font-size: 0.86rem; }
-.tkc-switch small { color: var(--muted); font-size: 0.75rem; }
-.tkc-summary { display: grid; gap: 0.65rem; border: 1px solid rgba(229, 72, 77, 0.35); border-radius: 1rem; background: rgba(229, 72, 77, 0.07); padding: 0.85rem 1rem; }
-.tkc-summary.is-empty { border-color: var(--line); background: var(--panel-strong); }
-.tkc-summary p { margin: 0; color: var(--muted); font-size: 0.88rem; }
-.tkc-total { display: flex; align-items: center; gap: 0.75rem; }
-.tkc-total > b { color: #ff9b9b; font-size: 2rem; line-height: 1; }
-.tkc-total span { display: grid; font-weight: 700; }
-.tkc-total small { color: var(--muted); font-size: 0.76rem; font-weight: 500; }
-.tkc-bars { display: grid; gap: 0.3rem; margin: 0; padding: 0; list-style: none; }
-.tkc-bars li { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr) 2.5rem; align-items: center; gap: 0.5rem; font-size: 0.8rem; }
-.tkc-bars li span { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tkc-bars li i { height: 0.5rem; border-radius: 999px; opacity: 0.85; }
-.tkc-bars li b { text-align: right; }
-.tkc-confirm { justify-self: center; width: min(20rem, 100%); }
-.tkc .tkd-actions { margin-top: 0; }
-.tkc-progress { position: relative; height: 1.6rem; overflow: hidden; border-radius: 999px; background: rgba(var(--cream-rgb), 0.08); }
-.tkc-progress i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #e5484d, #ff8a8a); transition: width 0.3s ease; }
-.tkc-progress span { position: relative; display: block; color: #fff; font-size: 0.76rem; font-weight: 800; line-height: 1.6rem; text-align: center; }
-@media (max-width: 640px) { .tkc-bars li { grid-template-columns: 5.5rem minmax(0, 1fr) 2rem; } }
+/* Admin → Tickets: the automatic leaver clean-up status (replaced the manual clean-up button) */
+.tk-autoclean { display: inline-flex; align-items: center; gap: 0.4rem; border: 1px solid var(--line); border-radius: 999px; background: var(--panel-strong); color: var(--muted); font-size: 0.78rem; font-weight: 700; padding: 0.35rem 0.75rem; text-decoration: none; }
+.tk-autoclean:hover { border-color: var(--ember); color: var(--text); }
+.tk-autoclean svg { color: var(--ember); }
+.tk-autoclean.is-off svg { color: var(--muted); }
