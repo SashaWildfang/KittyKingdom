@@ -8,6 +8,7 @@
 // emojis/ out of the zip, and the page's Content-Security-Policy blocks outside media.
 
 import { TRANSCRIPT_CSS } from "./transcript-member-css";
+import { LIGHTBOX_SCRIPT } from "./transcript-lightbox";
 import { parse, type HTMLElement, type Node } from "node-html-parser";
 import { openTranscriptFile } from "./transcript-store";
 
@@ -561,6 +562,7 @@ function renderPage(meta: MemberTicketMeta, messages: Message[], people: { opene
   </div>
 </main>
 ${PAGE_SCRIPT}
+${LIGHTBOX_SCRIPT}
 ${localTimesScript}
 </body></html>`);
   return out.join("\n");
