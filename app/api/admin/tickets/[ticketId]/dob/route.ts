@@ -23,11 +23,18 @@ async function load(request: Request, ticketId: string, key: string | null) {
   if (!ticket || !isNsfwTicket(ticket.type) || !ticket.openedBy) return null;
   const [app, user] = await Promise.all([
     getJoinApplication(ticket.openedBy),
-    getBotCollection("users").then((c) => c.findOne(userFilter(ticket.openedBy!), { projection: { _id: 1, nsfwIdDob: 1 } })),
+    getBotCollection("users").then((c) => c.findOne(userFilter(ticket.openedBy!), { projection: { _id: 1, nsfwIdDob: 1, nsfwVerifiedAt: 1, nsfwVerifiedBy: 1, verificationHistory: 1 } })),
   ]);
   const appDob = app ? applicationBirthday(app).birthDate : null;
-  const idDob = user?.nsfwIdDob ? parseDateOfBirth(String(user.nsfwIdDob)) : null;
-  return { ticket, app, user, appDob, idDob };
+  // Same rule as the ticket's description (lib/ticket-summary.ts): a ticket from before the member left and came
+  // back shows the 18+ verification saved in their history, so that's the ID date this ticket is about
+  const opened = ticket.created ? new Date(ticket.created).getTime() : 0;
+  const history = (Array.isArray(user?.verificationHistory) ? user!.verificationHistory : []) as Record<string, unknown>[];
+  const pastIndex = history.findIndex((h) => Boolean(h.nsfwVerifiedAt || h.nsfwVerifiedBy) && h.resetAt instanceof Date && h.resetAt.getTime() > opened);
+  const historyIndex = !user?.nsfwVerifiedAt && !user?.nsfwVerifiedBy && pastIndex >= 0 ? pastIndex : null;
+  const idRaw = historyIndex !== null ? history[historyIndex].nsfwIdDob : user?.nsfwIdDob;
+  const idDob = idRaw ? parseDateOfBirth(String(idRaw)) : null;
+  return { ticket, app, user, appDob, idDob, idRaw, historyIndex };
 }
 
 /** Admins: the dates of birth on file for an 18+ ticket (for the Record / edit DOB dialog). */
@@ -42,6 +49,8 @@ export async function GET(request: Request, { params }: { params: { ticketId: st
     app: isoDay(data.appDob),
     appAnswer: data.app ? String(data.app.ageAndDob ?? data.app.age_and_dob ?? "").slice(0, 120) || null : null,
     id: isoDay(data.idDob),
+    // The ID date shown is from before they left the server (their saved verification)
+    idFromHistory: data.historyIndex !== null,
   });
 }
 
@@ -103,6 +112,14 @@ export async function POST(request: Request, { params }: { params: { ticketId: s
         $set: { dateOfBirth: mdy, dobSetBy: admin.discordId, dobSetByName: admin.name, dobSetAt: now, dobSetVia: "website", dobSetTicket: ticket.ticketId },
         $push: { dobEdits: { $each: [edit], $slice: -20 } },
       } as never,
+    );
+    if (!res.modifiedCount) return changed();
+  } else if (data.historyIndex !== null && user) {
+    // An older ticket: correct the ID date in the saved verification it shows, not their current record
+    const at = `verificationHistory.${data.historyIndex}`;
+    const res = await (await getBotCollection("users")).updateOne(
+      { _id: user._id, [`${at}.nsfwIdDob`]: data.idRaw ?? { $in: [null, ""] } } as never,
+      { $set: { [`${at}.nsfwIdDob`]: iso, [`${at}.nsfwIdUnder18`]: calculateAge(dob) < 18 }, $push: { nsfwIdDobEdits: { $each: [{ ...edit, history: data.historyIndex }], $slice: -20 } } } as never,
     );
     if (!res.modifiedCount) return changed();
   } else {

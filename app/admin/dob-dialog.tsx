@@ -55,7 +55,7 @@ function ageOf(d: Date) {
   return age;
 }
 
-type OnFile = { hasApp: boolean; app: string | null; appAnswer: string | null; id: string | null };
+type OnFile = { hasApp: boolean; app: string | null; appAnswer: string | null; id: string | null; idFromHistory?: boolean };
 const showDay = (iso: string | null) => (iso ? `${iso.slice(5, 7)}/${iso.slice(8, 10)}/${iso.slice(0, 4)}` : null);
 
 export function DobDialog({
@@ -188,6 +188,7 @@ export function DobDialog({
               <p className="dobd-current">
                 On file now: <b>{showDay(current)}</b> (age {ageOf(new Date(`${current}T00:00:00Z`))}). Type the correct date below.
                 {kind === "app" && onFile.appAnswer ? <small>What they wrote on the form: &ldquo;{onFile.appAnswer}&rdquo;</small> : null}
+                {kind === "id" && onFile.idFromHistory ? <small>From their verification before they left the server (this ticket is from then).</small> : null}
               </p>
             ) : null}
             <div className="dobd-dates">
