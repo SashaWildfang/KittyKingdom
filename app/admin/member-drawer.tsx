@@ -59,7 +59,7 @@ export function MemberDrawer({
   onDrill: (drill: Drill) => void;
   onClose: () => void;
   onOpenMember: (id: string) => void;
-  onOpenTranscript: (ticketId: number) => void;
+  onOpenTranscript: (ticketId: number, key?: string | null) => void;
   /** Admins: read one of their Social chats live in Admin → Messages */
   onOpenChat?: (chat: Chat) => void;
   onOpenChats?: (member: { id: string; name: string }) => void;
@@ -243,7 +243,7 @@ export function MemberDrawer({
                       <span className="adm-muted">{timeAgo(t.created)}</span>
                       <span className="adm-drawer-ticket-actions">
                         {t.transcriptId ? (
-                          <button type="button" className="adm-btn adm-btn--tiny" onClick={() => onOpenTranscript(t.ticketId)}>
+                          <button type="button" className="adm-btn adm-btn--tiny" onClick={() => onOpenTranscript(t.ticketId, t.key)}>
                             <FileText size={13} aria-hidden="true" /> View
                           </button>
                         ) : null}

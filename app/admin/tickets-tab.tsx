@@ -84,14 +84,19 @@ function useTicketSummaries(rows: Ticket[]) {
   const [enabled, setEnabled] = useState<boolean | null>(null);
   const [state, setState] = useState<Record<number, SummaryState>>({});
   const queued = useRef(new Set<number>());
-  const key = rows.map((r) => `${r.ticketId}:${r.status}:${r.transcriptId ?? ""}`).join(",");
+  const key = rows.map((r) => `${r.ticketId}:${r.key ?? ""}:${r.status}:${r.transcriptId ?? ""}`).join(",");
+  // Which ticket each number is right now, so a write goes to the right ticket even if numbers move meanwhile
+  const keys = useRef(new Map<number, string>());
+  keys.current = new Map(rows.filter((r) => r.key).map((r) => [r.ticketId, r.key!]));
 
   const write = async (id: number, force = false) => {
     setState((s) => ({ ...s, [id]: { ...s[id], busy: true, error: undefined } }));
     try {
-      const r = await fetch(`/api/admin/tickets/${id}/summary`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ force }) });
+      const r = await fetch(`/api/admin/tickets/${id}/summary`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ force, key: keys.current.get(id) }) });
       const j = await r.json().catch(() => ({ ok: false, error: "Request failed." }));
       if (!r.ok || !j.ok) throw new Error(j.error ?? "Couldn't describe this ticket.");
+      // Shown on the row that asked for it: the request was for that row's ticket (by key), even if its number
+      // has since changed on the server. The list reloads with the new numbers every few seconds.
       setState((s) => ({ ...s, [id]: { summary: j.summary } }));
     } catch (e) {
       setState((s) => ({ ...s, [id]: { ...s[id], busy: false, error: e instanceof Error ? e.message : "Couldn't describe this ticket." } }));
@@ -188,7 +193,7 @@ function SummaryLine({ s, onRefresh, ticket, canEdit, onSummary }: { s: SummaryS
           <Lock size={11} aria-hidden="true" /> Record DOB
         </button>
       ) : null}
-      {dobOpen && ticket ? <DobDialog ticket={ticket} missing={missing} onClose={() => setDobOpen(false)} onSaved={(summary) => onSummary?.(summary)} /> : null}
+      {dobOpen && ticket ? <DobDialog ticket={ticket} missing={missing} onClose={() => setDobOpen(false)} onSaved={(summary) => onSummary?.({ ...summary, ticketId: ticket.ticketId })} /> : null}
       {!s?.busy ? (
         <button type="button" className="tks-refresh" onClick={onRefresh} title={sum ? "Read it again" : "Try again"} aria-label="Describe again">
           <RefreshCw size={12} />
@@ -209,7 +214,7 @@ export function TicketsTab({
   /** Staff who aren't admins: view only, and NSFW verification tickets are left out (by the server) */
   readOnly?: boolean;
   onOpenMember: (id: string) => void;
-  onOpenTranscript: (ticketId: number) => void;
+  onOpenTranscript: (ticketId: number, key?: string | null) => void;
   initialSearch?: string;
 }) {
   const [stored, setFilters] = useStored<Filters>("tickets-filters-v2", DEFAULTS);
@@ -421,7 +426,7 @@ export function TicketsTab({
           {/* One <tbody> per ticket: its row and the description under it read (and highlight) as one */}
           {rows.map((t) => (
             <tbody key={t.ticketId} className="tks-group">
-              <tr onClick={() => t.transcriptId && onOpenTranscript(t.ticketId)} className={t.transcriptId ? "is-clickable" : undefined}>
+              <tr onClick={() => t.transcriptId && onOpenTranscript(t.ticketId, t.key)} className={t.transcriptId ? "is-clickable" : undefined}>
                 <td>
                   <strong>#{t.ticketId}</strong>
                 </td>
@@ -452,7 +457,7 @@ export function TicketsTab({
                       className="adm-btn adm-btn--tiny"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onOpenTranscript(t.ticketId);
+                        onOpenTranscript(t.ticketId, t.key);
                       }}
                     >
                       <FileText size={13} aria-hidden="true" /> View
@@ -463,7 +468,7 @@ export function TicketsTab({
                   <DeleteTicketButton ticket={t} onDeleted={onDeleted} />
                 </td>
               </tr>
-              <tr className="tks-row" onClick={() => t.transcriptId && onOpenTranscript(t.ticketId)}>
+              <tr className="tks-row" onClick={() => t.transcriptId && onOpenTranscript(t.ticketId, t.key)}>
                 <td />
                 <td colSpan={7}>
                   <SummaryLine s={summaries.state[t.ticketId]} onRefresh={() => void summaries.refresh(t.ticketId)} ticket={t} canEdit={canDelete && !readOnly} onSummary={summaries.set} />
