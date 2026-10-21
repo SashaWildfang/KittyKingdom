@@ -117,23 +117,22 @@ function useTicketSummaries(rows: Ticket[]) {
 }
 
 function SummaryLine({ s, onRefresh }: { s: SummaryState | undefined; onRefresh: () => void }) {
-  const [open, setOpen] = useState(false);
   const sum = s?.summary;
   // Nothing to show yet (or ever: AI off, or no transcript left to read)
   if (!sum && !s?.busy && !s?.error) return null;
   return (
-    <div className={`tks-line${open ? " is-open" : ""}`} onClick={(e) => e.stopPropagation()}>
+    <div className="tks-line" onClick={(e) => e.stopPropagation()}>
       <Sparkles size={14} className="tks-icon" aria-hidden="true" />
       {sum ? (
-        <button type="button" className="tks-text" onClick={() => setOpen((o) => !o)} aria-expanded={open} title={open ? "Show less" : "Show the whole description"}>
-          <b>{sum.headline}</b> {sum.summary}
-        </button>
+        <span className="tks-text" title={sum.headline}>
+          {sum.headline}
+        </span>
       ) : (
         <span className="tks-text is-muted">{s?.busy ? "Reading the ticket…" : s?.error}</span>
       )}
       {s?.busy && sum ? <span className="tks-busy">Updating…</span> : null}
       {!s?.busy ? (
-        <button type="button" className="tks-refresh" onClick={onRefresh} title={sum ? `Read it again${sum.images ? ` (looked at ${sum.images} image${sum.images === 1 ? "" : "s"})` : ""}` : "Try again"} aria-label="Describe again">
+        <button type="button" className="tks-refresh" onClick={onRefresh} title={sum ? "Read it again" : "Try again"} aria-label="Describe again">
           <RefreshCw size={12} />
         </button>
       ) : null}
