@@ -5,7 +5,7 @@ import { getTicketByTranscript } from "../../../../../../../lib/tickets";
 import { TRANSCRIPT_CSS } from "../../../../../../../lib/transcript-member-css";
 import { TRANSCRIPT_CSS_FILE, buildStaffTranscript } from "../../../../../../../lib/transcript-member";
 import { transcriptLook } from "../../../../../../../lib/bot-settings/live";
-import { openTranscriptFile } from "../../../../../../../lib/transcript-store";
+import { openTranscriptFile, transcriptFileNames } from "../../../../../../../lib/transcript-store";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -92,7 +92,7 @@ export async function GET(
     // Every transcript (any age) is redrawn in the current design with all its media kept, so they all
     // look the same and follow the Transcripts settings
     if (name === "index.html") {
-      const [ticket, style] = await Promise.all([getTicketByTranscript(params.messageId).catch(() => null), transcriptLook().catch(() => undefined)]);
+      const [ticket, style, files] = await Promise.all([getTicketByTranscript(params.messageId).catch(() => null), transcriptLook().catch(() => undefined), transcriptFileNames(params.messageId).catch(() => [] as string[])]);
       if (ticket) {
         try {
           page = buildStaffTranscript(
@@ -100,6 +100,7 @@ export async function GET(
             { ticketId: ticket.ticketId, created: ticket.created, resolvedAt: ticket.resolvedAt, claimedBy: ticket.claimedBy, type: ticket.type, topic: ticket.topic, escalated: ticket.escalated },
             LOCAL_TIMES_SCRIPT,
             style,
+            files,
           );
         } catch (error) {
           console.error("Redrawing a transcript failed; showing the original", error);
