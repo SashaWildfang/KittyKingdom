@@ -297,7 +297,14 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
               <button type="button" className="adm-side-head" aria-expanded={!closed} onClick={() => setCollapsed((c) => (c.includes(g.key) ? c.filter((x) => x !== g.key) : [...c, g.key]))}>
                 <g.icon size={15} aria-hidden="true" />
                 <span>{g.label}</span>
-                {closed && count > 0 ? <span className={`adm-tab-bubble${hot ? " is-hot" : ""}`}>{shortCount(count)}</span> : null}
+                {/* Collapsed: how many are waiting inside. Open: a dot (the tabs below show the numbers) */}
+                {count > 0 ? (
+                  closed ? (
+                    <span className={`adm-tab-bubble${hot ? " is-hot" : ""}`}>{shortCount(count)}</span>
+                  ) : (
+                    <span className={`adm-side-dot${hot ? " is-hot" : ""}`} aria-label={`${count} waiting`} />
+                  )
+                ) : null}
                 <ChevronDown size={14} className="adm-side-chev" aria-hidden="true" />
               </button>
               {!closed ? (
