@@ -328,6 +328,9 @@ const view = (d: Doc, stale: boolean): TicketSummary => ({
 export async function savedSummaries(tickets: Ticket[]) {
   const docs = await (await col()).find({ _id: { $in: tickets.map((t) => t.ticketId) } }).toArray();
   const byId = new Map(docs.map((d) => [d._id, d]));
+  // When each 18+ member's verification record last changed (the Ticket Bot's /nsfwverify, an admin recording
+  // a DOB on the website, a join app DOB fix): a description older than that is out of date straight away
+  const changedAt = await recordChanges(tickets.filter((t) => isNsfwTicket(t.type) && t.openedBy).map((t) => t.openedBy!)).catch(() => new Map<string, number>());
   const out: Record<number, TicketSummary> = {};
   for (const t of tickets) {
     const d = byId.get(t.ticketId);
@@ -338,11 +341,45 @@ export async function savedSummaries(tickets: Ticket[]) {
       (d.version ?? 1) !== VERSION ||
       (isNsfwTicket(t.type)
         ? // nsfw3: rebuilt since open tickets, re-verifications and staff-corrected DOBs stopped being flagged
-          !d.key.startsWith("nsfw3|") || sinceCheck > (t.status === "Open" ? RECHECK_MS : NSFW_RECHECK_MS)
+          !d.key.startsWith("nsfw3|") ||
+          sinceCheck > (t.status === "Open" ? RECHECK_MS : NSFW_RECHECK_MS) ||
+          // Closed (usually right after verifying) or the record changed since this was written
+          (t.resolvedAt !== null && new Date(t.resolvedAt).getTime() > (d.checkedAt?.getTime() ?? 0)) ||
+          (changedAt.get(t.openedBy ?? "") ?? 0) > (d.checkedAt?.getTime() ?? 0)
         : t.status === "Open"
           ? sinceCheck > RECHECK_MS
           : Boolean(t.transcriptId) && d.key.split("|")[0] !== `t:${t.transcriptId}`);
     out[t.ticketId] = view(d, stale);
+  }
+  return out;
+}
+
+/** For each member: when their 18+ verification record or join app date of birth last changed (ms). */
+async function recordChanges(ids: string[]) {
+  const out = new Map<string, number>();
+  const unique = Array.from(new Set(ids.filter((id) => /^\d{15,21}$/.test(id))));
+  if (!unique.length) return out;
+  const bump = (id: string, v: unknown) => {
+    // The Ticket Bot saves times as UTC text without a zone ("2026-10-21T22:00:00.123456")
+    const t = v instanceof Date ? v.getTime() : typeof v === "string" ? Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(v) ? v : `${v}Z`) : NaN;
+    if (Number.isFinite(t) && t > (out.get(id) ?? 0)) out.set(id, t);
+  };
+  const [users, apps] = await Promise.all([
+    getBotCollection("users").then((c) =>
+      c.find({ discordId: { $in: unique.flatMap((id) => [Long.fromString(id), id]) } } as never, { projection: { discordId: 1, nsfwVerifiedAt: 1, nsfwIdRecordedAt: 1, verificationHistory: { $slice: -1 }, nsfwIdDobEdits: { $slice: -1 } } }).toArray(),
+    ),
+    getBotCollection("join_applications").then((c) => c.find({ discordId: { $in: unique } }, { projection: { discordId: 1, dobSetAt: 1, leftAt: 1 } }).toArray()),
+  ]);
+  for (const u of users) {
+    const id = String(u.discordId);
+    bump(id, u.nsfwVerifiedAt);
+    bump(id, u.nsfwIdRecordedAt);
+    for (const h of (u.verificationHistory ?? []) as Record<string, unknown>[]) bump(id, h.resetAt);
+    if (Array.isArray(u.nsfwIdDobEdits)) for (const e of u.nsfwIdDobEdits as Record<string, unknown>[]) bump(id, e.at);
+  }
+  for (const a of apps) {
+    bump(String(a.discordId), a.dobSetAt);
+    bump(String(a.discordId), a.leftAt);
   }
   return out;
 }
