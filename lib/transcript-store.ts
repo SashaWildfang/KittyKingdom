@@ -410,6 +410,16 @@ export async function openTranscriptFile(messageId: string, name: string): Promi
   return piecedFile(messageId, name, chunks, sizes);
 }
 
+/** Every file name in a transcript (inside the zip, or uploaded in pieces beside it). */
+export async function transcriptFileNames(messageId: string): Promise<string[]> {
+  if (!isSnowflake(messageId)) return [];
+  const index = await zipIndex(messageId).catch(() => null);
+  if (!index) return [];
+  const names = new Set(Object.keys(index.whole ?? index.entries));
+  if (!index.whole) for (const n of Object.keys((await manifestFor(messageId, index).catch(() => ({}) as Manifest)).files ?? {})) names.add(n);
+  return Array.from(names);
+}
+
 /**
  * Called when a transcript is opened: loads the links and zip directory into the shared cache so
  * the page's many parallel requests don't each ask Discord. Returns the zip download (or null).

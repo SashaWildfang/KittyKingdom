@@ -85,10 +85,79 @@ export const redactedNote = (what: string) => `<div class="redacted-media">⚠�
 let staffCopy = false;
 // Media staff copies may show: files inside the transcript, or https links
 const SAFE_MEDIA_SRC = /^(?:(?:attachments|embeds|stickers|avatars|emojis)\/(?!.*\.\.)[^"<>\s]{1,200}|https:\/\/[^"<>\s]{1,600})$/i;
+const IMAGE_FILE = /\.(?:png|jpe?g|gif|webp|avif|bmp|heic)$/i;
+
+// The files actually in the transcript being redrawn (staff copies). Older transcripts don't always point at
+// them the way the page expects: links to Discord's CDN that have since expired, names with spaces or odd
+// encoding, other folders. Each picture is matched to its real file so it still shows.
+let zipFiles: string[] = [];
+// File name → files with that name (several uploads are often all called "image.png")
+let zipByBase = new Map<string, string[]>();
+
+function setZipFiles(names: string[]) {
+  zipFiles = names.filter((n) => !/(?:^|\/)\.\.(?:\/|$)/.test(n));
+  zipByBase = new Map();
+  for (const n of zipFiles) {
+    if (/^(?:avatars|emojis)\//i.test(n)) continue;
+    const base = n.split("/").pop()!.toLowerCase();
+    zipByBase.set(base, [...(zipByBase.get(base) ?? []), n]);
+  }
+}
+
+const encodePath = (path: string) => path.split("/").map(encodeURIComponent).join("/");
+const tryDecode = (value: string) => {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+};
+
+/** The transcript file a link points at (as a safe relative URL), or null if it isn't (unambiguously) one of them. */
+function zipMatch(raw: string): string | null {
+  if (!zipFiles.length || !raw) return null;
+  const isUrl = /^https?:\/\//i.test(raw);
+  const path = isUrl ? (() => { try { return new URL(raw).pathname; } catch { return ""; } })() : raw.split(/[?#]/)[0];
+  const clean = tryDecode(path).replace(/\\/g, "/").replace(/^(?:\.\/|\/)+/, "");
+  if (!isUrl && zipFiles.includes(clean)) return encodePath(clean);
+  const segments = clean.split("/").filter(Boolean);
+  const base = (segments.pop() ?? "").toLowerCase();
+  if (!base) return null;
+  const media = zipFiles.filter((n) => !/^(?:avatars|emojis)\//i.test(n));
+  // A Discord link (/attachments/<channel>/<attachment id>/<name>): the file saved with that attachment id first
+  const id = isUrl && /^\d{15,21}$/.test(segments[segments.length - 1] ?? "") ? segments[segments.length - 1] : null;
+  if (id) {
+    const byId = media.filter((n) => n.includes(id));
+    if (byId.length === 1) return encodePath(byId[0]);
+    const named = byId.find((n) => n.toLowerCase().endsWith(base));
+    if (named) return encodePath(named);
+  }
+  // Then by name, but only when exactly one file has it (never guess between several "image.png")
+  const same = zipByBase.get(base) ?? [];
+  if (same.length === 1) return encodePath(same[0]);
+  if (same.length > 1) return null;
+  // Saved under a prefixed name ("1234_photo.png"), again only if there's just one
+  const prefixed = media.filter((n) => {
+    const b = n.split("/").pop()!.toLowerCase();
+    return b.endsWith(`_${base}`) || b.endsWith(`-${base}`);
+  });
+  return prefixed.length === 1 ? encodePath(prefixed[0]) : null;
+}
+
+/** A media src for a staff copy: the matching transcript file when there is one, else the src if it's safe. */
+function staffSrc(raw: string): string | null {
+  const src = raw.trim();
+  const local = zipMatch(src);
+  if (local) return local;
+  if (SAFE_MEDIA_SRC.test(src)) return src;
+  // Any other relative path inside the transcript (no "..", no other site)
+  if (src && !/^[a-z][a-z0-9+.-]*:/i.test(src) && !/(?:^|\/)\.\.(?:\/|$)/.test(src) && src.length <= 300 && !/["<>]/.test(src)) return encodePath(tryDecode(src).replace(/^(?:\.\/|\/)+/, ""));
+  return null;
+}
 
 function staffMedia(node: HTMLElement, tag: string) {
-  const src = (node.getAttribute("src") ?? node.querySelector("source")?.getAttribute("src") ?? "").trim();
-  if (!SAFE_MEDIA_SRC.test(src)) return "";
+  const src = staffSrc(node.getAttribute("src") ?? node.querySelector("source")?.getAttribute("src") ?? "") ?? "";
+  if (!src) return "";
   const cls = classes(node.getAttribute("class"));
   const c = cls ? ` class="${cls}"` : "";
   if (tag === "img") return `<img${c} src="${escapeHtml(src)}" alt="${escapeHtml((node.getAttribute("alt") ?? "").slice(0, 80))}" loading="lazy">`;
@@ -149,9 +218,15 @@ function safeNode(node: Node): string {
   }
   if (tag === "a") {
     const href = (node.getAttribute("href") ?? "").trim();
-    if (MEDIA_LINK.test(href)) {
+    const local = staffCopy ? zipMatch(href) : null;
+    if (MEDIA_LINK.test(href) || local) {
       if (!staffCopy) return `<span class="redacted-link">[media link removed]</span>`;
-      if (SAFE_MEDIA_SRC.test(href)) return `<a href="${escapeHtml(href)}" class="${classes(node.getAttribute("class"))}" target="_blank" rel="noopener noreferrer">${safeInner(node)}</a>`;
+      const target = local ?? (SAFE_MEDIA_SRC.test(href) ? href : null);
+      if (target) {
+        // A picture saved as a file link (older transcripts): show the picture itself
+        const picture = IMAGE_FILE.test(tryDecode(target)) && !node.querySelector("img") ? `<img src="${escapeHtml(target)}" alt="" loading="lazy">` : "";
+        return `<a href="${escapeHtml(target)}" class="${classes(node.getAttribute("class"))}" target="_blank" rel="noopener noreferrer">${picture}${safeInner(node)}</a>`;
+      }
     }
     const inner = safeInner(node);
     if (/^#user-\d{5,25}$/.test(href)) return `<a href="${href}" class="mention">${inner}</a>`;
@@ -583,14 +658,16 @@ export function buildMemberTranscript(staffHtml: string, meta: MemberTicketMeta,
 }
 
 /** A staff transcript (any format) redrawn in the current layout, with all its media (Admin viewer). */
-export function buildStaffTranscript(staffHtml: string, meta: MemberTicketMeta, localTimesScript = "", style: TranscriptLook = DEFAULT_LOOK) {
+export function buildStaffTranscript(staffHtml: string, meta: MemberTicketMeta, localTimesScript = "", style: TranscriptLook = DEFAULT_LOOK, files: string[] = []) {
   staffCopy = true;
   look = style;
+  setZipFiles(files);
   try {
     return buildTranscript(staffHtml, meta, localTimesScript);
   } finally {
     staffCopy = false;
     look = DEFAULT_LOOK;
+    setZipFiles([]);
   }
 }
 
