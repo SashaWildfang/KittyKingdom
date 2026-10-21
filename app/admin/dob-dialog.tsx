@@ -21,9 +21,12 @@ function parseMdy(text: string) {
 }
 /**
  * Types the slashes for you: "10" → "10/", "1016" → "10/16/", "10161999" → "10/16/1999", and "1/2/2000" →
- * "01/02/2000". While deleting, the slash isn't put straight back, so backspace works normally.
+ * "01/02/2000". While deleting, nothing is reformatted, so Backspace and Delete work normally.
  */
 function withSlashes(next: string, prev: string) {
+  // Deleting (anywhere in the date): leave what they have alone, so Backspace/Delete always do something.
+  // "1/02/2000" and the like still save (the date check accepts single digits)
+  if (next.length < prev.length) return next.replace(/[^\d/]/g, "").slice(0, 10);
   // A slash typed after a single digit pads it ("1/2/2000" → "01/02/2000"), so short dates still work
   const parts = next.replace(/[.\-]/g, "/").split("/");
   const digits = parts
@@ -33,11 +36,10 @@ function withSlashes(next: string, prev: string) {
     })
     .join("")
     .slice(0, 8);
-  const deleting = next.length < prev.length;
   let out = digits.slice(0, 2);
-  if (digits.length > 2 || (digits.length === 2 && !deleting)) out += "/";
+  if (digits.length >= 2) out += "/";
   out += digits.slice(2, 4);
-  if (digits.length > 4 || (digits.length === 4 && !deleting)) out += "/";
+  if (digits.length >= 4) out += "/";
   out += digits.slice(4, 8);
   return out;
 }
