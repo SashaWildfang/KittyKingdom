@@ -50,8 +50,9 @@ export type DatingSettings = {
 
 export const DEFAULTS: DatingSettings = {
   notify: { like: true, partner: true, match: true, message: true, request: true, "friend-request": true, "friend-accepted": true, view: true },
-  // Messages left unread for 10 minutes get one Discord DM reminder (Main_Bot, events/social_message_dm.py)
-  dm: { like: false, partner: false, match: false, message: true, request: true, "friend-request": false, "friend-accepted": false, view: false },
+  // Discord DMs are on for everything except profile views (members can turn any of them off). Messages
+  // left unread for 10 minutes also get one reminder (Main_Bot, events/social_message_dm.py).
+  dm: { like: true, partner: true, match: true, message: true, request: true, "friend-request": true, "friend-accepted": true, view: false },
   anonymousViews: false,
   messagesFrom: "everyone",
   showLeft: true,

@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { EVENT_KINDS, GIVEAWAY_KIND, type PublicEvent } from "../../lib/events-shared";
 import type { PublicPoll } from "../../lib/event-polls";
 import { EventPollsBoard } from "./events-polls";
-import { markEventsSeen } from "../events-nav-badge";
+import { markEventsSeen, useEventReads } from "../events-nav-badge";
 import { CurrencyAmount } from "../ui-icons";
 
 type Data = { events: PublicEvent[]; mine: string[]; past: PublicEvent[] };
@@ -101,14 +101,15 @@ function GiveawayCard({ e, now }: { e: PublicEvent; now: number }) {
   );
 }
 
-function EventCard({ e, reminded, onRemind, busy, signedIn, linked, now }: { e: PublicEvent; reminded: boolean; onRemind: () => void; busy: boolean; signedIn: boolean; linked: boolean; now: number }) {
+function EventCard({ e, reminded, onRemind, busy, signedIn, linked, now, unread = false, onOpen }: { e: PublicEvent; reminded: boolean; onRemind: () => void; busy: boolean; signedIn: boolean; linked: boolean; now: number; unread?: boolean; onOpen?: () => void }) {
   if (e.giveaway) return <GiveawayCard e={e} now={now} />;
   const start = new Date(e.startAt).getTime();
   const end = e.endAt ? new Date(e.endAt).getTime() : start + 2 * 3600_000;
   const live = !e.cancelled && now >= start && now < end;
   const k = KIND[e.kind];
   return (
-    <article className={`evp-card${e.cancelled ? " is-cancelled" : ""}${live ? " is-live" : ""}`} id={`event-${e.id}`}>
+    <article className={`evp-card${e.cancelled ? " is-cancelled" : ""}${live ? " is-live" : ""}${unread ? " is-unread" : ""}`} id={`event-${e.id}`} onClick={onOpen} onFocus={onOpen}>
+      {unread ? <span className="evp-new">New</span> : null}
       {e.image ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img className="evp-card-img" src={e.image} alt="" loading="lazy" />
@@ -236,8 +237,10 @@ export function EventsBoard({ initial, signedIn, linked, canManage = false, poll
   // Times, countdowns and "Today" depend on the visitor's clock and time zone, so they're drawn in the browser only
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
-  // Opening /events clears the bubble on the Events tab
-  useEffect(() => markEventsSeen(seenIds), [seenIds]);
+  // Like News: an event or poll stays "new" until you open it (click it) or mark everything read
+  const reads = useEventReads();
+  const unread = (key: string) => Boolean(reads) && seenIds.includes(key) && !reads!.has(key);
+  const unreadCount = reads ? seenIds.filter((k) => !reads.has(k)).length : 0;
 
   // Month view loads the whole month (and the one after)
   useEffect(() => {
@@ -301,6 +304,11 @@ export function EventsBoard({ initial, signedIn, linked, canManage = false, poll
           </p>
           <h1>What&apos;s happening in the Nation</h1>
           <p className="evp-lead">Game nights, movie nights, voice hangouts and contests. Tap Remind me and the bot will DM you before it starts.</p>
+          {unreadCount ? (
+            <button type="button" className="evp-markall" onClick={() => void markEventsSeen(seenIds)}>
+              Mark all as read ({unreadCount})
+            </button>
+          ) : null}
           {canManage ? (
             <a className="evp-manage" href="/admin?tab=events">
               <CalendarCog size={15} aria-hidden="true" /> Manage events
@@ -369,7 +377,7 @@ export function EventsBoard({ initial, signedIn, linked, canManage = false, poll
                   <h2>{dayTitle(date)}</h2>
                   <div className="evp-cards">
                     {list.map((e) => (
-                      <EventCard key={e.id} e={e} reminded={mine.has(e.id)} onRemind={() => remind(e)} busy={busy === e.id} signedIn={signedIn} linked={linked} now={now} />
+                      <EventCard key={e.id} e={e} reminded={mine.has(e.id)} onRemind={() => remind(e)} busy={busy === e.id} signedIn={signedIn} linked={linked} now={now} unread={unread(`e:${e.id}`)} onOpen={() => unread(`e:${e.id}`) && void markEventsSeen([`e:${e.id}`])} />
                     ))}
                   </div>
                 </section>
@@ -378,7 +386,15 @@ export function EventsBoard({ initial, signedIn, linked, canManage = false, poll
           )}
         </div>
         <aside className="evp-aside">
-          <EventPollsBoard initial={polls} events={data?.events ?? []} signedIn={signedIn} linked={linked} now={now} />
+          {/* Clicking a poll marks it read */}
+          <div
+            onClick={(ev) => {
+              const id = (ev.target as HTMLElement).closest<HTMLElement>("[data-poll-id]")?.dataset.pollId;
+              if (id && unread(`p:${id}`)) void markEventsSeen([`p:${id}`]);
+            }}
+          >
+            <EventPollsBoard initial={polls} events={data?.events ?? []} signedIn={signedIn} linked={linked} now={now} unreadIds={reads ? polls.map((p) => p.id).filter((id) => unread(`p:${id}`)) : []} />
+          </div>
 
           {data?.past.length ? (
             <section className="evp-past">

@@ -1,0 +1,37 @@
+/* The after-sign-in reminder (pick a username, refresh your Social profile) */
+.nudge-wrap { position: fixed; inset: 0; z-index: 1100; display: grid; place-items: center; padding: 1rem; background: rgba(10, 4, 2, 0.55); backdrop-filter: blur(3px); animation: nudge-fade 0.2s ease; }
+.nudge {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 0.7rem;
+  width: min(25rem, 100%);
+  border: 1px solid var(--line);
+  border-radius: 1.4rem;
+  background: radial-gradient(circle at 50% 0%, rgba(var(--ember-rgb), 0.18), transparent 60%), linear-gradient(var(--panel), var(--panel)), var(--bg);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.5);
+  padding: 1.8rem 1.5rem 1.2rem;
+  text-align: center;
+  animation: nudge-pop 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.nudge h2 { margin: 0.1rem 0 0; font-size: 1.3rem; }
+.nudge p { margin: 0; color: var(--muted); font-size: 0.92rem; line-height: 1.5; }
+.nudge-close { position: absolute; top: 0.8rem; right: 0.8rem; display: grid; place-items: center; width: 2rem; height: 2rem; border: 1px solid var(--line); border-radius: 0.6rem; background: var(--panel-strong); color: var(--muted); cursor: pointer; }
+.nudge-icon { display: grid; place-items: center; width: 3.4rem; height: 3.4rem; border-radius: 1.1rem; background: rgba(var(--ember-rgb), 0.18); color: var(--ember); }
+.nudge-form { display: grid; gap: 0.45rem; width: 100%; }
+.nudge-input { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 0.85rem; background: var(--panel-strong); padding: 0 0.75rem; }
+.nudge-input:focus-within { border-color: var(--ember); }
+.nudge-input span { color: var(--muted); font-weight: 800; }
+.nudge-input input { flex: 1; min-width: 0; border: 0; background: none; color: var(--text); font: inherit; font-size: 1rem; outline: none; padding: 0.65rem 0.35rem; }
+.nudge-form small { color: var(--muted); font-size: 0.76rem; }
+.nudge-form small.is-bad { color: #ff9b9b; }
+.nudge-ok { color: #8fdc77 !important; }
+.nudge-bad { color: #ff9b9b !important; }
+.nudge-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; width: 100%; margin-top: 0.3rem; }
+.nudge-primary { flex: 1 1 10rem; border: 0; border-radius: 999px; background: var(--ember); color: rgb(var(--night-rgb)); cursor: pointer; font: inherit; font-weight: 800; padding: 0.65rem 1rem; text-decoration: none; }
+.nudge-primary:disabled { opacity: 0.5; cursor: default; }
+.nudge-ghost { flex: 0 1 auto; border: 1px solid var(--line); border-radius: 999px; background: none; color: var(--text); cursor: pointer; font: inherit; font-weight: 700; padding: 0.6rem 1rem; }
+.nudge-never { border: 0; background: none; color: var(--muted); cursor: pointer; font: inherit; font-size: 0.78rem; padding: 0.25rem; text-decoration: underline; text-underline-offset: 3px; }
+@keyframes nudge-fade { from { opacity: 0; } }
+@keyframes nudge-pop { from { opacity: 0; transform: translateY(10px) scale(0.97); } }
+@media (prefers-reduced-motion: reduce) { .nudge-wrap, .nudge { animation: none; } }

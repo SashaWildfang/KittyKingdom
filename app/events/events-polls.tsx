@@ -13,7 +13,7 @@ const left = (ms: number) => {
 };
 
 /** Event polls on /events: results for everyone, voting for members with Discord linked. */
-export function EventPollsBoard({ initial, events, signedIn, linked, now }: { initial: PublicPoll[]; events: PublicEvent[]; signedIn: boolean; linked: boolean; now: number }) {
+export function EventPollsBoard({ initial, events, signedIn, linked, now, unreadIds = [] }: { initial: PublicPoll[]; events: PublicEvent[]; signedIn: boolean; linked: boolean; now: number; unreadIds?: string[] }) {
   const [polls, setPolls] = useState(initial);
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<{ id: string; text: string } | null>(null);
@@ -56,7 +56,8 @@ export function EventPollsBoard({ initial, events, signedIn, linked, now }: { in
           const canVote = open && linked && !p.votedInDiscord;
           const top = Math.max(0, ...p.answers.map((a) => a.votes));
           return (
-            <article key={p.id} className={`evp-poll${open ? "" : " is-ended"}`}>
+            <article key={p.id} className={`evp-poll${open ? "" : " is-ended"}${unreadIds.includes(p.id) ? " is-unread" : ""}`} data-poll-id={p.id}>
+              {unreadIds.includes(p.id) ? <span className="evp-new">New</span> : null}
               <header>
                 <h3>{p.question}</h3>
                 <p>
