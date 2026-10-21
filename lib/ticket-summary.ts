@@ -204,7 +204,9 @@ async function nsfwFacts(ticket: Ticket): Promise<NsfwFacts | null> {
 
 /** "22, 10/12/2001" or "22 - 10/12/2001": the age they wrote before the date. */
 const statedAgeOf = (raw: string | null) => {
-  const m = raw ? /^\s*(\d{2})\s*(?:[,/\-–|]|and\b|\s+\d)/i.exec(raw) : null;
+  // A plain date ("25/12/1990", "12-25-1990") isn't an age
+  if (!raw || /^\s*\d{1,4}[/.\-]\d{1,2}[/.\-]\d{1,4}/.test(raw)) return null;
+  const m = /^\s*(\d{2})\s*(?:,|\s[-–|]\s|\band\b|\s+\d)/i.exec(raw);
   const n = m ? Number(m[1]) : NaN;
   return n >= 13 && n <= 99 ? n : null;
 };
@@ -308,7 +310,10 @@ export async function summarizeTicket(ticketId: number, panel: PanelUser, force 
   }
   // 18+ verification: the member's roles and join-app birthday are part of the key (a change rewrites the line)
   const facts = await nsfwFacts(ticket);
-  const key = facts ? `${source.key}|${facts.roles === null ? "left" : facts.roles.includes(ADULT_VERIFIED_ROLE) ? "18+" : "no18"}|${facts.joinDob?.toISOString().slice(0, 10) ?? facts.joinAge ?? "-"}` : source.key;
+  // (the age shown is part of it too, so a birthday updates the line)
+  const key = facts
+    ? `${source.key}|${facts.roles === null ? "left" : facts.roles.includes(ADULT_VERIFIED_ROLE) ? "18+" : "no18"}|${facts.joinDob?.toISOString().slice(0, 10) ?? "-"}:${facts.joinDob ? calculateAge(facts.joinDob) : (facts.joinAge ?? "-")}:${facts.statedAge ?? "-"}`
+    : source.key;
   if (saved && saved.key === key && (saved.version ?? 1) === VERSION && !force) {
     await c.updateOne({ _id: ticketId }, { $set: { checkedAt: new Date() } });
     return view({ ...saved, checkedAt: new Date() }, false);
