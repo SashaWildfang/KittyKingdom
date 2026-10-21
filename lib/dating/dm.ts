@@ -1,9 +1,11 @@
-// Discord DMs for Social notifications, for members who turn them on (Settings → Notifications → Discord
-// DMs; all off by default). Each one is a small embed about the other member in their profile color,
+// Discord DMs for Social notifications (Settings → Notifications → Discord DMs; on by default for everything
+// but profile views). Members with a Social profile but no website account also get the steps to make one,
+// since they can't reply without it. Each one is a small embed about the other member in their profile color,
 // with a button back to the website. Dating photos are only served to signed-in 18+ members, so the
 // embed uses their Discord avatar instead.
 
 import { sendDirectMessage } from "../discord-member";
+import { getUsersCollection } from "../mongodb";
 import type { NotificationType } from "../notifications";
 import { MINUTE, allow } from "../rate-limit";
 import { datingPool } from "./pool";
@@ -12,6 +14,13 @@ import { bigAvatar } from "./text";
 import type { DatingSettings } from "./settings";
 
 const SITE = process.env.SITE_URL ?? "https://bear-nation.net";
+
+/** How to get on the website, for members who only have a Social profile from the old Discord bot. */
+export const SIGNUP_STEPS = [
+  `1. Create an account at ${SITE}/register`,
+  "2. Open the link in the email we send you to verify it",
+  "3. In My Account, press **Link Discord**, then use the code with `/link` in the server",
+].join("\n");
 
 const STYLE: Partial<Record<NotificationType, { emoji: string; button: string }>> = {
   view: { emoji: "👀", button: "View their profile" },
@@ -58,6 +67,8 @@ export async function sendDatingDm(to: string, settings: DatingSettings, n: { ty
       ].filter(Boolean)
     : [];
   const line = (LINES[n.type] ?? (() => n.title))(name);
+  // No website account yet: they need one to see this and reply
+  const hasAccount = Boolean(await (await getUsersCollection()).findOne({ discordId: to }, { projection: { _id: 1 } }).catch(() => true));
   const description = n.type === "message" && n.body ? `${line}\n> ${n.body.replace(/\n/g, " ").slice(0, 180)}` : line;
   const url = `${SITE}${n.link}`;
   await Promise.race([
@@ -68,13 +79,13 @@ export async function sendDatingDm(to: string, settings: DatingSettings, n: { ty
           title: web.headline ? `“${String(web.headline).slice(0, 80)}”` : undefined,
           description,
           color,
-          fields,
+          fields: hasAccount ? fields : [...fields, { name: "👋 You'll need a Bear Nation account to reply", value: SIGNUP_STEPS, inline: false }],
           thumbnail: who?.avatar ? { url: bigAvatar(who.avatar, 256)! } : undefined,
           footer: { text: "Bear Nation Social · change these DMs in Settings → Notifications" },
           timestamp: new Date().toISOString(),
         },
       ],
-      components: [{ type: 1, components: [{ type: 2, style: 5, label: style.button, url }] }],
+      components: [{ type: 1, components: hasAccount ? [{ type: 2, style: 5, label: style.button, url }] : [{ type: 2, style: 5, label: "Create your account", url: `${SITE}/register` }, { type: 2, style: 5, label: style.button, url }] }],
     }).catch(() => false),
     new Promise((r) => setTimeout(r, 4000)),
   ]);

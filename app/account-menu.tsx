@@ -4,8 +4,10 @@ import { ChevronDown, HeartHandshake, LogOut, Palette, Settings, UserRound } fro
 import { useEffect, useRef, useState } from "react";
 import { ThemeSwitch } from "./theme-switch";
 
-/** "My Account" in the top bar: a small menu with account links, Appearance (theme) and Log out. */
-export function AccountMenu({ social }: { social: boolean }) {
+/** The account button in the top bar (their profile picture): a small menu with account links, Appearance (theme) and Log out. */
+export function AccountMenu({ social, avatar = null, name = "My Account" }: { social: boolean; avatar?: string | null; name?: string }) {
+  const [broken, setBroken] = useState(false);
+  const initial = (name.trim()[0] ?? "?").toUpperCase();
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
 
@@ -23,11 +25,20 @@ export function AccountMenu({ social }: { social: boolean }) {
 
   return (
     <div className="acct-menu" ref={box}>
-      <button type="button" className={`login-link logged-in-link acct-menu-button${open ? " is-open" : ""}`} onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="menu">
-        My Account <ChevronDown size={15} aria-hidden="true" />
+      <button type="button" className={`acct-avatar-btn${open ? " is-open" : ""}`} onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="menu" aria-label={`My Account (${name})`} title={name}>
+        {avatar && !broken ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={avatar} alt="" width={36} height={36} onError={() => setBroken(true)} />
+        ) : (
+          <span className="acct-avatar-fallback" aria-hidden="true">
+            {initial}
+          </span>
+        )}
+        <ChevronDown size={13} className="acct-avatar-chev" aria-hidden="true" />
       </button>
       {open ? (
         <div className="acct-menu-panel" role="menu">
+          <p className="acct-menu-name">{name}</p>
           <a href="/account" role="menuitem">
             <UserRound size={16} aria-hidden="true" /> My Account
           </a>

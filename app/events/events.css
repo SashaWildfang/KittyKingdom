@@ -138,3 +138,10 @@ button.evp-poll-opt:disabled { cursor: progress; }
 .evp-gw-prize svg { color: rgb(var(--gold-rgb)); }
 .evp-gw-prize > .evp-gw-sep { color: var(--muted); font-weight: 400; }
 .evp-gw-enter { text-decoration: none; }
+
+/* Unread events and polls (like News): a "New" tag until you open them */
+.evp-card.is-unread, .evp-poll.is-unread { box-shadow: 0 0 0 1px rgba(var(--ember-rgb), 0.55), 0 8px 30px rgba(var(--ember-rgb), 0.12); }
+.evp-card, .evp-poll { position: relative; }
+.evp-new { position: absolute; top: 0.6rem; right: 0.6rem; z-index: 2; border-radius: 999px; background: var(--ember); color: rgb(var(--night-rgb)); font-size: 0.68rem; font-weight: 900; letter-spacing: 0.04em; padding: 0.12rem 0.5rem; text-transform: uppercase; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); }
+.evp-markall { margin-top: 0.6rem; margin-right: 0.5rem; border: 1px solid rgba(var(--ember-rgb), 0.45); border-radius: 999px; background: rgba(var(--ember-rgb), 0.12); color: var(--text); cursor: pointer; font: inherit; font-size: 0.82rem; font-weight: 700; padding: 0.35rem 0.85rem; }
+.evp-markall:hover { background: rgba(var(--ember-rgb), 0.2); }

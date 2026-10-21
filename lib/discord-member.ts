@@ -29,6 +29,8 @@ export type MemberRoleSummary = {
   username?: string | null;
   rank: MemberRank | null;
   isStaff: boolean;
+  /** Their picture: the server profile picture if they set one here, otherwise their Discord avatar. */
+  avatar?: string | null;
 };
 
 export function botToken() {
@@ -82,7 +84,7 @@ export async function getMemberRoleSummary(discordId: unknown): Promise<MemberRo
   if (!guild) return empty;
 
   const [member, roles] = await Promise.all([
-    discordGet<{ roles?: string[]; nick?: string | null; user?: { username?: string } }>(`/guilds/${guild}/members/${String(discordId)}`, token, 120),
+    discordGet<{ roles?: string[]; nick?: string | null; avatar?: string | null; user?: { id?: string; username?: string; avatar?: string | null } }>(`/guilds/${guild}/members/${String(discordId)}`, token, 120),
     discordGet<DiscordRole[]>(`/guilds/${guild}/roles`, token, 300),
   ]);
   if (!member?.roles || !roles) return empty;
@@ -98,6 +100,11 @@ export async function getMemberRoleSummary(discordId: unknown): Promise<MemberRo
     isStaff: memberRoleIds.has(STAFF_TEAM_ROLE_ID),
     nick: member.nick ?? null,
     username: member.user?.username ?? null,
+    avatar: member.avatar
+      ? `https://cdn.discordapp.com/guilds/${guild}/users/${String(discordId)}/avatars/${member.avatar}.${member.avatar.startsWith("a_") ? "gif" : "png"}?size=96`
+      : member.user?.avatar
+        ? `https://cdn.discordapp.com/avatars/${String(discordId)}/${member.user.avatar}.${member.user.avatar.startsWith("a_") ? "gif" : "png"}?size=96`
+        : null,
   };
 }
 
