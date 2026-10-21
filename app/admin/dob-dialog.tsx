@@ -19,6 +19,21 @@ function parseMdy(text: string) {
   const d = new Date(Date.UTC(Number(m[3]), Number(m[1]) - 1, Number(m[2])));
   return d.getUTCMonth() === Number(m[1]) - 1 && d.getUTCDate() === Number(m[2]) && d.getUTCFullYear() >= 1900 && d.getTime() <= Date.now() ? d : null;
 }
+/**
+ * Types the slashes for you: "10" → "10/", "1016" → "10/16/", "10161999" → "10/16/1999". While deleting, the
+ * slash isn't put straight back, so backspace works normally.
+ */
+function withSlashes(next: string, prev: string) {
+  const digits = next.replace(/\D/g, "").slice(0, 8);
+  const deleting = next.length < prev.length;
+  let out = digits.slice(0, 2);
+  if (digits.length > 2 || (digits.length === 2 && !deleting)) out += "/";
+  out += digits.slice(2, 4);
+  if (digits.length > 4 || (digits.length === 4 && !deleting)) out += "/";
+  out += digits.slice(4, 8);
+  return out;
+}
+
 function ageOf(d: Date) {
   const now = new Date();
   let age = now.getUTCFullYear() - d.getUTCFullYear();
@@ -125,11 +140,11 @@ export function DobDialog({
             <div className="dobd-dates">
               <label>
                 <span>Date of birth</span>
-                <input value={dob} onChange={(e) => setDob(e.target.value)} placeholder="MM/DD/YYYY" inputMode="numeric" autoComplete="off" disabled={busy} autoFocus />
+                <input value={dob} onChange={(e) => setDob(withSlashes(e.target.value, dob))} placeholder="MM/DD/YYYY" inputMode="numeric" maxLength={10} autoComplete="off" disabled={busy} autoFocus />
               </label>
               <label>
                 <span>Type it again</span>
-                <input value={repeat} onChange={(e) => setRepeat(e.target.value)} onPaste={(e) => e.preventDefault()} placeholder="MM/DD/YYYY" inputMode="numeric" autoComplete="off" disabled={busy} />
+                <input value={repeat} onChange={(e) => setRepeat(withSlashes(e.target.value, repeat))} onPaste={(e) => e.preventDefault()} placeholder="MM/DD/YYYY" inputMode="numeric" maxLength={10} autoComplete="off" disabled={busy} />
               </label>
             </div>
             {dob && !date ? <p className="dobd-note">Use month/day/year, like 10/12/2001.</p> : null}
