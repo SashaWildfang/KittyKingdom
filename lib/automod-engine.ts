@@ -66,13 +66,16 @@ export function plainTerm(text: string) {
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\\-/]/g, "\\$&");
 
 function termPattern(term: string) {
+  // Short words only accept symbol/digit stand-ins, not other letters ("cvs" used to read as "kys")
+  const strict = term.length <= 3 && !term.includes(" ");
   let p = "";
   for (const ch of Array.from(term)) {
     if (ch === " ") {
       p += "\\s*";
       continue;
     }
-    const options = Array.from(new Set((ch + (LEET[ch] ?? "") + "*").split("")));
+    const subs = (LEET[ch] ?? "").split("").filter((o) => !strict || !LETTERS.includes(o)).join("");
+    const options = Array.from(new Set((ch + subs + "*").split("")));
     p += "[" + options.map(escapeRe).join("") + "]+";
   }
   return p;
