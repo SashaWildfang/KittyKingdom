@@ -198,7 +198,7 @@ export const PROCEDURES: Procedure[] = [
     title: "Join applications",
     icon: "clipboard",
     min: "Helper",
-    summary: "New members fill in a form when they join. Review it in the Discord applications channel or on the website's Join Apps tab. Members are told we answer within 24 hours.",
+    summary: "New members fill in a form when they join. Review it in the Discord applications channel or on the website's Join Apps tab. Members are told we answer within 24 hours. Members who left and came back apply again too: their levels and Leaves are kept, but their old application and verification (including 18+) are not, so treat it like a new form (the old one is still in their history).",
     steps: [
       { title: "Open the pending list", detail: "Use the website's Join Apps tab, or list them in Discord.", example: "/pending" },
       { title: "Check the age", detail: "Date of birth must be filled in properly and show they're 18 or older. Underage forms are kicked automatically." },
