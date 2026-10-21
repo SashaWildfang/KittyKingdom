@@ -107,11 +107,14 @@ function useTicketSummaries(rows: Ticket[]) {
   // minutes while open tickets are on screen (they may have new messages).
   const [tick, setTick] = useState(0);
   const hasOpen = rows.some((r) => r.status === "Open");
+  // A "verified, no 18+ role" flag on screen: roles can change in Discord at any time (a re-verification
+  // giving it back), and the server rechecks those every 3 minutes, so look again that often
+  const hasRoleFlag = rows.some((r) => state[r.ticketId]?.summary?.tags?.includes("no-role"));
   useEffect(() => {
-    if (!hasOpen) return;
-    const t = window.setInterval(() => document.visibilityState === "visible" && setTick((n) => n + 1), 5 * 60_000);
+    if (!hasOpen && !hasRoleFlag) return;
+    const t = window.setInterval(() => document.visibilityState === "visible" && setTick((n) => n + 1), hasRoleFlag ? 3 * 60_000 : 5 * 60_000);
     return () => window.clearInterval(t);
-  }, [hasOpen]);
+  }, [hasOpen, hasRoleFlag]);
 
   useEffect(() => {
     if (!rows.length) return;
