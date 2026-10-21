@@ -193,7 +193,7 @@ function SummaryLine({ s, onRefresh, ticket, canEdit, onSummary }: { s: SummaryS
           <Lock size={11} aria-hidden="true" /> Record DOB
         </button>
       ) : null}
-      {dobOpen && ticket ? <DobDialog ticket={ticket} missing={missing} onClose={() => setDobOpen(false)} onSaved={(summary) => onSummary?.(summary)} /> : null}
+      {dobOpen && ticket ? <DobDialog ticket={ticket} missing={missing} onClose={() => setDobOpen(false)} onSaved={(summary) => onSummary?.({ ...summary, ticketId: ticket.ticketId })} /> : null}
       {!s?.busy ? (
         <button type="button" className="tks-refresh" onClick={onRefresh} title={sum ? "Read it again" : "Try again"} aria-label="Describe again">
           <RefreshCw size={12} />
