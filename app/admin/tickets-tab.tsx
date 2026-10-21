@@ -158,15 +158,11 @@ function useTicketSummaries(rows: Ticket[]) {
 
 function SummaryLine({ s, onRefresh, ticket, canEdit, onSummary }: { s: SummaryState | undefined; onRefresh: () => void; ticket?: Ticket; canEdit?: boolean; onSummary?: (sum: TicketSummary) => void }) {
   const sum = s?.summary;
-  // Admins can record a missing date of birth (the join application's or the ID's) in a locked-down dialog
+  // Admins can record a missing date of birth (the join application's or the ID's), or correct one that was
+  // typed wrong, in a locked-down dialog
   const [dobOpen, setDobOpen] = useState(false);
-  const missing = {
-    app: Boolean(sum?.tags?.includes("no-app-dob")),
-    // The description says "ID Age: not recorded" whenever there's no ID date on file (verified or not)
-    id: Boolean(sum?.tags?.includes("id-not-recorded") || /ID Age: not recorded/.test(sum?.headline ?? "")),
-    noApp: Boolean(sum?.tags?.includes("no-join-app")),
-  };
-  const canRecordDob = Boolean(canEdit && ticket && (missing.app || missing.id));
+  const missingDob = Boolean(sum?.tags?.includes("no-app-dob") || sum?.tags?.includes("id-not-recorded") || /ID Age: not recorded/.test(sum?.headline ?? ""));
+  const canRecordDob = Boolean(canEdit && ticket && sum && /nsfw/i.test(ticket.type));
   // Nothing to show yet (or ever: AI off, or no transcript left to read)
   if (!sum && !s?.busy && !s?.error) return null;
   return (
@@ -189,11 +185,11 @@ function SummaryLine({ s, onRefresh, ticket, canEdit, onSummary }: { s: SummaryS
       )}
       {s?.busy && sum ? <span className="tks-busy">Updating…</span> : null}
       {canRecordDob ? (
-        <button type="button" className="tks-adddob" onClick={() => setDobOpen(true)} title="Record a missing date of birth (needs 2FA on your account)">
-          <Lock size={11} aria-hidden="true" /> Record DOB
+        <button type="button" className="tks-adddob" onClick={() => setDobOpen(true)} title={missingDob ? "Record a missing date of birth (needs 2FA on your account)" : "Correct a date of birth that was typed wrong (needs 2FA on your account)"}>
+          <Lock size={11} aria-hidden="true" /> {missingDob ? "Record DOB" : "Edit DOB"}
         </button>
       ) : null}
-      {dobOpen && ticket ? <DobDialog ticket={ticket} missing={missing} onClose={() => setDobOpen(false)} onSaved={(summary) => onSummary?.({ ...summary, ticketId: ticket.ticketId })} /> : null}
+      {dobOpen && ticket ? <DobDialog ticket={ticket} onClose={() => setDobOpen(false)} onSaved={(summary) => onSummary?.({ ...summary, ticketId: ticket.ticketId })} /> : null}
       {!s?.busy ? (
         <button type="button" className="tks-refresh" onClick={onRefresh} title={sum ? "Read it again" : "Try again"} aria-label="Describe again">
           <RefreshCw size={12} />
