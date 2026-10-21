@@ -19,7 +19,7 @@ export function DeleteTicketButton({
   onDeleted,
   label = false,
 }: {
-  ticket: { ticketId: number; type: string; status?: string; openedBy?: string | null };
+  ticket: { ticketId: number; type: string; status?: string; openedBy?: string | null; created?: string | null };
   onDeleted: (ticketId: number, message?: string) => void;
   /** Show "Delete" next to the icon */
   label?: boolean;
@@ -56,7 +56,7 @@ function ConfirmDelete({
   onClose,
   onDeleted,
 }: {
-  ticket: { ticketId: number; type: string };
+  ticket: { ticketId: number; type: string; openedBy?: string | null; created?: string | null };
   nsfw: boolean;
   onClose: () => void;
   onDeleted: (ticketId: number, message?: string) => void;
@@ -81,7 +81,9 @@ function ConfirmDelete({
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/tickets/${ticket.ticketId}`, { method: "DELETE" });
+      // Numbers move after deletions: say which ticket this is, so a stale page can't delete a different one
+      const expect = new URLSearchParams({ ...(ticket.created ? { created: ticket.created } : {}), ...(ticket.openedBy ? { openedBy: ticket.openedBy } : {}) });
+      const res = await fetch(`/api/admin/tickets/${ticket.ticketId}?${expect}`, { method: "DELETE" });
       const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string; message?: string };
       if (!res.ok || !body.ok) throw new Error(body.error ?? "Couldn't delete that ticket.");
       // Other open lists (Tickets tab, member profile) drop it too

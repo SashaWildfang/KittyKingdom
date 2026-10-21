@@ -81,7 +81,7 @@ export async function renumberTickets() {
   return { total: rows.length, moved: moves.length };
 }
 
-export async function deleteTicket(actor: PanelUser, ticketId: number) {
+export async function deleteTicket(actor: PanelUser, ticketId: number, expect: { created?: string | null; openedBy?: string | null } = {}) {
   if (!Number.isInteger(ticketId) || ticketId < 0) throw new TicketDeleteError("That isn't a ticket number.");
   if (actor.level !== "admin") throw new TicketDeleteError("Only admins can delete tickets.", 403);
   const resolved = await getBotCollection("resolvedTickets");
@@ -92,6 +92,11 @@ export async function deleteTicket(actor: PanelUser, ticketId: number) {
     throw open
       ? new TicketDeleteError("That ticket is still open. Close it in Discord first.", 409)
       : new TicketDeleteError("Ticket not found. It may already be deleted.", 404);
+  }
+  // Ticket numbers move after deletions: make sure this is the ticket the page meant
+  const created = doc.created instanceof Date ? doc.created.toISOString() : null;
+  if ((expect.created && created && expect.created !== created) || (expect.openedBy && snowflake(doc.opened_by) && expect.openedBy !== snowflake(doc.opened_by))) {
+    throw new TicketDeleteError(`Ticket numbers changed since this page loaded (#${ticketId} is a different ticket now). Reload and try again.`, 409);
   }
   const type = String(doc.ticket_type ?? "support");
   const uploads = await removeTicket(actor, doc, "single");

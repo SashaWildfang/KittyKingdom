@@ -120,10 +120,11 @@ function useTicketSummaries(rows: Ticket[]) {
         for (const [id, sum] of Object.entries(saved)) next[Number(id)] = { ...next[Number(id)], summary: sum };
         return next;
       });
-      if (!r.enabled) return;
-      // Missing or outdated ones (only tickets there's something to read for), two at a time
+      // Missing or outdated ones (only tickets there's something to read for), two at a time. Without an
+      // API key only 18+ verification tickets are done (they're built from our records, no AI).
       for (const t of rows) {
-        if ((t.transcriptId || t.status === "Open") && (!saved[t.ticketId] || saved[t.ticketId].stale) && !queued.current.has(t.ticketId)) {
+        if (!r.enabled && !/nsfw/i.test(t.type)) continue;
+        if ((t.transcriptId || t.status === "Open" || /nsfw/i.test(t.type)) && (!saved[t.ticketId] || saved[t.ticketId].stale) && !queued.current.has(t.ticketId)) {
           todo.push(t.ticketId);
           queued.current.add(t.ticketId);
         }

@@ -10,6 +10,7 @@
 //
 // website.ticket_summaries {_id: ticketId, headline, flags, tags, key, version, messages, images, model, generatedAt, checkedAt}
 
+import { Long } from "mongodb";
 import { parse, type HTMLElement } from "node-html-parser";
 import type { PanelUser } from "./admin";
 import { people } from "./admin-people";
@@ -226,7 +227,8 @@ async function nsfwDescription(ticket: Ticket, source: Source | null) {
   const [roles, app, record, who] = await Promise.all([
     id ? memberRoleIdsCached(id).catch(() => null) : Promise.resolve(null),
     id ? getJoinApplication(id) : Promise.resolve(null),
-    id ? getBotCollection("users").then((c) => c.findOne({ discordId: { $in: [Number(id), id] } } as never, { projection: { nsfwVerifiedBy: 1, nsfwVerifiedAt: 1, nsfwIdDob: 1 } })).catch(() => null) : Promise.resolve(null),
+    // The bot stores ids as 64-bit numbers (a plain JS number would round them)
+    id ? getBotCollection("users").then((c) => c.findOne({ discordId: { $in: [Long.fromString(id), id] } } as never, { projection: { nsfwVerifiedBy: 1, nsfwVerifiedAt: 1, nsfwIdDob: 1 } })).catch(() => null) : Promise.resolve(null),
     id ? people([id]).catch(() => ({}) as Record<string, { deleted?: boolean; inServer?: boolean }>) : Promise.resolve({} as Record<string, { deleted?: boolean; inServer?: boolean }>),
   ]);
   const verifiedBy = record?.nsfwVerifiedBy ? String(record.nsfwVerifiedBy) : null;
@@ -236,8 +238,10 @@ async function nsfwDescription(ticket: Ticket, source: Source | null) {
   const idDob = isoDate(record?.nsfwIdDob);
   const has18 = Boolean(roles?.includes(ADULT_VERIFIED_ROLE));
   const verified = Boolean(record?.nsfwVerifiedAt) || has18;
-  // Photos the member sent (the opener; on old transcripts without ids, anyone who isn't staff or the bot)
-  const photos = (source?.lines ?? []).filter((l) => l.role === "opener" || (l.role === "other" && !ticket.openedBy)).reduce((n, l) => n + l.images.length, 0);
+  // Photos the member sent: the opener's, or on old transcripts without author ids, anyone who isn't staff or the bot
+  const lines = source?.lines ?? [];
+  const hasOpener = lines.some((l) => l.role === "opener");
+  const photos = lines.filter((l) => (hasOpener ? l.role === "opener" : l.role === "other")).reduce((n, l) => n + l.images.length, 0);
 
   const tags: string[] = [];
   const parts: string[] = [];
