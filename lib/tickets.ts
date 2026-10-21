@@ -91,6 +91,54 @@ async function idsMatchingName(search: string): Promise<string[]> {
   return docs.map((d) => String(d._id));
 }
 
+// Ticket search: every word has to match something about the ticket (its topic, type, the people on it, or
+// its description on the dashboard), so "kai refund" finds Kai's ticket about a refund. Words like "18+" or
+// "apply" also match the ticket type they mean.
+const SEARCH_SKIP = new Set(["ticket", "tickets", "the", "a", "an", "about", "for", "with", "and", "of", "to", "in", "on", "by", "from", "was", "is"]);
+const TYPE_WORDS: [RegExp, RegExp][] = [
+  [/^(18\+?|nsfw|verify|verification|verified|age|id)$/i, NSFW_TICKET],
+  [/^(staff|apply|applying|application|applications|applied)$/i, /staff/i],
+  [/^(help|question|questions|support)$/i, /support/i],
+  [/^(partner|partnership|partnerships)$/i, /partner/i],
+];
+
+async function summaryIdsMatching(regex: RegExp): Promise<number[]> {
+  const client = await getMongoClient();
+  const docs = await client
+    .db(process.env.MONGODB_DB ?? "website")
+    .collection<{ _id: number }>("ticket_summaries")
+    .find({ $or: [{ headline: regex }, { summary: regex }, { flags: regex }] }, { projection: { _id: 1 } })
+    .limit(3000)
+    .toArray();
+  return docs.map((d) => Number(d._id));
+}
+
+async function searchClauses(raw: string): Promise<Document[]> {
+  const text = raw.trim();
+  // Just a ticket number ("31" or "#31"): exactly that ticket, not every id with "31" in it
+  if (/^#?\d{1,7}$/.test(text)) return [{ ticket_id: { $in: [Number(text.replace("#", "")), text.replace("#", "")] } }];
+  // "#31" or "31": that ticket number (still matched as text too, in case it's in a topic)
+  const words = text
+    .split(/\s+/)
+    .map((w) => w.replace(/^[#"'(]+|[)"',.!?]+$/g, ""))
+    .filter((w) => w && !SEARCH_SKIP.has(w.toLowerCase()));
+  if (!words.length) return [];
+  const clauses: Document[] = [];
+  for (const word of words.slice(0, 6)) {
+    // Dashes, underscores and spaces count as the same ("staff app" finds "staff-application")
+    const regex = new RegExp(escapeRegex(word).replace(/[-_\s]+/g, "[-_\\s]*"), "i");
+    const [nameIds, summaryIds] = await Promise.all([idsMatchingName(word), summaryIdsMatching(regex)]);
+    const or: Document[] = [{ topic: regex }, { ticket_type: regex }];
+    if (/^\d{1,7}$/.test(word)) or.push({ ticket_id: Number(word) });
+    if (/^\d{15,21}$/.test(word)) or.push({ opened_by: word }, { claimed_by: word }, { resolved_by: word });
+    for (const [match, type] of TYPE_WORDS) if (match.test(word)) or.push({ ticket_type: type });
+    if (nameIds.length) or.push({ opened_by: { $in: nameIds } }, { claimed_by: { $in: nameIds } }, { resolved_by: { $in: nameIds } });
+    if (summaryIds.length) or.push({ ticket_id: { $in: summaryIds } });
+    clauses.push({ $or: or });
+  }
+  return clauses;
+}
+
 /**
  * activeTickets and resolvedTickets as one list. Only tickets in activeTickets are open: a few old
  * tickets were moved to resolvedTickets without their status changing, so those read as closed.
@@ -137,21 +185,8 @@ export async function queryTickets(q: TicketQuery) {
     and.push({ opened_by: { $in: await openersBy(q.opener) } });
   }
 
-  const search = q.search?.trim().replace(/^#/, "").slice(0, 100);
-  if (search) {
-    const regex = new RegExp(escapeRegex(search), "i");
-    const nameIds = await idsMatchingName(search);
-    const or: Document[] = [
-      { topic: regex },
-      { ticket_type: regex },
-      { opened_by: regex },
-      { claimed_by: regex },
-      { resolved_by: regex },
-    ];
-    if (/^\d{1,7}$/.test(search)) or.push({ ticket_id: Number(search) });
-    if (nameIds.length) or.push({ opened_by: { $in: nameIds } }, { claimed_by: { $in: nameIds } }, { resolved_by: { $in: nameIds } });
-    and.push({ $or: or });
-  }
+  const search = q.search?.trim().slice(0, 100);
+  if (search) and.push(...(await searchClauses(search)));
 
   const sortField = { ticketId: "ticket_id", created: "created", resolvedAt: "resolved_at", type: "ticket_type" }[q.sort ?? "ticketId"] ?? "ticket_id";
   const order = q.order === "asc" ? 1 : -1;

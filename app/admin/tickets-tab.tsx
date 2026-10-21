@@ -151,22 +151,25 @@ function useTicketSummaries(rows: Ticket[]) {
 
 function SummaryLine({ s, onRefresh, ticket, canEdit, onSummary }: { s: SummaryState | undefined; onRefresh: () => void; ticket?: Ticket; canEdit?: boolean; onSummary?: (sum: TicketSummary) => void }) {
   const sum = s?.summary;
-  const [dobOpen, setDobOpen] = useState(false);
+  // Which date an admin is filling in: the one on the ID, or the one missing from the join application
+  const [dobOpen, setDobOpen] = useState<"id" | "app" | null>(null);
   const [dob, setDob] = useState("");
   const [dobBusy, setDobBusy] = useState(false);
   const [dobErr, setDobErr] = useState<string | null>(null);
   // Older 18+ tickets: an admin can record the DOB on the ID after looking at it in the transcript
   const canAddDob = Boolean(canEdit && ticket && sum?.tags?.includes("id-not-recorded"));
+  // …and fill in the DOB when the join application doesn't have one
+  const canAddAppDob = Boolean(canEdit && ticket && sum?.tags?.includes("no-app-dob"));
   const saveDob = async () => {
-    if (!ticket) return;
+    if (!ticket || !dobOpen) return;
     setDobBusy(true);
     setDobErr(null);
-    const r = await fetch(`/api/admin/tickets/${ticket.ticketId}/id-dob`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dob, openedBy: ticket.openedBy }) })
+    const r = await fetch(`/api/admin/tickets/${ticket.ticketId}/${dobOpen === "app" ? "app-dob" : "id-dob"}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dob, openedBy: ticket.openedBy }) })
       .then((x) => x.json())
       .catch(() => null);
     setDobBusy(false);
     if (!r?.ok) return setDobErr(r?.error ?? "Couldn't save that.");
-    setDobOpen(false);
+    setDobOpen(null);
     setDob("");
     onSummary?.(r.summary);
   };
@@ -191,8 +194,13 @@ function SummaryLine({ s, onRefresh, ticket, canEdit, onSummary }: { s: SummaryS
         <span className="tks-text is-muted">{s?.busy ? "Reading the ticket…" : s?.error}</span>
       )}
       {s?.busy && sum ? <span className="tks-busy">Updating…</span> : null}
+      {canAddAppDob && !dobOpen ? (
+        <button type="button" className="tks-adddob" onClick={() => setDobOpen("app")} title="Their join application has no date of birth: type the one they gave (or the one on their ID)">
+          Set join app DOB
+        </button>
+      ) : null}
       {canAddDob && !dobOpen ? (
-        <button type="button" className="tks-adddob" onClick={() => setDobOpen(true)} title="Look at the ID in the transcript, then type the date of birth printed on it">
+        <button type="button" className="tks-adddob" onClick={() => setDobOpen("id")} title="Look at the ID in the transcript, then type the date of birth printed on it">
           Add ID DOB
         </button>
       ) : null}
@@ -204,11 +212,11 @@ function SummaryLine({ s, onRefresh, ticket, canEdit, onSummary }: { s: SummaryS
             if (dob.trim() && !dobBusy) void saveDob();
           }}
         >
-          <input autoFocus value={dob} onChange={(e) => setDob(e.target.value)} placeholder="DOB on the ID, e.g. 10/12/2001" aria-label="Date of birth on the ID" />
+          <input autoFocus value={dob} onChange={(e) => setDob(e.target.value)} placeholder={dobOpen === "app" ? "DOB for the join app, e.g. 10/12/2001" : "DOB on the ID, e.g. 10/12/2001"} aria-label={dobOpen === "app" ? "Date of birth for the join application" : "Date of birth on the ID"} />
           <button type="submit" className="adm-btn adm-btn--tiny" disabled={!dob.trim() || dobBusy}>
             {dobBusy ? "Saving…" : "Save"}
           </button>
-          <button type="button" className="adm-btn adm-btn--tiny adm-btn--ghost" onClick={() => (setDobOpen(false), setDobErr(null))}>
+          <button type="button" className="adm-btn adm-btn--tiny adm-btn--ghost" onClick={() => (setDobOpen(null), setDobErr(null))}>
             Cancel
           </button>
           {dobErr ? <span className="tks-doberr">{dobErr}</span> : null}
@@ -249,7 +257,11 @@ export function TicketsTab({
   // ?search=123 (e.g. from a notification) opens straight onto that ticket
   useEffect(() => {
     const q = new URLSearchParams(window.location.search).get("search");
-    if (q) setSearchText(q);
+    if (!q) return;
+    // Clear the other filters too, so a saved type/status/tag filter can't hide the ticket
+    setFilters({ ...DEFAULTS, search: q });
+    setSearchText(q);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
