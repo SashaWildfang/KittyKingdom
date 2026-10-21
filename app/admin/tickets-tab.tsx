@@ -161,7 +161,7 @@ function SummaryLine({ s, onRefresh, ticket, canEdit, onSummary }: { s: SummaryS
     if (!ticket) return;
     setDobBusy(true);
     setDobErr(null);
-    const r = await fetch(`/api/admin/tickets/${ticket.ticketId}/id-dob`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dob }) })
+    const r = await fetch(`/api/admin/tickets/${ticket.ticketId}/id-dob`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dob, openedBy: ticket.openedBy }) })
       .then((x) => x.json())
       .catch(() => null);
     setDobBusy(false);

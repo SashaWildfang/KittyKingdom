@@ -17,7 +17,9 @@ export async function POST(request: Request, { params }: { params: { ticketId: s
   if (admin instanceof NextResponse) return admin;
   const ticket = await getTicket(Number(params.ticketId));
   if (!ticket || !isNsfwTicket(ticket.type) || !ticket.openedBy) return NextResponse.json({ ok: false, error: "That isn't an 18+ verification ticket." }, { status: 404 });
-  const body = (await request.json().catch(() => ({}))) as { dob?: string };
+  const body = (await request.json().catch(() => ({}))) as { dob?: string; openedBy?: string };
+  // Ticket numbers move after deletions: make sure this is still the member the page showed
+  if (body.openedBy && body.openedBy !== ticket.openedBy) return NextResponse.json({ ok: false, error: "Ticket numbers changed since this page loaded. Reload and try again." }, { status: 409 });
   const dob = parseDateOfBirth(String(body.dob ?? ""));
   if (!dob || dob.getUTCFullYear() < 1900 || dob.getTime() > Date.now()) return NextResponse.json({ ok: false, error: "Type the date like 10/12/2001." }, { status: 400 });
   await (await getBotCollection("users")).updateOne(

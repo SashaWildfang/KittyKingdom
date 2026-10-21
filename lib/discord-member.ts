@@ -390,7 +390,9 @@ export async function deleteChannelMessage(channelId: string, messageId: string,
       if ((response.status === 429 || response.status >= 500) && attempt < 4) {
         const body = (await response.json().catch(() => null)) as { retry_after?: number } | null;
         const wait = Number(body?.retry_after ?? response.headers.get("retry-after") ?? 1);
-        await new Promise((r) => setTimeout(r, Math.min(8000, Math.max(400, wait * 1000))));
+        // A long rate limit: give up now (nothing is deleted) rather than retrying before it resets
+        if (wait > 20) return { ok: false, status: 429, forbidden: false };
+        await new Promise((r) => setTimeout(r, Math.max(400, wait * 1000 + 100)));
         continue;
       }
       return { ok: false, status: response.status, forbidden: response.status === 403 };
