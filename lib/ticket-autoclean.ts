@@ -124,9 +124,24 @@ export async function runTicketAutoCleanup(budgetMs = 8_000) {
       set.lastSweep = { at: new Date(), tickets: pending.tickets, nsfw: pending.nsfw, members: pending.members.length };
       set.pending = { tickets: 0, nsfw: 0, members: [] };
     }
+    // Gaps left below tickets that were open or just closed during an earlier renumber: close them once they settle
+    if (!backlogLeft && !pending.tickets) await closeGaps().catch(() => undefined);
     const added = pending.tickets - (claimed.pending?.tickets ?? 0);
     await col.updateOne({ _id: STATE_ID }, { $set: set, $unset: { lockUntil: "" }, ...(added > 0 ? { $inc: { totalDeleted: added } } : {}) }).catch(() => undefined);
   }
+}
+
+/** Renumbers when the numbers have gaps (more numbers than tickets). */
+async function closeGaps() {
+  const [active, resolved] = await Promise.all([getBotCollection("activeTickets"), getBotCollection("resolvedTickets")]);
+  const [a, r, topA, topR] = await Promise.all([
+    active.countDocuments(),
+    resolved.countDocuments(),
+    active.find({}, { projection: { ticket_id: 1 } }).sort({ ticket_id: -1 }).limit(1).toArray(),
+    resolved.find({}, { projection: { ticket_id: 1 } }).sort({ ticket_id: -1 }).limit(1).toArray(),
+  ]);
+  const highest = Math.max(0, Number(topA[0]?.ticket_id ?? 0), Number(topR[0]?.ticket_id ?? 0));
+  if (highest > a + r) await renumberTickets();
 }
 
 async function logSweep(p: { tickets: number; nsfw: number; members: string[] }, total: number | null) {

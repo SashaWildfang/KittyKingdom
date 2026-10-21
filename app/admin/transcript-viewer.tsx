@@ -13,7 +13,7 @@ type Result = {
 };
 
 /** Full-screen transcript viewer: the ticket's zipped web page, opened right in the Admin tab. */
-export function TranscriptViewer({ ticketId, onClose, onOpenMember }: { ticketId: number; onClose: () => void; onOpenMember: (id: string) => void }) {
+export function TranscriptViewer({ ticketId, ticketKey, onClose, onOpenMember }: { ticketId: number; ticketKey?: string | null; onClose: () => void; onOpenMember: (id: string) => void }) {
   const [data, setData] = useState<Result | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [frameLoaded, setFrameLoaded] = useState(false);
@@ -23,7 +23,7 @@ export function TranscriptViewer({ ticketId, onClose, onOpenMember }: { ticketId
     setData(null);
     setError(null);
     setFrameLoaded(false);
-    fetch(`/api/admin/tickets/${ticketId}`, { cache: "no-store" })
+    fetch(`/api/admin/tickets/${ticketId}${ticketKey ? `?key=${encodeURIComponent(ticketKey)}` : ""}`, { cache: "no-store" })
       .then(async (res) => {
         const body = await res.json();
         if (!res.ok || body.ok === false) throw new Error(body.error ?? "Couldn't load that ticket.");
@@ -33,7 +33,7 @@ export function TranscriptViewer({ ticketId, onClose, onOpenMember }: { ticketId
     return () => {
       cancelled = true;
     };
-  }, [ticketId]);
+  }, [ticketId, ticketKey]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();

@@ -5,10 +5,11 @@
 // the numbers never have gaps (and the Ticket Bot's counter follows). Every deletion is saved to
 // admin_audit; single deletions and each automatic clean-up are posted in the bot logs channel.
 
-import type { Document, WithId } from "mongodb";
+import { ObjectId, type Document, type WithId } from "mongodb";
 import type { PanelUser } from "./admin";
 import { deleteChannelMessage, memberRoleIdsCached, postChannelMessage } from "./discord-member";
 import { getBotCollection, getMongoClient } from "./mongodb";
+import { withTicketLock } from "./ticket-lock";
 import { TRANSCRIPT_CHANNEL_ID } from "./transcript-store";
 
 export const STAFF_LOG_CHANNEL_ID = "1360344042705256660";
@@ -50,7 +51,8 @@ export async function removeTicket(actor: PanelUser, doc: WithId<Document>, how:
   const handOff: string[] = [];
   for (const id of messageIds) {
     const res = await deleteChannelMessage(TRANSCRIPT_CHANNEL_ID, id, how === "auto" ? `Ticket #${ticketId} deleted: the member left the server` : `Ticket #${ticketId} deleted from the website by ${actor.name}`);
-    if (res.ok) continue;
+    // 404: already gone (someone else deleted it at the same moment, or it was removed by hand)
+    if (res.ok || res.status === 404) continue;
     if (res.forbidden) handOff.push(id);
     else throw new TicketDeleteError(`Discord is busy and didn't delete ticket #${ticketId}'s transcript (error ${res.status || "network"}). Nothing was deleted for it; try again in a minute.`, 502);
   }
@@ -58,14 +60,15 @@ export async function removeTicket(actor: PanelUser, doc: WithId<Document>, how:
     await (await getBotCollection("transcript_delete_queue")).insertOne({ channelId: TRANSCRIPT_CHANNEL_ID, messageIds: handOff, ticketId, by: actor.discordId, status: "pending", tries: 0, createdAt: new Date() });
   }
   const removed = await (await getBotCollection("resolvedTickets")).deleteOne({ _id: doc._id });
-  if (!removed.deletedCount) throw new TicketDeleteError(`Ticket #${ticketId} couldn't be deleted.`, 409);
+  if (!removed.deletedCount) throw new TicketDeleteError(`Ticket #${ticketId} was already deleted by someone else.`, 409);
 
   const site = (await getMongoClient()).db(process.env.MONGODB_DB ?? "website");
   await site
     .collection<{ _id: string }>("transcript_cache")
     .deleteMany({ _id: { $in: messageIds.flatMap((id) => [`zip:${id}`, `att:${TRANSCRIPT_CHANNEL_ID}/${id}`]) } })
     .catch(() => undefined);
-  await site.collection<{ _id: number }>("ticket_summaries").deleteOne({ _id: ticketId }).catch(() => undefined);
+  // Its description (not one that has since been moved to this number for another ticket)
+  await site.collection<{ _id: number }>("ticket_summaries").deleteOne({ _id: ticketId, ticketKey: { $in: [null, String(doc._id)] } } as never).catch(() => undefined);
   await site
     .collection("admin_audit")
     .insertOne({ at: new Date(), action: how === "auto" ? "ticket-auto-cleanup" : "ticket-delete", ticketId, ticketType: String(doc.ticket_type ?? "support"), openedBy: snowflake(doc.opened_by), transcriptMessages: messageIds, adminDiscordId: actor.discordId, adminName: actor.name })
@@ -74,19 +77,54 @@ export async function removeTicket(actor: PanelUser, doc: WithId<Document>, how:
 }
 
 /**
- * Numbers every ticket 1, 2, 3… in order, closing the gaps deletions leave, and points the Ticket Bot's
- * counter at the last one. Descriptions move with their tickets.
+ * Numbers the tickets 1, 2, 3… in order, closing the gaps deletions leave, and points the Ticket Bot's counter at
+ * the last one. Descriptions and bell notifications move with their tickets. Safe with several people (and the
+ * leaver clean-up) working at once:
+ * - only one renumber runs at a time (lib/ticket-lock.ts)
+ * - open tickets and ones closed in the last 10 minutes keep their number: the Ticket Bot finds tickets by number
+ *   while it closes them and saves their transcript, so those never move under it. The rest close up around
+ *   them, keeping their order (a gap can stay just below a held ticket until the next renumber).
+ * - the counter is only lowered if the bot hasn't opened a ticket meanwhile
  */
 export async function renumberTickets() {
-  const [active, resolved] = await Promise.all([getBotCollection("activeTickets"), getBotCollection("resolvedTickets")]);
+  return withTicketLock(renumberLocked);
+}
+
+const SETTLE_MS = 10 * 60_000;
+
+async function renumberLocked() {
+  const [active, resolved, counters] = await Promise.all([getBotCollection("activeTickets"), getBotCollection("resolvedTickets"), getBotCollection("counters")]);
+  const counterBefore = Number(((await counters.findOne({ _id: "ticket_id" } as never)) as { value?: number } | null)?.value ?? 0);
+  const settled = new Date(Date.now() - SETTLE_MS);
+  const proj = { projection: { ticket_id: 1, created: 1, resolved_at: 1 } };
   const rows = [
-    ...(await active.find({}, { projection: { ticket_id: 1, created: 1 } }).toArray()).map((d) => ({ d, col: active })),
-    ...(await resolved.find({}, { projection: { ticket_id: 1, created: 1 } }).toArray()).map((d) => ({ d, col: resolved })),
+    ...(await active.find({}, proj).toArray()).map((d) => ({ d, col: active, held: true })),
+    ...(await resolved.find({}, proj).toArray()).map((d) => ({ d, col: resolved, held: d.resolved_at instanceof Date && d.resolved_at > settled })),
   ].sort((a, b) => Number(a.d.ticket_id) - Number(b.d.ticket_id) || (a.d.created?.getTime?.() ?? 0) - (b.d.created?.getTime?.() ?? 0));
-  const moves = rows.map((r, i) => ({ ...r, from: Number(r.d.ticket_id), to: i + 1 })).filter((m) => m.from !== m.to);
-  for (const m of moves) await m.col.updateOne({ _id: m.d._id }, { $set: { ticket_id: m.to } });
-  // The bot's next ticket follows on from the last one
-  await (await getBotCollection("counters")).updateOne({ _id: "ticket_id" } as never, { $set: { value: rows.length } }, { upsert: true });
+
+  // Held tickets keep their numbers; everything else takes the lowest free number, in order (moves only go down)
+  const taken = new Set(rows.filter((r) => r.held).map((r) => Number(r.d.ticket_id)));
+  const moves: { d: (typeof rows)[number]["d"]; col: (typeof rows)[number]["col"]; from: number; to: number }[] = [];
+  let next = 1;
+  for (const r of rows) {
+    // Nothing jumps in front of a held ticket, so the order never changes (a gap can stay just below it)
+    if (r.held) {
+      next = Math.max(next, Number(r.d.ticket_id) + 1);
+      continue;
+    }
+    while (taken.has(next)) next += 1;
+    const from = Number(r.d.ticket_id);
+    if (from !== next) moves.push({ d: r.d, col: r.col, from, to: next });
+    taken.add(next);
+    next += 1;
+  }
+  for (const m of moves) await m.col.updateOne({ _id: m.d._id, ticket_id: m.d.ticket_id }, { $set: { ticket_id: m.to } });
+
+  // The bot's next ticket follows on from the highest number, unless it opened one while this ran
+  const highest = Math.max(0, ...Array.from(taken));
+  await counters.updateOne({ _id: "ticket_id", value: counterBefore } as never, { $set: { value: highest } });
+  if (!counterBefore) await counters.updateOne({ _id: "ticket_id" } as never, { $setOnInsert: { value: highest } }, { upsert: true });
+
   if (moves.length) {
     const summaries = (await getMongoClient()).db(process.env.MONGODB_DB ?? "website").collection<Document & { _id: number }>("ticket_summaries");
     const saved = await summaries.find({ _id: { $in: moves.map((m) => m.from) } }).toArray();
@@ -100,33 +138,37 @@ export async function renumberTickets() {
     const affected = await notes.find({ key: { $in: moves.map((m) => `ticket-flag:${m.from}`) } }, { projection: { key: 1, title: 1 } }).toArray();
     for (const n of affected) {
       const from = Number(String(n.key).split(":")[1]);
-      const next = to.get(from);
-      if (!next) continue;
+      const nextNo = to.get(from);
+      if (!nextNo) continue;
       await notes
-        .updateOne({ _id: n._id }, { $set: { key: `ticket-flag:${next}`, link: `/admin?tab=tickets&search=%23${next}&ticket=${next}`, title: String(n.title ?? "").replace(`#${from}`, `#${next}`) } })
+        .updateOne({ _id: n._id }, { $set: { key: `ticket-flag:${nextNo}`, link: `/admin?tab=tickets&search=%23${nextNo}&ticket=${nextNo}`, title: String(n.title ?? "").replace(`#${from}`, `#${nextNo}`) } })
         .catch(() => undefined);
     }
   }
   return { total: rows.length, moved: moves.length };
 }
 
-export async function deleteTicket(actor: PanelUser, ticketId: number, expect: { created?: string | null; openedBy?: string | null } = {}) {
-  if (!Number.isInteger(ticketId) || ticketId < 0) throw new TicketDeleteError("That isn't a ticket number.");
+export async function deleteTicket(actor: PanelUser, ticketId: number, expect: { key?: string | null; created?: string | null; openedBy?: string | null } = {}) {
   if (actor.level !== "admin" || !(await isTicketOwner(actor.discordId))) throw new TicketDeleteError("Only the owner can delete tickets.", 403);
-  const resolved = await getBotCollection("resolvedTickets");
-  const idMatch = { ticket_id: { $in: [ticketId, String(ticketId)] } } as never;
-  const doc = await resolved.findOne(idMatch);
+  const [resolved, active] = await Promise.all([getBotCollection("resolvedTickets"), getBotCollection("activeTickets")]);
+  // By its database id when the page sent one: the right ticket even if numbers moved since the page loaded
+  const byKey = expect.key && ObjectId.isValid(expect.key);
+  if (!byKey && (!Number.isInteger(ticketId) || ticketId < 0)) throw new TicketDeleteError("That isn't a ticket number.");
+  const match = (byKey ? { _id: new ObjectId(expect.key!) } : { ticket_id: { $in: [ticketId, String(ticketId)] } }) as never;
+  const doc = await resolved.findOne(match);
   if (!doc) {
-    const open = await (await getBotCollection("activeTickets")).findOne(idMatch);
+    const open = await active.findOne(match);
     throw open
       ? new TicketDeleteError("That ticket is still open. Close it in Discord first.", 409)
-      : new TicketDeleteError("Ticket not found. It may already be deleted.", 404);
+      : new TicketDeleteError("Ticket not found. Someone may have deleted it already.", 404);
   }
-  // Ticket numbers move after deletions: make sure this is the ticket the page meant
+  // Older pages (no key): make sure the number still points at the ticket the page meant
   const created = doc.created instanceof Date ? doc.created.toISOString() : null;
-  if ((expect.created && created && expect.created !== created) || (expect.openedBy && snowflake(doc.opened_by) && expect.openedBy !== snowflake(doc.opened_by))) {
+  if (!byKey && ((expect.created && created && expect.created !== created) || (expect.openedBy && snowflake(doc.opened_by) && expect.openedBy !== snowflake(doc.opened_by)))) {
     throw new TicketDeleteError(`Ticket numbers changed since this page loaded (#${ticketId} is a different ticket now). Reload and try again.`, 409);
   }
+  const requested = ticketId;
+  ticketId = Number(doc.ticket_id);
   const type = String(doc.ticket_type ?? "support");
   const { uploads, handedOff } = await removeTicket(actor, doc, "single");
   const renumbered = await renumberTickets();
@@ -154,5 +196,6 @@ export async function deleteTicket(actor: PanelUser, ticketId: number, expect: {
     ],
   }).catch(() => false);
 
-  return { message: `Ticket #${ticketId} deleted.${handedOff ? " The Ticket Bot is removing its transcript from Discord." : ""}${renumbered.moved ? ` ${renumbered.moved} later ticket${renumbered.moved === 1 ? "" : "s"} moved down one number.` : ""}`, renumbered };
+  const was = Number.isInteger(requested) && requested !== ticketId ? ` (it was #${requested} when your page loaded)` : "";
+  return { message: `Ticket #${ticketId}${was} deleted.${handedOff ? " The Ticket Bot is removing its transcript from Discord." : ""}${renumbered.moved ? ` ${renumbered.moved} later ticket${renumbered.moved === 1 ? "" : "s"} moved down one number.` : ""}`, renumbered };
 }

@@ -19,7 +19,7 @@ export function DeleteTicketButton({
   onDeleted,
   label = false,
 }: {
-  ticket: { ticketId: number; type: string; status?: string; openedBy?: string | null; created?: string | null };
+  ticket: { ticketId: number; key?: string; type: string; status?: string; openedBy?: string | null; created?: string | null };
   onDeleted: (ticketId: number, message?: string) => void;
   /** Show "Delete" next to the icon */
   label?: boolean;
@@ -57,7 +57,7 @@ function ConfirmDelete({
   onClose,
   onDeleted,
 }: {
-  ticket: { ticketId: number; type: string; openedBy?: string | null; created?: string | null };
+  ticket: { ticketId: number; key?: string; type: string; openedBy?: string | null; created?: string | null };
   nsfw: boolean;
   onClose: () => void;
   onDeleted: (ticketId: number, message?: string) => void;
@@ -83,7 +83,8 @@ function ConfirmDelete({
     setError(null);
     try {
       // Numbers move after deletions: say which ticket this is, so a stale page can't delete a different one
-      const expect = new URLSearchParams({ ...(ticket.created ? { created: ticket.created } : {}), ...(ticket.openedBy ? { openedBy: ticket.openedBy } : {}) });
+      // The key picks the right ticket even if someone else's delete renumbered them since this page loaded
+      const expect = new URLSearchParams({ ...(ticket.key ? { key: ticket.key } : {}), ...(ticket.created ? { created: ticket.created } : {}), ...(ticket.openedBy ? { openedBy: ticket.openedBy } : {}) });
       const res = await fetch(`/api/admin/tickets/${ticket.ticketId}?${expect}`, { method: "DELETE" });
       const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string; message?: string };
       if (!res.ok || !body.ok) throw new Error(body.error ?? "Couldn't delete that ticket.");

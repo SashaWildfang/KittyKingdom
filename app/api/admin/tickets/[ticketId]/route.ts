@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin, requirePanel, transcriptToken } from "../../../../../lib/admin";
 import { people } from "../../../../../lib/admin-people";
 import { TicketDeleteError, deleteTicket } from "../../../../../lib/ticket-delete";
-import { getTicket, isNsfwTicket } from "../../../../../lib/tickets";
+import { findTicket, isNsfwTicket } from "../../../../../lib/tickets";
 import { warmTranscript } from "../../../../../lib/transcript-store";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +13,7 @@ export const maxDuration = 30;
 export async function GET(request: Request, { params }: { params: { ticketId: string } }) {
   const panel = await requirePanel(request);
   if (panel instanceof NextResponse) return panel;
-  const ticket = await getTicket(Number(params.ticketId));
+  const ticket = await findTicket(Number(params.ticketId), new URL(request.url).searchParams.get("key"));
   if (!ticket || (panel.level !== "admin" && isNsfwTicket(ticket.type))) return NextResponse.json({ ok: false, error: "Ticket not found." }, { status: 404 });
 
   const download = ticket.transcriptId ? await warmTranscript(ticket.transcriptId).catch(() => null) : null;
@@ -24,7 +24,7 @@ export async function GET(request: Request, { params }: { params: { ticketId: st
   return NextResponse.json({ ok: true, ticket, viewer, download, people: who });
 }
 
-/** Deletes a closed ticket and its transcript (never NSFW tickets). Admins only; logged. */
+/** Deletes a closed ticket and its transcript. Owners only; logged. ?key= picks the ticket by its database id. */
 export async function DELETE(request: Request, { params }: { params: { ticketId: string } }) {
   const admin = await requireAdmin(request);
   if (admin instanceof NextResponse) return admin;
@@ -32,7 +32,7 @@ export async function DELETE(request: Request, { params }: { params: { ticketId:
   if (twoFactor) return twoFactor;
   try {
     const q = new URL(request.url).searchParams;
-    const result = await deleteTicket(admin, Number(params.ticketId), { created: q.get("created"), openedBy: q.get("openedBy") });
+    const result = await deleteTicket(admin, Number(params.ticketId), { key: q.get("key"), created: q.get("created"), openedBy: q.get("openedBy") });
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
     if (error instanceof TicketDeleteError) return NextResponse.json({ ok: false, error: error.message }, { status: error.status });

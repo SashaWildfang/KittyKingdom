@@ -61,7 +61,7 @@ export function DobDialog({
   onClose,
   onSaved,
 }: {
-  ticket: { ticketId: number; openedBy?: string | null };
+  ticket: { ticketId: number; key?: string; openedBy?: string | null };
   /** Which dates are missing (only those can be recorded) */
   missing: { app: boolean; id: boolean; noApp?: boolean };
   onClose: () => void;
@@ -97,7 +97,7 @@ export function DobDialog({
     const r = await fetch(`/api/admin/tickets/${ticket.ticketId}/dob`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ kind, dob, repeat, checked, openedBy: ticket.openedBy }),
+      body: JSON.stringify({ kind, dob, repeat, checked, openedBy: ticket.openedBy, key: ticket.key }),
     })
       .then((x) => x.json())
       .catch(() => null);

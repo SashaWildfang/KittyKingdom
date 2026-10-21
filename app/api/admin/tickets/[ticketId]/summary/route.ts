@@ -12,7 +12,7 @@ export async function POST(request: Request, { params }: { params: { ticketId: s
   if (panel instanceof NextResponse) return panel;
   try {
     const body = await request.json().catch(() => ({}));
-    return NextResponse.json({ ok: true, summary: await summarizeTicket(Number(params.ticketId), panel, Boolean(body?.force)) });
+    return NextResponse.json({ ok: true, summary: await summarizeTicket(Number(params.ticketId), panel, Boolean(body?.force), typeof body?.key === "string" ? body.key : null) });
   } catch (error) {
     if (error instanceof SummaryError) return NextResponse.json({ ok: false, error: error.message }, { status: error.status });
     if (error instanceof AiError) return NextResponse.json({ ok: false, error: error.message }, { status: 502 });

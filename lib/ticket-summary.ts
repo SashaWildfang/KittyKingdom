@@ -21,7 +21,8 @@ import { applicationBirthday, getJoinApplication } from "./join-application";
 import { getBotCollection, getMongoClient } from "./mongodb";
 import { notify } from "./notifications";
 import { ticketLive } from "./ticket-live";
-import { getTicket, isNsfwTicket, type Ticket } from "./tickets";
+import { findTicket, getTicketByKey, isNsfwTicket, type Ticket } from "./tickets";
+import { withTicketLock } from "./ticket-lock";
 import { openTranscriptFile } from "./transcript-store";
 
 /** Bump when the wording rules change: saved descriptions from an older version are written again */
@@ -66,7 +67,7 @@ export class SummaryError extends Error {
 
 export type TicketSummary = { ticketId: number; headline: string; summary: string; flags: string[]; tags: string[]; generatedAt: string | null; checkedAt: string | null; images: number; messages: number; stale: boolean };
 
-type Doc = { _id: number; headline: string; summary: string; flags?: string[]; tags?: string[]; key: string; version?: number; messages: number; images: number; model: string; generatedAt: Date; checkedAt: Date; notified?: boolean };
+type Doc = { _id: number; ticketKey?: string; headline: string; summary: string; flags?: string[]; tags?: string[]; key: string; version?: number; messages: number; images: number; model: string; generatedAt: Date; checkedAt: Date; notified?: boolean };
 
 async function col() {
   const client = await getMongoClient();
@@ -325,7 +326,8 @@ export async function savedSummaries(tickets: Ticket[]) {
   const out: Record<number, TicketSummary> = {};
   for (const t of tickets) {
     const d = byId.get(t.ticketId);
-    if (!d) continue;
+    // Missing, or saved for a different ticket that had this number before a renumber
+    if (!d || (d.ticketKey && d.ticketKey !== t.key)) continue;
     const sinceCheck = Date.now() - (d.checkedAt?.getTime() ?? 0);
     const stale =
       (d.version ?? 1) !== VERSION ||
@@ -361,12 +363,26 @@ export async function tagCounts() {
 }
 
 /** Reads the ticket and writes (or refreshes) its description. Only calls the AI when something changed. */
-export async function summarizeTicket(ticketId: number, panel: PanelUser, force = false): Promise<TicketSummary> {
-  const ticket = await getTicket(ticketId);
+export async function summarizeTicket(requestedId: number, panel: PanelUser, force = false, key?: string | null): Promise<TicketSummary> {
+  // By key when the page sent one, so a renumber since the page loaded can't mix tickets up
+  const ticket = await findTicket(requestedId, key);
   if (!ticket || (panel.level !== "admin" && isNsfwTicket(ticket.type))) throw new SummaryError("Ticket not found.", 404);
+  const ticketId = ticket.ticketId;
   const c = await col();
-  const saved = await c.findOne({ _id: ticketId });
+  const found = await c.findOne({ _id: ticketId });
+  // A description saved under this number for a different ticket (from before a renumber) doesn't count
+  const saved = found && (!found.ticketKey || found.ticketKey === ticket.key) ? found : null;
   const now = new Date();
+  const mine = { _id: ticketId, ticketKey: { $in: [null, ticket.key] } } as never;
+  // Saved under the ticket's number as it is right now (it can be renumbered while the AI is writing)
+  const store = (doc: Doc) =>
+    withTicketLock(async () => {
+      const current = await getTicketByKey(ticket.key);
+      if (!current) return doc; // deleted meanwhile: nothing to save
+      const out: Doc = { ...doc, _id: current.ticketId, ticketKey: ticket.key };
+      await c.replaceOne({ _id: current.ticketId }, out, { upsert: true });
+      return out;
+    }, 20_000);
 
   const source = ticket.status === "Open" ? ((await fromChannel(ticket)) ?? (await fromTranscript(ticket))) : ((await fromTranscript(ticket)) ?? (await fromChannel(ticket)));
 
@@ -374,7 +390,7 @@ export async function summarizeTicket(ticketId: number, panel: PanelUser, force 
   if (isNsfwTicket(ticket.type)) {
     const d = await nsfwDescription(ticket, source);
     if (saved && saved.key === d.key && (saved.version ?? 1) === VERSION && !force) {
-      await c.updateOne({ _id: ticketId }, { $set: { checkedAt: now } });
+      await c.updateOne(mine, { $set: { checkedAt: now } });
       return view({ ...saved, checkedAt: now }, false);
     }
     const doc: Doc = { _id: ticketId, headline: d.line, summary: "", flags: d.flags, tags: d.tags, key: d.key, version: VERSION, messages: source?.lines.length ?? 0, images: 0, model: "records", generatedAt: now, checkedAt: now, notified: saved?.notified };
@@ -385,8 +401,7 @@ export async function summarizeTicket(ticketId: number, panel: PanelUser, force 
       const title = `⚠️ 18+ ticket #${ticketId}: ${alarming.map((t) => TICKET_TAGS[t].label).join(", ")}`;
       for (const to of await adminIds()) await notify(to, { type: "system", title, body: d.line, link: ticketLink(ticketId), key: `ticket-flag:${ticketId}` }).catch(() => undefined);
     }
-    await c.replaceOne({ _id: ticketId }, doc, { upsert: true });
-    return view(doc, false);
+    return view(await store(doc), false);
   }
 
   if (!aiEnabled()) throw new SummaryError("AI summaries are off: add ANTHROPIC_API_KEY in Vercel.", 503);
@@ -395,7 +410,7 @@ export async function summarizeTicket(ticketId: number, panel: PanelUser, force 
     throw new SummaryError(ticket.transcriptId ? "Couldn't read this ticket's transcript." : "There's nothing left to read: this ticket has no transcript.", 404);
   }
   if (saved && saved.key === source.key && (saved.version ?? 1) === VERSION && !force) {
-    await c.updateOne({ _id: ticketId }, { $set: { checkedAt: now } });
+    await c.updateOne(mine, { $set: { checkedAt: now } });
     return view({ ...saved, checkedAt: now }, false);
   }
 
@@ -429,6 +444,5 @@ export async function summarizeTicket(ticketId: number, panel: PanelUser, force 
   const text = await askClaude({ system: manual ? SYSTEM_MANUAL : SYSTEM_GENERAL, parts, maxTokens: manual ? 400 : 200, model });
   const line = plainLine(text, manual ? 3 : 1, manual ? 55 : 22);
   const doc: Doc = { _id: ticketId, headline: line, summary: "", flags: [], tags: [], key: source.key, version: VERSION, messages: source.lines.length, images: refs.size, model, generatedAt: now, checkedAt: now };
-  await c.replaceOne({ _id: ticketId }, doc, { upsert: true });
-  return view(doc, false);
+  return view(await store(doc), false);
 }

@@ -23,6 +23,8 @@ export type Punishment = {
 
 export type Ticket = {
   ticketId: number;
+  /** The ticket's database id: stays the same when tickets are renumbered */
+  key?: string;
   type: string;
   topic: string;
   status: string;
