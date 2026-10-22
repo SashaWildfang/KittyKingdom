@@ -52,10 +52,11 @@ export async function getRoleCatalog(fresh = false): Promise<SelfRoleCategory[]>
 export async function getRoleCatalogDoc(fresh = false): Promise<{ categories: SelfRoleCategory[]; version: number; updatedAt: string | null; updatedBy: string | null; custom: boolean }> {
   if (!fresh && cache && Date.now() - cache.at < TTL_MS) return { categories: cache.categories, version: cache.version, updatedAt: null, updatedBy: null, custom: cache.version > 0 };
   const doc = (await (await col()).findOne({ _id: CATALOG_ID } as never).catch(() => null)) as { categories?: SelfRoleCategory[]; version?: number; updatedAt?: Date; updatedByName?: string } | null;
-  const categories = Array.isArray(doc?.categories) && doc!.categories.length ? doc!.categories : DEFAULT_CATEGORIES;
+  // Once saved, the saved list is used even if it's empty (an admin can turn the picker off by removing everything)
+  const categories = Array.isArray(doc?.categories) ? doc!.categories : DEFAULT_CATEGORIES;
   const version = Number(doc?.version ?? 0);
   cache = { at: Date.now(), categories, version };
-  return { categories, version, updatedAt: doc?.updatedAt instanceof Date ? doc.updatedAt.toISOString() : null, updatedBy: doc?.updatedByName ?? null, custom: Boolean(doc?.categories?.length) };
+  return { categories, version, updatedAt: doc?.updatedAt instanceof Date ? doc.updatedAt.toISOString() : null, updatedBy: doc?.updatedByName ?? null, custom: Array.isArray(doc?.categories) };
 }
 
 /** Every role id a member may pick (including hidden ones, so they can still remove them). */
@@ -129,12 +130,20 @@ export async function saveRoleCatalog(categories: SelfRoleCategory[], by: { disc
   const c = await col();
   const current = Number(((await c.findOne({ _id: CATALOG_ID } as never)) as { version?: number } | null)?.version ?? 0);
   if (expectVersion !== null && expectVersion !== current) throw new CatalogError("Someone else changed the roles while you were editing. Reload to see their changes.", 409);
-  const res = await c.updateOne(
-    { _id: CATALOG_ID, ...(current ? { version: current } : {}) } as never,
-    { $set: { categories, updatedAt: new Date(), updatedBy: by.discordId, updatedByName: by.name }, $inc: { version: 1 } },
-    { upsert: !current },
-  );
-  if (!res.matchedCount && !res.upsertedCount) throw new CatalogError("Someone else changed the roles at the same moment. Reload and try again.", 409);
+  const conflict = () => new CatalogError("Someone else changed the roles at the same moment. Reload and try again.", 409);
+  let res;
+  try {
+    // The very first save creates the document: two at once can't both win (the second hits the duplicate id)
+    res = await c.updateOne(
+      { _id: CATALOG_ID, version: current ? current : { $exists: false } } as never,
+      { $set: { categories, updatedAt: new Date(), updatedBy: by.discordId, updatedByName: by.name }, $inc: { version: 1 } },
+      { upsert: !current },
+    );
+  } catch (error) {
+    if ((error as { code?: number })?.code === 11000) throw conflict();
+    throw error;
+  }
+  if (!res.matchedCount && !res.upsertedCount) throw conflict();
   cache = null;
   return current + 1;
 }
