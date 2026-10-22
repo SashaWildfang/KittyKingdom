@@ -2,7 +2,7 @@
 
 import "./admin-nav.css";
 import { TicketCanDelete, TicketDeletePermissions } from "./delete-ticket-button";
-import { Tags, ChevronDown, ChevronRight, Menu, Search, X, Lock, PartyPopper, Activity, Archive, AtSign, Database, CalendarDays, Gift, SunSnow, BarChart3, Bot, Coins, History, Megaphone, Server, Shield as ShieldIcon, BookOpen, Crown, Hammer, ClipboardCheck, ListChecks, TerminalSquare, Dices, Gavel, Globe, HeartHandshake, Mail, MessagesSquare, Newspaper, Scale, ScrollText, ShieldCheck, Ticket, Users, UsersRound, ImagePlus, type LucideIcon } from "lucide-react";
+import { Inbox, Tags, ChevronDown, ChevronRight, Menu, Search, X, Lock, PartyPopper, Activity, Archive, AtSign, Database, CalendarDays, Gift, SunSnow, BarChart3, Bot, Coins, History, Megaphone, Server, Shield as ShieldIcon, BookOpen, Crown, Hammer, ClipboardCheck, ListChecks, TerminalSquare, Dices, Gavel, Globe, HeartHandshake, Mail, MessagesSquare, Newspaper, Scale, ScrollText, ShieldCheck, Ticket, Users, UsersRound, ImagePlus, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AccountsTab } from "./accounts-tab";
@@ -45,14 +45,16 @@ import { MembersTab } from "./members/members-tab";
 import { GraphicsTab } from "./graphics/graphics-tab";
 import { TranscriptViewer } from "./transcript-viewer";
 import { RolePickerTab } from "./role-picker-tab";
+import { InboxTab } from "./inbox-tab";
+import { CommandPalette, rememberTab } from "./command-palette";
 
-type Tab = "graphics" | "discord-members" | "overview" | "punishments" | "automod" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live" | "join" | "dating" | "appeals" | "messages" | "games" | "guide" | "banrequests" | "patreon" | "emails" | "ads" | "bot-main" | "bot-economy" | "bot-moderation" | "bot-ticketing" | "server" | "bot-history" | "removed" | "giveaways" | "seasons" | "status" | "events" | "rules" | "bot-console" | "database" | "chat-events" | "lockdown" | "role-picker";
+type Tab = "graphics" | "discord-members" | "overview" | "punishments" | "automod" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live" | "join" | "dating" | "appeals" | "messages" | "games" | "guide" | "banrequests" | "patreon" | "emails" | "ads" | "bot-main" | "bot-economy" | "bot-moderation" | "bot-ticketing" | "server" | "bot-history" | "removed" | "giveaways" | "seasons" | "status" | "events" | "rules" | "bot-console" | "database" | "chat-events" | "lockdown" | "role-picker" | "inbox";
 type Level = "admin" | "staff";
 
 // Tabs are grouped so the bar stays short: pick a group, then one of its tabs
 type Group = "overview" | "moderation" | "members" | "community" | "website" | "bots";
 const GROUPS: { key: Group; label: string; icon: LucideIcon; tabs: Tab[] }[] = [
-  { key: "overview", label: "Overview", icon: BarChart3, tabs: ["overview", "graphics", "seasons", "status", "guide"] },
+  { key: "overview", label: "Overview", icon: BarChart3, tabs: ["inbox", "overview", "graphics", "seasons", "status", "guide"] },
   { key: "moderation", label: "Moderation", icon: Gavel, tabs: ["punishments", "banrequests", "appeals", "automod", "lockdown", "logs", "live", "removed", "rules"] },
   { key: "members", label: "Members", icon: Users, tabs: ["discord-members", "role-picker", "join", "tickets", "messages", "patreon"] },
   { key: "community", label: "Community", icon: PartyPopper, tabs: ["events", "chat-events", "giveaways", "games", "dating"] },
@@ -62,6 +64,7 @@ const GROUPS: { key: Group; label: string; icon: LucideIcon; tabs: Tab[] }[] = [
 
 // admin: admins only; giveaways: admins and Community Managers
 const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean; giveaways?: boolean }[] = [
+  { key: "inbox", label: "Needs attention", icon: Inbox },
   { key: "overview", label: "Overview", icon: BarChart3 },
   { key: "discord-members", label: "Discord Members", icon: UsersRound, admin: true },
   { key: "role-picker", label: "Role Picker", icon: Tags, admin: true },
@@ -160,11 +163,16 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
   // Jr Mod ban requests waiting for a Mod+
   const bansPoll = useLive<{ pending: number }>("/api/admin/ban-requests?count=1", 20_000);
   const pendingBans = bansPoll.data?.pending ?? 0;
+  // Everything waiting on someone (Needs attention)
+  const inboxPoll = useLive<{ total: number; urgent: number }>(tab !== "inbox" ? "/api/admin/inbox?count=1" : null, 30_000);
+  const inboxTotal = inboxPoll.data?.total ?? 0;
+  const inboxUrgent = inboxPoll.data?.urgent ?? 0;
 
   // Bubbles on tabs (and added up on their group)
   // 999 → "999", 1,420 → "1.42k", 15,300 → "15.3k"
   const shortCount = (n: number) => (n < 1000 ? String(n) : n < 10_000 ? `${(Math.floor(n / 10) / 100).toString()}k` : n < 1_000_000 ? `${(Math.floor(n / 100) / 10).toString()}k` : `${(Math.floor(n / 100_000) / 10).toString()}m`);
   const alert = (k: Tab): { count: number; hot?: boolean; live?: boolean; label: string } | null => {
+    if (k === "inbox" && inboxTotal > 0 && tab !== "inbox") return { count: inboxTotal, hot: inboxUrgent > 0, label: `${inboxTotal} waiting${inboxUrgent ? `, ${inboxUrgent} urgent` : ""}` };
     if (k === "live" && liveUnread) return { count: liveUnread, live: true, label: `${liveUnread} unread` };
     if (k === "automod" && automodUnread) return { count: automodUnread, hot: true, label: `${automodUnread} new` };
     if (k === "news" && pendingNews > 0 && tab !== "news") return { count: pendingNews, label: `${pendingNews} waiting for review` };
@@ -179,6 +187,9 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
   const group = (groups.find((g) => g.tabs.includes(tab)) ?? groups[0]).key;
   const groupTabsOf = (g: Group) => (groups.find((x) => x.key === g)?.tabs ?? []).map((k) => tabs.find((t) => t.key === k)!).filter(Boolean);
   const currentTab = tabs.find((t) => t.key === tab);
+  useEffect(() => {
+    rememberTab(tab);
+  }, [tab]);
   // Section menu: search, collapsed groups (remembered), and the slide-in menu on small screens
   const [navQ, setNavQ] = useState("");
   const [navOpen, setNavOpen] = useState(false);
@@ -193,7 +204,8 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
     setNavOpen(false);
   };
   // Things waiting outside the open section (for the menu button on small screens)
-  const menuAlerts = tabs.reduce((n, t) => n + (t.key === "live" || t.key === tab ? 0 : alert(t.key)?.count ?? 0), 0);
+  // (Needs attention is left out: everything in it is already counted on its own tab)
+  const menuAlerts = tabs.reduce((n, t) => n + (t.key === "live" || t.key === "inbox" || t.key === tab ? 0 : alert(t.key)?.count ?? 0), 0);
   // While the slide-in menu is open: the page behind doesn't scroll, and Escape closes it
   useEffect(() => {
     if (!navOpen) return;
@@ -296,8 +308,8 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
           const list = groupTabsOf(g.key).filter((t) => !navQ || navMatches.includes(t));
           if (!list.length) return null;
           // Live Chat is just unread chat, not something to act on, so it doesn't add to its group
-          const count = g.tabs.reduce((n, k) => n + (k === "live" ? 0 : alert(k)?.count ?? 0), 0);
-          const hot = g.tabs.some((k) => k !== "live" && alert(k)?.hot);
+          const count = g.tabs.reduce((n, k) => n + (k === "live" || k === "inbox" ? 0 : alert(k)?.count ?? 0), 0);
+          const hot = g.tabs.some((k) => k !== "live" && k !== "inbox" && alert(k)?.hot);
           const closed = !navQ && collapsed.includes(g.key) && g.key !== group;
           return (
             <section key={g.key} className={`adm-side-group${g.key === group ? " is-current" : ""}`}>
@@ -383,7 +395,21 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
             <ChevronRight size={14} aria-hidden="true" />
             <b>{currentTab?.label}</b>
             {menuAlerts > 0 ? <span className="adm-tab-bubble is-hot adm-where-alerts">{shortCount(menuAlerts)}</span> : null}
+            <button
+              type="button"
+              className="adm-goto"
+              onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }))}
+              title="Jump to any tab, member or ticket (Ctrl+K)"
+            >
+              <Search size={13} aria-hidden="true" /> Go to… <kbd>Ctrl K</kbd>
+            </button>
           </div>
+          <CommandPalette
+            tabs={tabs.map((t) => ({ key: t.key, label: t.label, icon: t.icon, group: groups.find((g) => g.tabs.includes(t.key))?.label ?? "" }))}
+            onTab={(k) => pickTab(k as Tab)}
+            onMember={openMember}
+            onTicket={openTranscript}
+          />
       <TabBoundary key={tab} name={tab}>
       {tab === "overview" ? (
         <OverviewTab
@@ -433,6 +459,7 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
       {isAdmin && tab === "bot-ticketing" ? <BotSettingsTab key="ticketing" botKey="ticketing" /> : null}
       {isAdmin && tab === "server" ? <ServerSettingsTab /> : null}
       {isAdmin && tab === "role-picker" ? <RolePickerTab /> : null}
+      {tab === "inbox" ? <InboxTab onOpenMember={openMember} /> : null}
       {isAdmin && tab === "bot-history" ? <BotsHistoryTab /> : null}
       {isAdmin && tab === "traffic" ? <TrafficTab /> : null}
       </TabBoundary>

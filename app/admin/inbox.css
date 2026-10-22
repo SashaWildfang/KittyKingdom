@@ -1,0 +1,40 @@
+/* Admin → Needs attention */
+.ibx { display: grid; gap: 0.85rem; }
+.ibx-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 0.8rem; }
+.ibx-head h2 { display: flex; align-items: center; gap: 0.45rem; margin: 0 0 0.25rem; }
+.ibx-head p { margin: 0; font-size: 0.88rem; }
+.ibx-filters, .ibx-kinds { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.ibx-filters button, .ibx-kinds button { border: 1px solid var(--line); border-radius: 999px; background: var(--panel-strong); color: var(--muted); cursor: pointer; font: inherit; font-size: 0.82rem; font-weight: 800; padding: 0.35rem 0.75rem; }
+.ibx-filters button small { margin-left: 0.25rem; opacity: 0.8; }
+.ibx-filters button.is-on, .ibx-kinds button.is-on { border-color: var(--ember); background: rgba(var(--ember-rgb), 0.18); color: var(--text); }
+.ibx-kinds button { font-size: 0.76rem; padding: 0.25rem 0.65rem; }
+.ibx-list { display: grid; gap: 0.45rem; margin: 0; padding: 0; list-style: none; }
+.ibx-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 0.75rem; border: 1px solid var(--line); border-radius: 0.9rem; background: var(--panel); padding: 0.7rem 0.8rem; }
+.ibx-item.is-urgent { border-color: rgba(229, 72, 77, 0.45); }
+.ibx-item.is-mine { border-color: rgba(var(--ember-rgb), 0.55); background: linear-gradient(90deg, rgba(var(--ember-rgb), 0.08), transparent 50%), var(--panel); }
+.ibx-icon { display: grid; place-items: center; width: 2.3rem; height: 2.3rem; border-radius: 0.75rem; background: var(--panel-strong); color: var(--ember); }
+.ibx-item.is-urgent .ibx-icon { background: rgba(229, 72, 77, 0.14); color: #ff8a8a; }
+.ibx-body { display: grid; gap: 0.15rem; min-width: 0; }
+.ibx-title { color: var(--text); font-weight: 800; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ibx-title:hover { text-decoration: underline; }
+.ibx-detail { color: var(--muted); font-size: 0.82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ibx-urgent { margin-right: 0.4rem; border-radius: 999px; background: rgba(229, 72, 77, 0.18); color: #ff9b9b; font-size: 0.7rem; padding: 0.05rem 0.4rem; }
+.ibx-claim { display: inline-flex; align-items: center; gap: 0.25rem; color: var(--ember); font-size: 0.76rem; font-weight: 700; }
+.ibx-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.3rem; }
+.ibx-empty { display: grid; justify-items: center; gap: 0.35rem; border: 1px dashed var(--line); border-radius: 1rem; color: #8fdc77; padding: 2.2rem 1rem; text-align: center; }
+.ibx-empty b { color: var(--text); font-size: 1.05rem; }
+.ibx-undo { display: flex; align-items: center; gap: 0.6rem; }
+.ibx-undo button { display: inline-flex; align-items: center; gap: 0.25rem; border: 1px solid var(--line); border-radius: 999px; background: none; color: var(--text); cursor: pointer; font: inherit; font-size: 0.8rem; font-weight: 700; padding: 0.15rem 0.55rem; }
+@media (max-width: 720px) {
+  .ibx-item { grid-template-columns: auto minmax(0, 1fr); }
+  .ibx-actions { grid-column: 1 / -1; justify-content: flex-start; }
+  .ibx-title, .ibx-detail { white-space: normal; }
+}
+
+.ibx-alerts { position: relative; margin-left: auto; }
+.ibx-alerts-menu { position: absolute; top: calc(100% + 0.4rem); right: 0; z-index: 30; display: grid; gap: 0.5rem; width: min(22rem, 90vw); border: 1px solid var(--line); border-radius: 0.9rem; background: linear-gradient(var(--panel), var(--panel)), var(--bg); box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45); padding: 0.8rem; }
+.ibx-alerts-menu p { margin: 0; font-size: 0.8rem; }
+.ibx-alert { display: flex; align-items: flex-start; gap: 0.55rem; border: 1px solid var(--line); border-radius: 0.7rem; padding: 0.5rem 0.6rem; cursor: pointer; }
+.ibx-alert input { margin-top: 0.2rem; accent-color: var(--ember); }
+.ibx-alert span { display: grid; gap: 0.1rem; }
+.ibx-alert small { color: var(--muted); font-size: 0.76rem; }

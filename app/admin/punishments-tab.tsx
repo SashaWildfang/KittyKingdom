@@ -1,5 +1,7 @@
 "use client";
 
+import { SavedViews } from "./saved-views";
+
 import { Bot, Download, Rows3, Rows4, Search, Shield, User, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -222,6 +224,7 @@ export function PunishmentsTab({
         <button type="button" className="adm-chip-btn" onClick={exportCsv} disabled={exporting}>
           {exporting ? "Exporting…" : <><Download size={14} aria-hidden="true" /> CSV</>}
         </button>
+        <SavedViews scope="punishments" current={filters as unknown as Record<string, unknown>} onApply={(v) => (setFilters({ ...DEFAULT_PUNISHMENT_FILTERS, ...(v as Partial<PunishmentFilters>) }), setPage(1))} />
         {activeFilters ? (
           <button type="button" className="adm-chip-btn" onClick={() => { setSearchText(""); setFilters(DEFAULT_PUNISHMENT_FILTERS); setPage(1); }}>
             <X size={14} aria-hidden="true" /> Clear ({activeFilters})
