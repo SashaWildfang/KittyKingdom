@@ -32016,3 +32016,6 @@ a.apl-chip {
 .acct-avatar-btn.is-open .acct-avatar-chev { transform: rotate(180deg); }
 .acct-avatar-btn:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
 .acct-menu-name { margin: 0; border-bottom: 1px solid var(--line); color: var(--text); font-size: 0.85rem; font-weight: 800; overflow: hidden; padding: 0.35rem 0.6rem 0.55rem; text-overflow: ellipsis; white-space: nowrap; }
+
+/* My Account → Roles: "Pick one" / "Pick as many as you like" after a category description */
+.roles-mode { color: var(--muted); font-weight: 700; }

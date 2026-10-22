@@ -2,7 +2,7 @@
 // selectors in lib/role-catalog.ts). Setup uses these to fill in blanks; members can change anything.
 
 import { memberRoleIdsCached } from "../discord-member";
-import { ROLE_CATEGORIES } from "../role-catalog";
+import { ROLE_CATEGORIES, getRoleCatalog } from "../role-catalog";
 
 const ONE: Record<string, [string, string]> = {
   // Gender
@@ -80,12 +80,15 @@ const HOBBIES: Record<string, string> = {
   "mobile gamer": "mobile games",
 };
 
-const NAMES = new Map(ROLE_CATEGORIES.flatMap((c) => c.roles.map((r) => [r.id, r.name.toLowerCase().trim()] as const)));
+// Each role's stable hint word when it has one (time zones were renamed to "Eastern (US & Canada)" etc.), from
+// the saved role list (Admin → Role Picker), with the built-in one underneath for roles it doesn't have
+const namesFrom = (cats: typeof ROLE_CATEGORIES) => cats.flatMap((c) => c.roles.map((r) => [r.id, (r.hint ?? r.name).toLowerCase().trim()] as const));
 
 /** { field: suggested value } from their roles (lists for multi fields). */
 export async function roleHints(discordId: string): Promise<Record<string, unknown>> {
-  const roles = await memberRoleIdsCached(discordId).catch(() => null);
+  const [roles, catalog] = await Promise.all([memberRoleIdsCached(discordId).catch(() => null), getRoleCatalog().catch(() => ROLE_CATEGORIES)]);
   if (!roles) return {};
+  const NAMES = new Map([...namesFrom(ROLE_CATEGORIES), ...namesFrom(catalog)]);
   const names = roles.map((id) => NAMES.get(id)).filter((n): n is string => Boolean(n));
   const out: Record<string, unknown> = {};
   const lists: Record<string, Set<string>> = {};

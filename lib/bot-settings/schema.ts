@@ -88,6 +88,16 @@ const MAIN: BotDef = {
   ready: true,
   sections: [
     {
+      key: "roles",
+      title: "Role picker",
+      icon: "badge",
+      about: "The Edit my roles button in #role-selection and the 18+ channel. Which roles are in it is set in Admin → Role Picker.",
+      fields: [
+        { key: "roles.nudge", label: "Welcome DM to pick roles", help: "When someone's join form is approved and they have no roles yet, they get a DM with an Edit my roles button.", type: "toggle", default: true },
+        { key: "roles.adultFollows", label: "18+ roles follow the 18+ role", help: "When the 18+ Verified role is removed, the member's 18+ roles come off too and are remembered; they come back when the 18+ role is given back (e.g. after re-verifying).", type: "toggle", default: true },
+      ],
+    },
+    {
       key: "general",
       title: "Status",
       icon: "activity",

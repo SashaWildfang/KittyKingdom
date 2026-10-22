@@ -1,0 +1,58 @@
+/* Admin → Role Picker */
+.rp { display: grid; gap: 0.9rem; padding-bottom: 4.5rem; }
+.rp-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 0.8rem; }
+.rp-head h2 { margin: 0 0 0.3rem; }
+.rp-head p { margin: 0; max-width: 62rem; font-size: 0.88rem; line-height: 1.5; }
+.rp-list { display: grid; gap: 0.55rem; }
+.rp-cat { border: 1px solid var(--line); border-left: 4px solid var(--cat); border-radius: 0.9rem; background: var(--panel); }
+.rp-cat.is-hidden { opacity: 0.7; }
+.rp-cat-bar { display: flex; align-items: center; gap: 0.4rem; padding: 0.35rem 0.5rem 0.35rem 0.3rem; }
+.rp-cat-toggle { display: flex; flex: 1; min-width: 0; align-items: center; gap: 0.6rem; border: 0; background: none; color: var(--text); cursor: pointer; font: inherit; padding: 0.45rem 0.5rem; text-align: left; }
+.rp-cat-toggle i { flex: none; width: 0.7rem; height: 0.7rem; border-radius: 50%; background: var(--cat); }
+.rp-cat-toggle b { font-size: 0.98rem; }
+.rp-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; margin-left: 0.3rem; }
+.rp-tag { display: inline-flex; align-items: center; gap: 0.2rem; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-size: 0.7rem; font-weight: 800; padding: 0.08rem 0.45rem; }
+.rp-tag.is-one { border-color: rgba(var(--ember-rgb), 0.5); color: var(--ember); }
+.rp-tag.is-adult { border-color: rgba(229, 72, 77, 0.5); color: #ff8a8a; }
+.rp-count { color: var(--muted); font-size: 0.76rem; }
+.rp-chev { margin-left: auto; flex: none; color: var(--muted); transition: transform 0.15s ease; }
+.rp-cat-toggle[aria-expanded="true"] .rp-chev { transform: rotate(180deg); }
+.rp-cat-move { display: flex; gap: 0.2rem; }
+.rp-cat-move button, .rp-role-actions button { display: grid; place-items: center; width: 1.8rem; height: 1.8rem; border: 1px solid var(--line); border-radius: 0.5rem; background: var(--panel-strong); color: var(--muted); cursor: pointer; }
+.rp-cat-move button:disabled, .rp-role-actions button:disabled { opacity: 0.35; cursor: default; }
+.rp-role-actions button.is-on { border-color: var(--ember); color: var(--ember); }
+.rp-cat-body { display: grid; gap: 0.75rem; border-top: 1px solid var(--line); padding: 0.85rem; }
+.rp-fields { display: grid; grid-template-columns: minmax(10rem, 14rem) minmax(0, 1fr) auto; gap: 0.6rem; }
+.rp-fields label, .rp-add { display: grid; gap: 0.25rem; min-width: 0; }
+.rp-fields span { color: var(--muted); font-size: 0.74rem; font-weight: 800; }
+.rp input:not([type="checkbox"]):not([type="color"]), .rp select { width: 100%; min-width: 0; box-sizing: border-box; border: 1px solid var(--line); border-radius: 0.6rem; background: var(--panel-strong); color: var(--text); font: inherit; font-size: 0.86rem; padding: 0.42rem 0.55rem; }
+.rp input:focus, .rp select:focus { border-color: var(--ember); outline: none; }
+.rp input[type="color"] { width: 2.6rem; height: 2.1rem; border: 1px solid var(--line); border-radius: 0.5rem; background: none; padding: 0.15rem; }
+.rp-switches { display: flex; flex-wrap: wrap; align-items: center; gap: 0.7rem; }
+.rp-seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 0.15rem; background: var(--panel-strong); }
+.rp-seg button { border: 0; border-radius: 999px; background: none; color: var(--muted); cursor: pointer; font: inherit; font-size: 0.8rem; font-weight: 800; padding: 0.3rem 0.75rem; }
+.rp-seg button.is-on { background: rgba(var(--ember-rgb), 0.2); color: var(--text); }
+.rp-check { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.84rem; cursor: pointer; }
+.rp-check input { accent-color: var(--ember); }
+.rp-danger { display: inline-flex; align-items: center; gap: 0.3rem; border: 1px solid rgba(229, 72, 77, 0.35); border-radius: 0.55rem; background: none; color: #ff8a8a; cursor: pointer; font: inherit; font-size: 0.8rem; font-weight: 700; padding: 0.3rem 0.55rem; }
+.rp-roles { display: grid; gap: 0.35rem; }
+.rp-role { display: grid; grid-template-columns: 3.4rem minmax(8rem, 1fr) minmax(8rem, 1.4fr) minmax(9rem, 1fr) auto; align-items: center; gap: 0.4rem; }
+.rp-role.is-hidden > input, .rp-role.is-hidden > select { opacity: 0.55; }
+.rp-role-head span { color: var(--muted); font-size: 0.7rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+.rp-emoji { text-align: center; }
+.rp select.is-missing { border-color: rgba(229, 72, 77, 0.6); color: #ff8a8a; }
+.rp-role-actions { display: flex; gap: 0.2rem; }
+.rp-role-actions .rp-danger { width: 1.8rem; height: 1.8rem; justify-content: center; padding: 0; }
+.rp-rename { grid-column: 2 / -1; color: var(--muted); font-size: 0.74rem; }
+.rp-add { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin-top: 0.2rem; }
+.rp-add.is-open select, .rp-add.is-open input:not([type="color"]) { width: min(18rem, 100%); }
+.rp-add-cat { justify-self: start; }
+.rp-savebar { position: sticky; bottom: 0.8rem; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.6rem; border: 1px solid var(--line); border-radius: 0.9rem; background: color-mix(in srgb, var(--panel) 92%, transparent); backdrop-filter: blur(8px); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); color: var(--muted); font-size: 0.86rem; padding: 0.6rem 0.8rem; }
+.rp-savebar.is-dirty { border-color: rgba(var(--ember-rgb), 0.6); color: var(--text); }
+.rp-savebar > div { display: flex; gap: 0.4rem; }
+@media (max-width: 860px) {
+  .rp-fields { grid-template-columns: 1fr; }
+  .rp-role { grid-template-columns: 3rem minmax(0, 1fr); }
+  .rp-role-head { display: none; }
+  .rp-role > input:nth-of-type(3), .rp-role > select, .rp-role-actions { grid-column: 1 / -1; }
+}

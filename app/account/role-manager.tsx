@@ -103,7 +103,11 @@ export function RoleManager({ initial }: { initial: RoleState | null }) {
   function toggleRole(roleId: string, add: boolean) {
     void send(roleId, { roleId, add }, (s) => ({
       ...s,
-      categories: s.categories.map((c) => ({ ...c, roles: c.roles.map((r) => (r.id === roleId ? { ...r, has: add } : r)) })),
+      // Pick-one categories: choosing a role replaces the one they had
+      categories: s.categories.map((c) => {
+        const inHere = c.roles.some((r) => r.id === roleId);
+        return { ...c, roles: c.roles.map((r) => (r.id === roleId ? { ...r, has: add } : inHere && add && c.mode === "single" ? { ...r, has: false } : r)) };
+      }),
     }));
   }
 
@@ -189,7 +193,10 @@ export function RoleManager({ initial }: { initial: RoleState | null }) {
                 {category.adult ? <ShieldAlert size={16} aria-hidden="true" /> : null}
                 {category.title}
               </h3>
-              <p>{category.description}</p>
+              <p>
+                {category.description}
+                <span className="roles-mode">{category.mode === "single" ? " · Pick one" : " · Pick as many as you like"}</span>
+              </p>
             </div>
             {!category.locked && selectedCount(category.key) ? (
               <button
