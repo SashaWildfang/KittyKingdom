@@ -80,7 +80,8 @@ const HOBBIES: Record<string, string> = {
   "mobile gamer": "mobile games",
 };
 
-const NAMES = new Map(ROLE_CATEGORIES.flatMap((c) => c.roles.map((r) => [r.id, r.name.toLowerCase().trim()] as const)));
+// Each role's stable hint word when it has one (time zones were renamed to "Eastern (US & Canada)" etc.)
+const NAMES = new Map(ROLE_CATEGORIES.flatMap((c) => c.roles.map((r) => [r.id, (r.hint ?? r.name).toLowerCase().trim()] as const)));
 
 /** { field: suggested value } from their roles (lists for multi fields). */
 export async function roleHints(discordId: string): Promise<Record<string, unknown>> {
