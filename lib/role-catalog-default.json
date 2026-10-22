@@ -447,7 +447,7 @@
     "description": "How do you prefer to structure your relationships?",
     "color": "#e91e63",
     "adult": true,
-    "mode": "single",
+    "mode": "multi",
     "roles": [
       {
         "id": "1358471476679934074",
@@ -481,7 +481,7 @@
     "description": "What is your current availability?",
     "color": "#9b59b6",
     "adult": true,
-    "mode": "single",
+    "mode": "multi",
     "roles": [
       {
         "id": "1358471717764468997",
