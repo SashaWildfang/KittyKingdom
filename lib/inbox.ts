@@ -5,7 +5,7 @@
 // website.inbox_state {_id: item key, claimedBy, claimedByName, claimedAt, doneBy, doneByName, doneAt}
 // An item's key changes when the thing itself changes, so a dismissed item comes back if something new happens.
 
-import type { Document } from "mongodb";
+import { ObjectId, type Document } from "mongodb";
 import type { PanelUser } from "./admin";
 import { people } from "./admin-people";
 import { getBotCollection, getJoinApplicationsCollection, getMongoClient } from "./mongodb";
@@ -47,23 +47,49 @@ async function stateCol() {
   return (await site()).collection<{ _id: string; claimedBy?: string; claimedByName?: string; claimedAt?: Date; doneBy?: string; doneByName?: string; doneAt?: Date }>("inbox_state");
 }
 
+const ADMIN_KINDS = new Set(["appeal", "flag-18", "bot-issue", "news"]);
+const DISMISSED_WINDOW_MS = 60 * 24 * HOUR;
+
 /** Everything waiting for this panel user (staff don't see admin-only items or 18+ tickets). */
 export async function inboxItems(panel: PanelUser): Promise<InboxItem[]> {
+  return (await inboxFeed(panel)).items;
+}
+
+/** The list plus which sources couldn't be checked (so a database hiccup never reads as "All caught up"). */
+export async function inboxFeed(panel: PanelUser): Promise<{ items: InboxItem[]; missing: string[] }> {
   const admin = panel.level === "admin";
   const db = await site();
-  const safe = <T,>(p: Promise<T[]>) => p.catch(() => [] as T[]);
+  const missing: string[] = [];
+  const safe =
+    <T,>(label: string) =>
+    (p: Promise<T[]>) =>
+      p.catch((e) => {
+        console.error(`Inbox: couldn't check ${label}`, e);
+        missing.push(label);
+        return [] as T[];
+      });
+  // Dismissed AutoMod alerts are skipped in the query itself, so older ones aren't stuck behind the limit
+  const dismissedAutomod = (
+    await (await stateCol())
+      .find({ _id: { $regex: "^automod:" }, doneAt: { $gte: new Date(Date.now() - DISMISSED_WINDOW_MS) } } as never, { projection: { _id: 1 } })
+      .toArray()
+      .catch(() => [] as { _id: string }[])
+  )
+    .map((d) => d._id.slice("automod:".length))
+    .filter((id) => ObjectId.isValid(id))
+    .map((id) => new ObjectId(id));
   const [apps, active, appeals, bans, flags, alerts, issues, news, reports] = await Promise.all([
-    safe(getJoinApplicationsCollection().then((c) => c.find({ status: "pending" }, { projection: { discordId: 1, submittedAt: 1 } }).sort({ submittedAt: 1 }).limit(60).toArray())),
-    safe(getBotCollection("activeTickets").then((c) => c.find({}, { projection: { ticket_id: 1, ticket_type: 1, opened_by: 1, claimed_by: 1, created: 1, last_updated: 1, manual_ticket: 1 } }).toArray())),
-    admin ? safe(db.collection("appeals").find({ status: "pending" }, { projection: { discordId: 1, createdAt: 1, "punishment.action": 1 } }).sort({ createdAt: 1 }).limit(40).toArray()) : Promise.resolve([] as Document[]),
-    safe(db.collection("ban_requests").find({ status: "pending" }, { projection: { userId: 1, userName: 1, requesterName: 1, createdAt: 1, reason: 1 } }).sort({ createdAt: 1 }).limit(40).toArray()),
+    safe<Document>("join applications")(getJoinApplicationsCollection().then((c) => c.find({ status: "pending" }, { projection: { discordId: 1, submittedAt: 1 } }).sort({ submittedAt: 1 }).limit(60).toArray())),
+    safe<Document>("tickets")(getBotCollection("activeTickets").then((c) => c.find({}, { projection: { ticket_id: 1, ticket_type: 1, opened_by: 1, claimed_by: 1, created: 1, last_updated: 1, manual_ticket: 1 } }).toArray())),
+    admin ? safe<Document>("appeals")(db.collection("appeals").find({ status: "pending" }, { projection: { discordId: 1, createdAt: 1, "punishment.action": 1 } }).sort({ createdAt: 1 }).limit(40).toArray()) : Promise.resolve([] as Document[]),
+    safe<Document>("ban requests")(db.collection("ban_requests").find({ status: "pending" }, { projection: { userId: 1, userName: 1, requesterName: 1, createdAt: 1, reason: 1 } }).sort({ createdAt: 1 }).limit(40).toArray()),
     admin
-      ? safe(db.collection("ticket_summaries").find({ tags: { $in: ["dob-mismatch", "under-18"] }, checkedAt: { $gte: new Date(Date.now() - 60 * 24 * HOUR) } }, { projection: { tags: 1, ticketKey: 1, generatedAt: 1, headline: 1 } }).limit(40).toArray())
+      ? safe<Document>("18+ flags")(db.collection("ticket_summaries").find({ tags: { $in: ["dob-mismatch", "under-18"] }, checkedAt: { $gte: new Date(Date.now() - 60 * 24 * HOUR) } }, { projection: { tags: 1, ticketKey: 1, generatedAt: 1, headline: 1 } }).sort({ generatedAt: -1 }).limit(300).toArray())
       : Promise.resolve([] as Document[]),
-    safe(getBotCollection("automod_events").then((c) => c.find({ action: "alert", at: { $gte: new Date(Date.now() - 72 * HOUR) } }, { projection: { userId: 1, rule: 1, reason: 1, at: 1, channelId: 1 } }).sort({ at: -1 }).limit(40).toArray())),
-    admin ? safe(getBotCollection("bot_issues").then((c) => c.find({ resolved: { $ne: true }, level: "error" }, { projection: { bot: 1, title: 1, count: 1, lastAt: 1 } }).sort({ lastAt: -1 }).limit(25).toArray())) : Promise.resolve([] as Document[]),
-    admin ? safe(db.collection("news").find({ status: "pending" }, { projection: { title: 1, createdAt: 1, updatedAt: 1 } }).limit(20).toArray()) : Promise.resolve([] as Document[]),
-    safe(db.collection("dating_reports").find({ status: "open" }, { projection: { reported: 1, reason: 1, at: 1, type: 1 } }).sort({ at: 1 }).limit(30).toArray()),
+    safe<Document>("AutoMod")(getBotCollection("automod_events").then((c) => c.find({ action: "alert", _id: { $nin: dismissedAutomod }, at: { $gte: new Date(Date.now() - 72 * HOUR) } }, { projection: { userId: 1, rule: 1, reason: 1, at: 1, channelId: 1 } }).sort({ at: -1 }).limit(60).toArray())),
+    admin ? safe<Document>("bot problems")(getBotCollection("bot_issues").then((c) => c.find({ resolved: { $ne: true }, level: "error" }, { projection: { bot: 1, title: 1, count: 1, lastAt: 1 } }).sort({ lastAt: -1 }).limit(150).toArray())) : Promise.resolve([] as Document[]),
+    admin ? safe<Document>("news")(db.collection("news").find({ status: "pending" }, { projection: { title: 1, createdAt: 1, updatedAt: 1 } }).limit(20).toArray()) : Promise.resolve([] as Document[]),
+    safe<Document>("Social reports")(db.collection("dating_reports").find({ status: "open" }, { projection: { reported: 1, reason: 1, at: 1, type: 1 } }).sort({ at: 1 }).limit(30).toArray()),
   ]);
 
   const ids = [
@@ -116,13 +142,14 @@ export async function inboxItems(panel: PanelUser): Promise<InboxItem[]> {
   // Claims and dismissals
   const states = await (await stateCol()).find({ _id: { $in: items.map((i) => i.key) } }).toArray();
   const byKey = new Map(states.map((s) => [s._id, s]));
-  return items
+  const visible = items
     .filter((i) => !byKey.get(i.key)?.doneAt)
     .map((i) => {
       const s = byKey.get(i.key);
       return { ...i, claim: s?.claimedBy ? { by: s.claimedBy, name: s.claimedByName ?? "staff", at: iso(s.claimedAt) } : null };
     })
     .sort((a, b) => Number(b.urgent) - Number(a.urgent) || new Date(a.at).getTime() - new Date(b.at).getTime());
+  return { items: visible, missing };
 }
 
 export async function inboxCount(panel: PanelUser) {
@@ -141,6 +168,21 @@ export async function inboxAction(panel: PanelUser, key: string, action: string)
   if (!/^[a-z0-9-]+:[\w:.,-]{1,200}$/i.test(key)) throw new InboxError("That item doesn't exist.");
   const c = await stateCol();
   const now = new Date();
+  const kind = key.split(":")[0];
+  if (ADMIN_KINDS.has(kind) && panel.level !== "admin") throw new InboxError("That item doesn't exist.", 404);
+  if (action === "undo") {
+    // Bring back something dismissed: yours, or anyone's for admins
+    const res = await c.updateOne(
+      { _id: key, doneAt: { $exists: true }, ...(panel.level === "admin" ? {} : { doneBy: panel.discordId }) },
+      { $unset: { doneBy: "", doneByName: "", doneAt: "" } },
+    );
+    if (!res.matchedCount) throw new InboxError("That can't be brought back.", 404);
+    return;
+  }
+  // Everything else only works on an item that's actually in your list right now
+  const item = (await inboxItems(panel)).find((i) => i.key === key);
+  if (!item) throw new InboxError("That item is gone (someone may have handled it already).", 404);
+  if (action === "done" && !item.dismissable) throw new InboxError("This clears by itself once it's handled.");
   if (action === "claim") {
     const res = await c.findOneAndUpdate(
       { _id: key, $or: [{ claimedBy: { $exists: false } }, { claimedBy: panel.discordId }] } as never,
@@ -159,10 +201,6 @@ export async function inboxAction(panel: PanelUser, key: string, action: string)
   }
   if (action === "done") {
     await c.updateOne({ _id: key }, { $set: { doneBy: panel.discordId, doneByName: panel.name, doneAt: now } }, { upsert: true });
-    return;
-  }
-  if (action === "undo") {
-    await c.updateOne({ _id: key }, { $unset: { doneBy: "", doneByName: "", doneAt: "" } });
     return;
   }
   throw new InboxError("Unknown action.");

@@ -37,7 +37,7 @@ const KIND: Record<string, { icon: typeof Inbox; label: string }> = {
 type Filter = "all" | "mine" | "free" | "urgent";
 
 export function InboxTab({ onOpenMember }: { onOpenMember: (id: string) => void }) {
-  const { data, error, loading, reload } = useLive<{ items: Item[]; me: string }>("/api/admin/inbox", 20_000);
+  const { data, error, loading, reload } = useLive<{ items: Item[]; me: string; missing?: string[] }>("/api/admin/inbox", 20_000);
   const [filter, setFilter] = useState<Filter>("all");
   const [kind, setKind] = useState<string>("all");
   const [busy, setBusy] = useState<string | null>(null);
@@ -115,13 +115,14 @@ export function InboxTab({ onOpenMember }: { onOpenMember: (id: string) => void 
         </p>
       ) : null}
       {error ? <p className="adm-error">{error}</p> : null}
+      {data?.missing?.length ? <p className="adm-error">Couldn&apos;t check {data.missing.join(", ")} just now, so this list may be missing things. It retries on its own.</p> : null}
 
       {!data && loading ? <p className="adm-muted">Checking everything…</p> : null}
       {data && !shown.length ? (
         <div className="ibx-empty">
           <CheckCircle2 size={34} aria-hidden="true" />
-          <b>{items.length ? "Nothing here with these filters." : "All caught up!"}</b>
-          <span className="adm-muted">{items.length ? "Try another filter." : "Nothing is waiting on anyone right now. 🎉"}</span>
+          <b>{items.length ? "Nothing here with these filters." : data.missing?.length ? "Nothing found (but some checks failed)" : "All caught up!"}</b>
+          <span className="adm-muted">{items.length ? "Try another filter." : data.missing?.length ? "See the warning above." : "Nothing is waiting on anyone right now. 🎉"}</span>
         </div>
       ) : null}
 

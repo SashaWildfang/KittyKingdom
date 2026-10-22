@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requirePanel } from "../../../../lib/admin";
-import { InboxError, inboxAction, inboxCount, inboxItems } from "../../../../lib/inbox";
+import { InboxError, inboxAction, inboxCount, inboxFeed } from "../../../../lib/inbox";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   if (panel instanceof NextResponse) return panel;
   try {
     if (new URL(request.url).searchParams.get("count") === "1") return NextResponse.json({ ok: true, ...(await inboxCount(panel)) }, { headers: { "Cache-Control": "no-store" } });
-    return NextResponse.json({ ok: true, items: await inboxItems(panel), me: panel.discordId }, { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ ok: true, ...(await inboxFeed(panel)), me: panel.discordId }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Inbox failed", error);
     return NextResponse.json({ ok: false, error: "Couldn't load what needs attention." }, { status: 500 });
