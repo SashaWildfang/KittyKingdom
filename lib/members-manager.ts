@@ -10,7 +10,7 @@ import type { PanelUser } from "./admin";
 import { assignableRoles } from "./admin-roles";
 import { addMemberRole, discordRequest, getGuildRoles, guildId, postChannelMessage, removeMemberRole } from "./discord-member";
 import { getBotCollection, getMongoClient, getUsersCollection } from "./mongodb";
-import { ROLE_CATEGORIES } from "./role-catalog";
+import { getRoleCatalog } from "./role-catalog";
 
 const CACHE_MS = 60_000;
 const STAFF_LOG_CHANNEL_ID = "1360344042705256660";
@@ -79,9 +79,9 @@ async function build(): Promise<MMSnapshot> {
     }
   }
 
-  const guildRoles = await getGuildRoles();
+  const [guildRoles, catalog] = await Promise.all([getGuildRoles(), getRoleCatalog()]);
   const categoryOf = new Map<string, { key: string; adult: boolean }>();
-  for (const c of ROLE_CATEGORIES) for (const r of c.roles) categoryOf.set(r.id, { key: c.key, adult: c.adult });
+  for (const c of catalog) for (const r of c.roles) categoryOf.set(r.id, { key: c.key, adult: c.adult });
   const roles: MMRole[] = Array.from(guildRoles.values())
     .filter((r) => r.id !== guild)
     .sort((a, b) => b.position - a.position)
@@ -129,7 +129,7 @@ async function build(): Promise<MMSnapshot> {
     guildId: guild,
     roles,
     members,
-    categories: ROLE_CATEGORIES.map((c) => ({ key: c.key, title: c.title, adult: c.adult, roleIds: c.roles.map((r) => r.id).filter((id) => index.has(id)) })),
+    categories: catalog.map((c) => ({ key: c.key, title: c.title, adult: c.adult, roleIds: c.roles.map((r) => r.id).filter((id) => index.has(id)) })),
   };
 }
 

@@ -4,7 +4,7 @@
 import { Long } from "mongodb";
 import { addMemberRole, getGuildRoles, getMemberRoleIds, removeMemberRole, type GuildRole } from "./discord-member";
 import { getBotCollection } from "./mongodb";
-import { ADULT_ROLE_IDS, ROLE_CATEGORIES, SELF_ROLE_IDS } from "./role-catalog";
+import { getRoleCatalog } from "./role-catalog";
 import { getOwnedColorRoles, getShopColorRoles } from "./store";
 
 export const STATUS_ROLES = [
@@ -42,6 +42,8 @@ export type RoleState = {
     description: string;
     color: string;
     adult: boolean;
+    /** "single": picking one replaces the other in the category */
+    mode: "single" | "multi";
     locked: boolean;
     roles: { id: string; name: string; emoji: string; description: string; has: boolean; exists: boolean }[];
   }[];
@@ -62,13 +64,15 @@ async function memberLevel(discordId: string) {
 }
 
 export async function getRoleState(discordId: string): Promise<RoleState> {
-  const [memberRoles, guildRoles, owned, level, shopRoles] = await Promise.all([
+  const [memberRoles, guildRoles, owned, level, shopRoles, catalog] = await Promise.all([
     getMemberRoleIds(discordId),
     getGuildRoles(),
     getOwnedColorRoles(discordId).catch(() => []),
     memberLevel(discordId).catch(() => null),
     getShopColorRoles().catch(() => []),
+    getRoleCatalog(),
   ]);
+  const SELF_ROLE_IDS = new Set(catalog.flatMap((c) => c.roles.map((r) => r.id)));
   const colorRoleTotal = shopRoles.length;
   const has = new Set(memberRoles ?? []);
   const isAdult = has.has(ADULT_VERIFIED_ID);
@@ -95,15 +99,22 @@ export async function getRoleState(discordId: string): Promise<RoleState> {
     rank: top ? { name: top.name, colors: top.colors } : null,
     level,
     status: STATUS_ROLES.map((r) => ({ key: r.key, label: r.label, icon: r.icon, has: has.has(r.id) })),
-    categories: ROLE_CATEGORIES.map((c) => ({
-      key: c.key,
-      title: c.title,
-      description: c.description,
-      color: c.color,
-      adult: c.adult,
-      locked: c.adult && !isAdult,
-      roles: c.roles.map((r) => ({ ...r, has: has.has(r.id), exists: guildRoles.size === 0 || guildRoles.has(r.id) })),
-    })),
+    // Hidden categories and roles stay out of the picker (unless they still have one, so they can take it off)
+    categories: catalog
+      .filter((c) => !c.hidden || c.roles.some((r) => has.has(r.id)))
+      .map((c) => ({
+        key: c.key,
+        title: c.title,
+        description: c.description,
+        color: c.color,
+        adult: c.adult,
+        mode: c.mode ?? "multi",
+        locked: c.adult && !isAdult,
+        roles: c.roles
+          .filter((r) => !(r.hidden || c.hidden) || has.has(r.id))
+          .map((r) => ({ id: r.id, name: r.name, emoji: r.emoji, description: r.description, has: has.has(r.id), exists: guildRoles.size === 0 || guildRoles.has(r.id) })),
+      }))
+      .filter((c) => c.roles.length),
     colorRoles: owned.map((o) => ({ ...o, colors: colorsOf(o.roleId), equipped: has.has(o.roleId) })),
     colorRoleTotal: Math.max(colorRoleTotal, owned.length),
     colorCatalog: shopRoles
@@ -123,15 +134,27 @@ export async function getRoleState(discordId: string): Promise<RoleState> {
   };
 }
 
-/** Adds or removes one of the selector roles. Anything outside the selectors is refused. */
+/**
+ * Adds or removes one of the picker roles. Anything outside the role list is refused. In a pick-one category,
+ * adding a role takes the member's other role in that category off.
+ */
 export async function setSelfRole(discordId: string, roleId: string, add: boolean) {
-  if (!SELF_ROLE_IDS.has(roleId)) throw new RoleError("That role can't be changed from the website.", 403);
+  const catalog = await getRoleCatalog();
+  const category = catalog.find((c) => c.roles.some((r) => r.id === roleId));
+  const role = category?.roles.find((r) => r.id === roleId);
+  if (!category || !role) throw new RoleError("That role can't be changed from the website.", 403);
+  if (add && (role.hidden || category.hidden)) throw new RoleError("That role isn't available any more.", 403);
   const memberRoles = await getMemberRoleIds(discordId);
   if (!memberRoles) throw new RoleError("Join the Bear Nation Discord server to pick roles.", 403);
-  if (ADULT_ROLE_IDS.has(roleId) && !memberRoles.includes(ADULT_VERIFIED_ID)) {
+  if (category.adult && add && !memberRoles.includes(ADULT_VERIFIED_ID)) {
     throw new RoleError("18+ roles are available once you're ID verified in the Discord server.", 403);
   }
   if (add === memberRoles.includes(roleId)) return; // already how they want it
   const ok = add ? await addMemberRole(discordId, roleId) : await removeMemberRole(discordId, roleId);
   if (!ok) throw new RoleError("Discord didn't accept that change. Please try again in a moment.", 502);
+  if (add && category.mode === "single") {
+    for (const other of category.roles) {
+      if (other.id !== roleId && memberRoles.includes(other.id)) await removeMemberRole(discordId, other.id).catch(() => false);
+    }
+  }
 }
