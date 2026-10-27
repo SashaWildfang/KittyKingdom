@@ -281,7 +281,7 @@ export async function automodActivity(opts: ActivityOpts) {
               { $group: { _id: { t: { $dateTrunc: { date: "$at", unit, timezone: opts.timeZone } }, r: "$rule" }, n: { $sum: 1 } } },
               { $sort: { "_id.t": 1 } },
             ],
-            rows: [{ $sort: { at: -1, _id: -1 } }, { $skip: page * 25 }, { $limit: 25 }, { $project: { context: { $slice: ["$context", 1] }, userId: 1, channelId: 1, messageId: 1, rule: 1, reason: 1, term: 1, action: 1, offense: 1, content: 1, at: 1 } }],
+            rows: [{ $sort: { at: -1, _id: -1 } }, { $skip: page * 25 }, { $limit: 25 }, { $project: { context: { $slice: ["$context", 1] }, userId: 1, channelId: 1, messageId: 1, rule: 1, reason: 1, term: 1, action: 1, offense: 1, content: 1, at: 1, falsePositive: 1 } }],
           },
         },
       ])

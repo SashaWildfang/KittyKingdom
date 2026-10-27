@@ -21,21 +21,36 @@ export async function markFalsePositive(panel: PanelUser, id: string, input: { n
   const e = await events.findOne({ _id: new ObjectId(id) });
   if (!e) throw new FalsePositiveError("That catch wasn't found.", 404);
 
+  const punishments = await getBotCollection("punishments");
   if (input.undo) {
+    // Put back any strike this took back, with the decay time it had
+    const ids = ((e.falsePositive as Document | undefined)?.strikeIds ?? []) as ObjectId[];
+    for (const sid of ids) {
+      const p = await punishments.findOne({ _id: sid });
+      if (!p) continue;
+      await punishments.updateOne({ _id: sid }, { $set: { expiresAt: p.falsePositiveExpiresAt ?? p.expiresAt }, $unset: { falsePositive: "", falsePositiveBy: "", falsePositiveExpiresAt: "" } });
+    }
     await events.updateOne({ _id: e._id }, { $unset: { falsePositive: "" } });
     return { strikesCleared: 0, allowed: null as string | null };
   }
 
-  // The strike AutoMod recorded with this catch (same member, within a minute of it)
+  // The one strike AutoMod recorded with this catch: same member, the closest one within a minute of it.
+  // (Other strikes in that minute were for other messages and stay.)
   let strikesCleared = 0;
+  const strikeIds: ObjectId[] = [];
   if (e.action === "punish" && e.userId && e.at instanceof Date) {
     const uid = String(e.userId);
     const ids: unknown[] = [uid, Long.fromString(uid)];
-    const res = await (await getBotCollection("punishments")).updateMany(
-      { discordId: { $in: ids }, extraInfo: { $exists: true }, timestamp: { $gte: new Date(e.at.getTime() - 60_000), $lte: new Date(e.at.getTime() + 60_000) }, falsePositive: { $ne: true } } as never,
-      { $set: { expiresAt: new Date(), falsePositive: true, falsePositiveBy: panel.discordId } },
-    );
-    strikesCleared = res.modifiedCount;
+    const near = await punishments
+      .find({ discordId: { $in: ids }, extraInfo: { $exists: true }, timestamp: { $gte: new Date(e.at.getTime() - 60_000), $lte: new Date(e.at.getTime() + 60_000) }, falsePositive: { $ne: true } } as never, { projection: { timestamp: 1, expiresAt: 1 } })
+      .toArray();
+    const at = e.at.getTime();
+    const strike = near.sort((a, b) => Math.abs((a.timestamp as Date).getTime() - at) - Math.abs((b.timestamp as Date).getTime() - at))[0];
+    if (strike) {
+      await punishments.updateOne({ _id: strike._id }, { $set: { expiresAt: new Date(), falsePositive: true, falsePositiveBy: panel.discordId, falsePositiveExpiresAt: strike.expiresAt ?? null } });
+      strikeIds.push(strike._id);
+      strikesCleared = 1;
+    }
   }
 
   let allowed: string | null = null;
@@ -48,7 +63,7 @@ export async function markFalsePositive(panel: PanelUser, id: string, input: { n
   }
 
   const note = String(input.note ?? "").trim().slice(0, 300);
-  await events.updateOne({ _id: e._id }, { $set: { falsePositive: { by: panel.discordId, byName: panel.name, at: new Date(), note, strikesCleared, allowed } } });
+  await events.updateOne({ _id: e._id }, { $set: { falsePositive: { by: panel.discordId, byName: panel.name, at: new Date(), note, strikesCleared, strikeIds, allowed } } });
   await (await getMongoClient())
     .db(process.env.MONGODB_DB ?? "website")
     .collection("admin_audit")
