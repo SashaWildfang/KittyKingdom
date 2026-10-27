@@ -8,6 +8,8 @@ import { people, type Person } from "./admin-people";
 
 export type OpenTicket = {
   ticketId: number;
+  /** The ticket's database id (never changes) */
+  key: string;
   type: string;
   topic: string;
   openedBy: string | null;
@@ -21,6 +23,7 @@ export async function openTickets(excludeNsfw = false): Promise<OpenTicket[]> {
   const docs = await (await getBotCollection("activeTickets")).find(excludeNsfw ? { ticket_type: { $not: /nsfw/i } } : {}).sort({ created: -1 }).limit(100).toArray();
   return docs.map((d) => ({
     ticketId: Number(d.ticket_id),
+    key: String(d._id),
     type: String(d.ticket_type ?? "support"),
     topic: String(d.topic ?? ""),
     openedBy: d.opened_by ? String(d.opened_by) : null,

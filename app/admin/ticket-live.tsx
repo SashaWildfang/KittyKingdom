@@ -3,6 +3,7 @@
 import { ExternalLink, Eye, Radio, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { OpenTicket, TicketLiveMessage } from "../../lib/ticket-live";
+import { TicketWorkPanel } from "./ticket-work";
 import { PersonLink, RichText, TICKET_COLORS, prettyAction, timeAgo, useLive, type Mentions, type People } from "./admin-shared";
 
 const POLL_MS = 4000;
@@ -122,6 +123,7 @@ function TicketLive({ ticket, people, onOpenMember, onClose }: { ticket: OpenTic
           </button>
         </span>
       </header>
+      {!gone ? <TicketWorkPanel ticketKey={ticket.key} type={ticket.type} claimedBy={ticket.claimedBy} onOpenMember={onOpenMember} /> : null}
       {error ? <p className="adm-error">{error}</p> : null}
       {gone ? <p className="adm-muted">This ticket&apos;s channel was just closed. Its transcript will show up in the list below.</p> : null}
       <ol
