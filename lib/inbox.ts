@@ -11,7 +11,7 @@ import { people } from "./admin-people";
 import { getBotCollection, getJoinApplicationsCollection, getMongoClient } from "./mongodb";
 import { listWatch, watchActivity } from "./staff-notes";
 
-export type InboxKind = "join" | "ticket" | "ticket-quiet" | "appeal" | "ban-request" | "flag-18" | "automod" | "bot-issue" | "news" | "social-report" | "watch";
+export type InboxKind = "join" | "ticket" | "ticket-quiet" | "appeal" | "ban-request" | "flag-18" | "automod" | "bot-issue" | "news" | "social-report" | "watch" | "report";
 
 export type InboxItem = {
   key: string;
@@ -95,7 +95,7 @@ export async function inboxFeed(panel: PanelUser): Promise<{ items: InboxItem[];
     }
     return out;
   };
-  const [apps, active, appeals, bans, flags, alerts, issues, news, reports, watched] = await Promise.all([
+  const [apps, active, appeals, bans, flags, alerts, issues, news, reports, watched, msgReports] = await Promise.all([
     safe<Document>("join applications")(getJoinApplicationsCollection().then((c) => c.find({ status: "pending" }, { projection: { discordId: 1, submittedAt: 1 } }).sort({ submittedAt: 1 }).limit(60).toArray())),
     safe<Document>("tickets")(getBotCollection("activeTickets").then((c) => c.find({}, { projection: { ticket_id: 1, ticket_type: 1, opened_by: 1, claimed_by: 1, created: 1, last_updated: 1, manual_ticket: 1 } }).toArray())),
     admin ? safe<Document>("appeals")(db.collection("appeals").find({ status: "pending" }, { projection: { discordId: 1, createdAt: 1, "punishment.action": 1 } }).sort({ createdAt: 1 }).limit(40).toArray()) : Promise.resolve([] as Document[]),
@@ -115,6 +115,7 @@ export async function inboxFeed(panel: PanelUser): Promise<{ items: InboxItem[];
         missing.push("the watchlist");
         return { list: [] as Awaited<ReturnType<typeof listWatch>>, activity: [] as Awaited<ReturnType<typeof watchActivity>> };
       }),
+    safe<Document>("message reports")(getBotCollection("reports").then((c) => c.find({ status: "open" }, { projection: { authorId: 1, authorName: 1, count: 1, createdAt: 1, lastReportAt: 1, reporters: { $slice: -1 } } }).sort({ lastReportAt: 1 }).limit(60).toArray())),
   ]);
 
   const ids = [
@@ -125,6 +126,7 @@ export async function inboxFeed(panel: PanelUser): Promise<{ items: InboxItem[];
     ...alerts.map((a) => String(a.userId ?? "")),
     ...reports.map((r) => String(r.reported ?? "")),
     ...watched.activity.map((a) => a.discordId),
+    ...msgReports.map((r) => String(r.authorId ?? "")),
   ].filter((id) => /^\d{15,21}$/.test(id));
   const who = await people(ids).catch(() => ({}) as Record<string, { name?: string }>);
   const name = (id: unknown) => (id && who[String(id)]?.name) || "a member";
@@ -163,6 +165,13 @@ export async function inboxFeed(panel: PanelUser): Promise<{ items: InboxItem[];
   }
   for (const r of reports) {
     items.push({ key: `social-report:${r._id}`, kind: "social-report", title: `Social report about ${name(r.reported)}`, detail: `${String(r.reason ?? "")} · ${ago(r.at)} ago`, at: iso(r.at), link: "/admin?tab=dating", urgent: age(r.at) > 24 * HOUR, dismissable: false, member: String(r.reported ?? "") || null });
+  }
+
+  for (const r of msgReports) {
+    const n = Number(r.count ?? 1);
+    const reason = String(((r.reporters as Document[] | undefined) ?? [])[0]?.reason ?? "").slice(0, 90);
+    // A new reporter changes the key, so a report comes back to the top of everyone's list
+    items.push({ key: `report:${r._id}:${n}`, kind: "report", title: `Message from ${name(r.authorId) === "a member" ? String(r.authorName ?? "a member") : name(r.authorId)} reported${n > 1 ? ` by ${n} people` : ""}`, detail: `${reason} · ${ago(r.lastReportAt ?? r.createdAt)} ago`, at: iso(r.lastReportAt ?? r.createdAt), link: "/admin?tab=reports", urgent: n >= 3 || age(r.createdAt) > 6 * HOUR, dismissable: false, member: String(r.authorId ?? "") || null });
   }
 
   const reasons = new Map(watched.list.map((w) => [w.discordId, w.reason]));

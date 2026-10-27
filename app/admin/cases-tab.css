@@ -1,0 +1,46 @@
+/* Admin → Moderation → Cases */
+.cs { display: grid; gap: 0.9rem; }
+.cs-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 0.8rem; }
+.cs-head h2 { display: flex; align-items: center; gap: 0.5rem; margin: 0 0 0.3rem; }
+.cs-head p { margin: 0; max-width: 64ch; }
+.cs-new { display: grid; gap: 0.55rem; border: 1px solid var(--line); border-radius: 0.9rem; background: var(--panel); padding: 0.8rem; }
+.cs-new label { display: grid; gap: 0.25rem; font-size: 0.84rem; font-weight: 700; }
+.cs-new input, .cs-inline input, .cs-note textarea { width: 100%; min-width: 0; border: 1px solid var(--line); border-radius: 0.55rem; background: var(--panel-strong); color: var(--text); font: inherit; font-weight: 400; font-size: 0.88rem; padding: 0.45rem 0.55rem; resize: vertical; }
+.cs-new input:focus, .cs-inline input:focus, .cs-note textarea:focus { border-color: var(--ember); outline: none; }
+.cs-row { display: flex; justify-content: flex-end; gap: 0.4rem; }
+.cs-filters { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.cs-filters button { border: 1px solid var(--line); border-radius: 999px; background: none; color: var(--muted); cursor: pointer; font: inherit; font-size: 0.82rem; font-weight: 700; padding: 0.3rem 0.75rem; }
+.cs-filters button.is-on { border-color: var(--ember); background: rgba(var(--ember-rgb), 0.14); color: var(--text); }
+.cs-list { display: grid; gap: 0.55rem; margin: 0; padding: 0; list-style: none; }
+.cs-list > li { display: grid; gap: 0.35rem; border: 1px solid var(--line); border-radius: 0.9rem; background: var(--panel); padding: 0.65rem 0.8rem; }
+.cs-card { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.3rem 0.55rem; border: 0; background: none; color: var(--text); cursor: pointer; font: inherit; padding: 0; text-align: left; }
+.cs-card:hover b { color: var(--ember); }
+.cs-num { color: var(--muted); font-weight: 800; }
+.cs-card small { flex-basis: 100%; font-size: 0.78rem; }
+.cs-members { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; }
+.cs-back { justify-self: start; display: inline-flex; align-items: center; gap: 0.3rem; }
+.cs-view-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 0.8rem; }
+.cs-view-head h2 { margin: 0.15rem 0 0.35rem; overflow-wrap: anywhere; }
+.cs-status { display: inline-flex; align-items: center; gap: 0.3rem; border-radius: 999px; padding: 0.15rem 0.55rem; font-size: 0.78rem; font-weight: 800; }
+.cs-status.is-open { background: rgba(255, 196, 92, 0.14); color: #ffd27a; }
+.cs-status.is-closed { background: rgba(127, 224, 163, 0.12); color: #7fe0a3; }
+.cs-owner { margin-left: 0.5rem; font-size: 0.82rem; }
+.cs-view-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.cs-box { display: grid; gap: 0.55rem; border: 1px solid var(--line); border-radius: 0.9rem; background: var(--panel); padding: 0.8rem 0.9rem; }
+.cs-box h3 { margin: 0; font-size: 1rem; }
+.cs-mem { display: grid; gap: 0.3rem; margin: 0; padding: 0; list-style: none; }
+.cs-mem li { display: flex; align-items: center; gap: 0.4rem; }
+.cs-mem li button:last-child { margin-left: auto; display: grid; place-items: center; width: 1.7rem; height: 1.7rem; border: 0; border-radius: 0.45rem; background: none; color: var(--muted); cursor: pointer; }
+.cs-mem li button:last-child:hover { color: #ff9a9a; }
+.cs-inline { display: flex; gap: 0.4rem; }
+.cs-entries { display: grid; gap: 0.5rem; margin: 0; padding: 0; list-style: none; }
+.cs-entries > li { border-left: 2px solid var(--line); padding: 0.1rem 0 0.1rem 0.65rem; }
+.cs-entries > li.is-note { border-left-color: var(--ember); }
+.cs-entries > li.is-link { border-left-color: #8ec5ff; }
+.cs-entry-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.4rem; font-size: 0.84rem; }
+.cs-entry-head .adm-muted { font-size: 0.74rem; }
+.cs-entries p { margin: 0.2rem 0 0; font-size: 0.88rem; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
+.cs-ref { display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 0.25rem; border: 1px solid var(--line); border-radius: 0.55rem; background: var(--panel-strong); color: var(--text); cursor: pointer; font: inherit; font-size: 0.84rem; padding: 0.3rem 0.55rem; }
+.cs-ref:hover { border-color: var(--ember); }
+.cs-note { display: grid; gap: 0.4rem; }
+.cs-note .adm-btn { justify-self: end; }

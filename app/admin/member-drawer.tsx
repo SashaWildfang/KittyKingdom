@@ -24,7 +24,7 @@ import {
   type Ticket,
 } from "./admin-shared";
 import { DeleteTicketButton } from "./delete-ticket-button";
-import { MemberAlts, MemberNotes, MemberTimeline } from "./member-insights";
+import { MemberAlts, MemberCases, MemberNotes, MemberTimeline } from "./member-insights";
 import { MemberMessages } from "./member-messages";
 import type { Chat } from "./messages-tab";
 import { WipeMember } from "./wipe-member";
@@ -125,6 +125,7 @@ export function MemberDrawer({
             {/* Keyed by member so drafts and loaded data never carry over to the next profile */}
             <MemberNotes key={`notes-${userId}`} userId={userId} onOpenMember={onOpenMember} />
             <MemberAlts key={`alts-${userId}`} userId={userId} onOpenMember={onOpenMember} />
+            <MemberCases key={`cases-${userId}`} userId={userId} name={person?.name ?? "this member"} />
             <MemberTimeline key={`timeline-${userId}`} userId={userId} onOpenMember={onOpenMember} onOpenTranscript={onOpenTranscript} />
 
             {issued.data && issued.data.total > 0 ? (

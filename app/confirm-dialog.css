@@ -88,3 +88,7 @@
     transform: translateY(6px) scale(0.98);
   }
 }
+.cd-list { display: grid; gap: 0.3rem; margin: 0.2rem 0 0.6rem; text-align: left; }
+.cd-list b { font-size: 0.82rem; }
+.cd-list ul { max-height: 12rem; overflow: auto; margin: 0; border: 1px solid var(--line); border-radius: 0.6rem; padding: 0.35rem 0.6rem; list-style: none; font-size: 0.84rem; line-height: 1.6; }
+.cd-foot { display: block; margin: -0.2rem 0 0.6rem; color: var(--muted); font-size: 0.78rem; text-align: left; }

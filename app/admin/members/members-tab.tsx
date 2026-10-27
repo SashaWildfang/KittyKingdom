@@ -398,10 +398,23 @@ export function MembersTab({ onOpenMember }: { onOpenMember: (id: string) => voi
   const runBulk = async (add: boolean) => {
     const r = assignable?.find((x) => x.id === bulkRole);
     if (!r) return;
-    const ids = targets.filter((m) => !m.bot && (add ? !m.r.includes(ctx.index.get(r.id)!) : m.r.includes(ctx.index.get(r.id)!))).map((m) => m.id);
+    const has = (m: (typeof targets)[number]) => m.r.includes(ctx.index.get(r.id)!);
+    const changing = targets.filter((m) => !m.bot && (add ? !has(m) : has(m)));
+    const ids = changing.map((m) => m.id);
     if (!ids.length) return void showNotice(add ? "Everyone picked already has that role." : "Nobody picked has that role.");
     if (ids.length > 1000) return void showNotice("That's more than 1,000 members. Narrow the filter first.");
-    if (!(await askConfirm(`${add ? "Add" : "Remove"} the ${r.name} role ${add ? "to" : "from"} ${ids.length.toLocaleString()} member${ids.length === 1 ? "" : "s"}?`, { title: "Bulk role change", confirmLabel: add ? "Add role" : "Remove role", danger: !add }))) return;
+    // Preview: exactly who changes, and who's skipped and why
+    const unchanged = targets.filter((m) => !m.bot).length - ids.length;
+    const bots = targets.filter((m) => m.bot).length;
+    const skipped = [unchanged ? `${unchanged.toLocaleString()} ${add ? "already have it" : "don't have it"}` : null, bots ? `${bots} bot${bots === 1 ? "" : "s"}` : null].filter(Boolean).join(" and ");
+    const ok = await askConfirm(`${add ? "Add" : "Remove"} the ${r.name} role ${add ? "to" : "from"} ${ids.length.toLocaleString()} member${ids.length === 1 ? "" : "s"}?`, {
+      title: "Bulk role change",
+      confirmLabel: add ? `Add to ${ids.length.toLocaleString()}` : `Remove from ${ids.length.toLocaleString()}`,
+      danger: !add,
+      list: { label: `Who ${add ? "gets" : "loses"} it`, items: changing.map((m) => (m.name && m.username && m.name !== m.username ? `${m.name} (@${m.username})` : m.name || m.username || m.id)) },
+      footnote: skipped ? `Skipped: ${skipped}.` : undefined,
+    });
+    if (!ok) return;
     let done = 0;
     let failed = 0;
     setBulk({ done, failed, total: ids.length });

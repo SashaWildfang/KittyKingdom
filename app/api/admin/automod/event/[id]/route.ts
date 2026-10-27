@@ -3,6 +3,7 @@ import { requirePanel } from "../../../../../../lib/admin";
 import { people } from "../../../../../../lib/admin-people";
 import { automodEvent } from "../../../../../../lib/automod";
 import { getGuildChannelsRaw, guildId } from "../../../../../../lib/discord-member";
+import { FalsePositiveError, markFalsePositive } from "../../../../../../lib/automod-fp";
 
 export const dynamic = "force-dynamic";
 
@@ -20,9 +21,24 @@ export async function GET(request: Request, { params }: { params: { id: string }
       ok: true,
       ...data,
       people: who,
+      canAllow: panel.level === "admin",
       channelName: channel?.name ?? null,
       jumpUrl: guild && data.event.channelId ? `https://discord.com/channels/${guild}/${data.event.channelId}${data.event.messageId ? `/${data.event.messageId}` : ""}` : null,
     },
     { headers: { "Cache-Control": "no-store" } },
   );
+}
+
+/** Staff: {note?, allow?: true (admins: add the matched word to the allow list), undo?: true} marks a catch as a false positive. */
+export async function POST(request: Request, { params }: { params: { id: string } }) {
+  const panel = await requirePanel(request);
+  if (panel instanceof NextResponse) return panel;
+  try {
+    const body = (await request.json().catch(() => ({}))) as { note?: string; allow?: boolean; undo?: boolean };
+    return NextResponse.json({ ok: true, ...(await markFalsePositive(panel, params.id, body)) });
+  } catch (error) {
+    if (error instanceof FalsePositiveError) return NextResponse.json({ ok: false, error: error.message }, { status: error.status });
+    console.error("False positive failed", error);
+    return NextResponse.json({ ok: false, error: "That didn't work. Try again." }, { status: 500 });
+  }
 }

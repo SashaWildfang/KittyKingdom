@@ -4,7 +4,7 @@
 // doubles up; items that don't clear by themselves can be dismissed (and brought back).
 
 import "./inbox.css";
-import { AlertTriangle, BellRing, Bot, Eye, CheckCircle2, ClipboardCheck, Flag, Gavel, Hammer, HeartHandshake, Inbox, Newspaper, ShieldAlert, Ticket, Undo2, UserCheck } from "lucide-react";
+import { AlertTriangle, BellRing, Bot, Eye, CheckCircle2, ClipboardCheck, Flag, Gavel, Hammer, HeartHandshake, Inbox, MessageSquareWarning, Newspaper, ShieldAlert, Ticket, Undo2, UserCheck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useLive } from "./admin-shared";
 
@@ -33,6 +33,7 @@ const KIND: Record<string, { icon: typeof Inbox; label: string }> = {
   news: { icon: Newspaper, label: "News" },
   "social-report": { icon: HeartHandshake, label: "Social" },
   watch: { icon: Eye, label: "Watchlist" },
+  report: { icon: MessageSquareWarning, label: "Reports" },
 };
 
 type Filter = "all" | "mine" | "free" | "urgent";

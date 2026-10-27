@@ -3,10 +3,11 @@
 // Member profile extras: staff notes, the watchlist, "might be an alt of…" hints and the full timeline.
 
 import "./member-insights.css";
-import { AlertTriangle, CalendarClock, Clock3, Eye, EyeOff, FileText, Gavel, Globe, History, LogIn, NotebookPen, Pencil, Pin, PinOff, ScrollText, ShieldAlert, Ticket, Trash2, UserCog, UserRoundSearch } from "lucide-react";
+import { AlertTriangle, Briefcase, CalendarClock, Clock3, Eye, EyeOff, FileText, Gavel, Globe, History, LogIn, NotebookPen, Pencil, Pin, PinOff, ScrollText, ShieldAlert, Ticket, Trash2, UserCog, UserRoundSearch } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useState } from "react";
 import { PersonLink, formatDate, timeAgo, useLive, type People } from "./admin-shared";
+import { StartCaseButton, openCase } from "./cases-tab";
 
 type Note = { id: string; text: string; by: string; byName: string; at: string; pinned: boolean; source: string };
 type Watch = { reason: string; by: string; byName: string; at: string } | null;
@@ -234,6 +235,7 @@ const KINDS: Record<string, { label: string; icon: LucideIcon }> = {
   member: { label: "Profile changes", icon: UserCog },
   account: { label: "Accounts", icon: Clock3 },
   website: { label: "Accounts", icon: Globe },
+  case: { label: "Cases", icon: Briefcase },
 };
 
 /** Everything that happened with this member, newest first. */
@@ -309,6 +311,37 @@ export function MemberTimeline({ userId, onOpenMember, onOpenTranscript }: { use
           {!shown.length ? <p className="adm-empty">Nothing on record.</p> : null}
         </>
       ) : null}
+    </section>
+  );
+}
+
+type CaseRow = { id: string; number: number; title: string; status: "open" | "closed"; ownerName: string | null; updatedAt: string };
+
+/** Cases this member is part of, and a button to start one. */
+export function MemberCases({ userId, name }: { userId: string; name: string }) {
+  const { data } = useLive<{ cases: CaseRow[] }>(`/api/admin/cases?status=all&member=${userId}`, 60_000);
+  const cases = data?.cases ?? [];
+  return (
+    <section className="adm-drawer-section mi-cases">
+      <h3>
+        <Briefcase size={16} aria-hidden="true" /> Cases {cases.length ? <small>{cases.length}</small> : null}
+      </h3>
+      {cases.length ? (
+        <ul>
+          {cases.map((c) => (
+            <li key={c.id}>
+              <button type="button" onClick={() => openCase(c.id)}>
+                <span className={`mi-case-dot is-${c.status}`} aria-hidden="true" />
+                <b>#{c.number}</b> {c.title}
+                <small className="adm-muted">
+                  {c.status === "open" ? (c.ownerName ? `${c.ownerName} has it` : "open") : "closed"} · {timeAgo(c.updatedAt)}
+                </small>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <StartCaseButton title={`About ${name}`} members={[userId]} />
     </section>
   );
 }

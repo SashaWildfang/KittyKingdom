@@ -12,7 +12,16 @@ import "./confirm-dialog.css";
 import { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 
-type Options = { title?: string; confirmLabel?: string; cancelLabel?: string; danger?: boolean };
+type Options = {
+  title?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  danger?: boolean;
+  /** A scrollable list under the message (e.g. exactly who a bulk change affects) */
+  list?: { label: string; items: string[] };
+  /** A smaller line under the list */
+  footnote?: string;
+};
 type Kind = "confirm" | "notice" | "text";
 
 function Dialog({ kind, message, opts, done }: { kind: Kind; message: string; opts: Options; done: (value: boolean | string | null) => void }) {
@@ -38,6 +47,17 @@ function Dialog({ kind, message, opts, done }: { kind: Kind; message: string; op
       <div className="cd-box" role={kind === "notice" ? "alertdialog" : "dialog"} aria-modal="true" aria-label={opts.title ?? "Confirm"}>
         {opts.title ? <h2>{opts.title}</h2> : null}
         <p>{message}</p>
+        {opts.list?.items.length ? (
+          <div className="cd-list">
+            <b>{opts.list.label}</b>
+            <ul>
+              {opts.list.items.map((item, i) => (
+                <li key={i}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        {opts.footnote ? <small className="cd-foot">{opts.footnote}</small> : null}
         {kind === "text" ? (
           <input
             ref={input}

@@ -63,3 +63,11 @@
 .mi-wl-activity li { display: flex; align-items: center; gap: 0.35rem; }
 .mi-wl-activity svg { color: #ffd27a; }
 .mi-wl-quiet { margin: 0.5rem 0 0; font-size: 0.8rem; }
+
+/* Cases on the profile */
+.mi-cases ul { display: grid; gap: 0.3rem; margin: 0 0 0.5rem; padding: 0; list-style: none; }
+.mi-cases li button { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; width: 100%; border: 1px solid var(--line); border-radius: 0.6rem; background: var(--panel-strong); color: var(--text); cursor: pointer; font: inherit; font-size: 0.86rem; padding: 0.4rem 0.55rem; text-align: left; }
+.mi-cases li button:hover { border-color: var(--ember); }
+.mi-cases small { margin-left: auto; font-size: 0.74rem; }
+.mi-case-dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--muted); }
+.mi-case-dot.is-open { background: #ffd27a; }

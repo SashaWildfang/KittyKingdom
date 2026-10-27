@@ -6,10 +6,11 @@ import type { PanelUser } from "./admin";
 import { ADMIN_ONLY_LOG_TYPES } from "./bot-logs";
 import { getBotCollection, getMongoClient, getUsersCollection } from "./mongodb";
 import { queryPunishments } from "./moderation";
+import { casesFor } from "./cases";
 import { listNotes } from "./staff-notes";
 import { queryTickets } from "./tickets";
 
-export type TimelineKind = "account" | "server" | "join-app" | "ticket" | "punishment" | "automod" | "appeal" | "note" | "watch" | "member" | "website";
+export type TimelineKind = "account" | "server" | "join-app" | "ticket" | "punishment" | "automod" | "appeal" | "note" | "watch" | "member" | "website" | "case";
 
 export type TimelineEvent = {
   id: string;
@@ -36,7 +37,7 @@ export async function memberTimeline(panel: PanelUser, discordId: string): Promi
   const db = await site();
   const safe = <T>(p: Promise<T>, fallback: T) => p.catch(() => fallback);
 
-  const [punishments, tickets, joinApp, automod, appeals, notes, watch, logs, dir, account] = await Promise.all([
+  const [punishments, tickets, joinApp, automod, appeals, notes, watch, logs, dir, account, cases] = await Promise.all([
     safe(queryPunishments({ userId: discordId, pageSize: 200 }), { rows: [], total: 0 } as unknown as Awaited<ReturnType<typeof queryPunishments>>),
     safe(queryTickets({ userId: discordId, pageSize: 200, excludeNsfw: !isAdmin }), { rows: [], total: 0 } as unknown as Awaited<ReturnType<typeof queryTickets>>),
     safe(getBotCollection("join_applications").then((c) => c.find({ $or: [{ discordId: { $in: ids } }, { discord_id: { $in: ids } }, { userId: { $in: ids } }] } as never).sort({ submittedAt: -1 }).limit(5).toArray()), []),
@@ -57,6 +58,7 @@ export async function memberTimeline(panel: PanelUser, discordId: string): Promi
     ),
     safe(db.collection("member_directory").findOne({ _id: discordId as never }), null),
     safe(getUsersCollection().then((c) => c.findOne({ discordId }, { projection: { createdAt: 1, emailVerified: 1 } })), null),
+    safe(casesFor(discordId), []),
   ]);
 
   const out: TimelineEvent[] = [];
@@ -117,6 +119,7 @@ export async function memberTimeline(panel: PanelUser, discordId: string): Promi
   }
 
   for (const n of notes) push({ id: `n-${n.id}`, at: n.at, kind: "note", title: n.pinned ? "Staff note (pinned)" : "Staff note", detail: n.text, by: n.by, tone: "neutral" });
+  for (const c of cases) push({ id: `case-${c.id}`, at: c.createdAt, kind: "case", title: `Case #${c.number} opened: ${c.title}`, detail: c.status === "closed" ? "Closed" : c.ownerName ? `${c.ownerName} has it` : "Open", by: c.createdBy || null, tone: "warn" });
   if (watch) push({ id: "watch", at: watch.at, kind: "watch", title: "Added to the watchlist", detail: String(watch.reason ?? ""), by: watch.by ? String(watch.by) : null, tone: "warn" });
 
   for (const l of logs) {
