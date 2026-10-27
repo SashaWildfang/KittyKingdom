@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requirePanel } from "../../../../../lib/admin";
 import { allStatuses, consoleConfigured } from "../../../../../lib/bot-console";
 import { listIssues } from "../../../../../lib/bot-health";
+import { botVersions } from "../../../../../lib/bot-versions";
 import { getMongoClient } from "../../../../../lib/mongodb";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +25,10 @@ export async function GET(request: Request) {
   const open = await listIssues({ open: true, limit: 0 })
     .then((d) => d.open)
     .catch(() => ({}));
-  if (!consoleConfigured()) return NextResponse.json({ ok: true, configured: false, servers: [], actions, open }, { headers: { "Cache-Control": "no-store" } });
-  return NextResponse.json({ ok: true, configured: true, servers: await allStatuses(), actions, open }, { headers: { "Cache-Control": "no-store" } });
+  // Files each bot still needs uploaded, for the "Up to date?" badge
+  const outdated = await botVersions()
+    .then((list) => Object.fromEntries(list.map((v) => [v.bot, v.outdated.length + v.missing.length])))
+    .catch(() => ({}));
+  if (!consoleConfigured()) return NextResponse.json({ ok: true, configured: false, servers: [], actions, open, outdated }, { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json({ ok: true, configured: true, servers: await allStatuses(), actions, open, outdated }, { headers: { "Cache-Control": "no-store" } });
 }

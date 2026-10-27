@@ -1,0 +1,10 @@
+.mg-banner { position: sticky; top: 0; z-index: 900; background: #ffb224; color: #1a1300; font-size: 0.86rem; font-weight: 700; padding: 0.45rem 1rem; text-align: center; }
+.mg-banner a { color: inherit; text-decoration: underline; }
+.mg-screen { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; background: var(--bg, #14100c); padding: 1rem; }
+.mg-box { display: grid; justify-items: center; gap: 0.6rem; max-width: 28rem; border: 1px solid var(--line, rgba(255, 255, 255, 0.12)); border-radius: 1.2rem; background: var(--panel, rgba(255, 255, 255, 0.04)); padding: 2rem 1.5rem; text-align: center; }
+.mg-emoji { font-size: 2.6rem; }
+.mg-box h1 { margin: 0; }
+.mg-box p { margin: 0; color: var(--muted, #b9ad9f); line-height: 1.5; }
+.mg-until { font-weight: 700; color: var(--text, #fff) !important; }
+.mg-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; margin-top: 0.4rem; }
+.mg-links a { color: var(--ember, #f59b2a); font-weight: 700; }
