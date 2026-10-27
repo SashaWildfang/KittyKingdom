@@ -103,7 +103,36 @@ export async function createSessionRecord(userId: ObjectId) {
     location: info.location,
   };
   await (await sessionsCollection()).insertOne(record);
+  // A heads-up when someone signs in from a device or country this account hasn't used before (never blocks sign-in)
+  // (awaited, with a time limit: work left running after the response can be cut off on Vercel)
+  await Promise.race([newSignInAlert(record).catch(() => undefined), new Promise((r) => setTimeout(r, 2_500))]);
   return record._id;
+}
+
+async function newSignInAlert(record: SessionRecord) {
+  const earlier = await (await sessionsCollection())
+    .find({ userId: record.userId, _id: { $ne: record._id } } as never, { projection: { device: 1, location: 1 } })
+    .sort({ createdAt: -1 })
+    .limit(50)
+    .toArray();
+  // First ever sign-in: nothing to compare with
+  if (!earlier.length) return;
+  const same = earlier.some((s) => s.device?.browser === record.device?.browser && s.device?.os === record.device?.os && (s.location?.country ?? null) === (record.location?.country ?? null));
+  if (same) return;
+  const { getUsersCollection } = await import("./mongodb");
+  const user = await (await getUsersCollection()).findOne({ _id: record.userId }, { projection: { email: 1, emailVerified: 1, discordId: 1 } });
+  if (!user) return;
+  const device = [record.device?.browser, record.device?.os].filter(Boolean).join(" on ") || "a new device";
+  const where = [record.location?.city, record.location?.country].filter(Boolean).join(", ");
+  const text = `Someone signed in to your Bear Nation account from ${device}${where ? ` near ${where}` : ""}. If this was you, there's nothing to do. If it wasn't, change your password and sign out other devices in My Account → Security.`;
+  if (user.discordId) {
+    const { notify } = await import("./notifications");
+    await notify(String(user.discordId), { type: "system", title: "New sign-in to your account", body: text.slice(0, 200), link: "/account#security", key: `signin:${record._id}` }).catch(() => undefined);
+  }
+  if (user.email && user.emailVerified) {
+    const { sendSecurityNoticeEmail } = await import("./email");
+    await sendSecurityNoticeEmail(String(user.email), "New sign-in to your account", text).catch(() => undefined);
+  }
 }
 
 /** Records that a session is still in use (at most once a minute) and notes IP changes. */
