@@ -16,6 +16,7 @@ type Overview = {
   configured: boolean;
   servers: ServerStatus[];
   open?: Record<string, { errors: number; warnings: number }>;
+  outdated?: Record<string, number>;
   actions: { at: string | null; server: string; signal: string; by: string; ok: boolean; error: string | null }[];
 };
 type Logs = { ok: boolean; error?: string; lines: string[]; at: string };
@@ -90,7 +91,7 @@ const BOTS = [
   { key: "economy", name: "Economy Bot" },
   { key: "ticketing", name: "Ticket Bot" },
 ];
-type View = "console" | "issues" | "resources";
+type View = "console" | "issues" | "resources" | "versions" | "uptime";
 
 export function ConsoleTab() {
   const { data, error, reload } = useLive<Overview>("/api/admin/bots/console", 5_000);
@@ -119,6 +120,8 @@ export function ConsoleTab() {
     { key: "console", label: "Console" },
     { key: "issues", label: "Issues", badge: (open[bot.key]?.errors ?? 0) + (open[bot.key]?.warnings ?? 0) },
     { key: "resources", label: "Resources" },
+    { key: "versions", label: "Up to date?", badge: data.outdated?.[bot.key] ?? 0 },
+    { key: "uptime", label: "Uptime" },
   ];
 
   const power = async (signal: "start" | "stop" | "restart" | "kill") => {
@@ -260,6 +263,8 @@ export function ConsoleTab() {
           ) : null}
           {view === "issues" ? <IssuesView key={bot.key} bot={bot.key} name={bot.name} onChange={() => void reload()} /> : null}
           {view === "resources" ? <ResourcesView bot={bot.key} /> : null}
+          {view === "versions" ? <VersionsView bot={bot.key} name={bot.name} /> : null}
+          {view === "uptime" ? <UptimeView bot={bot.key} name={bot.name} /> : null}
 
           {data.configured ? (
             <div className="adm-card bc-history">
@@ -290,7 +295,7 @@ export function ConsoleTab() {
 }
 
 // ---------- Issues ----------
-type Issue = { id: string; bot: string; level: "error" | "warning"; title: string; detail: string; count: number; firstAt: string | null; lastAt: string | null; resolved: boolean; resolvedBy: string | null };
+type Issue = { id: string; bot: string; level: "error" | "warning"; title: string; detail: string; count: number; firstAt: string | null; lastAt: string | null; resolved: boolean; resolvedBy: string | null; hint?: { cause: string; fix: string } | null };
 
 function IssuesView({ bot, name, onChange }: { bot: string; name: string; onChange: () => void }) {
   const [showFixed, setShowFixed] = useState(false);
@@ -334,7 +339,10 @@ function IssuesView({ bot, name, onChange }: { bot: string; name: string; onChan
           <li key={i.id} className={`bc-issue is-${i.level}${i.resolved ? " is-fixed" : ""}`}>
             <button type="button" className="bc-issue-main" onClick={() => setOpenId(openId === i.id ? null : i.id)} aria-expanded={openId === i.id}>
               <span className={`bc-issue-level is-${i.level}`}>{i.level === "error" ? "Error" : "Warning"}</span>
-              <span className="bc-issue-title">{i.title}</span>
+              <span className="bc-issue-title">
+                {i.title}
+                {i.hint ? <small className="bc-issue-hint">{i.hint.cause}</small> : null}
+              </span>
               <span className="bc-issue-meta">
                 {i.count > 1 ? <b>×{i.count.toLocaleString()}</b> : null} {i.lastAt ? timeAgo(i.lastAt) : ""}
               </span>
@@ -345,6 +353,11 @@ function IssuesView({ bot, name, onChange }: { bot: string; name: string; onChan
                   First seen {i.firstAt ? new Date(i.firstAt).toLocaleString() : "—"} · last {i.lastAt ? new Date(i.lastAt).toLocaleString() : "—"}
                   {i.resolved ? ` · marked fixed${i.resolvedBy ? ` by ${i.resolvedBy}` : ""}` : ""}
                 </p>
+                {i.hint ? (
+                  <div className="bc-hint">
+                    <b>Likely cause:</b> {i.hint.cause} <span className="adm-muted">{i.hint.fix}</span>
+                  </div>
+                ) : null}
                 {i.detail ? <pre className="bc-trace">{i.detail}</pre> : null}
                 {!i.resolved ? (
                   <button type="button" className="adm-btn adm-btn--small" disabled={busy} onClick={() => void resolve({ id: i.id })}>
@@ -622,6 +635,116 @@ function SetupCard() {
         </ol>
         <p className="adm-muted">Only admins can see this tab, and starting, stopping or restarting needs two-factor turned on. Every action is logged with who did it.</p>
       </div>
+    </div>
+  );
+}
+
+// ---------- Up to date? ----------
+type VersionReport = { bot: string; reportedAt: string | null; startedAt: string | null; latestAt: string; outdated: string[]; missing: string[]; extra: string[]; total: number };
+
+function VersionsView({ bot, name }: { bot: string; name: string }) {
+  const { data, error } = useLive<{ bots: VersionReport[] }>("/api/admin/bots/versions", 30_000);
+  const v = data?.bots.find((b) => b.bot === bot);
+  const behind = v ? v.outdated.length + v.missing.length : 0;
+  return (
+    <div className="adm-card bc-versions">
+      <h3>Is the {name} up to date?</h3>
+      <p className="adm-muted">The bot reports a fingerprint of its code files when it starts (and every 15 minutes). Files listed here don&apos;t match the latest version yet: upload them, then restart the bot.</p>
+      {error && !data ? <p className="adm-error">{error}</p> : null}
+      {!data ? <div className="adm-skeleton" style={{ height: 120 }} /> : null}
+      {v && !v.reportedAt ? <p className="bc-warn">This bot hasn&apos;t reported yet. Upload <code>events/fingerprint.py</code> and restart it once; after that this check works on its own.</p> : null}
+      {v?.reportedAt ? (
+        <>
+          <p className={behind ? "bc-warn" : "bc-all-clear"}>
+            {behind ? `${behind} file${behind === 1 ? "" : "s"} to upload` : `✓ All ${v.total} code files match the latest version.`}
+            <small className="adm-muted">
+              {" "}
+              · checked {timeAgo(v.reportedAt)}
+              {v.startedAt ? ` · running since ${new Date(v.startedAt).toLocaleString()}` : ""} · latest version from {new Date(v.latestAt).toLocaleString()}
+            </small>
+          </p>
+          {v.outdated.length ? (
+            <>
+              <h4>Changed (upload these)</h4>
+              <ul className="bc-files">
+                {v.outdated.map((f) => (
+                  <li key={f}>
+                    <code>{f}</code>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
+          {v.missing.length ? (
+            <>
+              <h4>New files (not on the server yet)</h4>
+              <ul className="bc-files">
+                {v.missing.map((f) => (
+                  <li key={f}>
+                    <code>{f}</code>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
+          {v.extra.length ? (
+            <details className="bc-extra">
+              <summary>{v.extra.length} file{v.extra.length === 1 ? "" : "s"} on the server that aren&apos;t in the latest version</summary>
+              <p className="adm-muted">Usually old leftovers. They&apos;re harmless unless the bot loads them (anything in cmds/ or events/ gets loaded).</p>
+              <ul className="bc-files">
+                {v.extra.map((f) => (
+                  <li key={f}>
+                    <code>{f}</code>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+// ---------- Uptime ----------
+function UptimeView({ bot, name }: { bot: string; name: string }) {
+  const [days, setDays] = useState(7);
+  const { data, error } = useLive<{ days: { day: string; hours: { up: number; down: number }[] }[] }>(`/api/admin/bots/uptime?part=${bot}&days=${days}`, 60_000);
+  const totals = (data?.days ?? []).flatMap((d) => d.hours).reduce((a, h) => ({ up: a.up + h.up, down: a.down + h.down }), { up: 0, down: 0 });
+  const pct = totals.up + totals.down ? (totals.up / (totals.up + totals.down)) * 100 : null;
+  return (
+    <div className="adm-card bc-uptime">
+      <div className="bc-uptime-head">
+        <div>
+          <h3>{name} uptime</h3>
+          <p className="adm-muted">Each square is an hour. Green: up the whole hour · amber: down for part of it · red: down most of it · grey: no record.</p>
+        </div>
+        <select className="adm-select" value={days} onChange={(e) => setDays(Number(e.target.value))} aria-label="Period">
+          <option value={1}>Today</option>
+          <option value={7}>7 days</option>
+          <option value={14}>14 days</option>
+          <option value={30}>30 days</option>
+        </select>
+      </div>
+      {error && !data ? <p className="adm-error">{error}</p> : null}
+      {pct !== null ? (
+        <p>
+          <b>{pct.toFixed(pct > 99.9 ? 2 : 1)}%</b> <span className="adm-muted">up over this period ({Math.round(totals.down)} minutes down)</span>
+        </p>
+      ) : null}
+      <div className="bc-grid" role="img" aria-label={`Hourly uptime for the last ${days} days`}>
+        {data?.days.map((d) => (
+          <div key={d.day} className="bc-grid-row">
+            <span className="bc-grid-day">{new Date(`${d.day}T12:00:00Z`).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</span>
+            {d.hours.map((h, i) => {
+              const seen = h.up + h.down;
+              const cls = !seen ? "is-none" : h.down === 0 ? "is-up" : h.down < seen / 2 ? "is-part" : "is-down";
+              return <span key={i} className={`bc-cell ${cls}`} title={`${d.day} ${String(i).padStart(2, "0")}:00 UTC · ${seen ? `${h.up} min up, ${h.down} down` : "no record"}`} />;
+            })}
+          </div>
+        ))}
+      </div>
+      <p className="adm-muted bc-grid-note">Hours are in UTC.</p>
     </div>
   );
 }

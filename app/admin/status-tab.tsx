@@ -5,6 +5,7 @@ import { ArrowUpRight, CheckCircle2, Megaphone, Send, Trash2, Wrench } from "luc
 import { useState } from "react";
 import type { Incident, IncidentStatus, PartKey, StatusView } from "../../lib/status";
 import { formatDate, timeAgo, useLive } from "./admin-shared";
+import { askConfirm } from "../confirm-dialog";
 
 const PARTS: [PartKey, string][] = [
   ["website", "Website"],
@@ -65,6 +66,7 @@ export function StatusTab() {
 
   return (
     <section className="adm-panel stt">
+      <MaintenanceCard />
       <div className="adm-card stt-live">
         <div className="stt-live-head">
           <h3>Right now</h3>
@@ -228,5 +230,59 @@ function IncidentAdmin({ i, onChanged }: { i: Incident; onChanged: () => void })
       </div>
       {err ? <p className="adm-error">{err}</p> : null}
     </article>
+  );
+}
+
+/** Maintenance mode: members see a "back soon" screen until it's turned off (or the end time passes). */
+function MaintenanceCard() {
+  const { data, reload } = useLive<{ on: boolean; message: string; until: string | null }>("/api/maintenance", 30_000);
+  const [message, setMessage] = useState<string | null>(null);
+  const [until, setUntil] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  const save = async (on: boolean) => {
+    if (on && !data?.on && !(await askConfirm("Members will see a “back soon” screen instead of the website until you turn it off. Staff can still use everything.", { title: "Turn on maintenance mode?", confirmLabel: "Turn it on" }))) return;
+    setBusy(true);
+    setProblem(null);
+    const r = await fetch("/api/maintenance", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ on, message: message ?? data?.message ?? "", until: on ? (until ? new Date(until).toISOString() : data?.on ? data.until : null) : null }) })
+      .then((x) => x.json())
+      .catch(() => null);
+    setBusy(false);
+    if (!r?.ok) return setProblem(r?.error ?? "Couldn't save that.");
+    reload();
+  };
+  return (
+    <div className={`adm-card stt-maint${data?.on ? " is-on" : ""}`}>
+      <div className="stt-live-head">
+        <h3>Maintenance mode {data?.on ? <span className="stt-maint-on">On</span> : null}</h3>
+        {data?.on ? (
+          <button type="button" className="adm-btn adm-btn--small" disabled={busy} onClick={() => void save(false)}>
+            Turn off
+          </button>
+        ) : null}
+      </div>
+      <p className="adm-muted">While it&apos;s on, members see a &quot;back soon&quot; screen on the website. Staff and admins still get in (with a banner), and Discord is unaffected.</p>
+      <label className="stt-maint-field">
+        Message for members
+        <input value={message ?? data?.message ?? ""} maxLength={500} onChange={(e) => setMessage(e.target.value)} placeholder="We're doing some quick maintenance on the website. Discord works as normal in the meantime." />
+      </label>
+      {!data?.on ? (
+        <div className="stt-maint-row">
+          <label className="stt-maint-field">
+            Turn off by itself at <small className="adm-muted">(optional)</small>
+            <input type="datetime-local" value={until} onChange={(e) => setUntil(e.target.value)} />
+          </label>
+          <button type="button" className="adm-btn adm-btn--small adm-btn--danger" disabled={busy || !data} onClick={() => void save(true)}>
+            Turn on maintenance mode
+          </button>
+        </div>
+      ) : (
+        <button type="button" className="adm-btn adm-btn--ghost adm-btn--small" disabled={busy} onClick={() => void save(true)}>
+          Update the message
+        </button>
+      )}
+      {data?.on && data.until ? <p className="adm-muted">Turns off by itself {new Date(data.until).toLocaleString()}.</p> : null}
+      {problem ? <p className="adm-error">{problem}</p> : null}
+    </div>
   );
 }

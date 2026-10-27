@@ -5,6 +5,7 @@
 //
 // Server-only.
 
+import { issueHint } from "./bot-versions";
 import type { Document } from "mongodb";
 import { BOT_SERVERS, type ServerStatus } from "./bot-console";
 import { getBotCollection } from "./mongodb";
@@ -172,7 +173,7 @@ export async function botHealth(range: "24h" | "7d", statuses: ServerStatus[]): 
 }
 
 // ---------- Issues ----------
-export type BotIssue = { id: string; bot: string; level: "error" | "warning"; title: string; detail: string; count: number; firstAt: string | null; lastAt: string | null; resolved: boolean; resolvedBy: string | null };
+export type BotIssue = { id: string; bot: string; level: "error" | "warning"; title: string; detail: string; count: number; firstAt: string | null; lastAt: string | null; resolved: boolean; resolvedBy: string | null; hint?: { cause: string; fix: string } | null };
 
 export async function listIssues(opts: { bot?: string | null; open?: boolean; limit?: number }) {
   const col = await getBotCollection("bot_issues");
@@ -202,6 +203,7 @@ export async function listIssues(opts: { bot?: string | null; open?: boolean; li
     lastAt: iso(d.lastAt),
     resolved: Boolean(d.resolved),
     resolvedBy: d.resolvedBy ? String(d.resolvedBy) : null,
+    hint: issueHint(String(d.title ?? ""), String(d.detail ?? "")),
   }));
   return { issues, open };
 }

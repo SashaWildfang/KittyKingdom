@@ -10,6 +10,7 @@ import { Inter } from "next/font/google";
 import { PageTracker } from "./page-tracker";
 import { TimeZoneSync } from "./time-zone-sync";
 import { ViewAsBar } from "./view-as-bar";
+import { MaintenanceGate } from "./maintenance-gate";
 import { SiteFooter } from "./site-footer";
 import { SeasonProvider } from "./season-context";
 import { SeasonBackdrop } from "./season-backdrop";
@@ -74,6 +75,7 @@ export default async function RootLayout({
       <body>
         <SeasonProvider live={season} all={all}>
           <SeasonBackdrop />
+          <MaintenanceGate />
           {children}
           {/* The same footer on every page */}
           <SiteFooter />
