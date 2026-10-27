@@ -123,7 +123,7 @@ function TicketLive({ ticket, people, onOpenMember, onClose }: { ticket: OpenTic
           </button>
         </span>
       </header>
-      {!gone ? <TicketWorkPanel ticketKey={ticket.key} type={ticket.type} claimedBy={ticket.claimedBy} onOpenMember={onOpenMember} /> : null}
+      {!gone ? <TicketWorkPanel key={ticket.key} ticketKey={ticket.key} type={ticket.type} claimedBy={ticket.claimedBy} onOpenMember={onOpenMember} /> : null}
       {error ? <p className="adm-error">{error}</p> : null}
       {gone ? <p className="adm-muted">This ticket&apos;s channel was just closed. Its transcript will show up in the list below.</p> : null}
       <ol

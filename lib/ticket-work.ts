@@ -169,7 +169,8 @@ export async function responseStats(panel: PanelUser, days: number): Promise<Res
   const fields = { ticket_type: 1, created: 1, resolved_at: 1, resolved_by: 1, status: 1, first_staff_reply_at: 1, first_staff_reply_by: 1, opened_by: 1 };
   const [open, closed, firstTracked] = await Promise.all([
     getBotCollection("activeTickets").then((c) => c.find(match, { projection: fields }).toArray()),
-    getBotCollection("resolvedTickets").then((c) => c.find({ ...match, status: { $ne: "Deleted" } }, { projection: fields }).toArray()),
+    // "Deleted" is how finished tickets end up once their transcript is saved, so they all count
+    getBotCollection("resolvedTickets").then((c) => c.find(match, { projection: fields }).toArray()),
     // Reply times only exist from when the Ticket Bot started recording them
     Promise.all([getBotCollection("activeTickets"), getBotCollection("resolvedTickets")]).then(([a, r]) =>
       Promise.all([a.find({ first_staff_reply_at: { $exists: true } }).sort({ created: 1 }).limit(1).toArray(), r.find({ first_staff_reply_at: { $exists: true } }).sort({ created: 1 }).limit(1).toArray()]),
