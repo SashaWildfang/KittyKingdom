@@ -2,7 +2,7 @@
 
 import "./admin-nav.css";
 import { TicketCanDelete, TicketDeletePermissions } from "./delete-ticket-button";
-import { Eye, Inbox, MessageSquareWarning, Tags, ChevronDown, ChevronRight, Menu, Search, X, Lock, PartyPopper, Activity, Archive, AtSign, Database, CalendarDays, Gift, SunSnow, BarChart3, Bot, Coins, History, Megaphone, Server, Shield as ShieldIcon, BookOpen, Crown, Hammer, ClipboardCheck, ListChecks, TerminalSquare, Dices, Gavel, Globe, HeartHandshake, Mail, MessagesSquare, Newspaper, Scale, ScrollText, ShieldCheck, Ticket, Users, UsersRound, ImagePlus, type LucideIcon } from "lucide-react";
+import { Briefcase, Eye, Inbox, MessageSquareWarning, Tags, ChevronDown, ChevronRight, Menu, Search, X, Lock, PartyPopper, Activity, Archive, AtSign, Database, CalendarDays, Gift, SunSnow, BarChart3, Bot, Coins, History, Megaphone, Server, Shield as ShieldIcon, BookOpen, Crown, Hammer, ClipboardCheck, ListChecks, TerminalSquare, Dices, Gavel, Globe, HeartHandshake, Mail, MessagesSquare, Newspaper, Scale, ScrollText, ShieldCheck, Ticket, Users, UsersRound, ImagePlus, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AccountsTab } from "./accounts-tab";
@@ -48,16 +48,17 @@ import { RolePickerTab } from "./role-picker-tab";
 import { InboxTab } from "./inbox-tab";
 import { WatchlistTab } from "./watchlist-tab";
 import { ReportsTab } from "./reports-tab";
+import { CasesTab } from "./cases-tab";
 import { CommandPalette, rememberTab } from "./command-palette";
 
-type Tab = "graphics" | "discord-members" | "overview" | "punishments" | "automod" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live" | "join" | "dating" | "appeals" | "messages" | "games" | "guide" | "banrequests" | "patreon" | "emails" | "ads" | "bot-main" | "bot-economy" | "bot-moderation" | "bot-ticketing" | "server" | "bot-history" | "removed" | "giveaways" | "seasons" | "status" | "events" | "rules" | "bot-console" | "database" | "chat-events" | "lockdown" | "role-picker" | "inbox" | "watchlist" | "reports";
+type Tab = "graphics" | "discord-members" | "overview" | "punishments" | "automod" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live" | "join" | "dating" | "appeals" | "messages" | "games" | "guide" | "banrequests" | "patreon" | "emails" | "ads" | "bot-main" | "bot-economy" | "bot-moderation" | "bot-ticketing" | "server" | "bot-history" | "removed" | "giveaways" | "seasons" | "status" | "events" | "rules" | "bot-console" | "database" | "chat-events" | "lockdown" | "role-picker" | "inbox" | "watchlist" | "reports" | "cases";
 type Level = "admin" | "staff";
 
 // Tabs are grouped so the bar stays short: pick a group, then one of its tabs
 type Group = "overview" | "moderation" | "members" | "community" | "website" | "bots";
 const GROUPS: { key: Group; label: string; icon: LucideIcon; tabs: Tab[] }[] = [
   { key: "overview", label: "Overview", icon: BarChart3, tabs: ["inbox", "overview", "graphics", "seasons", "status", "guide"] },
-  { key: "moderation", label: "Moderation", icon: Gavel, tabs: ["punishments", "reports", "banrequests", "appeals", "watchlist", "automod", "lockdown", "logs", "live", "removed", "rules"] },
+  { key: "moderation", label: "Moderation", icon: Gavel, tabs: ["punishments", "reports", "cases", "banrequests", "appeals", "watchlist", "automod", "lockdown", "logs", "live", "removed", "rules"] },
   { key: "members", label: "Members", icon: Users, tabs: ["discord-members", "role-picker", "join", "tickets", "messages", "patreon"] },
   { key: "community", label: "Community", icon: PartyPopper, tabs: ["events", "chat-events", "giveaways", "games", "dating"] },
   { key: "website", label: "Website", icon: Globe, tabs: ["accounts", "emails", "news", "ads", "traffic", "database"] },
@@ -79,6 +80,7 @@ const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean; giveaw
   { key: "appeals", label: "Appeals", icon: Scale, admin: true },
   { key: "watchlist", label: "Watchlist", icon: Eye },
   { key: "reports", label: "Reports", icon: MessageSquareWarning },
+  { key: "cases", label: "Cases", icon: Briefcase },
   { key: "automod", label: "AutoMod", icon: ShieldCheck },
   { key: "lockdown", label: "Lockdown", icon: Lock },
   { key: "rules", label: "Rules", icon: ListChecks, admin: true },
@@ -123,6 +125,7 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
   const tabs = TABS.filter((t) => isAdmin || (t.giveaways ? canGiveaways : !t.admin));
   const [tab, setTab] = useState<Tab>("overview");
   const [member, setMember] = useState<string | null>(null);
+  const [caseId, setCaseId] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<number | null>(null);
   // The ticket's database id when opened from a list, so the right one opens even if numbers have moved since
   const [transcriptKey, setTranscriptKey] = useState<string | null>(null);
@@ -171,6 +174,8 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
   const inboxPoll = useLive<{ total: number; urgent: number }>(tab !== "inbox" ? "/api/admin/inbox?count=1" : null, 30_000);
   const reportsPoll = useLive<{ open: number }>(tab !== "reports" ? "/api/admin/reports?count=1" : null, 30_000);
   const openReports = reportsPoll.data?.open ?? 0;
+  const casesPoll = useLive<{ mine: number }>(tab !== "cases" ? "/api/admin/cases?count=1" : null, 60_000);
+  const myCases = casesPoll.data?.mine ?? 0;
   const inboxTotal = inboxPoll.data?.total ?? 0;
   const inboxUrgent = inboxPoll.data?.urgent ?? 0;
 
@@ -184,6 +189,7 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
     if (k === "news" && pendingNews > 0 && tab !== "news") return { count: pendingNews, label: `${pendingNews} waiting for review` };
     if (k === "dating" && datingReports > 0 && tab !== "dating") return { count: datingReports, hot: true, label: `${datingReports} open reports` };
     if (k === "appeals" && pendingAppeals > 0 && tab !== "appeals") return { count: pendingAppeals, hot: true, label: `${pendingAppeals} waiting` };
+    if (k === "cases" && myCases > 0) return { count: myCases, hot: false, label: `${myCases} open case${myCases === 1 ? "" : "s"} you have` };
     if (k === "reports" && openReports > 0) return { count: openReports, hot: true, label: `${openReports} open report${openReports === 1 ? "" : "s"}` };
     if (k === "banrequests" && pendingBans > 0) return { count: pendingBans, hot: true, label: `${pendingBans} waiting for a Mod+` };
     if (k === "tickets" && openTickets > 0) return { count: openTickets, hot: true, label: `${openTickets} open` };
@@ -250,6 +256,7 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
     if (t && tabs.some((x) => x.key === t)) setTab(t);
     if (params.get("member")) setMember(params.get("member"));
     if (params.get("ticket")) setTranscript(Number(params.get("ticket")));
+    if (params.get("case")) setCaseId(params.get("case"));
     const c = /^(\d{15,21})-(\d{15,21})$/.exec(params.get("chat") ?? "");
     if (isAdmin && c) setChat({ a: c[1], b: c[2] });
     setUrlRead(true);
@@ -263,6 +270,7 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
     if (member) params.set("member", member);
     if (transcript) params.set("ticket", String(transcript));
     if (tab === "messages" && chat) params.set("chat", `${chat.a}-${chat.b}`);
+    if (tab === "cases" && caseId) params.set("case", caseId);
     // The Games tab keeps the table being watched in the link
     const watching = new URLSearchParams(window.location.search).get("watch");
     if (tab === "games" && watching) params.set("watch", watching);
@@ -273,7 +281,20 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
     const bot = new URLSearchParams(window.location.search).get("bot");
     if (tab === "bot-console" && bot) params.set("bot", bot);
     window.history.replaceState(null, "", `/admin?${params}`);
-  }, [tab, member, transcript, urlRead, chat]);
+  }, [tab, member, transcript, urlRead, chat, caseId]);
+
+  // "Start a case" anywhere opens the new case here
+  useEffect(() => {
+    const open = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail;
+      if (!id) return;
+      setMember(null);
+      setCaseId(id);
+      setTab("cases");
+    };
+    window.addEventListener("kk-open-case", open);
+    return () => window.removeEventListener("kk-open-case", open);
+  }, []);
 
   const openMember = useCallback((id: string) => setMember(id), []);
   const openTranscript = useCallback((id: number, key?: string | null) => {
@@ -469,6 +490,7 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
       {tab === "inbox" ? <InboxTab onOpenMember={openMember} /> : null}
       {tab === "watchlist" ? <WatchlistTab onOpenMember={openMember} /> : null}
       {tab === "reports" ? <ReportsTab onOpenMember={openMember} /> : null}
+      {tab === "cases" ? <CasesTab caseId={caseId} onCase={setCaseId} onOpenMember={openMember} onOpenTranscript={openTranscript} /> : null}
       {isAdmin && tab === "bot-history" ? <BotsHistoryTab /> : null}
       {isAdmin && tab === "traffic" ? <TrafficTab /> : null}
       </TabBoundary>

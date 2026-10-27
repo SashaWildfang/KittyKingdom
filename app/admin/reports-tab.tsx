@@ -8,6 +8,7 @@ import "./reports-tab.css";
 import { Check, ExternalLink, MessageSquareWarning, RotateCcw, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { PersonLink, formatDate, timeAgo, useLive, type People } from "./admin-shared";
+import { StartCaseButton } from "./cases-tab";
 
 type Report = {
   id: string;
@@ -115,6 +116,7 @@ function ReportCard({ r, people, onOpenMember, onDone }: { r: Report; people: Pe
         <span className="adm-muted" title={formatDate(r.lastReportAt)}>
           {timeAgo(r.lastReportAt)}
         </span>
+        <StartCaseButton className="adm-btn adm-btn--ghost adm-btn--tiny rp-case" title={`Reports about ${people[r.authorId]?.name ?? r.authorName}`} members={[r.authorId]} refLink={{ type: "report", id: r.id, label: `Report: “${r.content.slice(0, 60)}”` }} />
         {r.jump ? (
           <a className="adm-btn adm-btn--ghost adm-btn--tiny rp-jump" href={r.jump} target="_blank" rel="noreferrer">
             <ExternalLink size={12} aria-hidden="true" /> Open in Discord
