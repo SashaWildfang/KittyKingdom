@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { runEmailJobs } from "../../../../lib/email-jobs";
 import { observeStaffRanks } from "../../../../lib/staff-activity";
+import { runDueAnnouncements } from "../../../../lib/announcements";
 import { pingDatabase } from "../../../../lib/status";
 import { runTicketAutoCleanup } from "../../../../lib/ticket-autoclean";
 import { refreshOutdatedNsfw } from "../../../../lib/ticket-summary";
@@ -18,6 +19,7 @@ export async function GET(request: Request) {
   if (db.ok && request.headers.get("user-agent")?.includes("BearNation-StatusCheck")) {
     await runEmailJobs(3_000).catch(() => undefined);
     await observeStaffRanks().catch(() => undefined);
+    await runDueAnnouncements().catch(() => undefined);
     await runTicketAutoCleanup(8_000).catch(() => undefined);
     await refreshOutdatedNsfw(4_000).catch(() => 0);
   }

@@ -43,7 +43,7 @@ export function botToken() {
   );
 }
 
-async function discordGet<T>(path: string, token: string | null, revalidate: number): Promise<T | null> {
+export async function discordGet<T>(path: string, token: string | null, revalidate: number): Promise<T | null> {
   try {
     const response = await fetch(`${DISCORD_API}${path}`, {
       headers: token ? { Authorization: `Bot ${token}` } : { Accept: "application/json" },
