@@ -2,7 +2,7 @@
 
 import "./admin-nav.css";
 import { TicketCanDelete, TicketDeletePermissions } from "./delete-ticket-button";
-import { Briefcase, ClipboardList, Contact, Eye, Inbox, KeyRound, ListTodo, MessageCircleReply, MessageSquareWarning, Tags, ChevronDown, ChevronRight, Menu, Search, X, Lock, PartyPopper, Activity, Archive, AtSign, Database, CalendarDays, Gift, SunSnow, BarChart3, Bot, Coins, History, Megaphone, Server, Shield as ShieldIcon, BookOpen, Crown, Hammer, ClipboardCheck, ListChecks, TerminalSquare, Dices, Gavel, Globe, HeartHandshake, Mail, MessagesSquare, Newspaper, Scale, ScrollText, ShieldCheck, Ticket, Users, UsersRound, ImagePlus, type LucideIcon } from "lucide-react";
+import { Briefcase, LineChart, ClipboardList, Contact, Eye, Inbox, KeyRound, ListTodo, MessageCircleReply, MessageSquareWarning, Tags, ChevronDown, ChevronRight, Menu, Search, X, Lock, PartyPopper, Activity, Archive, AtSign, Database, CalendarDays, Gift, SunSnow, BarChart3, Bot, Coins, History, Megaphone, Server, Shield as ShieldIcon, BookOpen, Crown, Hammer, ClipboardCheck, ListChecks, TerminalSquare, Dices, Gavel, Globe, HeartHandshake, Mail, MessagesSquare, Newspaper, Scale, ScrollText, ShieldCheck, Ticket, Users, UsersRound, ImagePlus, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AccountsTab } from "./accounts-tab";
@@ -51,15 +51,16 @@ import { ReportsTab } from "./reports-tab";
 import { CasesTab } from "./cases-tab";
 import { StaffActivityTab, StaffAppsTab, TasksTab } from "./team-tabs";
 import { AnnouncementsTab, AutoRepliesTab, ServerToolsTab } from "./tools-tabs";
+import { InsightsTab } from "./insights-tab";
 import { CommandPalette, rememberTab } from "./command-palette";
 
-type Tab = "graphics" | "discord-members" | "overview" | "punishments" | "automod" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live" | "join" | "dating" | "appeals" | "messages" | "games" | "guide" | "banrequests" | "patreon" | "emails" | "ads" | "bot-main" | "bot-economy" | "bot-moderation" | "bot-ticketing" | "server" | "bot-history" | "removed" | "giveaways" | "seasons" | "status" | "events" | "rules" | "bot-console" | "database" | "chat-events" | "lockdown" | "role-picker" | "inbox" | "watchlist" | "reports" | "cases" | "staff-activity" | "staff-apps" | "tasks" | "announcements" | "auto-replies" | "server-tools";
+type Tab = "graphics" | "discord-members" | "overview" | "punishments" | "automod" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live" | "join" | "dating" | "appeals" | "messages" | "games" | "guide" | "banrequests" | "patreon" | "emails" | "ads" | "bot-main" | "bot-economy" | "bot-moderation" | "bot-ticketing" | "server" | "bot-history" | "removed" | "giveaways" | "seasons" | "status" | "events" | "rules" | "bot-console" | "database" | "chat-events" | "lockdown" | "role-picker" | "inbox" | "watchlist" | "reports" | "cases" | "staff-activity" | "staff-apps" | "tasks" | "announcements" | "auto-replies" | "server-tools" | "insights";
 type Level = "admin" | "staff";
 
 // Tabs are grouped so the bar stays short: pick a group, then one of its tabs
 type Group = "overview" | "moderation" | "members" | "team" | "community" | "website" | "bots";
 const GROUPS: { key: Group; label: string; icon: LucideIcon; tabs: Tab[] }[] = [
-  { key: "overview", label: "Overview", icon: BarChart3, tabs: ["inbox", "overview", "graphics", "seasons", "status", "guide"] },
+  { key: "overview", label: "Overview", icon: BarChart3, tabs: ["inbox", "overview", "insights", "graphics", "seasons", "status", "guide"] },
   { key: "moderation", label: "Moderation", icon: Gavel, tabs: ["punishments", "reports", "cases", "banrequests", "appeals", "watchlist", "automod", "lockdown", "logs", "live", "removed", "rules"] },
   { key: "members", label: "Members", icon: Users, tabs: ["discord-members", "role-picker", "join", "tickets", "messages", "patreon"] },
   { key: "team", label: "Team", icon: Contact, tabs: ["tasks", "staff-activity", "staff-apps"] },
@@ -72,6 +73,7 @@ const GROUPS: { key: Group; label: string; icon: LucideIcon; tabs: Tab[] }[] = [
 const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean; giveaways?: boolean }[] = [
   { key: "inbox", label: "Needs attention", icon: Inbox },
   { key: "overview", label: "Overview", icon: BarChart3 },
+  { key: "insights", label: "Insights", icon: LineChart, admin: true },
   { key: "discord-members", label: "Discord Members", icon: UsersRound, admin: true },
   { key: "role-picker", label: "Role Picker", icon: Tags, admin: true },
   { key: "graphics", label: "Graphics", icon: ImagePlus, admin: true },
@@ -499,6 +501,7 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
       {tab === "inbox" ? <InboxTab onOpenMember={openMember} /> : null}
       {tab === "watchlist" ? <WatchlistTab onOpenMember={openMember} /> : null}
       {tab === "reports" ? <ReportsTab onOpenMember={openMember} /> : null}
+      {tab === "insights" && isAdmin ? <InsightsTab onOpenMember={openMember} /> : null}
       {tab === "announcements" && isAdmin ? <AnnouncementsTab /> : null}
       {tab === "auto-replies" && isAdmin ? <AutoRepliesTab /> : null}
       {tab === "server-tools" && isAdmin ? <ServerToolsTab /> : null}

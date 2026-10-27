@@ -1,0 +1,45 @@
+/* Admin → Overview → Insights */
+.ins { display: grid; gap: 0.9rem; }
+.ins-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.6rem; }
+.ins-head h2 { margin: 0; }
+.ins-tabs { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.ins-tabs button { display: inline-flex; align-items: center; gap: 0.35rem; border: 1px solid var(--line); border-radius: 999px; background: none; color: var(--muted); cursor: pointer; font: inherit; font-size: 0.82rem; font-weight: 700; padding: 0.32rem 0.75rem; }
+.ins-tabs button.is-on { border-color: var(--ember); background: rgba(var(--ember-rgb), 0.14); color: var(--text); }
+.ins-card { display: grid; gap: 0.75rem; border: 1px solid var(--line); border-radius: 1rem; background: var(--panel); padding: 0.9rem 1rem; }
+.ins-card h3 { margin: 0; }
+.ins-card h4 { margin: 0.2rem 0 0; font-size: 0.9rem; }
+.ins-card > p, .ins-card-head p { margin: 0; font-size: 0.84rem; }
+.ins-card-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 0.6rem; }
+.ins-card-head > div { display: grid; gap: 0.3rem; max-width: 64ch; }
+.ins-funnel, .ins-bars { display: grid; gap: 0.45rem; margin: 0; padding: 0; list-style: none; }
+.ins-funnel li { display: grid; grid-template-columns: minmax(9rem, 14rem) 1fr 6rem; align-items: center; gap: 0.6rem; }
+.ins-funnel-label { display: grid; }
+.ins-funnel-label small { font-size: 0.72rem; }
+.ins-funnel-n { text-align: right; font-weight: 800; }
+.ins-bars li { display: grid; grid-template-columns: minmax(8rem, 12rem) 1fr 3rem; align-items: center; gap: 0.5rem; font-size: 0.84rem; }
+.ins-bars b { text-align: right; }
+.ins-bar { display: block; height: 0.85rem; border-radius: 0.25rem; background: rgba(var(--ember-rgb), 0.1); overflow: hidden; }
+.ins-bar > span { display: block; height: 100%; border-radius: 0 0.25rem 0.25rem 0; background: rgba(var(--ember-rgb), 0.85); }
+.ins-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: 1rem; }
+.ins-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 0.5rem; }
+.ins-kpis > div { display: grid; gap: 0.15rem; border: 1px solid var(--line); border-radius: 0.75rem; background: var(--panel-strong); padding: 0.6rem 0.7rem; }
+.ins-kpis b { font-size: 1.3rem; }
+.ins-kpis span { color: var(--muted); font-size: 0.78rem; }
+.ins-amt { display: inline-flex; align-items: center; gap: 0.25rem; }
+.ins-neg { color: #ff9a9a; }
+.ins-flag { margin: 0; border-left: 3px solid #ffb224; border-radius: 0.3rem; background: rgba(255, 178, 36, 0.08); padding: 0.45rem 0.6rem; font-size: 0.86rem; }
+.ins-cols { display: flex; align-items: flex-end; gap: 2px; height: 7rem; border-bottom: 1px solid var(--line); }
+.ins-col { display: flex; flex: 1; align-items: flex-end; height: 100%; }
+.ins-col > span { display: block; width: 100%; min-height: 1px; border-radius: 4px 4px 0 0; background: rgba(var(--ember-rgb), 0.85); }
+.ins-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+.ins-table caption { margin-bottom: 0.35rem; text-align: left; font-weight: 800; }
+.ins-table th { border-bottom: 1px solid var(--line); color: var(--muted); font-size: 0.74rem; font-weight: 700; padding: 0.35rem; text-align: left; }
+.ins-table td { border-bottom: 1px solid var(--line); padding: 0.4rem 0.35rem; vertical-align: top; }
+.ins-table small { font-size: 0.72rem; }
+.ins-pun { margin-left: 0.35rem; border-color: rgba(229, 72, 77, 0.5); color: #ff9a9a; }
+.ins-note { margin: 0; font-size: 0.76rem; }
+@media (max-width: 720px) {
+  .ins-funnel li { grid-template-columns: 1fr 5rem; }
+  .ins-funnel li .ins-bar { grid-column: 1 / -1; grid-row: 2; }
+  .ins-table { display: block; overflow-x: auto; }
+}
