@@ -251,3 +251,18 @@ button.am2-kpi:focus-visible .am2-kpi-go { opacity: 1; }
 .am2 > *,
 .am2-grid > * { min-width: 0; }
 .am-raid span { min-width: 0; }
+
+/* False positives ("AutoMod got this wrong") */
+.am2-fp { display: grid; gap: 0.45rem; margin: 0 0 0.9rem; }
+.am2-fp > .adm-btn { justify-self: start; }
+.am2-fp form { display: grid; gap: 0.45rem; border: 1px solid var(--line); border-radius: 0.8rem; padding: 0.65rem 0.75rem; }
+.am2-fp form p { margin: 0; font-size: 0.82rem; }
+.am2-fp input[type="text"], .am2-fp form > input { width: 100%; border: 1px solid var(--line); border-radius: 0.55rem; background: var(--panel-strong); color: var(--text); font: inherit; font-size: 0.86rem; padding: 0.4rem 0.55rem; }
+.am2-fp-allow { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.84rem; }
+.am2-fp-row { display: flex; justify-content: flex-end; gap: 0.4rem; }
+.am2-fp.is-done { border: 1px solid rgba(110, 220, 150, 0.45); border-radius: 0.8rem; background: rgba(110, 220, 150, 0.08); padding: 0.55rem 0.7rem; font-size: 0.86rem; }
+.am2-fp.is-done p { margin: 0.2rem 0 0; color: var(--muted); }
+.am2-fp.is-done .adm-link { justify-self: start; }
+.am2-fp-tag { border-color: rgba(110, 220, 150, 0.5); color: #7fe0a3; }
+.am2-fp-list { display: grid; gap: 0.35rem; margin: 0; padding: 0; list-style: none; font-size: 0.86rem; }
+.am2-fp-list li { display: flex; justify-content: space-between; gap: 0.5rem; }

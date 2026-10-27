@@ -202,6 +202,8 @@ export type AutomodEvent = {
   content: string | null;
   /** The bot saved the messages before it (newer catches) */
   hasContext: boolean;
+  /** Staff marked it as a mistake */
+  falsePositive: { byName: string; at: string; note: string; strikesCleared: number; allowed: string | null } | null;
 };
 
 const RANGE_DAYS: Record<string, number> = { "24h": 1, "7d": 7, "30d": 30, "90d": 90 };
@@ -224,6 +226,9 @@ function toEvent(d: Document): AutomodEvent {
     offense: typeof d.offense === "number" ? d.offense : null,
     content: d.content ? String(d.content) : null,
     hasContext: Array.isArray(d.context) && d.context.length > 0,
+    falsePositive: d.falsePositive
+      ? { byName: String(d.falsePositive.byName ?? "staff"), at: iso(d.falsePositive.at) ?? "", note: String(d.falsePositive.note ?? ""), strikesCleared: Number(d.falsePositive.strikesCleared ?? 0), allowed: d.falsePositive.allowed ? String(d.falsePositive.allowed) : null }
+      : null,
   };
 }
 
