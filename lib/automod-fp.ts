@@ -34,6 +34,10 @@ export async function markFalsePositive(panel: PanelUser, id: string, input: { n
     return { strikesCleared: 0, allowed: null as string | null };
   }
 
+  // Claim the catch first, so marking it twice (or two staff at once) can't take back a second strike
+  const claimed = await events.updateOne({ _id: e._id, falsePositive: { $exists: false } }, { $set: { falsePositive: { pending: true, by: panel.discordId, byName: panel.name, at: new Date() } } });
+  if (!claimed.modifiedCount) throw new FalsePositiveError("This catch is already marked as a mistake.", 409);
+
   // The one strike AutoMod recorded with this catch: same member, the closest one within a minute of it.
   // (Other strikes in that minute were for other messages and stay.)
   let strikesCleared = 0;
@@ -54,12 +58,13 @@ export async function markFalsePositive(panel: PanelUser, id: string, input: { n
   }
 
   let allowed: string | null = null;
-  if (input.allow && e.term) {
-    if (panel.level !== "admin") throw new FalsePositiveError("Only admins can change the allow list.", 403);
+  if (input.allow && e.term && panel.level === "admin") {
     const plan = await planChange({ type: "allow", w: String(e.term) }, panel.level);
-    if (typeof plan === "string") throw new FalsePositiveError(plan);
-    await applyChange(plan, panel);
-    allowed = String(e.term);
+    // A word the allow list won't take doesn't undo the rest
+    if (typeof plan !== "string") {
+      await applyChange(plan, panel);
+      allowed = String(e.term);
+    }
   }
 
   const note = String(input.note ?? "").trim().slice(0, 300);
