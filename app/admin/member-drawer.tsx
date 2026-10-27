@@ -24,6 +24,7 @@ import {
   type Ticket,
 } from "./admin-shared";
 import { DeleteTicketButton } from "./delete-ticket-button";
+import { MemberAlts, MemberNotes, MemberTimeline } from "./member-insights";
 import { MemberMessages } from "./member-messages";
 import type { Chat } from "./messages-tab";
 import { WipeMember } from "./wipe-member";
@@ -120,6 +121,10 @@ export function MemberDrawer({
                 </>
               ) : null}
             </div>
+
+            <MemberNotes userId={userId} onOpenMember={onOpenMember} />
+            <MemberAlts userId={userId} onOpenMember={onOpenMember} />
+            <MemberTimeline userId={userId} onOpenMember={onOpenMember} onOpenTranscript={onOpenTranscript} />
 
             {issued.data && issued.data.total > 0 ? (
               <section className="adm-drawer-section adm-staff-actions">
