@@ -58,6 +58,8 @@ export async function staffSecurity(): Promise<StaffSecurity[]> {
 export async function signOutEverywhere(panel: PanelUser, discordId: string) {
   const u = await (await getUsersCollection()).findOne({ discordId }, { projection: { _id: 1 } });
   if (!u) throw new Error("They don't have a website account.");
+  // Older sign-in cookies aren't tied to a device record; bumping the session version ends those too
+  await (await getUsersCollection()).updateOne({ _id: u._id }, { $inc: { sessionVersion: 1 } });
   const r = await (await sessionsCollection()).updateMany({ userId: u._id, revokedAt: { $exists: false } } as never, { $set: { revokedAt: new Date(), revokedBy: panel.name } });
   await (await getMongoClient())
     .db(process.env.MONGODB_DB ?? "website")

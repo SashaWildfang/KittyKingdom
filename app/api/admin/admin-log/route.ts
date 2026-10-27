@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requirePanel } from "../../../../lib/admin";
 import { people } from "../../../../lib/admin-people";
 import { UndoError, listAdminLog, undoEntry } from "../../../../lib/admin-log";
+import { requireTwoFactorForAction } from "../../../../lib/admin-2fa";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,9 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const panel = await requirePanel(request, "admin");
   if (panel instanceof NextResponse) return panel;
+  // Undo can remove roles and reverse moderation decisions: same rule as other removing actions
+  const twoFactor = await requireTwoFactorForAction();
+  if (twoFactor) return twoFactor;
   try {
     const body = (await request.json().catch(() => ({}))) as { id?: string };
     await undoEntry(panel, String(body.id ?? ""));

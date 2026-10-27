@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requirePanel } from "../../../../lib/admin";
 import { signOutEverywhere, staffSecurity } from "../../../../lib/staff-security";
+import { requireTwoFactorForAction } from "../../../../lib/admin-2fa";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const panel = await requirePanel(request, "admin");
   if (panel instanceof NextResponse) return panel;
+  const twoFactor = await requireTwoFactorForAction();
+  if (twoFactor) return twoFactor;
   const body = (await request.json().catch(() => ({}))) as { discordId?: string };
   if (!/^\d{15,21}$/.test(String(body.discordId ?? ""))) return NextResponse.json({ ok: false, error: "Pick a staff member." }, { status: 400 });
   try {

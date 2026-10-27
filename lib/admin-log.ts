@@ -123,7 +123,10 @@ export async function undoEntry(panel: PanelUser, id: string) {
       case "bulk-role-add":
       case "bulk-role-remove": {
         const ids = ((d.members ?? []) as string[]).map(String);
-        for (let i = 0; i < ids.length; i += 25) await bulkRoleBatch(panel, String(d.roleId), d.action === "bulk-role-remove", ids.slice(i, i + 25));
+        const failed: string[] = [];
+        for (let i = 0; i < ids.length; i += 25) failed.push(...(await bulkRoleBatch(panel, String(d.roleId), d.action === "bulk-role-remove", ids.slice(i, i + 25))).failed);
+        // Some members couldn't be changed: leave the entry undoable so it can be tried again (redoing the rest is harmless)
+        if (failed.length) throw new UndoError(`Changed ${ids.length - failed.length} of ${ids.length}. ${failed.length} couldn't be changed (they may have left, or the role is now above the bot). Try Undo again.`);
         break;
       }
       case "watchlist-add":
