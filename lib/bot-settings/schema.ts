@@ -499,6 +499,7 @@ const MODERATION: BotDef = {
       about: "Where the bot reports punishments and alerts.",
       fields: [
         { key: "logs.punishments", label: "Punishment log", help: "Bans, kicks, warns, mutes and AutoMod actions.", type: "channel", default: "1358486649360748665" },
+        { key: "reports.channel", label: "Reports", help: "Where a heads-up goes when a member uses Report message (right-click a message → Apps). Handle reports in Admin → Moderation → Reports.", type: "channel", default: "1358486649360748665" },
         { key: "logs.bot", label: "Bot log", help: "Lockdowns, channel locks, clears, wipes and other staff tools.", type: "channel", default: "1360344042705256660" },
         { key: "logs.muteAlerts", label: "Mute alerts", help: "Public notices when someone is muted, muzzled or unmuzzled.", type: "channel", default: "1358485891361804358" },
         { key: "logs.staffAlerts", label: "Staff alerts", help: "Urgent alerts for staff (e.g. a member's 5th AutoMod offense).", type: "channel", default: "1485825407654559846" },

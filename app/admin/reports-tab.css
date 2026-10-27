@@ -1,0 +1,37 @@
+/* Admin → Moderation → Reports */
+.rp-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 0.8rem; }
+.rp-head h2 { display: flex; align-items: center; gap: 0.5rem; margin: 0 0 0.3rem; }
+.rp-head p { margin: 0; max-width: 62ch; }
+.rp-tabs { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.rp-tabs button { border: 1px solid var(--line); border-radius: 999px; background: none; color: var(--muted); cursor: pointer; font: inherit; font-size: 0.82rem; font-weight: 700; padding: 0.3rem 0.75rem; }
+.rp-tabs button.is-on { border-color: var(--ember); background: rgba(var(--ember-rgb), 0.14); color: var(--text); }
+.rp-tabs small { opacity: 0.75; }
+.rp-list { display: grid; gap: 0.8rem; margin: 1rem 0 0; padding: 0; list-style: none; }
+.rp-card { display: grid; gap: 0.6rem; border: 1px solid var(--line); border-radius: 1rem; background: var(--panel); padding: 0.85rem 0.95rem; }
+.rp-card.is-hot { border-color: rgba(229, 72, 77, 0.6); }
+.rp-card.is-handled, .rp-card.is-dismissed { opacity: 0.85; }
+.rp-card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.rp-jump { margin-left: auto; }
+.rp-msg { display: grid; gap: 0.35rem; margin: 0; border-left: 3px solid rgba(229, 72, 77, 0.6); border-radius: 0.3rem; background: var(--panel-strong); padding: 0.55rem 0.7rem; font-size: 0.9rem; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
+.rp-files { display: flex; flex-wrap: wrap; gap: 0.5rem; font-size: 0.8rem; }
+.rp-msg small { font-size: 0.74rem; }
+.rp-reporters { display: grid; gap: 0.3rem; margin: 0; padding: 0; list-style: none; }
+.rp-reporters li { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; font-size: 0.84rem; }
+.rp-reporters span { overflow-wrap: anywhere; }
+.rp-hist-btn { justify-self: start; font-size: 0.82rem; }
+.rp-hist { display: grid; gap: 0.25rem; margin: 0; padding: 0; list-style: none; font-size: 0.8rem; }
+.rp-hist-none { margin: 0; font-size: 0.8rem; }
+.rp-dot { display: inline-block; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--muted); }
+.rp-dot.is-open { background: #e5484d; }
+.rp-dot.is-handled { background: #7fe0a3; }
+.rp-actions { display: grid; gap: 0.45rem; border-top: 1px solid var(--line); padding-top: 0.6rem; }
+.rp-actions > input { width: 100%; border: 1px solid var(--line); border-radius: 0.6rem; background: var(--panel-strong); color: var(--text); font: inherit; font-size: 0.86rem; padding: 0.45rem 0.6rem; }
+.rp-actions > input:focus { border-color: var(--ember); outline: none; }
+.rp-del { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.84rem; }
+.rp-del input { accent-color: #e5484d; }
+.rp-btns { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.4rem; }
+.rp-actions > small { font-size: 0.76rem; }
+.rp-outcome { display: grid; gap: 0.3rem; border-top: 1px solid var(--line); padding-top: 0.55rem; font-size: 0.84rem; }
+.rp-outcome p { margin: 0; color: var(--muted); }
+.rp-outcome .adm-btn { justify-self: start; }
+.rp-pages { display: flex; align-items: center; justify-content: center; gap: 0.6rem; margin-top: 1rem; }
