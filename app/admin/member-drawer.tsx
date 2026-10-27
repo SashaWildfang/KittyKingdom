@@ -122,9 +122,10 @@ export function MemberDrawer({
               ) : null}
             </div>
 
-            <MemberNotes userId={userId} onOpenMember={onOpenMember} />
-            <MemberAlts userId={userId} onOpenMember={onOpenMember} />
-            <MemberTimeline userId={userId} onOpenMember={onOpenMember} onOpenTranscript={onOpenTranscript} />
+            {/* Keyed by member so drafts and loaded data never carry over to the next profile */}
+            <MemberNotes key={`notes-${userId}`} userId={userId} onOpenMember={onOpenMember} />
+            <MemberAlts key={`alts-${userId}`} userId={userId} onOpenMember={onOpenMember} />
+            <MemberTimeline key={`timeline-${userId}`} userId={userId} onOpenMember={onOpenMember} onOpenTranscript={onOpenTranscript} />
 
             {issued.data && issued.data.total > 0 ? (
               <section className="adm-drawer-section adm-staff-actions">

@@ -41,7 +41,8 @@ export async function memberTimeline(panel: PanelUser, discordId: string): Promi
     safe(queryTickets({ userId: discordId, pageSize: 200, excludeNsfw: !isAdmin }), { rows: [], total: 0 } as unknown as Awaited<ReturnType<typeof queryTickets>>),
     safe(getBotCollection("join_applications").then((c) => c.find({ $or: [{ discordId: { $in: ids } }, { discord_id: { $in: ids } }, { userId: { $in: ids } }] } as never).sort({ submittedAt: -1 }).limit(5).toArray()), []),
     safe(getBotCollection("automod_events").then((c) => c.find({ userId: { $in: ids } } as never).sort({ at: -1 }).limit(150).toArray()), []),
-    safe(db.collection("appeals").find({ discordId }).sort({ createdAt: -1 }).limit(30).toArray(), []),
+    // Appeals (and what members wrote in them) are admin-only
+    isAdmin ? safe(db.collection("appeals").find({ discordId }).sort({ createdAt: -1 }).limit(30).toArray(), []) : Promise.resolve([]),
     safe(listNotes(discordId), []),
     safe(getBotCollection("watchlist").then((c) => c.findOne({ _id: discordId as never })), null),
     // Joins, leaves, name and role changes; the punishment and ticket logs repeat what we already have

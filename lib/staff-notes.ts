@@ -125,12 +125,12 @@ export async function watchActivity(ids: string[], since: Date): Promise<WatchAc
   const site = (await getMongoClient()).db(process.env.MONGODB_DB ?? "website");
   const safe = <T>(p: Promise<T[]>) => p.catch(() => [] as T[]);
   const [pun, am, open, closed, logs] = await Promise.all([
-    safe((await getBotCollection("punishments")).find({ $or: [{ discordId: { $in: both } }, { user_discord_id: { $in: both } }], timestamp: { $gte: since } } as never, { projection: { discordId: 1, user_discord_id: 1, action: 1, timestamp: 1 } }).limit(100).toArray()),
-    safe((await getBotCollection("automod_events")).find({ userId: { $in: both }, at: { $gte: since } } as never, { projection: { userId: 1, rule: 1, action: 1, at: 1 } }).limit(100).toArray()),
-    safe((await getBotCollection("activeTickets")).find({ opened_by: { $in: both }, created: { $gte: since } } as never, { projection: { opened_by: 1, ticket_id: 1, ticket_type: 1, created: 1 } }).limit(50).toArray()),
-    safe((await getBotCollection("resolvedTickets")).find({ opened_by: { $in: both }, created: { $gte: since } } as never, { projection: { opened_by: 1, ticket_id: 1, ticket_type: 1, created: 1 } }).limit(50).toArray()),
+    safe((await getBotCollection("punishments")).find({ $or: [{ discordId: { $in: both } }, { user_discord_id: { $in: both } }], timestamp: { $gte: since } } as never, { projection: { discordId: 1, user_discord_id: 1, action: 1, timestamp: 1 } }).sort({ timestamp: -1 }).limit(200).toArray()),
+    safe((await getBotCollection("automod_events")).find({ userId: { $in: both }, at: { $gte: since } } as never, { projection: { userId: 1, rule: 1, action: 1, at: 1 } }).sort({ at: -1 }).limit(200).toArray()),
+    safe((await getBotCollection("activeTickets")).find({ opened_by: { $in: both }, created: { $gte: since } } as never, { projection: { opened_by: 1, ticket_id: 1, ticket_type: 1, created: 1 } }).sort({ created: -1 }).limit(100).toArray()),
+    safe((await getBotCollection("resolvedTickets")).find({ opened_by: { $in: both }, created: { $gte: since } } as never, { projection: { opened_by: 1, ticket_id: 1, ticket_type: 1, created: 1 } }).sort({ created: -1 }).limit(100).toArray()),
     // The Moderation Bot's own "Watched member joined" alert isn't a second join
-    safe(site.collection("bot_logs").find({ userIds: { $in: ids }, $and: [{ type: /member joined/i }, { type: { $not: /watched/i } }], ts: { $gte: since } }, { projection: { userIds: 1, subjectId: 1, ts: 1 } }).limit(50).toArray()),
+    safe(site.collection("bot_logs").find({ userIds: { $in: ids }, $and: [{ type: /member joined/i }, { type: { $not: /watched/i } }], ts: { $gte: since } }, { projection: { userIds: 1, subjectId: 1, ts: 1 } }).sort({ ts: -1 }).limit(100).toArray()),
   ]);
   const out: WatchActivity[] = [];
   const watched = new Set(ids);
