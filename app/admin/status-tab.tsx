@@ -244,7 +244,7 @@ function MaintenanceCard() {
     if (on && !data?.on && !(await askConfirm("Members will see a “back soon” screen instead of the website until you turn it off. Staff can still use everything.", { title: "Turn on maintenance mode?", confirmLabel: "Turn it on" }))) return;
     setBusy(true);
     setProblem(null);
-    const r = await fetch("/api/maintenance", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ on, message: message ?? data?.message ?? "", until: on && until ? new Date(until).toISOString() : null }) })
+    const r = await fetch("/api/maintenance", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ on, message: message ?? data?.message ?? "", until: on ? (until ? new Date(until).toISOString() : data?.on ? data.until : null) : null }) })
       .then((x) => x.json())
       .catch(() => null);
     setBusy(false);

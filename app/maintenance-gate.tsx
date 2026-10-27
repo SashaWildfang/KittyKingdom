@@ -8,7 +8,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 type State = { on: boolean; message: string; until: string | null; exempt: boolean };
-const OPEN_PATHS = /^\/(login|register|admin|status|api|reset-password|verify)/;
+const OPEN_PATHS = /^\/(login|register|admin|status|api|forgot-password|reset-password|verify)/;
 
 export function MaintenanceGate() {
   const path = usePathname() ?? "/";

@@ -44,23 +44,35 @@ export async function botVersions(): Promise<VersionReport[]> {
   });
 }
 
-/** Up/down per hour for the last `days` days (each hour: minutes up, minutes down, minutes unknown). */
+/**
+ * Up/down per hour for the last `days` days. A bot marks itself up every minute, so a past minute with no record
+ * means it was offline (down). Minutes before tracking started, and minutes still to come, are "unknown".
+ */
 export async function uptimeTimeline(part: string, days = 7) {
   const out: { day: string; hours: { up: number; down: number }[] }[] = [];
   const keys: string[] = [];
   for (let i = days - 1; i >= 0; i -= 1) keys.push(new Date(Date.now() - i * 86_400_000).toISOString().slice(0, 10));
-  const docs = await (await getBotCollection("status_days")).find({ part, day: { $in: keys } }, { projection: { day: 1, up: 1, down: 1 } }).toArray();
+  const col = await getBotCollection("status_days");
+  const [docs, first] = await Promise.all([
+    col.find({ part, day: { $in: keys } }, { projection: { day: 1, up: 1, down: 1 } }).toArray(),
+    col.find({ part }, { projection: { day: 1, up: 1, down: 1 } }).sort({ day: 1 }).limit(1).next(),
+  ]);
+  // The first minute ever recorded for this part
+  const firstMinutes = first ? [...((first.up as number[]) ?? []), ...((first.down as number[]) ?? [])] : [];
+  const trackedFrom = first ? Date.parse(`${first.day}T00:00:00Z`) + (firstMinutes.length ? Math.min(...firstMinutes) : 0) * 60_000 : Infinity;
+  const now = Date.now();
   const byDay = new Map(docs.map((d) => [String(d.day), d]));
   for (const day of keys) {
     const d = byDay.get(day);
     const up = new Set<number>((d?.up as number[] | undefined) ?? []);
-    const down = new Set<number>((d?.down as number[] | undefined) ?? []);
+    const dayStart = Date.parse(`${day}T00:00:00Z`);
     const hours = Array.from({ length: 24 }, (_, h) => {
       let u = 0;
       let dn = 0;
       for (let m = h * 60; m < h * 60 + 60; m += 1) {
+        const at = dayStart + m * 60_000;
         if (up.has(m)) u += 1;
-        else if (down.has(m)) dn += 1;
+        else if (at >= trackedFrom && at < now - 60_000) dn += 1;
       }
       return { up: u, down: dn };
     });
