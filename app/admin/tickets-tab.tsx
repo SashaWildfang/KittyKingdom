@@ -22,6 +22,7 @@ import {
   type Ticket,
 } from "./admin-shared";
 import { DobDialog } from "./dob-dialog";
+import { SavedViews } from "./saved-views";
 import { DeleteTicketButton, TicketCanDelete, TicketDeletePermissions } from "./delete-ticket-button";
 import { OpenTickets } from "./ticket-live";
 
@@ -329,6 +330,7 @@ export function TicketsTab({
 
       <section className="tk-filters" aria-label="Filters">
         <div className="tk-filter-row">
+          <SavedViews scope="tickets" current={filters as unknown as Record<string, unknown>} onApply={(v) => (setFilters({ ...DEFAULTS, ...(v as Partial<Filters>) }), setSearchText(String((v as Partial<Filters>).search ?? "")), setPage(1))} />
           <label className="adm-search tk-search">
             <Search size={16} aria-hidden="true" />
             <input type="search" placeholder="Ticket #, member name or ID, staff, topic…" value={searchText} onChange={(e) => setSearchText(e.target.value)} />

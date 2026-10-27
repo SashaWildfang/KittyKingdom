@@ -142,3 +142,8 @@ html body .adm { width: min(1560px, calc(100% - 2rem)); }
   .adm-side-chev { transition: none; }
   .adm-side.is-drawer { animation: none; }
 }
+/* "Go to… Ctrl K" in the breadcrumb bar (opens the command palette) */
+.adm-goto { display: inline-flex; align-items: center; gap: 0.35rem; margin-left: auto; border: 1px solid var(--line); border-radius: 999px; background: var(--panel-strong); color: var(--muted); cursor: pointer; font: inherit; font-size: 0.78rem; font-weight: 700; padding: 0.25rem 0.6rem; }
+.adm-goto:hover { border-color: var(--ember); color: var(--text); }
+.adm-goto kbd { border: 1px solid var(--line); border-radius: 0.3rem; font: inherit; font-size: 0.68rem; padding: 0 0.3rem; }
+@media (max-width: 640px) { .adm-goto kbd { display: none; } }
