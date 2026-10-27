@@ -12,6 +12,8 @@ const DAY = 86_400_000;
 const site = async () => (await getMongoClient()).db(process.env.MONGODB_DB ?? "website");
 const iso = (v: unknown) => (v instanceof Date ? v.toISOString() : null);
 const idsBoth = (ids: string[]) => ids.flatMap((id) => [id, Long.fromString(id)]);
+const APPROVED = new Set(["approved", "accepted"]);
+const DENIED = new Set(["denied", "banned", "auto_denied", "underage_kick"]);
 
 type Dir = { _id: string; joinedAt?: Date | null; leftAt?: Date | null; inServer?: boolean };
 
@@ -22,16 +24,29 @@ async function joinApps(ids: string[]) {
 }
 
 /** First message time and total messages per member (message index). */
-async function messageStats(ids: string[], windows?: { from: Date; to: Date }) {
-  if (!ids.length) return new Map<string, { first: Date | null; n: number; inWindow: number }>();
+async function messageStats(ids: string[]) {
+  if (!ids.length) return new Map<string, { first: Date | null; n: number }>();
   const idx = await getBotCollection("message_index");
-  const rows = await idx
+  const rows = await idx.aggregate([{ $match: { a: { $in: idsBoth(ids) } } }, { $group: { _id: { $toString: "$a" }, first: { $min: "$t" }, n: { $sum: 1 } } }]).toArray();
+  return new Map(rows.map((r) => [String(r._id), { first: r.first instanceof Date ? r.first : null, n: Number(r.n) }]));
+}
+
+/** Messages per member per day between two dates (for each member's own "weeks 2–4" window). */
+async function dailyMessages(ids: string[], from: Date, to: Date) {
+  const out = new Map<string, Map<number, number>>();
+  if (!ids.length) return out;
+  const rows = await (await getBotCollection("message_index"))
     .aggregate([
-      { $match: { a: { $in: idsBoth(ids) } } },
-      { $group: { _id: { $toString: "$a" }, first: { $min: "$t" }, n: { $sum: 1 }, ...(windows ? { inWindow: { $sum: { $cond: [{ $and: [{ $gte: ["$t", windows.from] }, { $lt: ["$t", windows.to] }] }, 1, 0] } } } : {}) } },
+      { $match: { a: { $in: idsBoth(ids) }, t: { $gte: from, $lt: to } } },
+      { $group: { _id: { a: { $toString: "$a" }, d: { $dateTrunc: { date: "$t", unit: "day" } } }, n: { $sum: 1 } } },
     ])
     .toArray();
-  return new Map(rows.map((r) => [String(r._id), { first: r.first instanceof Date ? r.first : null, n: Number(r.n), inWindow: Number(r.inWindow ?? 0) }]));
+  for (const r of rows) {
+    const m = out.get(String(r._id.a)) ?? new Map<number, number>();
+    m.set((r._id.d as Date).getTime(), Number(r.n));
+    out.set(String(r._id.a), m);
+  }
+  return out;
 }
 
 export type Cohort = { week: string; joined: number; applied: number; accepted: number; spoke: number; active: number | null; stayed: number | null };
@@ -48,18 +63,27 @@ export async function joinFunnel(weeks = 8): Promise<Cohort[]> {
     const to = new Date(from.getTime() + 7 * DAY);
     const people = dir.filter((d) => d.joinedAt && d.joinedAt >= from && d.joinedAt < to);
     const ids = people.map((p) => p._id);
-    const [apps, msgs] = await Promise.all([joinApps(ids), messageStats(ids, { from: new Date(from.getTime() + 7 * DAY), to: new Date(to.getTime() + 30 * DAY) })]);
-    const old7 = Date.now() - to.getTime() > 7 * DAY;
-    const old30 = Date.now() - to.getTime() > 30 * DAY;
+    // A week's numbers are only final once its newest member is old enough
+    const done28 = Date.now() - to.getTime() >= 28 * DAY;
+    const done30 = Date.now() - to.getTime() >= 30 * DAY;
+    const [apps, msgs, daily] = await Promise.all([joinApps(ids), messageStats(ids), done28 ? dailyMessages(ids, new Date(from.getTime() + 7 * DAY), new Date(to.getTime() + 28 * DAY)) : Promise.resolve(new Map<string, Map<number, number>>())]);
+    // "Still chatting": 5+ messages in that member's own days 7–28
+    const activeIn = (p: Dir) => {
+      const j = p.joinedAt!.getTime();
+      let n = 0;
+      daily.get(p._id)?.forEach((count, dayStart) => {
+        if (dayStart >= j + 7 * DAY - DAY && dayStart < j + 28 * DAY) n += count;
+      });
+      return n >= 5;
+    };
     out.push({
       week: from.toISOString().slice(0, 10),
       joined: people.length,
       applied: ids.filter((id) => apps.has(id)).length,
-      accepted: ids.filter((id) => apps.get(id)?.status === "accepted").length,
+      accepted: ids.filter((id) => APPROVED.has(String(apps.get(id)?.status))).length,
       spoke: ids.filter((id) => (msgs.get(id)?.n ?? 0) > 0).length,
-      // "Still chatting": 5+ messages between their second week and a month in
-      active: old7 ? ids.filter((id) => (msgs.get(id)?.inWindow ?? 0) >= 5).length : null,
-      stayed: old30 ? people.filter((p) => p.inServer !== false || (p.leftAt && p.joinedAt && p.leftAt.getTime() - p.joinedAt.getTime() > 30 * DAY)).length : null,
+      active: done28 ? people.filter(activeIn).length : null,
+      stayed: done30 ? people.filter((p) => p.inServer !== false || (p.leftAt && p.joinedAt && p.leftAt.getTime() - p.joinedAt.getTime() > 30 * DAY)).length : null,
     });
   }
   return out;
@@ -106,7 +130,8 @@ export async function leavers(days = 30): Promise<LeaverStats> {
     const b = stayedMs === null ? "Unknown" : buckets.find((x) => stayedMs < x.max)?.label ?? "A month or more";
     stayedCount.set(b, (stayedCount.get(b) ?? 0) + 1);
     const app = apps.get(d._id);
-    const stage = !app ? "Never sent a join app" : app.status === "accepted" ? "Accepted" : app.status === "denied" || app.status === "banned" ? "Denied" : "Join app still waiting";
+    const st = String(app?.status ?? "");
+    const stage = !app ? "Never sent a join app" : APPROVED.has(st) ? "Accepted" : DENIED.has(st) ? "Denied" : st === "pending" ? "Join app still waiting" : "Join app closed";
     stageCount.set(stage, (stageCount.get(stage) ?? 0) + 1);
     const m = msgs.get(d._id)?.n ?? 0;
     if (m === 0) quiet += 1;
@@ -176,7 +201,8 @@ export async function eventResults(days = 60) {
   const from = new Date(Date.now() - days * DAY);
   const [events, giveaways] = await Promise.all([
     getBotCollection("events").then((c) => c.find({ startAt: { $gte: from, $lte: new Date() }, deleted: { $ne: true }, cancelled: { $ne: true } }).sort({ startAt: -1 }).limit(40).toArray()),
-    getBotCollection("giveaways").then((c) => c.find({ status: { $in: ["ended", "review"] }, endAt: { $gte: from } }).sort({ endAt: -1 }).limit(40).toArray()),
+    // Only finished giveaways (ones waiting for an admin's review aren't results yet)
+    getBotCollection("giveaways").then((c) => c.find({ status: "ended", endAt: { $gte: from, $lte: new Date() } }).sort({ endAt: -1 }).limit(40).toArray()),
   ]);
   const rsvps = await getBotCollection("event_rsvps");
   const idx = await getBotCollection("message_index");
@@ -187,7 +213,7 @@ export async function eventResults(days = 60) {
     let both: number | null = null;
     if (e.channelId && e.startAt instanceof Date) {
       const end = e.endAt instanceof Date ? e.endAt : new Date(e.startAt.getTime() + 2 * 3_600_000);
-      const authors = (await idx.distinct("a", { c: String(e.channelId), t: { $gte: new Date(e.startAt.getTime() - 15 * 60_000), $lte: end } })).map(String);
+      const authors = (await idx.distinct("a", { c: { $in: [Long.fromString(String(e.channelId)), String(e.channelId)] }, t: { $gte: new Date(e.startAt.getTime() - 15 * 60_000), $lte: end } })).map(String);
       chatted = authors.length;
       const set = new Set(authors);
       both = going.filter((g) => set.has(g)).length;

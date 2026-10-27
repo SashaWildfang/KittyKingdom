@@ -60,7 +60,7 @@ function Funnel() {
     { key: "applied", label: "Sent a join app", help: "" },
     { key: "accepted", label: "Accepted", help: "" },
     { key: "spoke", label: "Said something", help: "At least one message, ever" },
-    { key: "active", label: "Still chatting", help: "5+ messages in their 2nd–4th week (shows once the week is old enough)" },
+    { key: "active", label: "Still chatting", help: "5+ messages in their own weeks 2–4 (shows once the whole week is 4 weeks old)" },
     { key: "stayed", label: "Still here at 30 days", help: "" },
   ];
   // The whole 8 weeks together (only weeks old enough count for the later steps)

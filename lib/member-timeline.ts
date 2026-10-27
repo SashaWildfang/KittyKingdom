@@ -84,7 +84,7 @@ export async function memberTimeline(panel: PanelUser, discordId: string): Promi
         title: status === "left" ? "Join application closed (they left)" : `Join application ${status}`,
         detail: typeof a.reason === "string" ? a.reason.slice(0, 200) : null,
         by: a.reviewedBy ? String(a.reviewedBy) : null,
-        tone: status === "accepted" ? "good" : status === "denied" || status === "banned" ? "bad" : "neutral",
+        tone: status === "accepted" || status === "approved" ? "good" : ["denied", "banned", "auto_denied", "underage_kick"].includes(status) ? "bad" : "neutral",
       });
     }
   }
