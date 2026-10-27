@@ -10,8 +10,9 @@ import type { PanelUser } from "./admin";
 import { people } from "./admin-people";
 import { getBotCollection, getJoinApplicationsCollection, getMongoClient } from "./mongodb";
 import { listWatch, watchActivity } from "./staff-notes";
+import { dueTasksFor } from "./staff-tasks";
 
-export type InboxKind = "join" | "ticket" | "ticket-quiet" | "appeal" | "ban-request" | "flag-18" | "automod" | "bot-issue" | "news" | "social-report" | "watch" | "report";
+export type InboxKind = "join" | "ticket" | "ticket-quiet" | "appeal" | "ban-request" | "flag-18" | "automod" | "bot-issue" | "news" | "social-report" | "watch" | "report" | "task";
 
 export type InboxItem = {
   key: string;
@@ -95,7 +96,7 @@ export async function inboxFeed(panel: PanelUser): Promise<{ items: InboxItem[];
     }
     return out;
   };
-  const [apps, active, appeals, bans, flags, alerts, issues, news, reports, watched, msgReports] = await Promise.all([
+  const [apps, active, appeals, bans, flags, alerts, issues, news, reports, watched, msgReports, tasks] = await Promise.all([
     safe<Document>("join applications")(getJoinApplicationsCollection().then((c) => c.find({ status: "pending" }, { projection: { discordId: 1, submittedAt: 1 } }).sort({ submittedAt: 1 }).limit(60).toArray())),
     safe<Document>("tickets")(getBotCollection("activeTickets").then((c) => c.find({}, { projection: { ticket_id: 1, ticket_type: 1, opened_by: 1, claimed_by: 1, created: 1, last_updated: 1, manual_ticket: 1 } }).toArray())),
     admin ? safe<Document>("appeals")(db.collection("appeals").find({ status: "pending" }, { projection: { discordId: 1, createdAt: 1, "punishment.action": 1 } }).sort({ createdAt: 1 }).limit(40).toArray()) : Promise.resolve([] as Document[]),
@@ -116,6 +117,7 @@ export async function inboxFeed(panel: PanelUser): Promise<{ items: InboxItem[];
         return { list: [] as Awaited<ReturnType<typeof listWatch>>, activity: [] as Awaited<ReturnType<typeof watchActivity>> };
       }),
     safe<Document>("message reports")(getBotCollection("reports").then((c) => c.find({ status: "open" }, { projection: { authorId: 1, authorName: 1, count: 1, createdAt: 1, lastReportAt: 1, reporters: { $slice: -1 } } }).sort({ lastReportAt: 1 }).limit(60).toArray())),
+    safe<Awaited<ReturnType<typeof dueTasksFor>>[number]>("your tasks")(dueTasksFor(panel.discordId)),
   ]);
 
   const ids = [
@@ -172,6 +174,11 @@ export async function inboxFeed(panel: PanelUser): Promise<{ items: InboxItem[];
     const reason = String(((r.reporters as Document[] | undefined) ?? [])[0]?.reason ?? "").slice(0, 90);
     // A new reporter changes the key, so a report comes back to the top of everyone's list
     items.push({ key: `report:${r._id}:${n}`, kind: "report", title: `Message from ${name(r.authorId) === "a member" ? String(r.authorName ?? "a member") : name(r.authorId)} reported${n > 1 ? ` by ${n} people` : ""}`, detail: `${reason} · ${ago(r.lastReportAt ?? r.createdAt)} ago`, at: iso(r.lastReportAt ?? r.createdAt), link: "/admin?tab=reports", urgent: n >= 3 || age(r.createdAt) > 6 * HOUR, dismissable: false, member: String(r.authorId ?? "") || null });
+  }
+
+  for (const t of tasks) {
+    const overdue = Boolean(t.due && new Date(t.due).getTime() < Date.now());
+    items.push({ key: `task:${t.id}`, kind: "task", title: `Your task: ${t.title}`, detail: t.due ? `${overdue ? "Was due" : "Due"} ${new Date(t.due).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}` : "", at: t.due ?? t.createdAt, link: "/admin?tab=tasks", urgent: overdue, dismissable: false, member: null });
   }
 
   const reasons = new Map(watched.list.map((w) => [w.discordId, w.reason]));

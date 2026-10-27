@@ -2,7 +2,7 @@
 
 import "./admin-nav.css";
 import { TicketCanDelete, TicketDeletePermissions } from "./delete-ticket-button";
-import { Briefcase, Eye, Inbox, MessageSquareWarning, Tags, ChevronDown, ChevronRight, Menu, Search, X, Lock, PartyPopper, Activity, Archive, AtSign, Database, CalendarDays, Gift, SunSnow, BarChart3, Bot, Coins, History, Megaphone, Server, Shield as ShieldIcon, BookOpen, Crown, Hammer, ClipboardCheck, ListChecks, TerminalSquare, Dices, Gavel, Globe, HeartHandshake, Mail, MessagesSquare, Newspaper, Scale, ScrollText, ShieldCheck, Ticket, Users, UsersRound, ImagePlus, type LucideIcon } from "lucide-react";
+import { Briefcase, ClipboardList, Contact, Eye, Inbox, ListTodo, MessageSquareWarning, Tags, ChevronDown, ChevronRight, Menu, Search, X, Lock, PartyPopper, Activity, Archive, AtSign, Database, CalendarDays, Gift, SunSnow, BarChart3, Bot, Coins, History, Megaphone, Server, Shield as ShieldIcon, BookOpen, Crown, Hammer, ClipboardCheck, ListChecks, TerminalSquare, Dices, Gavel, Globe, HeartHandshake, Mail, MessagesSquare, Newspaper, Scale, ScrollText, ShieldCheck, Ticket, Users, UsersRound, ImagePlus, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AccountsTab } from "./accounts-tab";
@@ -49,17 +49,19 @@ import { InboxTab } from "./inbox-tab";
 import { WatchlistTab } from "./watchlist-tab";
 import { ReportsTab } from "./reports-tab";
 import { CasesTab } from "./cases-tab";
+import { StaffActivityTab, StaffAppsTab, TasksTab } from "./team-tabs";
 import { CommandPalette, rememberTab } from "./command-palette";
 
-type Tab = "graphics" | "discord-members" | "overview" | "punishments" | "automod" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live" | "join" | "dating" | "appeals" | "messages" | "games" | "guide" | "banrequests" | "patreon" | "emails" | "ads" | "bot-main" | "bot-economy" | "bot-moderation" | "bot-ticketing" | "server" | "bot-history" | "removed" | "giveaways" | "seasons" | "status" | "events" | "rules" | "bot-console" | "database" | "chat-events" | "lockdown" | "role-picker" | "inbox" | "watchlist" | "reports" | "cases";
+type Tab = "graphics" | "discord-members" | "overview" | "punishments" | "automod" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live" | "join" | "dating" | "appeals" | "messages" | "games" | "guide" | "banrequests" | "patreon" | "emails" | "ads" | "bot-main" | "bot-economy" | "bot-moderation" | "bot-ticketing" | "server" | "bot-history" | "removed" | "giveaways" | "seasons" | "status" | "events" | "rules" | "bot-console" | "database" | "chat-events" | "lockdown" | "role-picker" | "inbox" | "watchlist" | "reports" | "cases" | "staff-activity" | "staff-apps" | "tasks";
 type Level = "admin" | "staff";
 
 // Tabs are grouped so the bar stays short: pick a group, then one of its tabs
-type Group = "overview" | "moderation" | "members" | "community" | "website" | "bots";
+type Group = "overview" | "moderation" | "members" | "team" | "community" | "website" | "bots";
 const GROUPS: { key: Group; label: string; icon: LucideIcon; tabs: Tab[] }[] = [
   { key: "overview", label: "Overview", icon: BarChart3, tabs: ["inbox", "overview", "graphics", "seasons", "status", "guide"] },
   { key: "moderation", label: "Moderation", icon: Gavel, tabs: ["punishments", "reports", "cases", "banrequests", "appeals", "watchlist", "automod", "lockdown", "logs", "live", "removed", "rules"] },
   { key: "members", label: "Members", icon: Users, tabs: ["discord-members", "role-picker", "join", "tickets", "messages", "patreon"] },
+  { key: "team", label: "Team", icon: Contact, tabs: ["tasks", "staff-activity", "staff-apps"] },
   { key: "community", label: "Community", icon: PartyPopper, tabs: ["events", "chat-events", "giveaways", "games", "dating"] },
   { key: "website", label: "Website", icon: Globe, tabs: ["accounts", "emails", "news", "ads", "traffic", "database"] },
   { key: "bots", label: "Bots", icon: Bot, tabs: ["bot-console", "bot-main", "bot-economy", "bot-moderation", "bot-ticketing", "server", "bot-history"] },
@@ -81,6 +83,9 @@ const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean; giveaw
   { key: "watchlist", label: "Watchlist", icon: Eye },
   { key: "reports", label: "Reports", icon: MessageSquareWarning },
   { key: "cases", label: "Cases", icon: Briefcase },
+  { key: "tasks", label: "Tasks", icon: ListTodo },
+  { key: "staff-activity", label: "Staff activity", icon: UsersRound, admin: true },
+  { key: "staff-apps", label: "Applications", icon: ClipboardList, admin: true },
   { key: "automod", label: "AutoMod", icon: ShieldCheck },
   { key: "lockdown", label: "Lockdown", icon: Lock },
   { key: "rules", label: "Rules", icon: ListChecks, admin: true },
@@ -490,6 +495,9 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
       {tab === "inbox" ? <InboxTab onOpenMember={openMember} /> : null}
       {tab === "watchlist" ? <WatchlistTab onOpenMember={openMember} /> : null}
       {tab === "reports" ? <ReportsTab onOpenMember={openMember} /> : null}
+      {tab === "tasks" ? <TasksTab onOpenMember={openMember} /> : null}
+      {tab === "staff-activity" && isAdmin ? <StaffActivityTab onOpenMember={openMember} /> : null}
+      {tab === "staff-apps" && isAdmin ? <StaffAppsTab onOpenMember={openMember} onOpenTranscript={openTranscript} /> : null}
       {tab === "cases" ? <CasesTab caseId={caseId} onCase={setCaseId} onOpenMember={openMember} onOpenTranscript={openTranscript} /> : null}
       {isAdmin && tab === "bot-history" ? <BotsHistoryTab /> : null}
       {isAdmin && tab === "traffic" ? <TrafficTab /> : null}
