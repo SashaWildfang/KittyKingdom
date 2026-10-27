@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, BrushCleaning, Lock, Eye, FileText, RefreshCw, Search, Sparkles, Ticket as TicketIcon, Trash2, UserX, X } from "lucide-react";
+import { AlertTriangle, BrushCleaning, Lock, Eye, MessageSquareReply, FileText, RefreshCw, Search, Sparkles, Ticket as TicketIcon, Trash2, UserX, X } from "lucide-react";
 import "./ticket-summary.css";
 import "./delete-ticket.css";
 import { useContext, useEffect, useRef, useState } from "react";
@@ -25,6 +25,7 @@ import { DobDialog } from "./dob-dialog";
 import { SavedViews } from "./saved-views";
 import { DeleteTicketButton, TicketCanDelete, TicketDeletePermissions } from "./delete-ticket-button";
 import { OpenTickets } from "./ticket-live";
+import { ResponseTimes, SavedReplies } from "./ticket-work";
 
 type Result = { rows: Ticket[]; total: number; page: number; pageSize: number; people: People; statusCounts: Record<string, number>; tagCounts: Record<string, number> | null };
 type SortKey = "ticketId" | "created" | "resolvedAt" | "type";
@@ -220,6 +221,7 @@ export function TicketsTab({
   const [stored, setFilters] = useStored<Filters>("tickets-filters-v2", DEFAULTS);
   const filters = { ...DEFAULTS, ...stored };
   const [page, setPage] = useState(1);
+  const [showReplies, setShowReplies] = useState(false);
   const [searchText, setSearchText] = useState(filters.search);
   const canDelete = useContext(TicketCanDelete);
 
@@ -321,12 +323,17 @@ export function TicketsTab({
           </button>
         </div>
         <div className="tk-head-actions">
+          <button type="button" className={`adm-btn adm-btn--ghost adm-btn--small${showReplies ? " is-on" : ""}`} onClick={() => setShowReplies((v) => !v)} aria-expanded={showReplies}>
+            <MessageSquareReply size={14} aria-hidden="true" /> Saved replies
+          </button>
           <LiveBadge updatedAt={updatedAt} loading={loading} />
           {canDelete && !readOnly ? <AutoCleanBadge /> : null}
         </div>
       </header>
 
+      {showReplies ? <SavedReplies onClose={() => setShowReplies(false)} /> : null}
       <OpenTickets onOpenMember={onOpenMember} />
+      <ResponseTimes onOpenMember={onOpenMember} />
 
       <section className="tk-filters" aria-label="Filters">
         <div className="tk-filter-row">

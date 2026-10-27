@@ -1,0 +1,56 @@
+/* Tickets: notes + assign on a live ticket, saved replies, response times */
+.tw-panel { display: grid; gap: 0.6rem; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 0.6rem 0.2rem; }
+.tw-assign { display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem; }
+.tw-assign > svg { color: var(--ember); }
+.tw-assign select { min-width: 0; flex: 0 1 16rem; border: 1px solid var(--line); border-radius: 0.55rem; background: var(--panel-strong); color: var(--text); font: inherit; font-size: 0.84rem; padding: 0.35rem 0.5rem; }
+.tw-assign small { flex-basis: 100%; font-size: 0.76rem; }
+.tw-notes { display: grid; gap: 0.4rem; }
+.tw-notes > b { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; font-size: 0.86rem; }
+.tw-notes > b small { font-weight: 400; font-size: 0.74rem; }
+.tw-notes ul { display: grid; gap: 0.35rem; margin: 0; padding: 0; list-style: none; }
+.tw-notes li { border: 1px solid rgba(255, 196, 92, 0.35); border-radius: 0.6rem; background: rgba(255, 196, 92, 0.07); padding: 0.4rem 0.55rem; }
+.tw-notes li p { margin: 0 0 0.25rem; font-size: 0.84rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.tw-note-meta { display: flex; align-items: center; gap: 0.4rem; font-size: 0.74rem; }
+.tw-note-meta button { margin-left: auto; display: grid; place-items: center; width: 1.5rem; height: 1.5rem; border: 0; border-radius: 0.4rem; background: none; color: var(--muted); cursor: pointer; }
+.tw-note-meta button:hover { color: #ff9a9a; }
+.tw-notes form { display: flex; gap: 0.4rem; }
+.tw-notes input { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 0.55rem; background: var(--panel-strong); color: var(--text); font: inherit; font-size: 0.84rem; padding: 0.4rem 0.55rem; }
+.tw-notes input:focus, .tw-assign select:focus { border-color: var(--ember); outline: none; }
+
+.tw-replies, .tw-stats { display: grid; gap: 0.7rem; margin: 0.9rem 0; border: 1px solid var(--line); border-radius: 1rem; background: var(--panel); padding: 0.9rem 1rem; }
+.tw-replies > header, .tw-stats > header { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.8rem; }
+.tw-replies h3, .tw-stats h3 { display: flex; align-items: center; gap: 0.45rem; margin: 0; }
+.tw-replies > header p { flex-basis: 100%; margin: 0; padding-right: 2.5rem; font-size: 0.82rem; }
+.tw-replies code { border-radius: 0.3rem; background: var(--panel-strong); padding: 0.05rem 0.3rem; }
+.tw-close { position: absolute; top: 0; right: 0; }
+.tw-replies > .adm-btn { justify-self: start; }
+.tw-edit { display: grid; gap: 0.6rem; border: 1px solid var(--line); border-radius: 0.8rem; padding: 0.7rem; }
+.tw-edit label { display: grid; gap: 0.25rem; font-size: 0.84rem; font-weight: 700; }
+.tw-edit input, .tw-edit textarea { width: 100%; border: 1px solid var(--line); border-radius: 0.55rem; background: var(--panel-strong); color: var(--text); font: inherit; font-weight: 400; font-size: 0.88rem; padding: 0.45rem 0.55rem; resize: vertical; }
+.tw-edit fieldset { display: grid; gap: 0.35rem; margin: 0; border: 0; padding: 0; }
+.tw-edit legend { margin-bottom: 0.3rem; font-size: 0.84rem; font-weight: 700; }
+.tw-types, .tw-range { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.tw-types button, .tw-range button { border: 1px solid var(--line); border-radius: 999px; background: none; color: var(--muted); cursor: pointer; font: inherit; font-size: 0.78rem; font-weight: 700; padding: 0.25rem 0.65rem; }
+.tw-types button.is-on, .tw-range button.is-on { border-color: var(--ember); background: rgba(var(--ember-rgb), 0.14); color: var(--text); }
+.tw-edit-row { display: flex; justify-content: flex-end; gap: 0.4rem; }
+.tw-list { display: grid; gap: 0.5rem; margin: 0; padding: 0; list-style: none; }
+.tw-list li { border: 1px solid var(--line); border-radius: 0.75rem; background: var(--panel-strong); padding: 0.6rem 0.7rem; }
+.tw-list p { margin: 0.3rem 0; font-size: 0.85rem; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
+.tw-list-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.3rem 0.6rem; }
+.tw-list-head .adm-muted { font-size: 0.76rem; }
+.tw-list-actions { display: flex; gap: 0.15rem; margin-left: auto; }
+.tw-list-actions button { display: grid; place-items: center; width: 1.7rem; height: 1.7rem; border: 0; border-radius: 0.45rem; background: none; color: var(--muted); cursor: pointer; }
+.tw-list-actions button:hover { background: rgba(var(--ember-rgb), 0.12); color: var(--text); }
+
+.tw-range { margin-left: auto; }
+.tw-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: 0.5rem; }
+.tw-kpis > div { display: grid; gap: 0.1rem; border: 1px solid var(--line); border-radius: 0.75rem; background: var(--panel-strong); padding: 0.6rem 0.7rem; }
+.tw-kpis b { font-size: 1.35rem; }
+.tw-kpis span { color: var(--muted); font-size: 0.78rem; }
+.tw-note { display: flex; align-items: center; gap: 0.35rem; margin: 0; font-size: 0.78rem; }
+.tw-stats > .adm-link { justify-self: start; }
+.tw-break { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: 0.8rem; }
+.tw-break table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.tw-break caption { margin-bottom: 0.35rem; text-align: left; font-weight: 800; }
+.tw-break th { border-bottom: 1px solid var(--line); color: var(--muted); font-size: 0.74rem; font-weight: 700; padding: 0.3rem; text-align: left; }
+.tw-break td { border-bottom: 1px solid var(--line); padding: 0.35rem 0.3rem; }
