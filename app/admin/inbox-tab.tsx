@@ -46,7 +46,7 @@ export function InboxTab({ onOpenMember }: { onOpenMember: (id: string) => void 
 
   const items = data?.items ?? [];
   const me = data?.me ?? "";
-  const kinds = useMemo(() => Array.from(new Set(items.map((i) => KIND[i.kind]?.label ?? i.kind))), [items]);
+  const kinds = useMemo(() => Array.from(new Set([...items.map((i) => KIND[i.kind]?.label ?? i.kind), ...(kind !== "all" ? [kind] : [])])), [items, kind]);
   const shown = items.filter(
     (i) =>
       (kind === "all" || (KIND[i.kind]?.label ?? i.kind) === kind) &&
@@ -92,7 +92,7 @@ export function InboxTab({ onOpenMember }: { onOpenMember: (id: string) => void 
         </div>
       </header>
 
-      {kinds.length > 1 ? (
+      {kinds.length > 1 || kind !== "all" ? (
         <div className="ibx-kinds">
           <button type="button" className={kind === "all" ? "is-on" : undefined} onClick={() => setKind("all")}>
             Everything

@@ -47,6 +47,9 @@ async function stateCol() {
   return (await site()).collection<{ _id: string; claimedBy?: string; claimedByName?: string; claimedAt?: Date; doneBy?: string; doneByName?: string; doneAt?: Date }>("inbox_state");
 }
 
+const FLAG_TAGS = ["dob-mismatch", "under-18"];
+const flagKey = (f: Document) => `flag-18:${f.ticketKey ?? f._id}:${((f.tags as string[]) ?? []).filter((t) => FLAG_TAGS.includes(t)).sort().join(",")}`;
+const issueKey = (i: Document) => `bot-issue:${i._id}:${Number(i.count ?? 1)}`;
 const ADMIN_KINDS = new Set(["appeal", "flag-18", "bot-issue", "news"]);
 const DISMISSED_WINDOW_MS = 60 * 24 * HOUR;
 
@@ -78,16 +81,29 @@ export async function inboxFeed(panel: PanelUser): Promise<{ items: InboxItem[];
     .map((d) => d._id.slice("automod:".length))
     .filter((id) => ObjectId.isValid(id))
     .map((id) => new ObjectId(id));
+  // 18+ flags and bot problems: walk past dismissed ones instead of cutting off at a fixed limit
+  const dismissedKeys = new Set(
+    (await (await stateCol()).find({ _id: { $regex: "^(flag-18|bot-issue):" }, doneAt: { $exists: true } } as never, { projection: { _id: 1 } }).toArray().catch(() => [] as { _id: string }[])).map((d) => d._id),
+  );
+  const firstUndismissed = async (cursor: AsyncIterable<Document>, keyOf: (d: Document) => string, want: number) => {
+    const out: Document[] = [];
+    for await (const d of cursor) {
+      if (dismissedKeys.has(keyOf(d))) continue;
+      out.push(d);
+      if (out.length >= want) break;
+    }
+    return out;
+  };
   const [apps, active, appeals, bans, flags, alerts, issues, news, reports] = await Promise.all([
     safe<Document>("join applications")(getJoinApplicationsCollection().then((c) => c.find({ status: "pending" }, { projection: { discordId: 1, submittedAt: 1 } }).sort({ submittedAt: 1 }).limit(60).toArray())),
     safe<Document>("tickets")(getBotCollection("activeTickets").then((c) => c.find({}, { projection: { ticket_id: 1, ticket_type: 1, opened_by: 1, claimed_by: 1, created: 1, last_updated: 1, manual_ticket: 1 } }).toArray())),
     admin ? safe<Document>("appeals")(db.collection("appeals").find({ status: "pending" }, { projection: { discordId: 1, createdAt: 1, "punishment.action": 1 } }).sort({ createdAt: 1 }).limit(40).toArray()) : Promise.resolve([] as Document[]),
     safe<Document>("ban requests")(db.collection("ban_requests").find({ status: "pending" }, { projection: { userId: 1, userName: 1, requesterName: 1, createdAt: 1, reason: 1 } }).sort({ createdAt: 1 }).limit(40).toArray()),
     admin
-      ? safe<Document>("18+ flags")(db.collection("ticket_summaries").find({ tags: { $in: ["dob-mismatch", "under-18"] }, checkedAt: { $gte: new Date(Date.now() - 60 * 24 * HOUR) } }, { projection: { tags: 1, ticketKey: 1, generatedAt: 1, headline: 1 } }).sort({ generatedAt: -1 }).limit(300).toArray())
+      ? safe<Document>("18+ flags")(firstUndismissed(db.collection("ticket_summaries").find({ tags: { $in: ["dob-mismatch", "under-18"] }, checkedAt: { $gte: new Date(Date.now() - 60 * 24 * HOUR) } }, { projection: { tags: 1, ticketKey: 1, generatedAt: 1, headline: 1 } }).sort({ generatedAt: -1 }), flagKey, 40))
       : Promise.resolve([] as Document[]),
     safe<Document>("AutoMod")(getBotCollection("automod_events").then((c) => c.find({ action: "alert", _id: { $nin: dismissedAutomod }, at: { $gte: new Date(Date.now() - 72 * HOUR) } }, { projection: { userId: 1, rule: 1, reason: 1, at: 1, channelId: 1 } }).sort({ at: -1 }).limit(60).toArray())),
-    admin ? safe<Document>("bot problems")(getBotCollection("bot_issues").then((c) => c.find({ resolved: { $ne: true }, level: "error" }, { projection: { bot: 1, title: 1, count: 1, lastAt: 1 } }).sort({ lastAt: -1 }).limit(150).toArray())) : Promise.resolve([] as Document[]),
+    admin ? safe<Document>("bot problems")(getBotCollection("bot_issues").then((c) => firstUndismissed(c.find({ resolved: { $ne: true }, level: "error" }, { projection: { bot: 1, title: 1, count: 1, lastAt: 1 } }).sort({ lastAt: -1 }), issueKey, 25))) : Promise.resolve([] as Document[]),
     admin ? safe<Document>("news")(db.collection("news").find({ status: "pending" }, { projection: { title: 1, createdAt: 1, updatedAt: 1 } }).limit(20).toArray()) : Promise.resolve([] as Document[]),
     safe<Document>("Social reports")(db.collection("dating_reports").find({ status: "open" }, { projection: { reported: 1, reason: 1, at: 1, type: 1 } }).sort({ at: 1 }).limit(30).toArray()),
   ]);
@@ -124,13 +140,13 @@ export async function inboxFeed(panel: PanelUser): Promise<{ items: InboxItem[];
   }
   for (const f of flags) {
     const tags = ((f.tags as string[]) ?? []).filter((t) => t === "dob-mismatch" || t === "under-18");
-    items.push({ key: `flag-18:${f.ticketKey ?? f._id}:${tags.sort().join(",")}`, kind: "flag-18", title: `18+ ticket #${f._id}: ${tags.includes("under-18") ? "under 18" : "DOB mismatch"}`, detail: String(f.headline ?? "").slice(0, 120), at: iso(f.generatedAt), link: `/admin?tab=tickets&search=%23${f._id}`, urgent: tags.includes("under-18"), dismissable: true, member: null });
+    items.push({ key: flagKey(f), kind: "flag-18", title: `18+ ticket #${f._id}: ${tags.includes("under-18") ? "under 18" : "DOB mismatch"}`, detail: String(f.headline ?? "").slice(0, 120), at: iso(f.generatedAt), link: `/admin?tab=tickets&search=%23${f._id}`, urgent: tags.includes("under-18"), dismissable: true, member: null });
   }
   for (const a of alerts) {
     items.push({ key: `automod:${a._id}`, kind: "automod", title: `AutoMod flagged ${name(a.userId)}`, detail: `${String(a.reason ?? a.rule ?? "").slice(0, 100)} · ${ago(a.at)} ago`, at: iso(a.at), link: "/admin?tab=automod", urgent: false, dismissable: true, member: String(a.userId ?? "") || null });
   }
   for (const i of issues) {
-    items.push({ key: `bot-issue:${i._id}:${Number(i.count ?? 1)}`, kind: "bot-issue", title: `${typeLabel(i.bot)} Bot: ${String(i.title ?? "an error").slice(0, 90)}`, detail: `Seen ${Number(i.count ?? 1)}× · last ${ago(i.lastAt)} ago`, at: iso(i.lastAt), link: "/admin?tab=bot-console", urgent: false, dismissable: true, member: null });
+    items.push({ key: issueKey(i), kind: "bot-issue", title: `${typeLabel(i.bot)} Bot: ${String(i.title ?? "an error").slice(0, 90)}`, detail: `Seen ${Number(i.count ?? 1)}× · last ${ago(i.lastAt)} ago`, at: iso(i.lastAt), link: "/admin?tab=bot-console", urgent: false, dismissable: true, member: null });
   }
   for (const n of news) {
     items.push({ key: `news:${n._id}`, kind: "news", title: `News post waiting for approval: ${String(n.title ?? "Untitled")}`, detail: `Written ${ago(n.updatedAt ?? n.createdAt)} ago`, at: iso(n.updatedAt ?? n.createdAt), link: "/admin?tab=news", urgent: false, dismissable: false, member: null });
