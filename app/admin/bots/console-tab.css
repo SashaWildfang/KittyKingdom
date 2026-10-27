@@ -208,3 +208,25 @@
   .bc-search { order: 5; flex-basis: 100%; }
 }
 .bc-restart-all { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; width: 100%; }
+
+/* Issue hints, Up to date?, Uptime */
+.bc-hint { margin: 0 0 0.5rem; border-left: 3px solid var(--ember); border-radius: 0.3rem; background: rgba(var(--ember-rgb), 0.08); padding: 0.45rem 0.6rem; font-size: 0.86rem; }
+.bc-issue-hint { display: block; color: var(--muted); font-size: 0.76rem; font-weight: 400; }
+.bc-versions, .bc-uptime { display: grid; gap: 0.55rem; }
+.bc-versions h3, .bc-uptime h3 { margin: 0; }
+.bc-versions p, .bc-uptime p { margin: 0; }
+.bc-versions h4 { margin: 0.3rem 0 0; font-size: 0.88rem; }
+.bc-warn { color: #ffd27a; font-weight: 700; }
+.bc-warn small, .bc-all-clear small { font-weight: 400; }
+.bc-files { display: grid; gap: 0.2rem; margin: 0; padding: 0; list-style: none; }
+.bc-files code { font-size: 0.84rem; }
+.bc-extra summary { cursor: pointer; color: var(--muted); font-size: 0.84rem; }
+.bc-uptime-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 0.6rem; }
+.bc-grid { display: grid; gap: 3px; overflow-x: auto; padding-bottom: 0.2rem; }
+.bc-grid-row { display: grid; grid-template-columns: 7.5rem repeat(24, minmax(0.6rem, 1fr)); align-items: center; gap: 3px; min-width: 26rem; }
+.bc-grid-day { color: var(--muted); font-size: 0.74rem; white-space: nowrap; }
+.bc-cell { height: 0.9rem; border-radius: 3px; background: var(--line); }
+.bc-cell.is-up { background: #46a758; }
+.bc-cell.is-part { background: #ffb224; }
+.bc-cell.is-down { background: #e5484d; }
+.bc-grid-note { font-size: 0.74rem; }
