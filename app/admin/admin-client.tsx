@@ -2,7 +2,7 @@
 
 import "./admin-nav.css";
 import { TicketCanDelete, TicketDeletePermissions } from "./delete-ticket-button";
-import { Inbox, Tags, ChevronDown, ChevronRight, Menu, Search, X, Lock, PartyPopper, Activity, Archive, AtSign, Database, CalendarDays, Gift, SunSnow, BarChart3, Bot, Coins, History, Megaphone, Server, Shield as ShieldIcon, BookOpen, Crown, Hammer, ClipboardCheck, ListChecks, TerminalSquare, Dices, Gavel, Globe, HeartHandshake, Mail, MessagesSquare, Newspaper, Scale, ScrollText, ShieldCheck, Ticket, Users, UsersRound, ImagePlus, type LucideIcon } from "lucide-react";
+import { Eye, Inbox, Tags, ChevronDown, ChevronRight, Menu, Search, X, Lock, PartyPopper, Activity, Archive, AtSign, Database, CalendarDays, Gift, SunSnow, BarChart3, Bot, Coins, History, Megaphone, Server, Shield as ShieldIcon, BookOpen, Crown, Hammer, ClipboardCheck, ListChecks, TerminalSquare, Dices, Gavel, Globe, HeartHandshake, Mail, MessagesSquare, Newspaper, Scale, ScrollText, ShieldCheck, Ticket, Users, UsersRound, ImagePlus, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AccountsTab } from "./accounts-tab";
@@ -46,16 +46,17 @@ import { GraphicsTab } from "./graphics/graphics-tab";
 import { TranscriptViewer } from "./transcript-viewer";
 import { RolePickerTab } from "./role-picker-tab";
 import { InboxTab } from "./inbox-tab";
+import { WatchlistTab } from "./watchlist-tab";
 import { CommandPalette, rememberTab } from "./command-palette";
 
-type Tab = "graphics" | "discord-members" | "overview" | "punishments" | "automod" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live" | "join" | "dating" | "appeals" | "messages" | "games" | "guide" | "banrequests" | "patreon" | "emails" | "ads" | "bot-main" | "bot-economy" | "bot-moderation" | "bot-ticketing" | "server" | "bot-history" | "removed" | "giveaways" | "seasons" | "status" | "events" | "rules" | "bot-console" | "database" | "chat-events" | "lockdown" | "role-picker" | "inbox";
+type Tab = "graphics" | "discord-members" | "overview" | "punishments" | "automod" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live" | "join" | "dating" | "appeals" | "messages" | "games" | "guide" | "banrequests" | "patreon" | "emails" | "ads" | "bot-main" | "bot-economy" | "bot-moderation" | "bot-ticketing" | "server" | "bot-history" | "removed" | "giveaways" | "seasons" | "status" | "events" | "rules" | "bot-console" | "database" | "chat-events" | "lockdown" | "role-picker" | "inbox" | "watchlist";
 type Level = "admin" | "staff";
 
 // Tabs are grouped so the bar stays short: pick a group, then one of its tabs
 type Group = "overview" | "moderation" | "members" | "community" | "website" | "bots";
 const GROUPS: { key: Group; label: string; icon: LucideIcon; tabs: Tab[] }[] = [
   { key: "overview", label: "Overview", icon: BarChart3, tabs: ["inbox", "overview", "graphics", "seasons", "status", "guide"] },
-  { key: "moderation", label: "Moderation", icon: Gavel, tabs: ["punishments", "banrequests", "appeals", "automod", "lockdown", "logs", "live", "removed", "rules"] },
+  { key: "moderation", label: "Moderation", icon: Gavel, tabs: ["punishments", "banrequests", "appeals", "watchlist", "automod", "lockdown", "logs", "live", "removed", "rules"] },
   { key: "members", label: "Members", icon: Users, tabs: ["discord-members", "role-picker", "join", "tickets", "messages", "patreon"] },
   { key: "community", label: "Community", icon: PartyPopper, tabs: ["events", "chat-events", "giveaways", "games", "dating"] },
   { key: "website", label: "Website", icon: Globe, tabs: ["accounts", "emails", "news", "ads", "traffic", "database"] },
@@ -75,6 +76,7 @@ const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean; giveaw
   { key: "punishments", label: "Punishments", icon: Gavel },
   { key: "banrequests", label: "Ban Requests", icon: Hammer },
   { key: "appeals", label: "Appeals", icon: Scale, admin: true },
+  { key: "watchlist", label: "Watchlist", icon: Eye },
   { key: "automod", label: "AutoMod", icon: ShieldCheck },
   { key: "lockdown", label: "Lockdown", icon: Lock },
   { key: "rules", label: "Rules", icon: ListChecks, admin: true },
@@ -460,6 +462,7 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
       {isAdmin && tab === "server" ? <ServerSettingsTab /> : null}
       {isAdmin && tab === "role-picker" ? <RolePickerTab /> : null}
       {tab === "inbox" ? <InboxTab onOpenMember={openMember} /> : null}
+      {tab === "watchlist" ? <WatchlistTab onOpenMember={openMember} /> : null}
       {isAdmin && tab === "bot-history" ? <BotsHistoryTab /> : null}
       {isAdmin && tab === "traffic" ? <TrafficTab /> : null}
       </TabBoundary>

@@ -9,8 +9,9 @@ import { ObjectId, type Document } from "mongodb";
 import type { PanelUser } from "./admin";
 import { people } from "./admin-people";
 import { getBotCollection, getJoinApplicationsCollection, getMongoClient } from "./mongodb";
+import { listWatch, watchActivity } from "./staff-notes";
 
-export type InboxKind = "join" | "ticket" | "ticket-quiet" | "appeal" | "ban-request" | "flag-18" | "automod" | "bot-issue" | "news" | "social-report";
+export type InboxKind = "join" | "ticket" | "ticket-quiet" | "appeal" | "ban-request" | "flag-18" | "automod" | "bot-issue" | "news" | "social-report" | "watch";
 
 export type InboxItem = {
   key: string;
@@ -94,7 +95,7 @@ export async function inboxFeed(panel: PanelUser): Promise<{ items: InboxItem[];
     }
     return out;
   };
-  const [apps, active, appeals, bans, flags, alerts, issues, news, reports] = await Promise.all([
+  const [apps, active, appeals, bans, flags, alerts, issues, news, reports, watched] = await Promise.all([
     safe<Document>("join applications")(getJoinApplicationsCollection().then((c) => c.find({ status: "pending" }, { projection: { discordId: 1, submittedAt: 1 } }).sort({ submittedAt: 1 }).limit(60).toArray())),
     safe<Document>("tickets")(getBotCollection("activeTickets").then((c) => c.find({}, { projection: { ticket_id: 1, ticket_type: 1, opened_by: 1, claimed_by: 1, created: 1, last_updated: 1, manual_ticket: 1 } }).toArray())),
     admin ? safe<Document>("appeals")(db.collection("appeals").find({ status: "pending" }, { projection: { discordId: 1, createdAt: 1, "punishment.action": 1 } }).sort({ createdAt: 1 }).limit(40).toArray()) : Promise.resolve([] as Document[]),
@@ -106,6 +107,14 @@ export async function inboxFeed(panel: PanelUser): Promise<{ items: InboxItem[];
     admin ? safe<Document>("bot problems")(getBotCollection("bot_issues").then((c) => firstUndismissed(c.find({ resolved: { $ne: true }, level: "error" }, { projection: { bot: 1, title: 1, count: 1, lastAt: 1 } }).sort({ lastAt: -1 }), issueKey, 25))) : Promise.resolve([] as Document[]),
     admin ? safe<Document>("news")(db.collection("news").find({ status: "pending" }, { projection: { title: 1, createdAt: 1, updatedAt: 1 } }).limit(20).toArray()) : Promise.resolve([] as Document[]),
     safe<Document>("Social reports")(db.collection("dating_reports").find({ status: "open" }, { projection: { reported: 1, reason: 1, at: 1, type: 1 } }).sort({ at: 1 }).limit(30).toArray()),
+    // Watchlist: anything a watched member did in the last 3 days
+    listWatch()
+      .then((list) => watchActivity(list.map((w) => w.discordId), new Date(Date.now() - 72 * HOUR)).then((activity) => ({ list, activity })))
+      .catch((e) => {
+        console.error("Inbox: couldn't check the watchlist", e);
+        missing.push("the watchlist");
+        return { list: [] as Awaited<ReturnType<typeof listWatch>>, activity: [] as Awaited<ReturnType<typeof watchActivity>> };
+      }),
   ]);
 
   const ids = [
@@ -115,6 +124,7 @@ export async function inboxFeed(panel: PanelUser): Promise<{ items: InboxItem[];
     ...bans.map((b) => String(b.userId ?? "")),
     ...alerts.map((a) => String(a.userId ?? "")),
     ...reports.map((r) => String(r.reported ?? "")),
+    ...watched.activity.map((a) => a.discordId),
   ].filter((id) => /^\d{15,21}$/.test(id));
   const who = await people(ids).catch(() => ({}) as Record<string, { name?: string }>);
   const name = (id: unknown) => (id && who[String(id)]?.name) || "a member";
@@ -153,6 +163,13 @@ export async function inboxFeed(panel: PanelUser): Promise<{ items: InboxItem[];
   }
   for (const r of reports) {
     items.push({ key: `social-report:${r._id}`, kind: "social-report", title: `Social report about ${name(r.reported)}`, detail: `${String(r.reason ?? "")} · ${ago(r.at)} ago`, at: iso(r.at), link: "/admin?tab=dating", urgent: age(r.at) > 24 * HOUR, dismissable: false, member: String(r.reported ?? "") || null });
+  }
+
+  const reasons = new Map(watched.list.map((w) => [w.discordId, w.reason]));
+  for (const a of watched.activity) {
+    // 18+ tickets stay out of staff's view
+    if (!admin && a.kind === "ticket" && NSFW.test(a.label)) continue;
+    items.push({ key: `watch:${a.kind}:${a.ref}`, kind: "watch", title: `Watched: ${name(a.discordId)} · ${a.label}`, detail: `Watching because: ${String(reasons.get(a.discordId) ?? "").slice(0, 100)} · ${ago(a.at)} ago`, at: a.at, link: "/admin?tab=watchlist", urgent: a.kind === "joined", dismissable: true, member: a.discordId });
   }
 
   // Claims and dismissals
