@@ -60,3 +60,5 @@
 .tm-task-meta span { display: inline-flex; align-items: center; gap: 0.25rem; }
 .tm-overdue { color: #ff9a9a; font-weight: 700; }
 .tm-task-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.3rem; }
+.tm-votes a { display: inline-flex; align-items: center; gap: 0.25rem; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-size: 0.76rem; font-weight: 700; padding: 0.2rem 0.5rem; text-decoration: none; }
+.tm-votes a:hover { border-color: var(--ember); color: var(--text); }

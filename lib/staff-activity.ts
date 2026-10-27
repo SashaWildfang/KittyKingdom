@@ -70,32 +70,41 @@ export type StaffRow = StaffDoc & {
 };
 
 /** Everything staff did over the last `days` days. */
-export async function staffActivity(panel: PanelUser, days: number): Promise<StaffRow[]> {
+export async function staffActivity(panel: PanelUser, days: number): Promise<{ rows: StaffRow[]; missing: string[] }> {
   const from = new Date(Date.now() - days * 86_400_000);
   const staff = await staffList();
   const ids = staff.map((s) => s.id);
   const both = ids.flatMap((id) => [id, Long.fromString(id)]);
   const db = await site();
   const count = (rows: Document[]) => new Map(rows.map((r) => [String(r._id), Number(r.n)]));
-  const safe = <T>(p: Promise<T>, fallback: T) => p.catch(() => fallback);
+  const missing: string[] = [];
+  // A source that fails is listed (so the page warns) instead of quietly counting as zero
+  const safe = <T>(p: Promise<T>, fallback: T, label = "") =>
+    p.catch((e) => {
+      console.error(`Staff activity: couldn't load ${label}`, e);
+      if (label) missing.push(label);
+      return fallback;
+    });
 
   const [msgs, claimedA, claimedR, closed, firsts, puns, apps, reps, seen, hist, reviews] = await Promise.all([
-    safe(getBotCollection("message_index").then((c) => c.aggregate([{ $match: { a: { $in: both }, t: { $gte: from } } }, { $group: { _id: { $toString: "$a" }, n: { $sum: 1 } } }]).toArray()), []),
-    safe(getBotCollection("activeTickets").then((c) => c.aggregate([{ $match: { claimed_by: { $in: ids }, $or: [{ claimed_at: { $gte: from } }, { created: { $gte: from } }] } }, { $group: { _id: "$claimed_by", n: { $sum: 1 } } }]).toArray()), []),
-    safe(getBotCollection("resolvedTickets").then((c) => c.aggregate([{ $match: { claimed_by: { $in: ids }, $or: [{ claimed_at: { $gte: from } }, { created: { $gte: from } }] } }, { $group: { _id: "$claimed_by", n: { $sum: 1 } } }]).toArray()), []),
-    safe(getBotCollection("resolvedTickets").then((c) => c.aggregate([{ $match: { resolved_by: { $in: ids }, resolved_at: { $gte: from } } }, { $group: { _id: "$resolved_by", n: { $sum: 1 } } }]).toArray()), []),
+    safe(getBotCollection("message_index").then((c) => c.aggregate([{ $match: { a: { $in: both }, t: { $gte: from } } }, { $group: { _id: { $toString: "$a" }, n: { $sum: 1 } } }]).toArray()), [], "messages"),
+    safe(getBotCollection("activeTickets").then((c) => c.aggregate([{ $match: { claimed_by: { $in: ids }, $or: [{ claimed_at: { $gte: from } }, { created: { $gte: from } }] } }, { $group: { _id: "$claimed_by", n: { $sum: 1 } } }]).toArray()), [], "tickets claimed"),
+    safe(getBotCollection("resolvedTickets").then((c) => c.aggregate([{ $match: { claimed_by: { $in: ids }, $or: [{ claimed_at: { $gte: from } }, { created: { $gte: from } }] } }, { $group: { _id: "$claimed_by", n: { $sum: 1 } } }]).toArray()), [], "tickets claimed"),
+    safe(getBotCollection("resolvedTickets").then((c) => c.aggregate([{ $match: { resolved_by: { $in: ids }, resolved_at: { $gte: from } } }, { $group: { _id: "$resolved_by", n: { $sum: 1 } } }]).toArray()), [], "tickets closed"),
     safe(
       Promise.all(["activeTickets", "resolvedTickets"].map((n) => getBotCollection(n).then((c) => c.aggregate([{ $match: { first_staff_reply_by: { $in: ids }, first_staff_reply_at: { $gte: from } } }, { $group: { _id: "$first_staff_reply_by", n: { $sum: 1 } } }]).toArray()))).then((a) => a.flat()),
       [],
+      "first replies",
     ),
     safe(
       getBotCollection("punishments").then((c) =>
         c.aggregate([{ $match: { timestamp: { $gte: from }, $or: [{ issuerId: { $in: both } }, { issuer_discord_id: { $in: both } }] } }, { $group: { _id: { $toString: { $ifNull: ["$issuer_discord_id", "$issuerId"] } }, n: { $sum: 1 } } }]).toArray(),
       ),
       [],
+      "punishments",
     ),
-    safe(getBotCollection("join_applications").then((c) => c.aggregate([{ $match: { reviewedAt: { $gte: from }, reviewedBy: { $in: both } } }, { $group: { _id: { $toString: "$reviewedBy" }, n: { $sum: 1 } } }]).toArray()), []),
-    safe(getBotCollection("reports").then((c) => c.aggregate([{ $match: { "outcome.by": { $in: ids }, "outcome.at": { $gte: from } } }, { $group: { _id: "$outcome.by", n: { $sum: 1 } } }]).toArray()), []),
+    safe(getBotCollection("join_applications").then((c) => c.aggregate([{ $match: { reviewedAt: { $gte: from }, reviewedBy: { $in: both } } }, { $group: { _id: { $toString: "$reviewedBy" }, n: { $sum: 1 } } }]).toArray()), [], "join apps"),
+    safe(getBotCollection("reports").then((c) => c.aggregate([{ $match: { "outcome.by": { $in: ids }, "outcome.at": { $gte: from } } }, { $group: { _id: "$outcome.by", n: { $sum: 1 } } }]).toArray()), [], "reports"),
     safe(
       db
         .collection("users")
@@ -106,9 +115,10 @@ export async function staffActivity(panel: PanelUser, days: number): Promise<Sta
         ])
         .toArray(),
       [],
+      "website sign-ins",
     ),
-    safe(db.collection("staff_rank_history").find({ discordId: { $in: ids } }).sort({ from: -1 }).toArray(), []),
-    panel.level === "admin" ? safe(db.collection("staff_reviews").find({ _id: { $in: ids } as never }).toArray(), []) : Promise.resolve([] as Document[]),
+    safe(db.collection("staff_rank_history").find({ discordId: { $in: ids } }).sort({ from: -1 }).toArray(), [], "rank history"),
+    panel.level === "admin" ? safe(db.collection("staff_reviews").find({ _id: { $in: ids } as never }).toArray(), [], "review flags") : Promise.resolve([] as Document[]),
   ]);
 
   const m = count(msgs);
@@ -123,7 +133,7 @@ export async function staffActivity(panel: PanelUser, days: number): Promise<Sta
   const web = new Map(seen.map((u) => [String(u.discordId), iso(u.last)]));
   const rv = new Map(reviews.map((r) => [String(r._id), r]));
 
-  return staff
+  const rows = staff
     .map((s) => {
       const mine = hist.filter((h) => String(h.discordId) === s.id);
       const current = mine.find((h) => h.to === null && h.role === s.role);
@@ -149,6 +159,7 @@ export async function staffActivity(panel: PanelUser, days: number): Promise<Sta
       return row;
     })
     .sort((a, b) => a.rank - b.rank || b.score - a.score);
+  return { rows, missing };
 }
 
 /** Admins: flag someone for a promotion conversation, or as needing support (or clear it). */

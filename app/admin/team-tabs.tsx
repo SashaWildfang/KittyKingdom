@@ -46,7 +46,7 @@ type Row = {
 export function StaffActivityTab({ onOpenMember }: { onOpenMember: (id: string) => void }) {
   const [days, setDays] = useState(30);
   const [sort, setSort] = useState<"rank" | "score" | "quiet">("rank");
-  const { data, error, loading, reload } = useLive<{ rows: Row[]; people: People }>(`/api/admin/staff-activity?days=${days}`, 120_000);
+  const { data, error, loading, reload } = useLive<{ rows: Row[]; missing?: string[]; people: People }>(`/api/admin/staff-activity?days=${days}`, 120_000);
   const [flagging, setFlagging] = useState<{ id: string; flag: string; note: string } | null>(null);
   const rows = [...(data?.rows ?? [])].sort((a, b) => (sort === "score" ? b.score - a.score : sort === "quiet" ? a.score - b.score : a.rank - b.rank || b.score - a.score));
   const median = (() => {
@@ -87,6 +87,7 @@ export function StaffActivityTab({ onOpenMember }: { onOpenMember: (id: string) 
         </div>
       </header>
       {error ? <p className="adm-error">{error}</p> : null}
+      {data?.missing?.length ? <p className="adm-error">Couldn&apos;t load {data.missing.join(", ")} just now, so those numbers show as 0 and the scores are lower than they should be. It retries on its own.</p> : null}
       {!data && loading ? <div className="adm-skeleton" style={{ height: 260 }} /> : null}
       <ul className="tm-staff">
         {rows.map((r) => {
@@ -248,6 +249,10 @@ export function StaffAppsTab({ onOpenMember, onOpenTranscript }: { onOpenMember:
                         <button type="button" onClick={() => onOpenTranscript(a.ticketId, a.key)}>
                           <FileText size={13} aria-hidden="true" /> Ticket
                         </button>
+                      ) : a.open ? (
+                        <a href={`/admin?tab=tickets&search=%23${a.ticketId}`} title="Open tickets can be watched live from the Tickets tab">
+                          <FileText size={13} aria-hidden="true" /> Open ticket
+                        </a>
                       ) : null}
                     </div>
                     <select className="adm-select" value={a.stage} onChange={(e) => void change({ key: a.key, stage: e.target.value })} aria-label={`Stage for ticket #${a.ticketId}`}>

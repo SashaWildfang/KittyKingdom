@@ -13,8 +13,8 @@ export async function GET(request: Request) {
   const d = Number(new URL(request.url).searchParams.get("days"));
   const days = [7, 30, 90].includes(d) ? d : 30;
   try {
-    const rows = await staffActivity(panel, days);
-    return NextResponse.json({ ok: true, days, rows, people: await people(rows.map((r) => r.id)) }, { headers: { "Cache-Control": "no-store" } });
+    const { rows, missing } = await staffActivity(panel, days);
+    return NextResponse.json({ ok: true, days, rows, missing, people: await people(rows.map((r) => r.id)) }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Staff activity failed", error);
     return NextResponse.json({ ok: false, error: "Couldn't load staff activity." }, { status: 500 });
