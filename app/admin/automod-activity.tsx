@@ -54,6 +54,7 @@ export type Activity = {
 
 type CatchDetail = {
   ok: boolean;
+  canAllow?: boolean;
   error?: string;
   event: AutomodEvent;
   before: ContextMessage[];
@@ -206,6 +207,7 @@ export function ActivitySection({ onOpenMember }: { onOpenMember: (id: string) =
           <MemberList a={a} active={member} onPick={(m) => setMember(member === m ? null : m)} onOpen={openMember} />
           <LadderCard a={a} onOpen={() => openAction("punish", "Strikes")} />
           <TermsCard a={a} />
+          <MistakesCard />
         </div>
       ) : null}
 
@@ -510,6 +512,7 @@ function Feed({ a, title, onCatch, onOpenMember, page, onPage }: { a: Activity |
                   <span className="am2-feed-line">
                     <b>{e.label}</b>
                     <span className={`am-badge am-badge--${badge.tone}`}>{badge.text}</span>
+                    {e.falsePositive ? <span className="am-badge am2-fp-tag">Mistake</span> : null}
                     {e.channelId ? <span className="am2-feed-ch">{channelName(a, e.channelId)}</span> : null}
                   </span>
                   <small>{cleanReason(e.reason)}</small>
@@ -608,7 +611,7 @@ function OverviewPanel({ base, scope, onClose, onCatch, onOpenMember }: { base: 
 
 // ---------- One catch, in context ----------
 function CatchPanel({ id, onClose, onCatch, onOpenMember }: { id: string; onClose: () => void; onCatch: (id: string) => void; onOpenMember: (id: string) => void }) {
-  const { data, error } = useLive<CatchDetail>(`/api/admin/automod/event/${id}`, 0);
+  const { data, error, reload } = useLive<CatchDetail>(`/api/admin/automod/event/${id}`, 0);
   const [reveal, setReveal] = useState(false);
   useEffect(() => setReveal(false), [id]);
   useEscape(onClose);
@@ -684,6 +687,7 @@ function CatchPanel({ id, onClose, onCatch, onOpenMember }: { id: string; onClos
               ) : null}
             </div>
             <p className="am2-reason">{cleanReason(e.reason)}</p>
+            <FalsePositiveBox id={e.id} event={e} canAllow={Boolean(data.canAllow)} onDone={reload} />
 
             <section className="adm-card am2-card">
               <h3>
@@ -749,5 +753,105 @@ function CatchPanel({ id, onClose, onCatch, onOpenMember }: { id: string; onClos
         )}
       </aside>
     </div>
+  );
+}
+
+// ---------- False positives ----------
+function FalsePositiveBox({ id, event, canAllow, onDone }: { id: string; event: AutomodEvent; canAllow: boolean; onDone: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [note, setNote] = useState("");
+  const [allow, setAllow] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const fp = event.falsePositive;
+
+  async function send(body: Record<string, unknown>) {
+    setBusy(true);
+    setMsg(null);
+    const r = await fetch(`/api/admin/automod/event/${id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+      .then((x) => x.json())
+      .catch(() => null);
+    setBusy(false);
+    if (!r?.ok) return setMsg(r?.error ?? "That didn't work.");
+    if (!body.undo) setMsg([r.strikesCleared ? `Took back ${r.strikesCleared === 1 ? "the strike" : `${r.strikesCleared} strikes`}.` : null, r.allowed ? `'${r.allowed}' is on the allow list now.` : null].filter(Boolean).join(" ") || "Marked as a mistake.");
+    setOpen(false);
+    onDone();
+  }
+
+  if (fp) {
+    return (
+      <div className="am2-fp is-done">
+        <b>Marked as a mistake</b> by {fp.byName} · {timeAgo(fp.at)}
+        {fp.strikesCleared ? ` · strike taken back` : ""}
+        {fp.allowed ? ` · '${fp.allowed}' allowed` : ""}
+        {fp.note ? <p>{fp.note}</p> : null}
+        <button type="button" className="adm-link" disabled={busy} onClick={() => void send({ undo: true })}>
+          Undo
+        </button>
+        {msg ? <p className="adm-muted">{msg}</p> : null}
+      </div>
+    );
+  }
+  return (
+    <div className="am2-fp">
+      {!open ? (
+        <button type="button" className="adm-btn adm-btn--ghost adm-btn--small" onClick={() => setOpen(true)}>
+          AutoMod got this wrong
+        </button>
+      ) : (
+        <form
+          onSubmit={(ev) => {
+            ev.preventDefault();
+            void send({ note, allow });
+          }}
+        >
+          <p className="adm-muted">
+            {event.action === "punish" ? "This takes back the strike it gave, so it won't count toward a longer mute. " : ""}
+            {event.action === "punish" && /mute/i.test(event.reason) ? "If they're still muted, unmute them with /unmute. " : ""}
+            Marking mistakes shows which rules need adjusting.
+          </p>
+          <input value={note} maxLength={300} onChange={(ev) => setNote(ev.target.value)} placeholder="Why was it wrong? (optional)" aria-label="Note" />
+          {event.term && canAllow ? (
+            <label className="am2-fp-allow">
+              <input type="checkbox" checked={allow} onChange={(ev) => setAllow(ev.target.checked)} /> Also allow &apos;{event.term}&apos; from now on
+            </label>
+          ) : null}
+          <div className="am2-fp-row">
+            <button type="button" className="adm-btn adm-btn--ghost adm-btn--small" onClick={() => setOpen(false)}>
+              Cancel
+            </button>
+            <button type="submit" className="adm-btn adm-btn--small" disabled={busy}>
+              Mark as a mistake
+            </button>
+          </div>
+        </form>
+      )}
+      {msg ? <p className="adm-error">{msg}</p> : null}
+    </div>
+  );
+}
+
+function MistakesCard() {
+  const { data } = useLive<{ rules: { rule: string; total: number; falsePositives: number }[] }>("/api/admin/automod/false-positives", 120_000);
+  const rows = (data?.rules ?? []).filter((r) => r.falsePositives > 0);
+  return (
+    <section className="adm-card am2-card">
+      <h3>Mistakes by rule</h3>
+      <p className="adm-muted am2-sub">Catches staff marked as wrong in the last 30 days. A rule with lots of these probably needs loosening.</p>
+      {rows.length ? (
+        <ol className="am2-fp-list">
+          {rows.slice(0, 8).map((r) => (
+            <li key={r.rule}>
+              <b>{RULE_LABELS[r.rule] ?? r.rule}</b>
+              <span>
+                {r.falsePositives} of {r.total} <small className="adm-muted">({Math.round((r.falsePositives / Math.max(1, r.total)) * 100)}%)</small>
+              </span>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className="adm-empty">{data ? "None marked yet. Open a catch and use “AutoMod got this wrong”." : "Loading…"}</p>
+      )}
+    </section>
   );
 }

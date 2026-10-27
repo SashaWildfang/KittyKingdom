@@ -202,6 +202,8 @@ export type AutomodEvent = {
   content: string | null;
   /** The bot saved the messages before it (newer catches) */
   hasContext: boolean;
+  /** Staff marked it as a mistake */
+  falsePositive: { byName: string; at: string; note: string; strikesCleared: number; allowed: string | null } | null;
 };
 
 const RANGE_DAYS: Record<string, number> = { "24h": 1, "7d": 7, "30d": 30, "90d": 90 };
@@ -224,6 +226,9 @@ function toEvent(d: Document): AutomodEvent {
     offense: typeof d.offense === "number" ? d.offense : null,
     content: d.content ? String(d.content) : null,
     hasContext: Array.isArray(d.context) && d.context.length > 0,
+    falsePositive: d.falsePositive
+      ? { byName: String(d.falsePositive.byName ?? "staff"), at: iso(d.falsePositive.at) ?? "", note: String(d.falsePositive.note ?? ""), strikesCleared: Number(d.falsePositive.strikesCleared ?? 0), allowed: d.falsePositive.allowed ? String(d.falsePositive.allowed) : null }
+      : null,
   };
 }
 
@@ -276,7 +281,7 @@ export async function automodActivity(opts: ActivityOpts) {
               { $group: { _id: { t: { $dateTrunc: { date: "$at", unit, timezone: opts.timeZone } }, r: "$rule" }, n: { $sum: 1 } } },
               { $sort: { "_id.t": 1 } },
             ],
-            rows: [{ $sort: { at: -1, _id: -1 } }, { $skip: page * 25 }, { $limit: 25 }, { $project: { context: { $slice: ["$context", 1] }, userId: 1, channelId: 1, messageId: 1, rule: 1, reason: 1, term: 1, action: 1, offense: 1, content: 1, at: 1 } }],
+            rows: [{ $sort: { at: -1, _id: -1 } }, { $skip: page * 25 }, { $limit: 25 }, { $project: { context: { $slice: ["$context", 1] }, userId: 1, channelId: 1, messageId: 1, rule: 1, reason: 1, term: 1, action: 1, offense: 1, content: 1, at: 1, falsePositive: 1 } }],
           },
         },
       ])
