@@ -2,6 +2,7 @@
 // answer), and channels nobody talks in any more (from the Moderation Bot's message index).
 
 import { botToken, discordGet, getGuildChannelsRaw, getMemberRoleIds, guildId, type RawChannel } from "./discord-member";
+import { Long } from "mongodb";
 import { getBotCollection } from "./mongodb";
 
 export const PERMISSIONS: { key: string; label: string; bit: bigint; voice?: boolean }[] = [
@@ -22,6 +23,10 @@ const VIEW = BigInt(1) << BigInt(10);
 const ADMIN = BigInt(1) << BigInt(3);
 const CONNECT = BigInt(1) << BigInt(20);
 const SPEAK = BigInt(1) << BigInt(21);
+const SEND = BigInt(1) << BigInt(11);
+const ATTACH = BigInt(1) << BigInt(15);
+const EMBED = BigInt(1) << BigInt(14);
+const MENTION = BigInt(1) << BigInt(17);
 const TYPE_NAME: Record<number, string> = { 0: "text", 2: "voice", 4: "category", 5: "announcement", 13: "stage", 15: "forum", 16: "media" };
 
 type RawRole = { id: string; name: string; position: number; permissions?: string; managed?: boolean };
@@ -116,6 +121,8 @@ function channelPerm(c: RawChannel, guild: string, who: Set<string>, memberId: s
   }
   // Can't do anything in a channel you can't see (or connect to, for voice speaking)
   if (bit !== VIEW && !(p & VIEW)) return { allowed: false, why: "Can't see the channel" };
+  // Attaching, embedding and @mentions only matter if you can send at all
+  if ((bit === ATTACH || bit === EMBED || bit === MENTION) && !(p & SEND)) return { allowed: false, why: "Can't send messages there" };
   if (bit === SPEAK && !(p & CONNECT)) return { allowed: false, why: "Can't connect to the channel" };
   return { allowed: (p & bit) === bit, why };
 }
@@ -141,7 +148,11 @@ export async function channelActivity(fresh = false): Promise<ChannelActivity[]>
         const forum = c.type === 15 || c.type === 16;
         const [last, n] = forum
           ? [null, 0]
-          : await Promise.all([idx.find({ c: c.id }, { projection: { t: 1 } }).sort({ t: -1 }).limit(1).next(), idx.countDocuments({ c: c.id, t: { $gte: since } })]);
+          : await Promise.all([
+              // The Moderation Bot stores channel ids as numbers (older rows may be strings)
+              idx.find({ c: { $in: [Long.fromString(c.id), c.id] } } as never, { projection: { t: 1 } }).sort({ t: -1 }).limit(1).next(),
+              idx.countDocuments({ c: { $in: [Long.fromString(c.id), c.id] }, t: { $gte: since } } as never),
+            ]);
         return {
           channelId: c.id,
           name: c.name,

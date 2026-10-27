@@ -96,8 +96,11 @@ export async function saveAnnouncement(panel: PanelUser, input: Record<string, u
   const status = input.now ? "sending" : data.sendAt ? "scheduled" : "draft";
   const set = { ...data, status, error: null, updatedAt: new Date() };
   let docId = id;
-  if (id) await c.updateOne({ _id: id }, { $set: set });
-  else docId = (await c.insertOne({ ...set, createdBy: panel.discordId, createdByName: panel.name, createdAt: new Date() })).insertedId;
+  if (id) {
+    // Only one request can move it out of draft/scheduled/failed, so two clicks can't post it twice
+    const r = await c.updateOne({ _id: id, status: { $nin: ["sent", "sending"] } }, { $set: set });
+    if (!r.matchedCount) throw new AnnouncementError("That one is already going out.");
+  } else docId = (await c.insertOne({ ...set, createdBy: panel.discordId, createdByName: panel.name, createdAt: new Date() })).insertedId;
   if (input.now) await sendOne(docId!);
   return toA((await c.findOne({ _id: docId! }))!);
 }
