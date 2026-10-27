@@ -4,6 +4,7 @@
 import { ObjectId, type Collection, type Document } from "mongodb";
 import { sendDatingDm } from "./dating/dm";
 import { sendSocialEmail } from "./email-jobs";
+import { mutedPatterns } from "./admin-prefs";
 import { getSettings } from "./dating/settings";
 import { getMongoClient } from "./mongodb";
 
@@ -38,12 +39,19 @@ export async function notify(to: string, n: { type: NotificationType; actor?: st
   }
 }
 
+/** Staff alerts this person turned off (Needs attention → My alerts) stay out of their bell. */
+async function hidden(to: string): Promise<Document> {
+  const patterns = await mutedPatterns(to).catch(() => [] as RegExp[]);
+  return patterns.length ? { $nor: patterns.map((p) => ({ key: p })) } : {};
+}
+
 /** Newest first; `before` (an ISO time) pages back through older ones. */
 export async function listNotifications(to: string, limit = 30, before?: Date | null) {
   const c = await col();
+  const mute = await hidden(to);
   // Messages and message requests live on the envelope, not the bell
-  const q: Document = before ? { to, type: { $nin: ENVELOPE_TYPES }, at: { $lt: before } } : { to, type: { $nin: ENVELOPE_TYPES } };
-  const [rows, unread] = await Promise.all([limit ? c.find(q).sort({ at: -1 }).limit(limit).toArray() : Promise.resolve([] as Document[]), c.countDocuments({ to, read: false, type: { $nin: ENVELOPE_TYPES } })]);
+  const q: Document = before ? { to, type: { $nin: ENVELOPE_TYPES }, at: { $lt: before }, ...mute } : { to, type: { $nin: ENVELOPE_TYPES }, ...mute };
+  const [rows, unread] = await Promise.all([limit ? c.find(q).sort({ at: -1 }).limit(limit).toArray() : Promise.resolve([] as Document[]), c.countDocuments({ to, read: false, type: { $nin: ENVELOPE_TYPES }, ...mute })]);
   // "X viewed your profile" more than once: only the newest shows
   const seenViews = new Set<string>();
   const shown = rows.filter((r) => {
@@ -70,7 +78,7 @@ export async function listNotifications(to: string, limit = 30, before?: Date | 
 }
 
 export async function unreadCount(to: string) {
-  return (await col()).countDocuments({ to, read: false, type: { $nin: ENVELOPE_TYPES } });
+  return (await col()).countDocuments({ to, read: false, type: { $nin: ENVELOPE_TYPES }, ...(await hidden(to)) });
 }
 
 export async function markRead(to: string, ids: string[] | "all") {

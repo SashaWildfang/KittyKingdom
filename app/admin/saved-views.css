@@ -1,0 +1,17 @@
+/* "Views" menu (saved filters) */
+.svv { position: relative; display: inline-block; }
+.svv-btn { display: inline-flex; align-items: center; gap: 0.35rem; border: 1px solid var(--line); border-radius: 999px; background: var(--panel-strong); color: var(--muted); cursor: pointer; font: inherit; font-size: 0.8rem; font-weight: 800; padding: 0.35rem 0.7rem; }
+.svv-btn:hover, .svv-btn.is-open { border-color: var(--ember); color: var(--text); }
+.svv-menu { position: absolute; top: calc(100% + 0.35rem); left: 0; z-index: 40; display: grid; gap: 0.15rem; width: 16rem; border: 1px solid var(--line); border-radius: 0.8rem; background: linear-gradient(var(--panel), var(--panel)), var(--bg); box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45); padding: 0.35rem; }
+.svv-empty { margin: 0.2rem 0.3rem 0.4rem; color: var(--muted); font-size: 0.78rem; line-height: 1.4; }
+.svv-row { display: flex; align-items: center; gap: 0.2rem; }
+.svv-row > button:first-child { display: flex; flex: 1; min-width: 0; align-items: center; gap: 0.45rem; border: 0; border-radius: 0.5rem; background: none; color: var(--text); cursor: pointer; font: inherit; font-size: 0.86rem; padding: 0.4rem 0.5rem; text-align: left; }
+.svv-row > button:first-child:hover { background: rgba(var(--ember-rgb), 0.12); }
+.svv-dot { width: 13px; }
+.svv-del { display: grid; place-items: center; width: 1.6rem; height: 1.6rem; border: 0; border-radius: 0.4rem; background: none; color: var(--muted); cursor: pointer; }
+.svv-del:hover { color: #ff8a8a; }
+.svv-new { display: flex; align-items: center; gap: 0.35rem; border: 0; border-top: 1px solid var(--line); background: none; color: var(--ember); cursor: pointer; font: inherit; font-size: 0.82rem; font-weight: 700; margin-top: 0.2rem; padding: 0.5rem 0.5rem 0.3rem; }
+.svv-save { display: flex; gap: 0.3rem; border-top: 1px solid var(--line); margin-top: 0.2rem; padding-top: 0.4rem; }
+.svv-save input { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 0.5rem; background: var(--panel-strong); color: var(--text); font: inherit; font-size: 0.84rem; padding: 0.35rem 0.5rem; }
+.svv-save button { border: 0; border-radius: 0.5rem; background: var(--ember); color: rgb(var(--night-rgb)); cursor: pointer; font: inherit; font-weight: 800; padding: 0 0.6rem; }
+.svv-save button:disabled { opacity: 0.5; }
