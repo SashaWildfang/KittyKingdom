@@ -45,7 +45,7 @@ type BanUser = { id: string; username: string; global_name?: string | null; avat
 let banUsers: { at: number; users: BanUser[] } | null = null;
 
 /** Everyone banned (with their names), cached for 10 minutes. */
-async function bannedUsers(): Promise<BanUser[]> {
+export async function bannedUsers(): Promise<BanUser[]> {
   if (banUsers && Date.now() - banUsers.at < 10 * 60_000) return banUsers.users;
   const token = botToken();
   const guild = await guildId();

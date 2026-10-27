@@ -518,6 +518,8 @@ const MODERATION: BotDef = {
       about: "Which staff roles can use each moderation command. Members with any listed role can use it. An empty list means nobody can. Applies within a minute.",
       fields: [
         { key: "perms.warn", label: "/warn", help: "", type: "roles", default: [HELPER, ADMIN, MOD, JR_MOD, SR_MOD, SR_ADMIN, OWNER, CM] },
+        { key: "perms.note", label: "/note", help: "Add and read private staff notes about a member.", type: "roles", default: [HELPER, ADMIN, MOD, JR_MOD, SR_MOD, SR_ADMIN, OWNER, CM] },
+        { key: "perms.watch", label: "/watch", help: "Add and remove members from the watchlist.", type: "roles", default: [HELPER, ADMIN, MOD, JR_MOD, SR_MOD, SR_ADMIN, OWNER, CM] },
         { key: "perms.tempmute", label: "/tempmute", help: "", type: "roles", default: [HELPER, ADMIN, MOD, JR_MOD, SR_MOD, SR_ADMIN, OWNER, CM] },
         { key: "perms.mute", label: "/mute", help: "", type: "roles", default: [ADMIN, MOD, SR_MOD, SR_ADMIN, OWNER, CM] },
         { key: "perms.unmute", label: "/unmute", help: "", type: "roles", default: [ADMIN, MOD, SR_MOD, SR_ADMIN, OWNER, CM] },
