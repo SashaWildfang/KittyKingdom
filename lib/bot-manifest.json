@@ -92,6 +92,7 @@
    "events/media_perms.py": "3bca24f1f30772e2",
    "events/nitro_end.py": "145c12cec1348f3f",
    "events/on_ready.py": "43dbc0218a1dee7e",
+   "events/panda.py": "7604babca667e129",
    "events/patreon_sync.py": "817a1c0712e6a42f",
    "events/season_sync.py": "f611f536979a9522",
    "events/seasons.py": "42988e723339a039",
@@ -197,5 +198,5 @@
    "ticketing/ui_buttons.py": "d769104070f53e39"
   }
  },
- "generatedAt": "2026-10-27T20:55:24+00:00"
+ "generatedAt": "2026-10-28T19:53:25+00:00"
 }
