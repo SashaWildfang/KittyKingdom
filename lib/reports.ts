@@ -3,7 +3,7 @@
 
 import { ObjectId, type Document } from "mongodb";
 import type { PanelUser } from "./admin";
-import { deleteChannelMessage } from "./discord-member";
+import { deleteChannelMessage, postChannelMessage } from "./discord-member";
 import { getBotCollection, getMongoClient } from "./mongodb";
 
 export type ReportStatus = "open" | "handled" | "dismissed";
@@ -86,6 +86,21 @@ export async function resolveReport(panel: PanelUser, id: string, input: { statu
     const r = await deleteChannelMessage(String(report.channelId), String(report.messageId), `Reported message removed from the website by ${panel.name}`);
     if (!r.ok) throw new ReportError(r.status === 403 ? "The bot isn't allowed to delete messages in that channel." : "Discord didn't delete the message. Try again.", 502);
     messageDeleted = true;
+    // The same notice the bot's right-click actions post: what was removed (behind a spoiler), never who removed it
+    const text = String(report.content ?? "").replace(/\\/g, "\\\\").replace(/\|/g, "\\|").trim(); // every pipe escaped, so nothing can close the spoiler early
+    const files = Array.isArray(report.attachments) ? report.attachments.length : 0;
+    const quote = [text ? `||${text.length > 700 ? `${text.slice(0, 700)}…` : text}||` : "", files ? `*${files} attachment${files === 1 ? "" : "s"}*` : ""].filter(Boolean).join(" ") || "*no text*";
+    await postChannelMessage(String(report.channelId), {
+      embeds: [
+        {
+          author: { name: "🛡️ Moderation" },
+          description: `<@${report.authorId}> had a reported message **removed**.\n**Reason:** Breaking the server rules\n**Message:** ${quote}`,
+          color: 0xd56300,
+          footer: { text: "Questions? Open a support ticket. Think it's a mistake? bear-nation.net/appeals" },
+          timestamp: new Date().toISOString(),
+        },
+      ],
+    }).catch(() => undefined);
   }
   const note = String(input.note ?? "").trim().slice(0, 500);
   await c.updateOne({ _id: report._id }, { $set: { status, outcome: { by: panel.discordId, byName: panel.name, at: new Date(), note, messageDeleted } } });
