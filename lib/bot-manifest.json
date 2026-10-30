@@ -2,7 +2,7 @@
  "bots": {
   "economy": {
    "boot.py": "e3467e8468f87d6f",
-   "bot.py": "1f70139d22f01b39",
+   "bot.py": "19849df68909d5c6",
    "cmds/balance.py": "a87e1aa0d6e3a2dd",
    "cmds/blackjack.py": "ab416bdb438a32a4",
    "cmds/bump.py": "cd41d97289227402",
@@ -61,7 +61,7 @@
    "cmds/rewardboosters.py": "61bc0dadc8bb7dd2",
    "cmds/role_setup.py": "46b007e4d6e699a8",
    "cmds/royal.py": "74dbefcbc6c03f94",
-   "cmds/selector.py": "4d70e7c7dfa2fad9",
+   "cmds/selector.py": "9ae25964caadaaf3",
    "cmds/server_guide.py": "f04971f2497dfd11",
    "cmds/stat_channels.py": "502136fa9ab36f86",
    "cmds/vc_embed.py": "58d8014d09c5f8b0",
@@ -92,7 +92,7 @@
    "events/media_perms.py": "3bca24f1f30772e2",
    "events/nitro_end.py": "145c12cec1348f3f",
    "events/on_ready.py": "43dbc0218a1dee7e",
-   "events/panda.py": "dca89069aed2eea1",
+   "events/panda.py": "c253b3778a0a40df",
    "events/patreon_sync.py": "817a1c0712e6a42f",
    "events/season_sync.py": "f611f536979a9522",
    "events/seasons.py": "42988e723339a039",
@@ -199,5 +199,5 @@
    "ticketing/ui_buttons.py": "d769104070f53e39"
   }
  },
- "generatedAt": "2026-10-30T02:49:21+00:00"
+ "generatedAt": "2026-10-30T02:57:35+00:00"
 }
