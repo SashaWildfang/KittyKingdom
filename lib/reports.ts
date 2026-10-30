@@ -87,7 +87,7 @@ export async function resolveReport(panel: PanelUser, id: string, input: { statu
     if (!r.ok) throw new ReportError(r.status === 403 ? "The bot isn't allowed to delete messages in that channel." : "Discord didn't delete the message. Try again.", 502);
     messageDeleted = true;
     // The same notice the bot's right-click actions post: what was removed (behind a spoiler), never who removed it
-    const text = String(report.content ?? "").replace(/\|\|/g, "|\u200b|").trim();
+    const text = String(report.content ?? "").replace(/\\/g, "\\\\").replace(/\|/g, "\\|").trim(); // every pipe escaped, so nothing can close the spoiler early
     const files = Array.isArray(report.attachments) ? report.attachments.length : 0;
     const quote = [text ? `||${text.length > 700 ? `${text.slice(0, 700)}…` : text}||` : "", files ? `*${files} attachment${files === 1 ? "" : "s"}*` : ""].filter(Boolean).join(" ") || "*no text*";
     await postChannelMessage(String(report.channelId), {
