@@ -122,10 +122,10 @@
    "cmds/lockdown.py": "16b91e9a6373e98e",
    "cmds/mute.py": "70e2eca6f2fcfad0",
    "cmds/mute_duration.py": "a54aa7e5f406c5b3",
-   "cmds/muzzle.py": "6964801a98d323e7",
+   "cmds/muzzle.py": "eff705c045a2def3",
    "cmds/notes.py": "8531cc9ec375e770",
    "cmds/password.py": "f93723f88ad43da6",
-   "cmds/quick_actions.py": "0b557d98d6e62b42",
+   "cmds/quick_actions.py": "eae7b18cd59312a6",
    "cmds/report_message.py": "e5106d6af8b208d7",
    "cmds/resetverification.py": "dada283524daee6a",
    "cmds/rules.py": "2e5fd815e9736cbb",
@@ -199,5 +199,5 @@
    "ticketing/ui_buttons.py": "d769104070f53e39"
   }
  },
- "generatedAt": "2026-10-30T03:34:14+00:00"
+ "generatedAt": "2026-10-30T03:48:58+00:00"
 }
