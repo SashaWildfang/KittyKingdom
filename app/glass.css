@@ -60,25 +60,40 @@ html:root[data-theme="light"] body {
   background: linear-gradient(165deg, var(--bg) 0%, var(--bg-soft) 100%);
   background-attachment: fixed;
 }
-.sb-mesh {
+/* ---------- Backdrop panels (app/season-backdrop.tsx) ----------
+   Large rounded panels layered at angles, each fading from nothing into a soft tint of the season's colors, like
+   cards fanned out under the page. Still on purpose: the page should be what moves. */
+.sb-panels { position: absolute; inset: 0; overflow: hidden; }
+.sb-panel {
   position: absolute;
-  inset: -15%;
-  background:
-    radial-gradient(46rem 36rem at 16% 26%, rgba(var(--ember-rgb), 0.34), transparent 64%),
-    radial-gradient(40rem 34rem at 88% 30%, rgba(var(--gold-rgb), 0.2), transparent 64%),
-    radial-gradient(50rem 40rem at 66% 88%, rgba(var(--maple-rgb), 0.36), transparent 64%),
-    radial-gradient(36rem 30rem at 8% 84%, rgba(var(--ember-rgb), 0.22), transparent 64%);
-  animation: sb-mesh 70s ease-in-out infinite alternate;
+  border-radius: clamp(1.4rem, 2.4vw, 2.6rem);
+  background: linear-gradient(115deg, rgba(var(--ember-rgb), 0) 18%, rgba(var(--ember-rgb), 0.24) 100%);
+  box-shadow: 0 40px 120px -40px rgba(var(--night-rgb), 0.9);
+  opacity: 0.9;
 }
-:root[data-theme="light"] .sb-mesh {
-  background:
-    radial-gradient(42rem 32rem at 12% 8%, rgba(var(--ember-rgb), 0.2), transparent 62%),
-    radial-gradient(38rem 30rem at 88% 18%, rgba(var(--gold-rgb), 0.28), transparent 62%),
-    radial-gradient(46rem 36rem at 72% 92%, rgba(var(--maple-rgb), 0.14), transparent 62%),
-    radial-gradient(32rem 28rem at 8% 88%, rgba(var(--ember-rgb), 0.1), transparent 62%);
-}
-@keyframes sb-mesh {
-  to { transform: translate3d(3%, -2%, 0) rotate(2deg) scale(1.04); }
+/* Top-left pair */
+.sb-panel:nth-child(1) { top: -18vh; left: -10vw; width: 42vw; height: 58vh; transform: rotate(-4deg); }
+.sb-panel:nth-child(2) { top: -6vh; left: -16vw; width: 50vw; height: 76vh; transform: rotate(-17deg); background: linear-gradient(120deg, rgba(var(--maple-rgb), 0) 25%, rgba(var(--maple-rgb), 0.42) 100%); }
+/* The big one across the middle-right */
+.sb-panel:nth-child(3) { top: -30vh; left: 38vw; width: 46vw; height: 110vh; transform: rotate(-21deg); background: linear-gradient(110deg, rgba(var(--ember-rgb), 0) 22%, rgba(var(--ember-rgb), 0.2) 100%); }
+.sb-panel:nth-child(4) { top: -12vh; left: 22vw; width: 40vw; height: 66vh; transform: rotate(14deg); background: linear-gradient(130deg, rgba(var(--gold-rgb), 0) 30%, rgba(var(--gold-rgb), 0.11) 100%); }
+/* Bottom-right corner */
+.sb-panel:nth-child(5) { bottom: -34vh; right: -14vw; width: 52vw; height: 80vh; transform: rotate(-19deg); background: linear-gradient(115deg, rgba(var(--maple-rgb), 0) 20%, rgba(var(--maple-rgb), 0.45) 100%); }
+
+:root[data-theme="light"] .sb-panel { box-shadow: 0 40px 120px -50px rgba(var(--maple-rgb), 0.35); opacity: 0.75; }
+:root[data-theme="light"] .sb-panel:nth-child(1),
+:root[data-theme="light"] .sb-panel:nth-child(3) { background: linear-gradient(115deg, rgba(255, 255, 255, 0) 20%, rgba(var(--ember-rgb), 0.12) 100%); }
+:root[data-theme="light"] .sb-panel:nth-child(2),
+:root[data-theme="light"] .sb-panel:nth-child(5) { background: linear-gradient(120deg, rgba(255, 255, 255, 0) 25%, rgba(var(--gold-rgb), 0.16) 100%); }
+:root[data-theme="light"] .sb-panel:nth-child(4) { background: linear-gradient(130deg, rgba(255, 255, 255, 0) 30%, rgba(var(--maple-rgb), 0.08) 100%); }
+
+/* Phones: fewer, bigger panels so it stays calm in a narrow window */
+@media (max-width: 700px) {
+  .sb-panel:nth-child(1) { width: 80vw; height: 46vh; left: -30vw; }
+  .sb-panel:nth-child(2) { width: 90vw; height: 60vh; left: -40vw; }
+  .sb-panel:nth-child(3) { left: 30vw; width: 90vw; }
+  .sb-panel:nth-child(4) { display: none; }
+  .sb-panel:nth-child(5) { width: 100vw; right: -40vw; }
 }
 
 /* ---------- Glass surfaces ---------- */
