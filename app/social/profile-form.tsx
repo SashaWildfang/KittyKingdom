@@ -4,7 +4,7 @@
 // bot's schema (lib/dating/schema-data.ts), so adding a field there makes it appear here.
 
 import { ArrowLeft, ArrowRight, Eye, EyeOff, ImagePlus, Link2, Loader2, Lock, Minus, Move, Plus, RotateCcw, Star, Trash2, TriangleAlert, X } from "lucide-react";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
 import { ACCENTS, FIELDS, MAX_FURSONAS, MAX_PHOTOS, MAX_PROMPTS, PROMPTS } from "../../lib/dating/schema";
 import { SectionIcon } from "./icons";
@@ -359,7 +359,7 @@ export const EXPLICIT_FROM: [string, string, string][] = [
 ];
 
 /** Explicit photos: separate from the main photos, blurred everywhere until clicked, and only shown to who you pick. */
-export function ExplicitManager({ photos, onChange }: { photos: NonNullable<Own["explicit"]>; onChange: (own: Own) => void }) {
+export function ExplicitManager({ photos, onChange, hideWho }: { photos: NonNullable<Own["explicit"]>; onChange: (own: Own) => void; hideWho?: boolean }) {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -428,6 +428,7 @@ export function ExplicitManager({ photos, onChange }: { photos: NonNullable<Own[
 
   return (
     <div className="dt-explicit-manage">
+      {hideWho ? null : (
       <div className="dt-explicit-who">
         <Lock size={15} aria-hidden="true" />
         <label htmlFor="explicit-from">Who can see them</label>
@@ -440,6 +441,7 @@ export function ExplicitManager({ photos, onChange }: { photos: NonNullable<Own[
         </select>
         {rule ? <small>{rule[2]}</small> : null}
       </div>
+      )}
       {photos.length ? (
         <div className="dt-photo-grid dt-explicit-grid">
           {photos.map((p, i) => (
@@ -742,6 +744,48 @@ export function LooksEditor({ web, onChange, name }: { web: Own["web"]; onChange
   const accent = web.accent ?? ACCENTS[0];
   const [text, setText] = useState(accent);
   useEffect(() => setText(accent), [accent]);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [size, setSize] = useState<string | null>(null);
+  const file = useRef<HTMLInputElement>(null);
+  const drag = useRef<{ startY: number; startPos: number; height: number } | null>(null);
+  const bannerY = web.bannerY ?? 50;
+
+  const uploadBanner = async (f: File | undefined) => {
+    if (!f) return;
+    setBusy(true);
+    setErr(null);
+    // Tell them if it's smaller than the banner shows (it would look blurry)
+    try {
+      const bmp = await createImageBitmap(f);
+      setSize(bmp.width < 1200 || bmp.height < 200 ? `Your image is ${bmp.width} × ${bmp.height} pixels, smaller than recommended, so it may look blurry.` : null);
+    } catch {
+      setSize(null);
+    }
+    const form = new FormData();
+    form.append("file", await shrink(f), f.name);
+    const res = await fetch("/api/dating/art", { method: "POST", body: form }).then((r) => r.json()).catch(() => ({ ok: false, error: "Upload failed." }));
+    setBusy(false);
+    if (file.current) file.current.value = "";
+    if (!res.ok) return setErr(res.error ?? "Upload failed.");
+    onChange({ ...web, banner: res.url, bannerY: 50 });
+  };
+  // Drag the preview up or down to choose which part of the image shows
+  const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (!web.banner) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    drag.current = { startY: e.clientY, startPos: bannerY, height: e.currentTarget.clientHeight };
+  };
+  const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    if (!d) return;
+    // Dragging the picture down shows more of its top (a lower percentage)
+    const next = Math.min(100, Math.max(0, Math.round(d.startPos - ((e.clientY - d.startY) / Math.max(40, d.height)) * 60)));
+    if (next !== bannerY) onChange({ ...web, bannerY: next });
+  };
+  const onPointerUp = () => {
+    drag.current = null;
+  };
 
   return (
     <div className="dt-looks">
@@ -790,14 +834,46 @@ export function LooksEditor({ web, onChange, name }: { web: Own["web"]; onChange
       <div className="dt-field">
         <label>Banner</label>
         <p className="dt-help">
-          Banners come from the <a href="/store">Store</a>: buy one with <CurrencyName lower /> and equip it in your Locker. Without one you get the cozy paw pattern in your color.
+          Upload a wide image for the top of your profile. <b>Best size: 1500 × 250 pixels</b> (at least 1200 × 200), SFW only. Or get one from the <a href="/store">Store</a> with <CurrencyName lower />: a Store banner equipped in your Locker shows instead of an uploaded one. Without either you get the cozy paw pattern in your color.
         </p>
-        <div className="dt-banner-preview dt-banner-default" style={{ "--acc": accent } as CSSProperties}>
+        <div
+          className={`dt-banner-preview${web.banner ? " is-movable" : " dt-banner-default"}`}
+          style={{ "--acc": accent, backgroundImage: web.banner ? `url(${web.banner})` : undefined, backgroundPosition: `center ${bannerY}%` } as CSSProperties}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+          title={web.banner ? "Drag up or down to move your banner" : undefined}
+        >
+          {web.banner ? (
+            <span className="dt-banner-hint" aria-hidden="true">
+              <Move size={13} /> Drag to move
+            </span>
+          ) : null}
           <span className="dt-banner-name">
             <b>{name || "Your name"}</b>
             <span>{web.headline || "Your headline"}</span>
           </span>
         </div>
+        {web.banner ? (
+          <label className="dt-banner-pos">
+            <span>Move up / down</span>
+            <input type="range" min={0} max={100} value={bannerY} onChange={(e) => onChange({ ...web, bannerY: Number(e.target.value) })} aria-label="Banner position" />
+          </label>
+        ) : null}
+        <div className="dt-row">
+          <button type="button" className="dt-btn dt-btn--ghost dt-btn--small" disabled={busy} onClick={() => file.current?.click()}>
+            {busy ? <Loader2 size={14} className="dt-spin" aria-hidden="true" /> : <ImagePlus size={14} aria-hidden="true" />} {web.banner ? "Change banner" : "Upload banner"}
+          </button>
+          {web.banner ? (
+            <button type="button" className="dt-btn dt-btn--ghost dt-btn--small" onClick={() => onChange({ ...web, banner: "", bannerY: 50 })}>
+              <Trash2 size={14} aria-hidden="true" /> Remove banner
+            </button>
+          ) : null}
+        </div>
+        <input ref={file} type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden onChange={(e) => void uploadBanner(e.target.files?.[0])} />
+        {size ? <p className="dt-warn">{size}</p> : null}
+        {err ? <p className="dt-error">{err}</p> : null}
       </div>
     </div>
   );
