@@ -13,7 +13,7 @@ import { getCurrentUser, readSignedPayload, signPayload } from "./auth";
 import { DISCORD_API, botToken, guildId, postChannelMessage, searchMembers } from "./discord-member";
 import { sendAppealDecisionEmail, sendAppealReceivedEmail } from "./email";
 import { getCurrentBans } from "./moderation";
-import { sendAppealAlert } from "./appeal-alert";
+import { buildAppealAlert, sendAppealAlert, type AppealAlertInput } from "./appeal-alert";
 import { getBotCollection, getMongoClient } from "./mongodb";
 
 const STAFF_LOG_CHANNEL_ID = "1360344042705256660";
@@ -280,6 +280,8 @@ export async function submitAppeal(identity: AppealIdentity, input: { punishment
     email,
     status: "pending" as AppealStatus,
     createdAt: now,
+    // The admin-general alert: claimed now (so the catch-up job leaves it alone), alertedAt once it's posted
+    alertClaim: now,
     history: [{ at: now, action: "submitted", byName: null, note: null }],
   };
   const res = await col.insertOne(doc);
@@ -300,18 +302,12 @@ export async function submitAppeal(identity: AppealIdentity, input: { punishment
     ],
   }).catch(() => false);
   // The Staff Team ping in admin-general, with everything needed to decide (lib/appeal-alert.ts)
-  await sendAppealAlert({
-    discordId: identity.discordId,
-    username: identity.username,
-    name: identity.name,
-    avatar: identity.avatar,
-    message,
-    email: Boolean(email),
-    ref,
-    appealId: String(res.insertedId),
-    punishmentId,
-    punishment: snapshot,
-  }).catch((e) => console.error("Appeal alert failed", e));
+  const posted = await sendAppealAlert(alertInput({ ...doc, _id: res.insertedId })).catch((e) => {
+    console.error("Appeal alert failed", e);
+    return false;
+  });
+  // If it didn't go out, the catch-up job (lib/appeals.ts alertUnpostedAppeals) tries again in a few minutes
+  if (posted) await col.updateOne({ _id: res.insertedId }, { $set: { alertedAt: new Date() }, $unset: { alertClaim: "" } }).catch(() => undefined);
   return { id: String(res.insertedId), reference: ref };
 }
 
@@ -335,6 +331,78 @@ export type AdminAppeal = {
   stillBanned: boolean;
   otherAppeals: number;
 };
+
+/** What the admin-general alert needs, from a saved appeal. */
+function alertInput(d: Document): AppealAlertInput {
+  const p = (d.punishment ?? {}) as Document;
+  return {
+    discordId: String(d.discordId),
+    username: String(d.username ?? d.discordId),
+    name: String(d.name ?? d.username ?? "Member"),
+    avatar: d.avatar ? String(d.avatar) : null,
+    message: String(d.message ?? ""),
+    email: Boolean(d.email),
+    ref: reference(d._id as ObjectId),
+    appealId: String(d._id),
+    punishmentId: String(d.punishmentId ?? ""),
+    punishment: {
+      action: String(p.action ?? "punishment"),
+      reason: String(p.reason ?? ""),
+      at: p.at instanceof Date ? p.at : null,
+      expiresAt: p.expiresAt instanceof Date ? p.expiresAt : null,
+      issuerId: p.issuerId ? String(p.issuerId) : null,
+    },
+  };
+}
+
+/**
+ * Posts the admin-general alert for pending appeals that never had one (sent before alerts existed, or the post
+ * failed). A few per run (on the bot's check every minute), each claimed first so nothing is posted twice.
+ */
+const ALERTS_LIVE = new Date("2026-11-10T21:35:00Z");
+
+export async function alertUnpostedAppeals(limit = 3) {
+  const col = await appealsCol();
+  const stale = new Date(Date.now() - 5 * 60_000);
+  let posted = 0;
+  for (let i = 0; i < limit; i += 1) {
+    const d = await col.findOneAndUpdate(
+      {
+        status: "pending",
+        alertedAt: { $exists: false },
+        $or: [
+          // Sent before alerts existed (the ones after that were posted when sent, just not marked)
+          { alertClaim: { $exists: false }, createdAt: { $lt: ALERTS_LIVE } },
+          // Sent since, but the post failed (or a run stopped part-way): retried after 5 minutes
+          { alertClaim: { $lt: stale } },
+        ],
+      },
+      { $set: { alertClaim: new Date() } },
+      { sort: { createdAt: 1 }, returnDocument: "after" },
+    );
+    if (!d) break;
+    const ok = await sendAppealAlert(alertInput(d)).catch(() => false);
+    // Left claimed when it fails, so it's tried again after 5 minutes rather than straight away
+    if (ok) {
+      await col.updateOne({ _id: d._id }, { $set: { alertedAt: new Date() }, $unset: { alertClaim: "" } });
+      posted += 1;
+    }
+  }
+  return posted;
+}
+
+/** Admins: the alert a pending appeal gets, without posting it (by appeal id, or the newest pending one for a name). */
+export async function appealAlertPreview(q: { id?: string | null; name?: string | null }) {
+  const col = await appealsCol();
+  let d: Document | null = null;
+  if (q.id && ObjectId.isValid(q.id)) d = await col.findOne({ _id: new ObjectId(q.id) });
+  else if (q.name?.trim()) {
+    const rx = new RegExp(q.name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+    d = await col.findOne({ status: "pending", $or: [{ name: rx }, { username: rx }] }, { sort: { createdAt: -1 } });
+  } else d = await col.findOne({ status: "pending" }, { sort: { createdAt: -1 } });
+  if (!d) throw new AppealError("No matching appeal.", 404);
+  return { appealId: String(d._id), alerted: Boolean(d.alertedAt), message: await buildAppealAlert(alertInput(d)) };
+}
 
 export async function listAppeals(status: AppealStatus | "all", page = 1) {
   const col = await appealsCol();
