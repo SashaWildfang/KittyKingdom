@@ -241,7 +241,17 @@ export async function saveProfile(discordId: string, patch: ProfilePatch): Promi
   if (Object.keys($unset).length) update.$unset = $unset;
   if (pull.length && !patch.confirmReview) update.$pull = { needs_review: { $in: pull } };
   await profiles.updateOne({ _id } as never, update);
-  for (const id of removedArt) await deletePhoto(id);
+  // Only delete images nothing on the saved profile still uses (a banner can be one of their photos or art)
+  if (removedArt.length) {
+    const saved = await getProfile(discordId);
+    const mediaId = (u: unknown) => String(u ?? "").match(/\/api\/dating\/media\/([a-f0-9]{24})\./)?.[1] ?? null;
+    const stillUsed = new Set<string>([
+      ...((saved?.photos ?? []) as Photo[]).map((p) => p.id),
+      ...((saved?.fursonas ?? []) as { art_links?: string[] }[]).flatMap((f) => (f.art_links ?? []).map(mediaId)).filter((x): x is string => Boolean(x)),
+      ...[mediaId(((saved?.web ?? {}) as WebPrefs).banner)].filter((x): x is string => Boolean(x)),
+    ]);
+    for (const id of new Set(removedArt)) if (!stillUsed.has(id)) await deletePhoto(id);
+  }
   return null;
 }
 
