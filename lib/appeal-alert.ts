@@ -96,10 +96,10 @@ export async function sendAppealAlert(a: AppealAlertInput) {
   for (const r of rows) counts.set(r.action, (counts.get(r.action) ?? 0) + 1);
   const recent30 = last30 ?? rows.filter((r) => now - new Date(r.timestamp).getTime() < 30 * 86_400_000).length;
   // Worked out here rather than from the record's status (that leans on Discord's ban list, which can be unavailable):
-  // mutes that haven't ended, warnings that still count, and a ban only when the ban list confirms it
+  // mutes that haven't ended (and weren't lifted early), warnings that still count, and a ban only when the ban list confirms it
   const TIMED = ["mute", "tempmute", "timeout", "muzzle", "warn"];
   const active = [
-    ...rows.filter((r) => TIMED.includes(r.action) && r.expiresAt && new Date(r.expiresAt).getTime() > now).map((r) => (r.action === "warn" ? "Warning (still counts)" : label(r.action))),
+    ...rows.filter((r) => TIMED.includes(r.action) && r.status !== "ended" && r.expiresAt && new Date(r.expiresAt).getTime() > now).map((r) => (r.action === "warn" ? "Warning (still counts)" : label(r.action))),
     ...(banned === true ? ["Ban"] : []),
   ];
   const partial = record.total > rows.length;
