@@ -91,12 +91,15 @@ export async function removeExplicit(owner: string, id: string) {
 export async function reorderExplicit(owner: string, ids: unknown) {
   if (!Array.isArray(ids)) throw new ExplicitError("Invalid order.");
   const doc = await getProfile(owner);
-  const current = ((doc?.explicit ?? []) as ExplicitPhoto[]).filter((p) => p && p.id);
-  const byId = new Map(current.map((p) => [p.id, p]));
+  // The stored list exactly as it is (for the compare-and-set below)
+  const current = (doc?.explicit ?? []) as ExplicitPhoto[];
+  const byId = new Map(current.filter((p) => p && p.id).map((p) => [p.id, p]));
   const next = ids.map(String).filter((id) => byId.has(id)).map((id) => byId.get(id)!);
-  for (const p of current) if (!next.includes(p)) next.push(p);
+  for (const p of current) if (p && p.id && !next.includes(p)) next.push(p);
   const { profiles } = await datingCols();
-  await profiles.updateOne({ _id: toLong(owner) } as never, { $set: { explicit: next.slice(0, MAX_EXPLICIT) } } as never);
+  // Only if the list is still exactly what we read (an upload or delete in the meantime would otherwise be lost)
+  const res = await profiles.updateOne({ _id: toLong(owner), explicit: current } as never, { $set: { explicit: next.slice(0, MAX_EXPLICIT) } } as never);
+  if (!res.matchedCount) throw new ExplicitError("Your photos changed while you were reordering. Try again.", 409);
 }
 
 /** Deletes every explicit photo of a member (their profile is being deleted). */

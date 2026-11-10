@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAdminUser } from "../../../../../lib/admin";
+import { getViewAs } from "../../../../../lib/auth";
 import { datingAccess } from "../../../../../lib/dating/access";
 import { adminMayView, canSeeExplicit, readExplicit, removeExplicit } from "../../../../../lib/dating/explicit";
 import { getProfile, ownProfileData } from "../../../../../lib/dating/profiles";
@@ -16,8 +17,10 @@ export async function GET(_request: Request, { params }: { params: { file: strin
   const id = params.file.split(".")[0];
   const photo = await readExplicit(id).catch(() => null);
   if (!photo) return new Response("Not found", { status: 404 });
-  const access = await datingAccess();
-  let allowed = access.ok && (await canSeeExplicit(access.discordId, photo.owner).catch(() => false));
+  // An admin viewing the site as a member doesn't get that member's access: only the report rule below applies
+  const viewingAs = Boolean(await getViewAs().catch(() => null));
+  const access = viewingAs ? null : await datingAccess();
+  let allowed = access?.ok === true && (await canSeeExplicit(access.discordId, photo.owner).catch(() => false));
   if (!allowed && (await getAdminUser().catch(() => null))) allowed = await adminMayView(photo.owner).catch(() => false);
   if (!allowed) return new Response("Not available", { status: 403 });
   return new Response(new Uint8Array(photo.data), {
