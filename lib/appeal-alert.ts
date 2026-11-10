@@ -52,7 +52,7 @@ export type AppealAlertInput = {
 export async function sendAppealAlert(a: AppealAlertInput) {
   const site = (await getMongoClient()).db(process.env.MONGODB_DB ?? "website");
   const safe = <T>(p: Promise<T>, fallback: T) => p.catch(() => fallback);
-  const [record, member, bans, pastAppeals, notes, watch, last30, activeNow] = await Promise.all([
+  const [record, member, bans, pastAppeals, notes, watch, last30] = await Promise.all([
     safe(wholeRecord(a.discordId), { rows: [], total: 0 } as unknown as Awaited<ReturnType<typeof queryPunishments>>),
     safe(getMemberBasics(a.discordId), null),
     safe(getCurrentBans(), null),
@@ -61,7 +61,6 @@ export async function sendAppealAlert(a: AppealAlertInput) {
     safe(getWatch(a.discordId), null),
     // Counted across their whole record, not just the rows loaded above
     safe(queryPunishments({ userId: a.discordId, from: new Date(Date.now() - 30 * 86_400_000), pageSize: 1 }).then((r) => r.total), null as number | null),
-    safe(queryPunishments({ userId: a.discordId, status: "active", pageSize: 50 }).then((r) => r.rows), null as Awaited<ReturnType<typeof queryPunishments>>["rows"] | null),
   ]);
   const issuers = await safe(people(record.rows.map((r) => r.issuerId).concat(a.punishment.issuerId)), {} as Awaited<ReturnType<typeof people>>);
   const p = a.punishment;
@@ -96,7 +95,13 @@ export async function sendAppealAlert(a: AppealAlertInput) {
   const counts = new Map<string, number>();
   for (const r of rows) counts.set(r.action, (counts.get(r.action) ?? 0) + 1);
   const recent30 = last30 ?? rows.filter((r) => now - new Date(r.timestamp).getTime() < 30 * 86_400_000).length;
-  const active = (activeNow ?? rows.filter((r) => r.status === "active")).map((r) => label(r.action));
+  // Worked out here rather than from the record's status (that leans on Discord's ban list, which can be unavailable):
+  // mutes that haven't ended, warnings that still count, and a ban only when the ban list confirms it
+  const TIMED = ["mute", "tempmute", "timeout", "muzzle", "warn"];
+  const active = [
+    ...rows.filter((r) => TIMED.includes(r.action) && r.expiresAt && new Date(r.expiresAt).getTime() > now).map((r) => (r.action === "warn" ? "Warning (still counts)" : label(r.action))),
+    ...(banned === true ? ["Ban"] : []),
+  ];
   const partial = record.total > rows.length;
   const automod = rows.filter((r) => r.source === "automod").length;
   const recordLines = rows.length
@@ -106,7 +111,7 @@ export async function sendAppealAlert(a: AppealAlertInput) {
           .sort((x, y) => y[1] - x[1])
           .map(([k, n]) => `${label(k)} ×${n}`)
           .join(" · ") + (partial ? ` *(of their latest ${rows.length})*` : ""),
-        activeNow === null ? "Couldn't check what's active" : active.length ? `**Active now:** ${Array.from(new Set(active)).join(", ")}` : "Nothing active right now",
+        active.length ? `**Active now:** ${Array.from(new Set(active)).join(", ")}` : banned === null ? "Nothing active right now (couldn't check bans)" : "Nothing active right now",
       ]
     : ["Clean record apart from this one"];
 
