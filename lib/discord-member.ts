@@ -296,11 +296,11 @@ export async function searchMembers(query: string, limit = 10): Promise<MemberSe
   }));
 }
 
-/** Sends a message to a channel as the bot. Mentions never ping unless listed in allowUsers. */
-export async function postChannelMessage(channelId: string, payload: { content?: string; embeds?: unknown[]; components?: unknown[] }, allowUsers: string[] = []) {
+/** Sends a message to a channel as the bot. Mentions never ping unless listed in allowUsers / allowRoles. */
+export async function postChannelMessage(channelId: string, payload: { content?: string; embeds?: unknown[]; components?: unknown[] }, allowUsers: string[] = [], allowRoles: string[] = []) {
   return (await discordRequest("POST", `/channels/${channelId}/messages`, {
     ...payload,
-    allowed_mentions: { parse: [], users: allowUsers },
+    allowed_mentions: { parse: [], users: allowUsers, roles: allowRoles },
   })).ok;
 }
 
