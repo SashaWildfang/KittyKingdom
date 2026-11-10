@@ -22,6 +22,8 @@ const ts = (d: Date | string | null | undefined, style = "D") => {
   return Number.isFinite(t) ? `<t:${Math.floor(t / 1000)}:${style}>` : "unknown";
 };
 const cut = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
+/** Escapes Discord markdown in names. */
+const md = (s: string) => s.replace(/[\\*_~`|>]/g, "\\$&");
 const label = (a: string) => LABEL[a] ?? a.replace(/_/g, " ");
 
 /** Their punishments, newest first: every page (100 per page) up to their latest 1,000. */
@@ -180,5 +182,7 @@ export async function buildAppealAlert(a: AppealAlertInput) {
     ],
   };
 
-  return { content: `<@&${STAFF_TEAM_ROLE_ID}> New appeal from <@${a.discordId}> for a **${label(p.action).toLowerCase()}**.`, embeds: [embed], components: [buttons] };
+  // By name, not a mention: they're usually banned or gone, so Discord would show the mention as "unknown-user"
+  const who = a.name && a.name !== a.username ? `**${md(a.name)}** (@${md(a.username)})` : `**@${md(a.username)}**`;
+  return { content: `<@&${STAFF_TEAM_ROLE_ID}> New appeal from ${who} for a **${label(p.action).toLowerCase()}**.`, embeds: [embed], components: [buttons] };
 }
