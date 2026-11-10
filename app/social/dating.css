@@ -4715,3 +4715,8 @@ a.dt-partner-chip:hover {
 .dt-explicit-add { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
 .dt-explicit-confirm { display: flex; align-items: flex-start; gap: 0.5rem; flex-basis: 100%; font-size: 0.86rem; line-height: 1.4; }
 .dt-explicit-confirm input { margin-top: 0.2rem; accent-color: var(--ember); }
+
+/* Banner preview: drag to move an uploaded banner */
+.dt-banner-preview.is-movable { position: relative; background-size: cover; cursor: grab; touch-action: none; user-select: none; }
+.dt-banner-preview.is-movable:active { cursor: grabbing; }
+.dt-banner-hint { position: absolute; top: 0.5rem; right: 0.5rem; display: inline-flex; align-items: center; gap: 0.3rem; border-radius: 999px; background: rgba(0, 0, 0, 0.55); color: #fff; font-size: 0.72rem; font-weight: 700; padding: 0.2rem 0.55rem; pointer-events: none; }

@@ -7,6 +7,7 @@ import {
   Check,
   Compass,
   Eye,
+  EyeOff,
   HeartHandshake,
   Loader2,
   Lock,
@@ -26,6 +27,8 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useApi } from "../social/ui";
 import { AccountPane, AppearancePane, EmailPane, LevelUpSetting, SecurityPane, type AccountSummary } from "./settings-panes";
 import { ChoiceRow, Group, LinkRow, Switch, ToggleRow, slug } from "./settings-ui";
+import "../social/dating.css";
+import { ExplicitManager, type Own } from "../social/profile-form";
 
 type Settings = {
   notify: Record<string, boolean>;
@@ -48,7 +51,7 @@ type Settings = {
 type Web = { accent?: string; headline?: string; paused?: boolean; pausedByStaff?: boolean; hideAge?: boolean; showOnline?: boolean };
 type NotifyType = { key: string; label: string; hint?: string };
 
-type Category = "account" | "security" | "appearance" | "email" | "notifications" | "privacy" | "messages" | "discover" | "profile";
+type Category = "account" | "security" | "appearance" | "email" | "notifications" | "privacy" | "messages" | "discover" | "profile" | "explicit";
 type Section = "You" | "Notifications" | "Social";
 const CATEGORIES: { key: Category; label: string; blurb: string; icon: LucideIcon; section: Section; social?: boolean }[] = [
   { key: "account", label: "Account", blurb: "Your profile, email and Discord link", icon: UserRound, section: "You" },
@@ -60,6 +63,7 @@ const CATEGORIES: { key: Category; label: string; blurb: string; icon: LucideIco
   { key: "messages", label: "Messages", blurb: "Who can reach you", icon: MessageCircle, section: "Social", social: true },
   { key: "discover", label: "Discover & Browse", blurb: "How profiles are shown to you", icon: Compass, section: "Social", social: true },
   { key: "profile", label: "Social profile", blurb: "Edit, hidden profiles and more", icon: HeartHandshake, section: "Social", social: true },
+  { key: "explicit", label: "Explicit photos", blurb: "Who can see them, add and manage them", icon: EyeOff, section: "Social", social: true },
 ];
 // Old links (#dms, #general…) still land in the right place
 const ALIASES: Record<string, Category> = { general: "account", dms: "notifications", social: "profile", theme: "appearance", emails: "email" };
@@ -340,20 +344,6 @@ export function SettingsPanel({ social, account }: { social: boolean; account: A
             </>
           ) : null}
         </Group>
-        <Group title="Explicit photos">
-          <ChoiceRow
-            title="Who can see my explicit photos"
-            value={s.explicitFrom ?? "matches"}
-            onChange={(v) => set("explicitFrom", v)}
-            options={[
-              ["everyone", "Everyone on Social", "Any 18+ verified member who opens your profile."],
-              ["connections", "Matches & friends", "People you've matched with or added as a friend."],
-              ["matches", "Only matches", "Only people you've matched with."],
-              ["nobody", "Nobody", "Hidden from everyone. You can still see and manage them on your profile."],
-            ]}
-          />
-          <LinkRow href="/social/profile/edit#explicit" icon={ImagePlus} title="Manage my explicit photos" hint="Add, reorder or delete them (up to 10)." />
-        </Group>
         <Group title="Your profile">
           <ToggleRow title="Include me in Featured this hour" hint="The hourly draw on the Social home (only if you're open to dating)." checked={s.featured} onChange={(v) => set("featured", v)} />
           {web ? (
@@ -364,6 +354,27 @@ export function SettingsPanel({ social, account }: { social: boolean; account: A
           ) : (
             <p className="set-note">More profile options appear once you&apos;ve made a Social profile.</p>
           )}
+        </Group>
+      </>
+    );
+  } else if (cat === "explicit") {
+    pane = (
+      <>
+        <Group title="Who can see them">
+          <ChoiceRow
+            title="Who can see my explicit photos"
+            value={s.explicitFrom ?? "matches"}
+            onChange={(v) => set("explicitFrom", v)}
+            options={[
+              ["everyone", "Everyone on Social", "Any 18+ verified member who opens your profile."],
+              ["connections", "Matches & friends", "People you've matched with or added as a friend."],
+              ["matches", "Only matches", "Only people you've matched with."],
+              ["nobody", "Nobody", "Hidden from everyone. You can still see and manage them here."],
+            ]}
+          />
+        </Group>
+        <Group title="Your explicit photos">
+          {web ? <ExplicitSettings /> : <p className="set-note">Make a Social profile first, then you can add explicit photos here.</p>}
         </Group>
       </>
     );
@@ -550,4 +561,17 @@ export function SettingsPanel({ social, account }: { social: boolean; account: A
       </div>
     </div>
   );
+}
+
+/** The explicit photo manager, in Settings → Social → Explicit photos (who can see them is chosen above it). */
+function ExplicitSettings() {
+  const [photos, setPhotos] = useState<NonNullable<Own["explicit"]> | null>(null);
+  useEffect(() => {
+    fetch("/api/dating/me", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((r) => setPhotos(r?.profile?.explicit ?? []))
+      .catch(() => setPhotos([]));
+  }, []);
+  if (!photos) return <p className="set-note">Loading…</p>;
+  return <ExplicitManager photos={photos} hideWho onChange={(own) => setPhotos(own.explicit ?? [])} />;
 }
