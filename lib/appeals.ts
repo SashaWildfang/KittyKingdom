@@ -16,6 +16,9 @@ import { getCurrentBans } from "./moderation";
 import { getBotCollection, getMongoClient } from "./mongodb";
 
 const STAFF_LOG_CHANNEL_ID = "1360344042705256660";
+// New appeals ping the Staff Team role in admin-general
+const APPEAL_PING_CHANNEL_ID = "1358489306691407902";
+const STAFF_TEAM_ROLE_ID = "1358470109965979859";
 const IDENTITY_COOKIE = "kk_appeal";
 const STATE_COOKIE = "kk_appeal_state";
 const IDENTITY_MS = 60 * 60_000;
@@ -298,6 +301,15 @@ export async function submitAppeal(identity: AppealIdentity, input: { punishment
       },
     ],
   }).catch(() => false);
+  // A ping for the Staff Team in admin-general, so a new appeal is seen quickly
+  await postChannelMessage(
+    APPEAL_PING_CHANNEL_ID,
+    {
+      content: `<@&${STAFF_TEAM_ROLE_ID}> 📨 New appeal from <@${identity.discordId}> (\`${identity.username}\`) for a **${snapshot.action}**. Review it: https://bear-nation.net/admin?tab=appeals (ref ${ref})`,
+    },
+    [],
+    [STAFF_TEAM_ROLE_ID],
+  ).catch(() => false);
   return { id: String(res.insertedId), reference: ref };
 }
 
