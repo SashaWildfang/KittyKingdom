@@ -13,6 +13,7 @@ import {
   Clock,
   Eye,
   EyeOff,
+  Lock,
   FileText,
   Gamepad2,
   Globe2,
@@ -66,6 +67,7 @@ type View = {
   banner: string | null;
   bannerY: number;
   photos: { url: string; caption: string | null; crop: Crop | null }[];
+  explicit?: { count: number; visible: boolean; rule: string; photos: { id: string; url: string }[] } | null;
   facts: { label: string; value: string; key: string }[];
   sections: { id: string; label: string; items: { key: string; label: string; value: string; legacy: boolean; long: boolean; href: string | null }[] }[];
   prompts: { q: string; a: string }[];
@@ -178,6 +180,86 @@ function Gallery({ photos, name, owner }: { photos: View["photos"]; name: string
 }
 
 /** Socials and gaming tags as logo chips: links open the site; IDs (friend codes, gamertags) copy. */
+const EXPLICIT_RULE: Record<string, string> = {
+  everyone: "everyone on Social",
+  connections: "their matches and friends",
+  matches: "their matches",
+  nobody: "nobody",
+};
+
+/** Explicit photos: blurred until clicked (each one on its own), then they open full size. */
+function ExplicitGallery({ data, name, own }: { data: NonNullable<View["explicit"]>; name: string; own: boolean }) {
+  const [shown, setShown] = useState<Set<string>>(new Set());
+  const [open, setOpen] = useState<number | null>(null);
+  useEffect(() => {
+    if (open === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(null);
+      if (e.key === "ArrowRight") setOpen((x) => (x === null ? x : (x + 1) % data.photos.length));
+      if (e.key === "ArrowLeft") setOpen((x) => (x === null ? x : (x - 1 + data.photos.length) % data.photos.length));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, data.photos.length]);
+
+  return (
+    <section className="dt-card dt-explicit" aria-label="Explicit photos">
+      <header className="dt-explicit-head">
+        <h3>🔞 Explicit photos</h3>
+        <span className="dt-fine">
+          {data.count} photo{data.count === 1 ? "" : "s"}
+          {own ? ` · visible to ${EXPLICIT_RULE[data.rule] ?? "your matches"}` : ""}
+        </span>
+      </header>
+      {!data.visible ? (
+        <p className="dt-explicit-locked">
+          <Lock size={16} aria-hidden="true" /> {name} shares these with {EXPLICIT_RULE[data.rule] ?? "their matches"} only.
+        </p>
+      ) : (
+        <div className="dt-explicit-grid">
+          {data.photos.map((p, i) => {
+            const on = shown.has(p.id);
+            return (
+              <button
+                key={p.id}
+                type="button"
+                className={`dt-explicit-thumb${on ? " is-shown" : ""}`}
+                onClick={() => (on ? setOpen(i) : setShown((s) => new Set(s).add(p.id)))}
+                aria-label={on ? `Open photo ${i + 1}` : `Show photo ${i + 1}`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={p.url} alt="" loading="lazy" />
+                {!on ? (
+                  <span className="dt-explicit-veil">
+                    <Eye size={18} aria-hidden="true" /> Click to show
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+      )}
+      {data.visible && shown.size ? (
+        <button type="button" className="dt-link dt-explicit-hide" onClick={() => setShown(new Set())}>
+          <EyeOff size={13} aria-hidden="true" /> Blur them again
+        </button>
+      ) : null}
+      {open !== null && data.photos[open]
+        ? createPortal(
+            <div className="dt-lightbox" onClick={() => setOpen(null)} role="dialog" aria-modal="true" aria-label="Explicit photo">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={data.photos[open].url} alt="" onClick={(e) => e.stopPropagation()} />
+              <button type="button" className="dt-modal-close" onClick={() => setOpen(null)} aria-label="Close">
+                <X size={20} />
+              </button>
+            </div>,
+            document.body,
+          )
+        : null}
+    </section>
+  );
+}
+
 function SocialChips({ items }: { items: { key: string; label: string; value: string; href: string | null }[] }) {
   const [copied, setCopied] = useState<string | null>(null);
   // A pasted link shows as just the handle (steamcommunity.com/id/kitty -> kitty)
@@ -594,6 +676,7 @@ export function ProfileScreen({ id }: { id: string }) {
       <div className="dt-profile-grid">
         <div className="dt-profile-left">
           {p.photos.length ? <Gallery photos={p.photos} name={p.name} owner={p.id} /> : null}
+          {p.explicit ? <ExplicitGallery data={p.explicit} name={p.name} own={Boolean(data.own)} /> : null}
 
           {c && !data.own ? (
             <section className="dt-card dt-compat">
