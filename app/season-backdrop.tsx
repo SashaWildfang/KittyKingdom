@@ -1,15 +1,14 @@
 "use client";
 
-// The page backdrop behind every page: faint topographic contour lines in the season's colors (app/topo-pattern.tsx),
-// soft glows over it, and drifting particles for the season (fireflies by default, snow in winter, butterflies and
-// petals in spring, bubbles in summer).
+// The page backdrop behind every page: a few large, still, rounded panels layered at angles, each a soft gradient in
+// the season's colors (calm on purpose: nothing moves but the season's particles), plus drifting particles for the
+// season (fireflies by default, snow in winter, butterflies and petals in spring, bubbles in summer).
 // Colors and pattern come from app/seasons.css + app/glass.css; Admin → Overview → Seasons turns the particles down or off.
 
 import "./seasons.css";
 import { useEffect, useRef, useState } from "react";
 import { effectsOff, onDevicePrefsChange, prefersLessMotion } from "./device-prefs";
 import { useSeason } from "./season-context";
-import { TopoPattern } from "./topo-pattern";
 import type { SeasonKey } from "../lib/seasons";
 
 // ---------------------------------------------------------------- particles (one canvas)
@@ -217,8 +216,14 @@ export function SeasonBackdrop() {
   }, []);
   return (
     <div className="sb" data-season-backdrop={season.key} aria-hidden="true">
-      <TopoPattern />
-      <div className="sb-mesh" />
+      <div className="sb-panels">
+        {/* Five panels: positions, sizes and angles are in glass.css (.sb-panel:nth-child) */}
+        <span className="sb-panel" />
+        <span className="sb-panel" />
+        <span className="sb-panel" />
+        <span className="sb-panel" />
+        <span className="sb-panel" />
+      </div>
       {season.particles !== "off" && fx.on ? <Particles season={season.key} amount={season.particles} still={fx.still} /> : null}
     </div>
   );
