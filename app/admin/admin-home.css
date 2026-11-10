@@ -1,0 +1,45 @@
+/* Admin → Home */
+.ah { display: grid; gap: 1.1rem; }
+.ah-head h2 { margin: 0 0 0.25rem; }
+.ah-head p { margin: 0; }
+
+.ah-needs { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr)); gap: 0.5rem; }
+.ah-need { display: flex; align-items: center; gap: 0.6rem; border: 1px solid var(--line); border-radius: 0.9rem; background: var(--panel); color: var(--text); cursor: pointer; font: inherit; padding: 0.65rem 0.8rem; text-align: left; transition: border-color 0.15s ease, transform 0.15s ease; }
+.ah-need:hover, .ah-need:focus-visible { border-color: rgba(var(--ember-rgb), 0.7); transform: translateY(-1px); }
+.ah-need.is-hot { border-color: rgba(229, 72, 77, 0.55); background: linear-gradient(rgba(229, 72, 77, 0.08), rgba(229, 72, 77, 0.08)), var(--panel); }
+.ah-need > svg:first-child { flex: none; color: var(--ember); }
+.ah-need.is-hot > svg:first-child { color: #ff8a8a; }
+.ah-need span { display: grid; flex: 1; min-width: 0; }
+.ah-need small { color: var(--muted); font-size: 0.78rem; }
+.ah-need-go { flex: none; color: var(--muted); }
+
+.ah-search { position: sticky; top: 0.5rem; z-index: 5; display: flex; align-items: center; gap: 0.6rem; border: 1px solid var(--line); border-radius: 1rem; background: linear-gradient(var(--panel), var(--panel)), var(--bg); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); padding: 0.7rem 0.9rem; }
+.ah-search:focus-within { border-color: rgba(var(--ember-rgb), 0.8); }
+.ah-search > svg { flex: none; color: var(--muted); }
+.ah-search input { flex: 1; min-width: 0; border: 0; background: none; color: var(--text); font: inherit; font-size: 1rem; outline: none; }
+.ah-search kbd { flex: none; border: 1px solid var(--line); border-radius: 0.35rem; color: var(--muted); font-size: 0.72rem; padding: 0.1rem 0.4rem; }
+
+.ah-quick { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: 1rem; }
+.ah-section { display: grid; gap: 0.55rem; }
+.ah-section h3 { display: flex; align-items: center; gap: 0.35rem; margin: 0; color: var(--muted); font-size: 0.78rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+.ah-tip { margin: 0; font-size: 0.82rem; }
+.ah-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr)); gap: 0.5rem; }
+.ah-row { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+
+.ah-card { position: relative; display: flex; align-items: stretch; border: 1px solid var(--line); border-radius: 0.9rem; background: var(--panel); transition: border-color 0.15s ease; }
+.ah-card:hover { border-color: rgba(var(--ember-rgb), 0.55); }
+.ah-card.is-hot { border-color: rgba(229, 72, 77, 0.45); }
+.ah-card-main { display: flex; flex: 1; align-items: flex-start; gap: 0.6rem; min-width: 0; border: 0; background: none; color: var(--text); cursor: pointer; font: inherit; padding: 0.7rem 0.4rem 0.7rem 0.8rem; text-align: left; }
+.ah-card.is-compact .ah-card-main { align-items: center; padding: 0.45rem 0.3rem 0.45rem 0.65rem; }
+.ah-card-icon { display: grid; flex: none; place-items: center; width: 2.1rem; height: 2.1rem; border-radius: 0.6rem; background: rgba(var(--ember-rgb), 0.12); color: var(--ember); }
+.ah-card.is-compact .ah-card-icon { width: 1.7rem; height: 1.7rem; }
+.ah-card-text { display: grid; flex: 1; gap: 0.15rem; min-width: 0; }
+.ah-card-text small { color: var(--muted); font-size: 0.78rem; line-height: 1.35; }
+.ah-badge { flex: none; align-self: center; min-width: 1.4rem; border-radius: 999px; background: rgba(var(--ember-rgb), 0.2); color: var(--text); font-size: 0.74rem; font-weight: 800; padding: 0.1rem 0.45rem; text-align: center; }
+.ah-badge.is-hot { background: #e5484d; color: #fff; }
+.ah-pin { display: grid; flex: none; place-items: center; width: 2rem; border: 0; border-radius: 0 0.9rem 0.9rem 0; background: none; color: var(--muted); cursor: pointer; opacity: 0.45; transition: opacity 0.15s ease, color 0.15s ease; }
+.ah-card:hover .ah-pin, .ah-pin:focus-visible, .ah-pin.is-on { opacity: 1; }
+.ah-pin.is-on { color: #ffc53d; }
+.ah-pin.is-on svg { fill: currentColor; }
+@media (hover: none) { .ah-pin { opacity: 0.8; } }
+@media (prefers-reduced-motion: reduce) { .ah-need, .ah-card { transition: none; } .ah-need:hover { transform: none; } }

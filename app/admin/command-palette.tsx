@@ -14,7 +14,7 @@ type Result = { id: string; kind: "tab" | "member" | "ticket"; label: string; hi
 type Member = { id: string; username: string; displayName: string; avatar: string | null; bot?: boolean };
 
 const RECENT_KEY = "kk-admin-recent-tabs";
-const readRecent = (): string[] => {
+export const readRecent = (): string[] => {
   try {
     return JSON.parse(window.localStorage.getItem(RECENT_KEY) ?? "[]") as string[];
   } catch {
