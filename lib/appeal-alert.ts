@@ -49,7 +49,14 @@ export type AppealAlertInput = {
   punishment: { action: string; reason: string; at: Date | null; expiresAt: Date | null; issuerId: string | null };
 };
 
+/** Posts the alert in admin-general (true if Discord took it). */
 export async function sendAppealAlert(a: AppealAlertInput) {
+  const msg = await buildAppealAlert(a);
+  return postChannelMessage(CHANNEL_ID, msg, [], [STAFF_TEAM_ROLE_ID]);
+}
+
+/** The alert message (ping, embed and buttons) without posting it: also used for previews. */
+export async function buildAppealAlert(a: AppealAlertInput) {
   const site = (await getMongoClient()).db(process.env.MONGODB_DB ?? "website");
   const safe = <T>(p: Promise<T>, fallback: T) => p.catch(() => fallback);
   const [record, member, bans, pastAppeals, notes, watch, last30] = await Promise.all([
@@ -173,10 +180,5 @@ export async function sendAppealAlert(a: AppealAlertInput) {
     ],
   };
 
-  return postChannelMessage(
-    CHANNEL_ID,
-    { content: `<@&${STAFF_TEAM_ROLE_ID}> New appeal from <@${a.discordId}> for a **${label(p.action).toLowerCase()}**.`, embeds: [embed], components: [buttons] },
-    [],
-    [STAFF_TEAM_ROLE_ID],
-  );
+  return { content: `<@&${STAFF_TEAM_ROLE_ID}> New appeal from <@${a.discordId}> for a **${label(p.action).toLowerCase()}**.`, embeds: [embed], components: [buttons] };
 }
