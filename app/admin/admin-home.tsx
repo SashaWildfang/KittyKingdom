@@ -98,11 +98,15 @@ export function AdminHome({ tabs, alerts, onTab, name }: { tabs: HomeTab[]; aler
 
   const usable = tabs.filter((t) => t.key !== "home");
   const byKey = new Map(usable.map((t) => [t.key, t]));
+  // Live chat unread isn't something waiting on staff
   const needs = usable
+    .filter((t) => t.key !== "live")
     .map((t) => ({ t, a: alerts[t.key] }))
     .filter((x): x is { t: HomeTab; a: NonNullable<HomeAlert> } => Boolean(x.a && x.a.count > 0))
     .sort((x, y) => Number(Boolean(y.a.hot)) - Number(Boolean(x.a.hot)) || y.a.count - x.a.count);
 
+  // Needs attention already counts join apps, tickets, reports and the rest, so its number is the total (no double counting)
+  const waiting = alerts.inbox?.count ?? needs.filter((x) => x.t.key !== "inbox").reduce((n, x) => n + x.a.count, 0);
   const words = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
   const matches = useMemo(
     () => (words.length ? usable.filter((t) => words.every((w) => `${t.label} ${t.group} ${ABOUT[t.key] ?? ""}`.toLowerCase().includes(w))) : []),
@@ -115,31 +119,7 @@ export function AdminHome({ tabs, alerts, onTab, name }: { tabs: HomeTab[]; aler
   const hour = new Date().getHours();
   const hello = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
-  const Card = ({ t, compact }: { t: HomeTab; compact?: boolean }) => {
-    const a = alerts[t.key];
-    const pinnedNow = pins.includes(t.key);
-    return (
-      <div className={`ah-card${compact ? " is-compact" : ""}${a?.hot ? " is-hot" : ""}`}>
-        <button type="button" className="ah-card-main" onClick={() => onTab(t.key)}>
-          <span className="ah-card-icon" aria-hidden="true">
-            <t.icon size={compact ? 16 : 18} />
-          </span>
-          <span className="ah-card-text">
-            <b>{t.label}</b>
-            {!compact && ABOUT[t.key] ? <small>{ABOUT[t.key]}</small> : null}
-          </span>
-          {a && a.count > 0 ? (
-            <span className={`ah-badge${a.hot ? " is-hot" : ""}`} title={a.label}>
-              {a.count > 999 ? "999+" : a.count}
-            </span>
-          ) : null}
-        </button>
-        <button type="button" className={`ah-pin${pinnedNow ? " is-on" : ""}`} onClick={() => togglePin(t.key)} aria-label={pinnedNow ? `Unpin ${t.label}` : `Pin ${t.label} to Home`} aria-pressed={pinnedNow} title={pinnedNow ? "Unpin" : "Pin to Home"}>
-          <Star size={14} />
-        </button>
-      </div>
-    );
-  };
+  const card = (t: HomeTab, compact?: boolean) => <ToolCard key={t.key} t={t} compact={compact} alert={alerts[t.key]} pinned={pins.includes(t.key)} onOpen={onTab} onPin={togglePin} />;
 
   return (
     <div className="ah">
@@ -148,7 +128,7 @@ export function AdminHome({ tabs, alerts, onTab, name }: { tabs: HomeTab[]; aler
           <h2>
             {hello}, {name.split(" ")[0]}
           </h2>
-          <p className="adm-muted">{needs.length ? `${needs.reduce((n, x) => n + x.a.count, 0)} things are waiting across ${needs.length} tool${needs.length === 1 ? "" : "s"}.` : "Nothing is waiting right now. 🎉"}</p>
+          <p className="adm-muted">{waiting ? `${waiting} thing${waiting === 1 ? " is" : "s are"} waiting on staff.` : needs.length ? "A few tools have something new." : "Nothing is waiting right now. 🎉"}</p>
         </div>
       </header>
 
@@ -190,9 +170,7 @@ export function AdminHome({ tabs, alerts, onTab, name }: { tabs: HomeTab[]; aler
           </h3>
           {matches.length ? (
             <div className="ah-grid">
-              {matches.map((t) => (
-                <Card key={t.key} t={t} />
-              ))}
+              {matches.map((t) => card(t))}
             </div>
           ) : (
             <p className="adm-empty">No tool matches that. Try another word, or Ctrl+K to search members and tickets too.</p>
@@ -208,9 +186,7 @@ export function AdminHome({ tabs, alerts, onTab, name }: { tabs: HomeTab[]; aler
                     <Star size={14} aria-hidden="true" /> Pinned
                   </h3>
                   <div className="ah-row">
-                    {pinned.map((t) => (
-                      <Card key={t.key} t={t} compact />
-                    ))}
+                    {pinned.map((t) => card(t, true))}
                   </div>
                 </section>
               ) : null}
@@ -220,9 +196,7 @@ export function AdminHome({ tabs, alerts, onTab, name }: { tabs: HomeTab[]; aler
                     <Clock size={14} aria-hidden="true" /> Recently used
                   </h3>
                   <div className="ah-row">
-                    {recentTabs.map((t) => (
-                      <Card key={t.key} t={t} compact />
-                    ))}
+                    {recentTabs.map((t) => card(t, true))}
                   </div>
                 </section>
               ) : null}
@@ -236,14 +210,36 @@ export function AdminHome({ tabs, alerts, onTab, name }: { tabs: HomeTab[]; aler
               <div className="ah-grid">
                 {usable
                   .filter((t) => t.group === sec)
-                  .map((t) => (
-                    <Card key={t.key} t={t} />
-                  ))}
+                  .map((t) => card(t))}
               </div>
             </section>
           ))}
         </>
       )}
+    </div>
+  );
+}
+
+function ToolCard({ t, compact, alert, pinned, onOpen, onPin }: { t: HomeTab; compact?: boolean; alert: HomeAlert; pinned: boolean; onOpen: (key: string) => void; onPin: (key: string) => void }) {
+  return (
+    <div className={`ah-card${compact ? " is-compact" : ""}${alert?.hot ? " is-hot" : ""}`}>
+      <button type="button" className="ah-card-main" onClick={() => onOpen(t.key)}>
+        <span className="ah-card-icon" aria-hidden="true">
+          <t.icon size={compact ? 16 : 18} />
+        </span>
+        <span className="ah-card-text">
+          <b>{t.label}</b>
+          {!compact && ABOUT[t.key] ? <small>{ABOUT[t.key]}</small> : null}
+        </span>
+        {alert && alert.count > 0 ? (
+          <span className={`ah-badge${alert.hot ? " is-hot" : ""}`} title={alert.label}>
+            {alert.count > 999 ? "999+" : alert.count}
+          </span>
+        ) : null}
+      </button>
+      <button type="button" className={`ah-pin${pinned ? " is-on" : ""}`} onClick={() => onPin(t.key)} aria-label={pinned ? `Unpin ${t.label}` : `Pin ${t.label} to Home`} aria-pressed={pinned} title={pinned ? "Unpin" : "Pin to Home"}>
+        <Star size={14} />
+      </button>
     </div>
   );
 }
