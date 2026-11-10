@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { explicitSection, removeAllExplicit } from "../../../../lib/dating/explicit";
 import { invalidatePool } from "../../../../lib/dating/pool";
 import { deleteProfile, getProfile, ownProfileData, profileView, saveProfile, type ProfilePatch } from "../../../../lib/dating/profiles";
 import { requireDating, sameOrigin } from "../../../../lib/dating/route-helpers";
@@ -15,7 +16,7 @@ export async function GET() {
   if (me instanceof NextResponse) return me;
   const doc = await getProfile(me.discordId);
   return NextResponse.json(
-    { ok: true, booster: me.booster, profile: ownProfileData(doc), view: doc ? await profileView(doc, { viewerIsOwner: true }) : null, birth: (await birthInfo([me.discordId]).catch(() => new Map())).get(me.discordId) ?? null, hints: await roleHints(me.discordId).catch(() => ({})) },
+    { ok: true, booster: me.booster, profile: ownProfileData(doc), view: doc ? { ...(await profileView(doc, { viewerIsOwner: true })), explicit: await explicitSection(doc, me.discordId).catch(() => null) } : null, birth: (await birthInfo([me.discordId]).catch(() => new Map())).get(me.discordId) ?? null, hints: await roleHints(me.discordId).catch(() => ({})) },
     { headers: { "Cache-Control": "no-store" } },
   );
 }
@@ -31,7 +32,7 @@ export async function PUT(request: Request) {
   if (error) return NextResponse.json({ ok: false, error }, { status: 400 });
   invalidatePool();
   const doc = await getProfile(me.discordId);
-  return NextResponse.json({ ok: true, profile: ownProfileData(doc), view: doc ? await profileView(doc, { viewerIsOwner: true }) : null });
+  return NextResponse.json({ ok: true, profile: ownProfileData(doc), view: doc ? { ...(await profileView(doc, { viewerIsOwner: true })), explicit: await explicitSection(doc, me.discordId).catch(() => null) } : null });
 }
 
 /** Deletes your dating profile, likes, matches and photos. Needs { confirm: "DELETE" }. */
@@ -52,6 +53,7 @@ export async function DELETE(request: Request) {
       if (id) await deletePhoto(id);
     }
   }
+  await removeAllExplicit(doc);
   await deleteProfile(me.discordId);
   invalidatePool();
   return NextResponse.json({ ok: true });

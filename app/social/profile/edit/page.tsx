@@ -3,7 +3,7 @@
 import { Eye, Loader2, Save, Sparkles, Trash2, TriangleAlert, Wand2 } from "lucide-react";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { FIELDS, SECTIONS } from "../../../../lib/dating/schema";
-import { AgeField, FieldInput, FursonaEditor, PartnerManager, type Birth, LooksEditor, PhotoManager, PromptsEditor, changed, clearDraft, readDraft, saveMe, writeDraft, type Own } from "../../profile-form";
+import { AgeField, ExplicitManager, FieldInput, FursonaEditor, PartnerManager, type Birth, LooksEditor, PhotoManager, PromptsEditor, changed, clearDraft, readDraft, saveMe, writeDraft, type Own } from "../../profile-form";
 import { SectionIcon } from "../../icons";
 import { Empty, useApi } from "../../ui";
 
@@ -210,6 +210,10 @@ export default function EditProfile() {
             <SectionIcon id="photos" /> Photos
           </h2>
           <PhotoManager photos={own.photos} onChange={(p) => setOwn((o) => (o ? { ...o, photos: p.photos, strength: p.strength } : p))} />
+        </section>
+        <section id="explicit" className="dt-card dt-edit-section">
+          <h2 className="dt-h-icon">🔞 Explicit photos</h2>
+          <ExplicitManager photos={own.explicit ?? []} onChange={(p) => setOwn((o) => (o ? { ...o, explicit: p.explicit } : p))} />
         </section>
         {stale.length ? (
           <div className="dt-banner dt-banner--warn" role="alert">

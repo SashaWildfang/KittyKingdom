@@ -9,18 +9,19 @@ import { sniff } from "../news-media";
 const TYPES: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/gif": "gif", "image/webp": "webp" };
 export const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
 
-async function bucket() {
+// Explicit photos live in their own bucket ("dating_explicit") so the SFW media route can never serve them
+async function bucket(name = "dating_media") {
   const client = await getMongoClient();
-  return new GridFSBucket(client.db(process.env.MONGODB_DB ?? "website"), { bucketName: "dating_media" });
+  return new GridFSBucket(client.db(process.env.MONGODB_DB ?? "website"), { bucketName: name });
 }
 
-export async function savePhoto(data: Buffer, owner: string) {
+export async function savePhoto(data: Buffer, owner: string, bucketName = "dating_media", maxBytes = MAX_PHOTO_BYTES) {
   const type = sniff(data);
   if (!type || !TYPES[type]) throw new Error("Photos must be PNG, JPG, GIF or WebP images.");
-  if (data.length > MAX_PHOTO_BYTES) throw new Error("That photo is over 4 MB. Try a smaller one.");
+  if (data.length > maxBytes) throw new Error(`That photo is over ${Math.round(maxBytes / 1024 / 1024)} MB. Try a smaller one.`);
   const clean = stripMetadata(data, type);
   const id = new ObjectId();
-  const b = await bucket();
+  const b = await bucket(bucketName);
   await new Promise<void>((resolve, reject) => {
     const up = b.openUploadStreamWithId(id, `${owner}.${TYPES[type]}`, { metadata: { contentType: type, owner, uploadedAt: new Date() } });
     up.on("error", reject);
@@ -30,9 +31,9 @@ export async function savePhoto(data: Buffer, owner: string) {
   return { id: String(id), ext: TYPES[type] };
 }
 
-export async function readPhoto(id: string) {
+export async function readPhoto(id: string, bucketName = "dating_media") {
   if (!ObjectId.isValid(id)) return null;
-  const b = await bucket();
+  const b = await bucket(bucketName);
   const file = (await b.find({ _id: new ObjectId(id) }).limit(1).toArray())[0];
   if (!file) return null;
   const chunks: Buffer[] = [];
@@ -41,15 +42,15 @@ export async function readPhoto(id: string) {
 }
 
 /** Who uploaded a file (without downloading it). */
-export async function photoOwner(id: string): Promise<string | null> {
+export async function photoOwner(id: string, bucketName = "dating_media"): Promise<string | null> {
   if (!ObjectId.isValid(id)) return null;
-  const file = (await (await bucket()).find({ _id: new ObjectId(id) }).limit(1).toArray())[0];
+  const file = (await (await bucket(bucketName)).find({ _id: new ObjectId(id) }).limit(1).toArray())[0];
   return file ? String(file.metadata?.owner ?? "") : null;
 }
 
-export async function deletePhoto(id: string) {
+export async function deletePhoto(id: string, bucketName = "dating_media") {
   if (!ObjectId.isValid(id)) return;
-  await (await bucket()).delete(new ObjectId(id)).catch(() => undefined);
+  await (await bucket(bucketName)).delete(new ObjectId(id)).catch(() => undefined);
 }
 
 // ---------- Metadata stripping ----------

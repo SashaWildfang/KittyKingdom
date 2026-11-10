@@ -32019,3 +32019,10 @@ a.apl-chip {
 
 /* My Account → Roles: "Pick one" / "Pick as many as you like" after a category description */
 .roles-mode { color: var(--muted); font-weight: 700; }
+
+/* Admin → Social reports: explicit photos, blurred until clicked */
+.dtr-explicit { display: grid; gap: 0.35rem; margin: 0.4rem 0; }
+.dtr-blur { position: relative; overflow: hidden; border: 0; border-radius: 0.5rem; background: none; cursor: pointer; padding: 0; }
+.dtr-blur img { display: block; filter: blur(24px); transform: scale(1.15); }
+.dtr-blur.is-shown img { filter: none; transform: none; }
+.dtr-blur span { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0, 0, 0, 0.35); color: #fff; font-size: 0.75rem; font-weight: 700; }
