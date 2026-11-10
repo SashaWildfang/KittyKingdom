@@ -250,7 +250,7 @@ export async function saveProfile(discordId: string, patch: ProfilePatch): Promi
       ...((saved?.fursonas ?? []) as { art_links?: string[] }[]).flatMap((f) => (f.art_links ?? []).map(mediaId)).filter((x): x is string => Boolean(x)),
       ...[mediaId(((saved?.web ?? {}) as WebPrefs).banner)].filter((x): x is string => Boolean(x)),
     ]);
-    for (const id of new Set(removedArt)) if (!stillUsed.has(id)) await deletePhoto(id);
+    for (const id of Array.from(new Set(removedArt))) if (!stillUsed.has(id)) await deletePhoto(id);
   }
   return null;
 }
