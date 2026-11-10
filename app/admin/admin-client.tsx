@@ -2,7 +2,7 @@
 
 import "./admin-nav.css";
 import { TicketCanDelete, TicketDeletePermissions } from "./delete-ticket-button";
-import { Briefcase, Fingerprint, LineChart, ClipboardList, Contact, Eye, Inbox, KeyRound, ListTodo, MessageCircleReply, MessageSquareWarning, Tags, ChevronDown, ChevronRight, Menu, Search, X, Lock, PartyPopper, Activity, Archive, AtSign, Database, CalendarDays, Gift, SunSnow, BarChart3, Bot, Coins, History, Megaphone, Server, Shield as ShieldIcon, BookOpen, Crown, Hammer, ClipboardCheck, ListChecks, TerminalSquare, Dices, Gavel, Globe, HeartHandshake, Mail, MessagesSquare, Newspaper, Scale, ScrollText, ShieldCheck, Ticket, Users, UsersRound, ImagePlus, type LucideIcon } from "lucide-react";
+import { Briefcase, House, Fingerprint, LineChart, ClipboardList, Contact, Eye, Inbox, KeyRound, ListTodo, MessageCircleReply, MessageSquareWarning, Tags, ChevronDown, ChevronRight, Menu, Search, X, Lock, PartyPopper, Activity, Archive, AtSign, Database, CalendarDays, Gift, SunSnow, BarChart3, Bot, Coins, History, Megaphone, Server, Shield as ShieldIcon, BookOpen, Crown, Hammer, ClipboardCheck, ListChecks, TerminalSquare, Dices, Gavel, Globe, HeartHandshake, Mail, MessagesSquare, Newspaper, Scale, ScrollText, ShieldCheck, Ticket, Users, UsersRound, ImagePlus, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AccountsTab } from "./accounts-tab";
@@ -54,14 +54,15 @@ import { AnnouncementsTab, AutoRepliesTab, ServerToolsTab } from "./tools-tabs";
 import { InsightsTab } from "./insights-tab";
 import { AdminLogTab, SecurityTab } from "./security-tabs";
 import { CommandPalette, rememberTab } from "./command-palette";
+import { AdminHome } from "./admin-home";
 
-type Tab = "graphics" | "discord-members" | "overview" | "punishments" | "automod" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live" | "join" | "dating" | "appeals" | "messages" | "games" | "guide" | "banrequests" | "patreon" | "emails" | "ads" | "bot-main" | "bot-economy" | "bot-moderation" | "bot-ticketing" | "server" | "bot-history" | "removed" | "giveaways" | "seasons" | "status" | "events" | "rules" | "bot-console" | "database" | "chat-events" | "lockdown" | "role-picker" | "inbox" | "watchlist" | "reports" | "cases" | "staff-activity" | "staff-apps" | "tasks" | "announcements" | "auto-replies" | "server-tools" | "insights" | "admin-log" | "security";
+type Tab = "home" | "graphics" | "discord-members" | "overview" | "punishments" | "automod" | "logs" | "tickets" | "accounts" | "news" | "traffic" | "live" | "join" | "dating" | "appeals" | "messages" | "games" | "guide" | "banrequests" | "patreon" | "emails" | "ads" | "bot-main" | "bot-economy" | "bot-moderation" | "bot-ticketing" | "server" | "bot-history" | "removed" | "giveaways" | "seasons" | "status" | "events" | "rules" | "bot-console" | "database" | "chat-events" | "lockdown" | "role-picker" | "inbox" | "watchlist" | "reports" | "cases" | "staff-activity" | "staff-apps" | "tasks" | "announcements" | "auto-replies" | "server-tools" | "insights" | "admin-log" | "security";
 type Level = "admin" | "staff";
 
 // Tabs are grouped so the bar stays short: pick a group, then one of its tabs
 type Group = "overview" | "moderation" | "members" | "team" | "community" | "website" | "bots";
 const GROUPS: { key: Group; label: string; icon: LucideIcon; tabs: Tab[] }[] = [
-  { key: "overview", label: "Overview", icon: BarChart3, tabs: ["inbox", "overview", "insights", "graphics", "seasons", "status", "guide"] },
+  { key: "overview", label: "Overview", icon: BarChart3, tabs: ["home", "inbox", "overview", "insights", "graphics", "seasons", "status", "guide"] },
   { key: "moderation", label: "Moderation", icon: Gavel, tabs: ["punishments", "reports", "cases", "banrequests", "appeals", "watchlist", "automod", "lockdown", "logs", "live", "removed", "rules"] },
   { key: "members", label: "Members", icon: Users, tabs: ["discord-members", "role-picker", "join", "tickets", "messages", "patreon"] },
   { key: "team", label: "Team", icon: Contact, tabs: ["tasks", "staff-activity", "staff-apps", "security"] },
@@ -72,6 +73,7 @@ const GROUPS: { key: Group; label: string; icon: LucideIcon; tabs: Tab[] }[] = [
 
 // admin: admins only; giveaways: admins and Community Managers
 const TABS: { key: Tab; label: string; icon: LucideIcon; admin?: boolean; giveaways?: boolean }[] = [
+  { key: "home", label: "Home", icon: House },
   { key: "inbox", label: "Needs attention", icon: Inbox },
   { key: "overview", label: "Overview", icon: BarChart3 },
   { key: "insights", label: "Insights", icon: LineChart, admin: true },
@@ -137,7 +139,7 @@ const ACTION_GROUPS: Record<string, string[]> = {
 export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaways = false }: { adminName: string; level: Level; canDeleteNsfw?: boolean; canGiveaways?: boolean }) {
   const isAdmin = level === "admin";
   const tabs = TABS.filter((t) => isAdmin || (t.giveaways ? canGiveaways : !t.admin));
-  const [tab, setTab] = useState<Tab>("overview");
+  const [tab, setTab] = useState<Tab>("home");
   const [member, setMember] = useState<string | null>(null);
   const [caseId, setCaseId] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<number | null>(null);
@@ -453,6 +455,14 @@ export function AdminClient({ adminName, level, canDeleteNsfw = false, canGiveaw
             onTicket={openTranscript}
           />
       <TabBoundary key={tab} name={tab}>
+      {tab === "home" ? (
+        <AdminHome
+          name={adminName}
+          tabs={tabs.map((t) => ({ key: t.key, label: t.label, icon: t.icon, group: groups.find((g) => g.tabs.includes(t.key))?.label ?? "" }))}
+          alerts={Object.fromEntries(tabs.map((t) => [t.key, alert(t.key)]))}
+          onTab={(k) => pickTab(k as Tab)}
+        />
+      ) : null}
       {tab === "overview" ? (
         <OverviewTab
           level={level}
