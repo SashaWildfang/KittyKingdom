@@ -7,6 +7,7 @@ import { getSettings } from "../../../../../lib/dating/settings";
 import { confirmedPartners } from "../../../../../lib/dating/partners";
 import { getCurrentBans } from "../../../../../lib/moderation";
 import { requireDating } from "../../../../../lib/dating/route-helpers";
+import { explicitSection } from "../../../../../lib/dating/explicit";
 import { friendState, hasLiked, iSuperLiked, isMatch, likesReceived, passedIds, superLikesOwned } from "../../../../../lib/dating/social";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +26,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   if (!doc || banned || (staffPaused && !own) || (blocked.has(params.id) && !(await blocks.countDocuments({ blocker: me.discordId, blocked: params.id }, { limit: 1 })))) {
     return NextResponse.json({ ok: false, error: "This profile isn't available." }, { status: 404 });
   }
-  const [view, compat, iLiked, match, friend, received, superLiked, superLikes] = await Promise.all([
+  const [view, compat, iLiked, match, friend, received, superLiked, superLikes, explicit] = await Promise.all([
     profileView(doc, { viewerIsOwner: own }),
     own ? null : compatWith(me.discordId, params.id),
     own ? false : hasLiked(me.discordId, params.id),
@@ -34,7 +35,10 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     own ? [] : likesReceived(me.discordId, me.booster),
     own ? false : iSuperLiked(me.discordId, params.id).catch(() => false),
     own ? 0 : superLikesOwned(me.discordId),
+    // Explicit photos: only what this viewer is allowed to see (checked again on every image request)
+    explicitSection(doc, me.discordId).catch(() => null),
   ]);
+  view.explicit = explicit;
   const theyLike = received.find((l) => l.id === params.id);
   // Let them know someone looked (unless you browse anonymously or they turned it off)
   // Never while an admin is viewing the site as someone (they'd appear to have looked)

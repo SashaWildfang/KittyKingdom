@@ -48,6 +48,7 @@ export function memberSteps(discordIds: string[]): MemberStep[] {
     { kind: "social", db: "website", collection: "dating_partners", label: "Partner links", filter: { users: text } },
     { kind: "social", db: "website", collection: "dating_conversations", label: "Social chats", filter: { users: text } },
     { kind: "social", db: "website", collection: "dating_media.files", label: "Social photos", filter: { "metadata.owner": text } },
+    { kind: "social", db: "website", collection: "dating_explicit.files", label: "Social explicit photos", filter: { "metadata.owner": text } },
     { kind: "website", db: "website", collection: "admin_prefs", label: "Admin panel preferences", filter: { _id: text } as Document },
     { kind: "history", db: "website", collection: "vc_rewards", label: "Voice reward history", filter: { userId: text } },
     { kind: "directory", db: "website", collection: "member_directory", label: "Cached name", filter: { _id: text } as Document },
@@ -136,6 +137,8 @@ export async function executeWipe(discordId: string, actor: PanelUser) {
   // Photos are stored in pieces: drop the pieces with the files
   const photoIds = (await site.collection("dating_media.files").find({ "metadata.owner": discordId }, { projection: { _id: 1 } }).toArray()).map((f) => f._id);
   if (photoIds.length) await site.collection("dating_media.chunks").deleteMany({ files_id: { $in: photoIds } });
+  const explicitIds = (await site.collection("dating_explicit.files").find({ "metadata.owner": discordId }, { projection: { _id: 1 } }).toArray()).map((f) => f._id);
+  if (explicitIds.length) await site.collection("dating_explicit.chunks").deleteMany({ files_id: { $in: explicitIds } });
 
   for (const s of steps) {
     const r = await (await collectionFor(s)).deleteMany(s.filter).catch(() => ({ deletedCount: 0 }));

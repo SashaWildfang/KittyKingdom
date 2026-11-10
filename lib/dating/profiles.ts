@@ -258,6 +258,8 @@ export type ProfileView = {
   badges: { showcase: BadgeShowcase; earned: Record<string, BadgeEarned> } | null;
   /** Store cosmetics, custom title and custom badges */
   extras: ProfileExtras;
+  /** Explicit photos, as this viewer may see them (added by the route: lib/dating/explicit.ts) */
+  explicit?: { count: number; visible: boolean; rule: string; photos: { id: string; url: string }[] } | null;
 };
 
 /** The badge showcase a member picked on their stats page, for their Social profile. */
@@ -374,6 +376,8 @@ export function ownProfileData(doc: ProfileDoc | null) {
     prompts: (doc.prompts ?? []) as Prompt[],
     fursonas: ((doc.fursonas ?? []) as (Fursona & { art_link?: string })[]).map((f) => ({ name: String(f.name ?? ""), description: String(f.description ?? ""), art_links: Array.isArray(f.art_links) && f.art_links.length ? f.art_links.map(String) : f.art_link ? [String(f.art_link)] : [] })),
     photos: ((doc.photos ?? []) as Photo[]).map((p) => ({ ...p, url: photoUrl(p) })),
+    // Their explicit photos (only ever sent to themselves here; others get them through explicitSection)
+    explicit: ((doc.explicit ?? []) as { id: string; ext: string }[]).filter((p) => p && p.id).map((p) => ({ id: p.id, url: `/api/dating/explicit/${p.id}.${p.ext}` })),
     // The color they see in the editor is the one others see (picked, or derived from their id)
     web: { ...((doc.web ?? {}) as WebPrefs), accent: accentFor(String(doc._id), ((doc.web ?? {}) as WebPrefs).accent) },
     strength: profileStrength(doc),

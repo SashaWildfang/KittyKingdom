@@ -46,6 +46,8 @@ export type DatingSettings = {
   enterToSend: boolean;
   /** Show my confirmed partners on my profile. */
   showPartners: boolean;
+  /** Who can see my explicit photos (lib/dating/explicit.ts). */
+  explicitFrom: "everyone" | "connections" | "matches" | "nobody";
 };
 
 export const DEFAULTS: DatingSettings = {
@@ -66,6 +68,7 @@ export const DEFAULTS: DatingSettings = {
   browseSort: "best",
   enterToSend: true,
   showPartners: true,
+  explicitFrom: "matches",
 };
 
 async function col() {
@@ -103,6 +106,7 @@ export async function saveSettings(discordId: string, patch: unknown): Promise<D
   if (["everyone", "matches", "nobody"].includes(String(p.friendRequestsFrom))) $set.friendRequestsFrom = p.friendRequestsFrom;
   if ([0, 40, 55, 70].includes(Number(p.discoverMinScore)) && p.discoverMinScore !== null && p.discoverMinScore !== "") $set.discoverMinScore = Number(p.discoverMinScore);
   if (["best", "active", "new"].includes(String(p.browseSort))) $set.browseSort = p.browseSort;
+  if (["everyone", "connections", "matches", "nobody"].includes(String(p.explicitFrom))) $set.explicitFrom = p.explicitFrom;
   if (Object.keys($set).length) await (await col()).updateOne({ _id: discordId } as never, { $set: { ...$set, updatedAt: new Date() } }, { upsert: true });
   return getSettings(discordId);
 }

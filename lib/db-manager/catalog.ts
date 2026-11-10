@@ -60,6 +60,8 @@ export const CATALOG: Record<string, CollectionInfo> = {
   "website.dating_reports": { label: "Social reports", group: "moderation", protected: true },
   "website.dating_media.files": { label: "Social photos (index)", group: "social" },
   "website.dating_media.chunks": { label: "Social photos (data)", group: "social", protected: true, about: "Photo bytes; cleaned together with the photo index" },
+  "website.dating_explicit.files": { label: "Social explicit photos (index)", group: "social", protected: true, about: "Explicit photos members added to their Social profile" },
+  "website.dating_explicit.chunks": { label: "Social explicit photos (data)", group: "social", protected: true, about: "Photo bytes; cleaned together with the index" },
   "website.news_media.files": { label: "News images (index)", group: "content", protected: true },
   "website.news_media.chunks": { label: "News images (data)", group: "content", protected: true },
   "website.vc_rewards": { label: "Voice reward history", group: "economy", retention: { field: "ts", days: 365 } },

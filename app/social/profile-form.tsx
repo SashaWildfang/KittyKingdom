@@ -3,7 +3,7 @@
 // Form pieces shared by the profile editor and the setup wizard. Every field is drawn from the
 // bot's schema (lib/dating/schema-data.ts), so adding a field there makes it appear here.
 
-import { ArrowLeft, ArrowRight, ImagePlus, Link2, Loader2, Minus, Move, Plus, RotateCcw, Star, Trash2, TriangleAlert, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Eye, EyeOff, ImagePlus, Link2, Loader2, Lock, Minus, Move, Plus, RotateCcw, Star, Trash2, TriangleAlert, X } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { ACCENTS, FIELDS, MAX_FURSONAS, MAX_PHOTOS, MAX_PROMPTS, PROMPTS } from "../../lib/dating/schema";
@@ -19,6 +19,8 @@ export type Own = {
   prompts: { q: string; a: string }[];
   fursonas: { name: string; description: string; art_links: string[] }[];
   photos: { id: string; ext: string; caption?: string; url: string; crop?: Crop | null }[];
+  /** Explicit photos (only ever your own here) */
+  explicit?: { id: string; url: string }[];
   web: { accent?: string; headline?: string; paused?: boolean; pausedByStaff?: boolean; hideAge?: boolean; showOnline?: boolean; banner?: string; bannerY?: number };
   strength: { score: number; missing: { points: number; label: string; tip: string }[] };
   createdOn: string;
@@ -342,6 +344,157 @@ export function PhotoManager({ photos, onChange }: { photos: Own["photos"]; onCh
       ) : null}
       <p className="dt-fine">
         Up to {MAX_PHOTOS} photos or pieces of art, SFW only (no nudity or explicit content). Location data is removed automatically. Only verified 18+ members can see them, and anyone can report a photo.
+      </p>
+    </div>
+  );
+}
+
+// ---------- Explicit photos ----------
+export const MAX_EXPLICIT = 10;
+export const EXPLICIT_FROM: [string, string, string][] = [
+  ["everyone", "Everyone on Social", "Any 18+ verified member who opens your profile."],
+  ["connections", "Matches & friends", "People you've matched with or added as a friend."],
+  ["matches", "Only matches", "Only people you've matched with."],
+  ["nobody", "Nobody", "Hidden from everyone. You can still see and manage them here."],
+];
+
+/** Explicit photos: separate from the main photos, blurred everywhere until clicked, and only shown to who you pick. */
+export function ExplicitManager({ photos, onChange }: { photos: NonNullable<Own["explicit"]>; onChange: (own: Own) => void }) {
+  const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [confirmed, setConfirmed] = useState(false);
+  const [shown, setShown] = useState<Set<string>>(new Set());
+  const [from, setFrom] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/dating/settings", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((r) => setFrom(r?.settings?.explicitFrom ?? "matches"))
+      .catch(() => setFrom("matches"));
+  }, []);
+
+  const setVisibility = async (v: string) => {
+    const before = from;
+    setFrom(v);
+    const r = await fetch("/api/dating/settings", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ explicitFrom: v }) })
+      .then((x) => x.json())
+      .catch(() => null);
+    if (!r?.ok) {
+      setFrom(before);
+      setErr("Couldn't save who can see them. Try again.");
+    }
+  };
+
+  const upload = async (files: FileList | null) => {
+    if (!files?.length) return;
+    if (!confirmed) return setErr("Tick the box first to confirm these are of you and everyone in them is 18+.");
+    setBusy(true);
+    setErr(null);
+    for (const file of Array.from(files).slice(0, MAX_EXPLICIT - photos.length)) {
+      const form = new FormData();
+      form.append("file", await shrink(file), file.name);
+      form.append("confirmed", "1");
+      const res = await fetch("/api/dating/explicit", { method: "POST", body: form }).then((r) => r.json()).catch(() => ({ ok: false, error: "Upload failed." }));
+      if (!res.ok) {
+        setErr(res.error ?? "Upload failed.");
+        break;
+      }
+      onChange(res.profile);
+    }
+    setBusy(false);
+    if (input.current) input.current.value = "";
+  };
+  const move = async (i: number, to: number) => {
+    const order = photos.map((p) => p.id);
+    const [x] = order.splice(i, 1);
+    order.splice(to, 0, x);
+    const res = await fetch("/api/dating/explicit", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ order }) }).then((r) => r.json()).catch(() => null);
+    if (res?.ok) onChange(res.profile);
+  };
+  const remove = async (id: string) => {
+    if (!window.confirm("Delete this photo? This can't be undone.")) return;
+    const res = await fetch(`/api/dating/explicit/${id}`, { method: "DELETE" }).then((r) => r.json()).catch(() => null);
+    if (res?.ok) onChange(res.profile);
+    else setErr(res?.error ?? "Couldn't delete it.");
+  };
+  const toggle = (id: string) => setShown((s) => {
+    const n = new Set(s);
+    if (n.has(id)) n.delete(id);
+    else n.add(id);
+    return n;
+  });
+  const rule = EXPLICIT_FROM.find((o) => o[0] === from);
+
+  return (
+    <div className="dt-explicit-manage">
+      <div className="dt-explicit-who">
+        <Lock size={15} aria-hidden="true" />
+        <label htmlFor="explicit-from">Who can see them</label>
+        <select id="explicit-from" className="dt-select" value={from ?? "matches"} disabled={from === null} onChange={(e) => void setVisibility(e.target.value)}>
+          {EXPLICIT_FROM.map(([k, label]) => (
+            <option key={k} value={k}>
+              {label}
+            </option>
+          ))}
+        </select>
+        {rule ? <small>{rule[2]}</small> : null}
+      </div>
+      {photos.length ? (
+        <div className="dt-photo-grid dt-explicit-grid">
+          {photos.map((p, i) => (
+            <figure key={p.id}>
+              <button type="button" className={`dt-explicit-thumb${shown.has(p.id) ? " is-shown" : ""}`} onClick={() => toggle(p.id)} aria-label={shown.has(p.id) ? "Blur again" : "Show photo"}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={p.url} alt="" />
+                {!shown.has(p.id) ? (
+                  <span className="dt-explicit-veil">
+                    <Eye size={18} aria-hidden="true" /> Show
+                  </span>
+                ) : null}
+              </button>
+              <div className="dt-photo-tools">
+                {shown.has(p.id) ? (
+                  <button type="button" onClick={() => toggle(p.id)} aria-label="Blur again" title="Blur again">
+                    <EyeOff size={14} />
+                  </button>
+                ) : null}
+                {i > 0 ? (
+                  <button type="button" onClick={() => void move(i, i - 1)} aria-label="Move earlier">
+                    <ArrowLeft size={14} />
+                  </button>
+                ) : null}
+                {i < photos.length - 1 ? (
+                  <button type="button" onClick={() => void move(i, i + 1)} aria-label="Move later">
+                    <ArrowRight size={14} />
+                  </button>
+                ) : null}
+                <button type="button" className="is-danger" onClick={() => void remove(p.id)} aria-label="Delete photo">
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </figure>
+          ))}
+        </div>
+      ) : null}
+      {photos.length < MAX_EXPLICIT ? (
+        <div className="dt-explicit-add">
+          <label className="dt-explicit-confirm">
+            <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
+            <span>These photos are of me, everyone in them is 18 or older and agreed to them being shared, and they&apos;re mine to post.</span>
+          </label>
+          <button type="button" className="dt-btn" onClick={() => (confirmed ? input.current?.click() : setErr("Tick the box first to confirm these are of you and everyone in them is 18+."))} disabled={busy}>
+            {busy ? <Loader2 size={16} className="dt-spin" aria-hidden="true" /> : <ImagePlus size={16} aria-hidden="true" />} {busy ? "Uploading…" : "Add explicit photos"}
+          </button>
+          <small className="dt-fine">
+            {photos.length} of {MAX_EXPLICIT}
+          </small>
+        </div>
+      ) : null}
+      <input ref={input} type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden onChange={(e) => void upload(e.target.files)} />
+      {err ? <p className="dt-error">{err}</p> : null}
+      <p className="dt-fine">
+        Kept apart from your main photos: they never show on cards, in Discover or in Browse, only in their own section of your profile, blurred until someone clicks. Location data is removed. Photos of anyone under 18, of other people without their consent, or that aren&apos;t yours get your Social access removed and can get you banned.
       </p>
     </div>
   );

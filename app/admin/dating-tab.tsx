@@ -7,6 +7,7 @@ import { PersonLink, timeAgo, useLive, type People } from "./admin-shared";
 type Snap = {
   name?: string;
   photos?: { url: string; caption: string | null }[];
+  explicit?: { url: string }[];
   sections?: { label: string; items: { label: string; value: string }[] }[];
   messages?: { id: string; from: string; text: string; at: string; reported: boolean }[];
 };
@@ -104,6 +105,7 @@ export function DatingTab({ onOpenMember }: { onOpenMember: (id: string) => void
                             ))}
                           </div>
                         ) : null}
+                        {r.snapshot.explicit?.length ? <ExplicitSnap photos={r.snapshot.explicit} open={r.status === "open"} /> : null}
                         {r.snapshot.sections?.map((s) => (
                           <div key={s.label} className="dtr-snap-section">
                             <b>{s.label}</b>
@@ -174,5 +176,25 @@ export function DatingTab({ onOpenMember }: { onOpenMember: (id: string) => void
         </div>
       )}
     </section>
+  );
+}
+
+/** A reported member's explicit photos: blurred until clicked, and only loadable while the report is open. */
+function ExplicitSnap({ photos, open }: { photos: { url: string }[]; open: boolean }) {
+  const [shown, setShown] = useState<Set<string>>(new Set());
+  if (!open) return <p className="adm-muted">🔞 {photos.length} explicit photo{photos.length === 1 ? "" : "s"} (only viewable while the report is open)</p>;
+  return (
+    <div className="dtr-explicit">
+      <b>🔞 Explicit photos ({photos.length})</b>
+      <div className="dtr-thumbs">
+        {photos.map((p) => (
+          <button key={p.url} type="button" className={`dtr-blur${shown.has(p.url) ? " is-shown" : ""}`} onClick={() => setShown((s) => new Set(s).add(p.url))} aria-label="Show photo">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={p.url} alt="" />
+            {!shown.has(p.url) ? <span>Click to show</span> : null}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }

@@ -29,7 +29,9 @@ export async function fileReport(reporter: string, input: { type: string; target
   } else {
     const doc = await (await datingCols()).profiles.findOne({ _id: toLong(input.target) } as never);
     if (!doc) return "That profile doesn't exist anymore.";
-    snapshot = await profileView(doc);
+    // Explicit photos are listed for admins (blurred; they load only while this report is open)
+    const explicit = ((doc.explicit ?? []) as { id: string; ext: string }[]).filter((p) => p && p.id).map((p) => ({ url: `/api/dating/explicit/${p.id}.${p.ext}` }));
+    snapshot = { ...(await profileView(doc)), explicit };
     if (type === "photo" && !((doc.photos ?? []) as { id: string }[]).some((p) => p.id === input.photoId)) return "That photo was already removed.";
   }
   const c = await col();

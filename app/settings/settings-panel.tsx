@@ -20,6 +20,7 @@ import {
   UserRound,
   X,
   type LucideIcon,
+  ImagePlus,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useApi } from "../social/ui";
@@ -42,6 +43,7 @@ type Settings = {
   browseSort: "best" | "active" | "new";
   enterToSend: boolean;
   showPartners: boolean;
+  explicitFrom: "everyone" | "connections" | "matches" | "nobody";
 };
 type Web = { accent?: string; headline?: string; paused?: boolean; pausedByStaff?: boolean; hideAge?: boolean; showOnline?: boolean };
 type NotifyType = { key: string; label: string; hint?: string };
@@ -337,6 +339,20 @@ export function SettingsPanel({ social, account }: { social: boolean; account: A
               <ToggleRow title="Hide my age" hint="Still used for matching, just not shown." checked={!!web.hideAge} onChange={(v) => void saveWeb({ hideAge: v })} />
             </>
           ) : null}
+        </Group>
+        <Group title="Explicit photos">
+          <ChoiceRow
+            title="Who can see my explicit photos"
+            value={s.explicitFrom ?? "matches"}
+            onChange={(v) => set("explicitFrom", v)}
+            options={[
+              ["everyone", "Everyone on Social", "Any 18+ verified member who opens your profile."],
+              ["connections", "Matches & friends", "People you've matched with or added as a friend."],
+              ["matches", "Only matches", "Only people you've matched with."],
+              ["nobody", "Nobody", "Hidden from everyone. You can still see and manage them on your profile."],
+            ]}
+          />
+          <LinkRow href="/social/profile/edit#explicit" icon={ImagePlus} title="Manage my explicit photos" hint="Add, reorder or delete them (up to 10)." />
         </Group>
         <Group title="Your profile">
           <ToggleRow title="Include me in Featured this hour" hint="The hourly draw on the Social home (only if you're open to dating)." checked={s.featured} onChange={(v) => set("featured", v)} />
