@@ -24,6 +24,18 @@ const ts = (d: Date | string | null | undefined, style = "D") => {
 const cut = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
 const label = (a: string) => LABEL[a] ?? a.replace(/_/g, " ");
 
+/** Their punishments, newest first: every page (100 per page) up to their latest 1,000. */
+async function wholeRecord(discordId: string) {
+  const first = await queryPunishments({ userId: discordId, pageSize: 100, page: 1 });
+  const rows = [...first.rows];
+  for (let page = 2; rows.length < first.total && page <= 10; page += 1) {
+    const next = await queryPunishments({ userId: discordId, pageSize: 100, page });
+    if (!next.rows.length) break;
+    rows.push(...next.rows);
+  }
+  return { ...first, rows };
+}
+
 export type AppealAlertInput = {
   discordId: string;
   username: string;
@@ -40,13 +52,16 @@ export type AppealAlertInput = {
 export async function sendAppealAlert(a: AppealAlertInput) {
   const site = (await getMongoClient()).db(process.env.MONGODB_DB ?? "website");
   const safe = <T>(p: Promise<T>, fallback: T) => p.catch(() => fallback);
-  const [record, member, bans, pastAppeals, notes, watch] = await Promise.all([
-    safe(queryPunishments({ userId: a.discordId, pageSize: 100 }), { rows: [], total: 0 } as unknown as Awaited<ReturnType<typeof queryPunishments>>),
+  const [record, member, bans, pastAppeals, notes, watch, last30, activeNow] = await Promise.all([
+    safe(wholeRecord(a.discordId), { rows: [], total: 0 } as unknown as Awaited<ReturnType<typeof queryPunishments>>),
     safe(getMemberBasics(a.discordId), null),
     safe(getCurrentBans(), null),
     safe(site.collection("appeals").find({ discordId: a.discordId }).sort({ createdAt: -1 }).limit(20).toArray(), [] as Document[]),
     safe(listNotes(a.discordId), []),
     safe(getWatch(a.discordId), null),
+    // Counted across their whole record, not just the rows loaded above
+    safe(queryPunishments({ userId: a.discordId, from: new Date(Date.now() - 30 * 86_400_000), pageSize: 1 }).then((r) => r.total), null as number | null),
+    safe(queryPunishments({ userId: a.discordId, status: "active", pageSize: 50 }).then((r) => r.rows), null as Awaited<ReturnType<typeof queryPunishments>>["rows"] | null),
   ]);
   const issuers = await safe(people(record.rows.map((r) => r.issuerId).concat(a.punishment.issuerId)), {} as Awaited<ReturnType<typeof people>>);
   const p = a.punishment;
@@ -54,7 +69,17 @@ export async function sendAppealAlert(a: AppealAlertInput) {
 
   // ── The punishment they're appealing ──
   const byLine = p.issuerId ? `<@${p.issuerId}>${issuers[p.issuerId]?.name ? ` (${issuers[p.issuerId].name})` : ""}` : "AutoMod / the bot";
-  const ends = p.expiresAt ? `${new Date(p.expiresAt).getTime() > now ? "Ends" : "Ended"} ${ts(p.expiresAt, "f")} (${ts(p.expiresAt, "R")})` : p.action === "ban" ? "Permanent" : "No end date";
+  // The bot stamps every punishment with an expiry, but only mutes really end (and warnings stop counting):
+  // a ban is permanent until it's lifted, and a kick is over the moment it happens
+  const timed = ["mute", "tempmute", "timeout", "muzzle", "warn"].includes(p.action);
+  const ends =
+    p.action === "ban" || p.action === "tempban"
+      ? "Permanent until it's lifted"
+      : p.action.startsWith("kick")
+        ? "One-off (they could rejoin)"
+        : timed && p.expiresAt
+          ? `${new Date(p.expiresAt).getTime() > now ? (p.action === "warn" ? "Stops counting" : "Ends") : p.action === "warn" ? "Stopped counting" : "Ended"} ${ts(p.expiresAt, "f")} (${ts(p.expiresAt, "R")})`
+          : "No end date";
   const appealed = [`**${label(p.action)}** on ${ts(p.at)} (${ts(p.at, "R")})`, `**Reason:** ${cut(p.reason || "No reason given", 300)}`, `**Given by:** ${byLine}`, `**${ends}**`].join("\n");
 
   // ── The member ──
@@ -70,8 +95,9 @@ export async function sendAppealAlert(a: AppealAlertInput) {
   const rows = record.rows;
   const counts = new Map<string, number>();
   for (const r of rows) counts.set(r.action, (counts.get(r.action) ?? 0) + 1);
-  const recent30 = rows.filter((r) => now - new Date(r.timestamp).getTime() < 30 * 86_400_000).length;
-  const active = rows.filter((r) => r.status === "active").map((r) => label(r.action));
+  const recent30 = last30 ?? rows.filter((r) => now - new Date(r.timestamp).getTime() < 30 * 86_400_000).length;
+  const active = (activeNow ?? rows.filter((r) => r.status === "active")).map((r) => label(r.action));
+  const partial = record.total > rows.length;
   const automod = rows.filter((r) => r.source === "automod").length;
   const recordLines = rows.length
     ? [
@@ -79,8 +105,8 @@ export async function sendAppealAlert(a: AppealAlertInput) {
         Array.from(counts)
           .sort((x, y) => y[1] - x[1])
           .map(([k, n]) => `${label(k)} ×${n}`)
-          .join(" · "),
-        active.length ? `**Active now:** ${Array.from(new Set(active)).join(", ")}` : "Nothing active right now",
+          .join(" · ") + (partial ? ` *(of their latest ${rows.length})*` : ""),
+        activeNow === null ? "Couldn't check what's active" : active.length ? `**Active now:** ${Array.from(new Set(active)).join(", ")}` : "Nothing active right now",
       ]
     : ["Clean record apart from this one"];
 
