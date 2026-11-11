@@ -173,7 +173,7 @@
    "boot.py": "e3467e8468f87d6f",
    "bot.py": "16f51cae937f4d69",
    "cmds/getjoinapp.py": "d0283bf5a68b074f",
-   "cmds/nsfwverify.py": "67b42e51fd35221b",
+   "cmds/nsfwverify.py": "35246986e600fdcb",
    "cmds/reply.py": "f0c8c6f950d38c7e",
    "db/database.py": "630cbb487de2f0cd",
    "db/issues.py": "5a670e8fe0f66cca",
@@ -199,5 +199,5 @@
    "ticketing/ui_buttons.py": "d769104070f53e39"
   }
  },
- "generatedAt": "2026-10-30T03:48:58+00:00"
+ "generatedAt": "2026-11-11T20:20:12+00:00"
 }
